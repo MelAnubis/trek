@@ -6,7 +6,7 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
 import CustomSelect from '../components/shared/CustomSelect'
 import { useToast } from '../components/shared/Toast'
-import { Save, Map, Palette, User, Moon, Sun, Monitor, Shield, Camera, Trash2, Lock, KeyRound } from 'lucide-react'
+import { Save, Map, Palette, User, Moon, Sun, Monitor, Shield, Camera, Trash2, Lock, KeyRound, Copy, Download, Printer } from 'lucide-react'
 import { authApi, adminApi, notificationsApi } from '../api/client'
 import apiClient from '../api/client'
 import type { LucideIcon } from 'lucide-react'
@@ -17,6 +17,8 @@ interface MapPreset {
   name: string
   url: string
 }
+
+const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
 const MAP_PRESETS: MapPreset[] = [
   { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
@@ -193,6 +195,66 @@ export default function SettingsPage(): React.ReactElement {
   const [mfaDisablePwd, setMfaDisablePwd] = useState('')
   const [mfaDisableCode, setMfaDisableCode] = useState('')
   const [mfaLoading, setMfaLoading] = useState(false)
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null)
+
+  const backupCodesText = backupCodes?.join('\n') || ''
+
+  // Restore backup codes panel after refresh (loadUser silent fix + sessionStorage)
+  useEffect(() => {
+    if (!user?.mfa_enabled || backupCodes) return
+    try {
+      const raw = sessionStorage.getItem(MFA_BACKUP_SESSION_KEY)
+      if (!raw) return
+      const parsed = JSON.parse(raw) as unknown
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((x) => typeof x === 'string')) {
+        setBackupCodes(parsed)
+      }
+    } catch {
+      sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
+    }
+  }, [user?.mfa_enabled, backupCodes])
+
+  const dismissBackupCodes = (): void => {
+    sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
+    setBackupCodes(null)
+  }
+
+  const copyBackupCodes = async (): Promise<void> => {
+    if (!backupCodesText) return
+    try {
+      await navigator.clipboard.writeText(backupCodesText)
+      toast.success(t('settings.mfa.backupCopied'))
+    } catch {
+      toast.error(t('common.error'))
+    }
+  }
+
+  const downloadBackupCodes = (): void => {
+    if (!backupCodesText) return
+    const blob = new Blob([backupCodesText + '\n'], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'trek-mfa-backup-codes.txt'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  const printBackupCodes = (): void => {
+    if (!backupCodesText) return
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>TREK MFA Backup Codes</title>
+      <style>body{font-family:Arial,sans-serif;padding:32px}h1{font-size:20px}pre{font-size:16px;line-height:1.6}</style>
+      </head><body><h1>TREK MFA Backup Codes</h1><p>${new Date().toLocaleString()}</p><pre>${backupCodesText}</pre></body></html>`
+    const w = window.open('', '_blank', 'width=900,height=700')
+    if (!w) return
+    w.document.open()
+    w.document.write(html)
+    w.document.close()
+    w.focus()
+    w.print()
+  }
 
   useEffect(() => {
     setMapTileUrl(settings.map_tile_url || '')
@@ -709,12 +771,21 @@ export default function SettingsPage(): React.ReactElement {
                             onClick={async () => {
                               setMfaLoading(true)
                               try {
-                                await authApi.mfaEnable({ code: mfaSetupCode })
+                                const resp = await authApi.mfaEnable({ code: mfaSetupCode }) as { backup_codes?: string[] }
                                 toast.success(t('settings.mfa.toastEnabled'))
                                 setMfaQr(null)
                                 setMfaSecret(null)
                                 setMfaSetupCode('')
-                                await loadUser()
+                                const codes = resp.backup_codes || null
+                                if (codes?.length) {
+                                  try {
+                                    sessionStorage.setItem(MFA_BACKUP_SESSION_KEY, JSON.stringify(codes))
+                                  } catch {
+                                    /* ignore quota / private mode */
+                                  }
+                                }
+                                setBackupCodes(codes)
+                                await loadUser({ silent: true })
                               } catch (err: unknown) {
                                 toast.error(getApiErrorMessage(err, t('common.error')))
                               } finally {
@@ -766,7 +837,9 @@ export default function SettingsPage(): React.ReactElement {
                               toast.success(t('settings.mfa.toastDisabled'))
                               setMfaDisablePwd('')
                               setMfaDisableCode('')
-                              await loadUser()
+                              sessionStorage.removeItem(MFA_BACKUP_SESSION_KEY)
+                              setBackupCodes(null)
+                              await loadUser({ silent: true })
                             } catch (err: unknown) {
                               toast.error(getApiErrorMessage(err, t('common.error')))
                             } finally {
@@ -777,6 +850,29 @@ export default function SettingsPage(): React.ReactElement {
                         >
                           {t('settings.mfa.disable')}
                         </button>
+                      </div>
+                    )}
+
+                    {backupCodes && backupCodes.length > 0 && (
+                      <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-hover)' }}>
+                        <p className="text-sm font-semibold m-0" style={{ color: 'var(--text-primary)' }}>{t('settings.mfa.backupTitle')}</p>
+                        <p className="text-xs m-0" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.backupDescription')}</p>
+                        <pre className="text-xs m-0 p-2 rounded border overflow-auto" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', maxHeight: 220 }}>{backupCodesText}</pre>
+                        <p className="text-xs m-0" style={{ color: '#b45309' }}>{t('settings.mfa.backupWarning')}</p>
+                        <div className="flex flex-wrap gap-2">
+                          <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                            <Copy size={13} /> {t('settings.mfa.backupCopy')}
+                          </button>
+                          <button type="button" onClick={downloadBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                            <Download size={13} /> {t('settings.mfa.backupDownload')}
+                          </button>
+                          <button type="button" onClick={printBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                            <Printer size={13} /> {t('settings.mfa.backupPrint')}
+                          </button>
+                          <button type="button" onClick={dismissBackupCodes} className="px-3 py-2 rounded-lg text-xs border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                            {t('common.ok')}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </>

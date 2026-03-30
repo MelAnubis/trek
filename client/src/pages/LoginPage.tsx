@@ -544,11 +544,11 @@ export default function LoginPage(): React.ReactElement {
                     <KeyRound size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                     <input
                       type="text"
-                      inputMode="numeric"
+                      inputMode="text"
                       autoComplete="one-time-code"
                       value={mfaCode}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
-                      placeholder="000000"
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value.toUpperCase().slice(0, 24))}
+                      placeholder="000000 or XXXX-XXXX"
                       required
                       style={inputBase}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}

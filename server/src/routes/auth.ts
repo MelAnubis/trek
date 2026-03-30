@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { v4 as uuid } from 'uuid';
 import fetch from 'node-fetch';
 import { authenticator } from 'otplib';
@@ -19,6 +20,35 @@ authenticator.options = { window: 1 };
 
 const MFA_SETUP_TTL_MS = 15 * 60 * 1000;
 const mfaSetupPending = new Map<number, { secret: string; exp: number }>();
+const MFA_BACKUP_CODE_COUNT = 10;
+
+function normalizeBackupCode(input: string): string {
+  return String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+function hashBackupCode(input: string): string {
+  return crypto.createHash('sha256').update(normalizeBackupCode(input)).digest('hex');
+}
+
+function generateBackupCodes(count = MFA_BACKUP_CODE_COUNT): string[] {
+  const codes: string[] = [];
+  while (codes.length < count) {
+    const raw = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const code = `${raw.slice(0, 4)}-${raw.slice(4)}`;
+    if (!codes.includes(code)) codes.push(code);
+  }
+  return codes;
+}
+
+function parseBackupCodeHashes(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(v => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
 
 function getPendingMfaSecret(userId: number): string | null {
   const row = mfaSetupPending.get(userId);
@@ -41,6 +71,7 @@ function stripUserForClient(user: User): Record<string, unknown> {
     openweather_api_key: _o,
     unsplash_api_key: _u,
     mfa_secret: _mf,
+    mfa_backup_codes: _mbc,
     ...rest
   } = user;
   return {
@@ -645,10 +676,20 @@ router.post('/mfa/verify-login', authLimiter, (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Invalid session' });
     }
     const secret = decryptMfaSecret(user.mfa_secret);
-    const tokenStr = String(code).replace(/\s/g, '');
-    const ok = authenticator.verify({ token: tokenStr, secret });
-    if (!ok) {
-      return res.status(401).json({ error: 'Invalid verification code' });
+    const tokenStr = String(code).trim();
+    const okTotp = authenticator.verify({ token: tokenStr.replace(/\s/g, ''), secret });
+    if (!okTotp) {
+      const hashes = parseBackupCodeHashes(user.mfa_backup_codes);
+      const candidateHash = hashBackupCode(tokenStr);
+      const idx = hashes.findIndex(h => h === candidateHash);
+      if (idx === -1) {
+        return res.status(401).json({ error: 'Invalid verification code' });
+      }
+      hashes.splice(idx, 1);
+      db.prepare('UPDATE users SET mfa_backup_codes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
+        JSON.stringify(hashes),
+        user.id
+      );
     }
     db.prepare('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?').run(user.id);
     const sessionToken = generateToken(user);
@@ -702,14 +743,17 @@ router.post('/mfa/enable', authenticate, (req: Request, res: Response) => {
   if (!ok) {
     return res.status(401).json({ error: 'Invalid verification code' });
   }
+  const backupCodes = generateBackupCodes();
+  const backupHashes = backupCodes.map(hashBackupCode);
   const enc = encryptMfaSecret(pending);
-  db.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
+  db.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
     enc,
+    JSON.stringify(backupHashes),
     authReq.user.id
   );
   mfaSetupPending.delete(authReq.user.id);
   writeAudit({ userId: authReq.user.id, action: 'user.mfa_enable', ip: getClientIp(req) });
-  res.json({ success: true, mfa_enabled: true });
+  res.json({ success: true, mfa_enabled: true, backup_codes: backupCodes });
 });
 
 router.post('/mfa/disable', authenticate, rateLimiter(5, RATE_LIMIT_WINDOW), (req: Request, res: Response) => {
@@ -734,7 +778,7 @@ router.post('/mfa/disable', authenticate, rateLimiter(5, RATE_LIMIT_WINDOW), (re
   if (!ok) {
     return res.status(401).json({ error: 'Invalid verification code' });
   }
-  db.prepare('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
+  db.prepare('UPDATE users SET mfa_enabled = 0, mfa_secret = NULL, mfa_backup_codes = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
     authReq.user.id
   );
   mfaSetupPending.delete(authReq.user.id);

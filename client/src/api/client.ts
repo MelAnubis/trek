@@ -44,7 +44,7 @@ export const authApi = {
   login: (data: { email: string; password: string }) => apiClient.post('/auth/login', data).then(r => r.data),
   verifyMfaLogin: (data: { mfa_token: string; code: string }) => apiClient.post('/auth/mfa/verify-login', data).then(r => r.data),
   mfaSetup: () => apiClient.post('/auth/mfa/setup', {}).then(r => r.data),
-  mfaEnable: (data: { code: string }) => apiClient.post('/auth/mfa/enable', data).then(r => r.data),
+  mfaEnable: (data: { code: string }) => apiClient.post('/auth/mfa/enable', data).then(r => r.data as { success: boolean; mfa_enabled: boolean; backup_codes?: string[] }),
   mfaDisable: (data: { password: string; code: string }) => apiClient.post('/auth/mfa/disable', data).then(r => r.data),
   me: () => apiClient.get('/auth/me').then(r => r.data),
   updateMapsKey: (key: string | null) => apiClient.put('/auth/me/maps-key', { maps_api_key: key }).then(r => r.data),
