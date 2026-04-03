@@ -719,7 +719,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   reservations={reservations}
                   lat={geoPlace?.lat}
                   lng={geoPlace?.lng}
-                  onClose={() => setShowDayDetail(null)}
+                  onClose={() => { setShowDayDetail(null); handleSelectDay(null) }}
                   onAccommodationChange={loadAccommodations}
                   leftWidth={isMobile ? 0 : (leftCollapsed ? 0 : leftWidth)}
                   rightWidth={isMobile ? 0 : (rightCollapsed ? 0 : rightWidth)}

@@ -69,7 +69,7 @@ export async function saveImmichSettings(
 export async function testConnection(
   immichUrl: string,
   immichApiKey: string
-): Promise<{ connected: boolean; error?: string; user?: { name?: string; email?: string } }> {
+): Promise<{ connected: boolean; error?: string; user?: { name?: string; email?: string }; canonicalUrl?: string }> {
   const ssrf = await checkSsrf(immichUrl);
   if (!ssrf.allowed) return { connected: false, error: ssrf.error ?? 'Invalid Immich URL' };
   try {
@@ -79,7 +79,23 @@ export async function testConnection(
     });
     if (!resp.ok) return { connected: false, error: `HTTP ${resp.status}` };
     const data = await resp.json() as { name?: string; email?: string };
-    return { connected: true, user: { name: data.name, email: data.email } };
+
+    // Detect http → https upgrade only: same host/port, protocol changed to https
+    let canonicalUrl: string | undefined;
+    if (resp.url) {
+      const finalUrl = new URL(resp.url);
+      const inputUrl = new URL(immichUrl);
+      if (
+        inputUrl.protocol === 'http:' &&
+        finalUrl.protocol === 'https:' &&
+        finalUrl.hostname === inputUrl.hostname &&
+        finalUrl.port === inputUrl.port
+      ) {
+        canonicalUrl = finalUrl.origin;
+      }
+    }
+
+    return { connected: true, user: { name: data.name, email: data.email }, canonicalUrl };
   } catch (err: unknown) {
     return { connected: false, error: err instanceof Error ? err.message : 'Connection failed' };
   }
