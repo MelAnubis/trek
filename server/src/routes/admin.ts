@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate, adminOnly } from '../middleware/auth';
-import { AuthRequest } from '../types';
+import { db } from '../db/database';
+import { AuthRequest, Addon } from '../types';
 import { writeAudit, getClientIp, logInfo } from '../services/auditLog';
 import * as svc from '../services/adminService';
 
@@ -355,7 +356,7 @@ router.put('/addons/:id', (req: Request, res: Response) => {
     action: 'admin.addon_update',
     resource: String(req.params.id),
     ip: getClientIp(req),
-    details: result.auditDetails,
+    details: { enabled: req.body.enabled, config: req.body.config },
   });
   res.json({ addon: updated });
 });
