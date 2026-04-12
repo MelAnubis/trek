@@ -43,7 +43,7 @@ describe('PhotoUpload', () => {
 
   it('FE-COMP-PHOTOUPLOAD-001: renders dropzone with upload instructions', () => {
     render(<PhotoUpload {...defaultProps} />)
-    expect(screen.getByText('Fotos hier ablegen')).toBeInTheDocument()
+    expect(screen.getByText('Drop photos here')).toBeInTheDocument()
     // Upload icon rendered via lucide-react as SVG
     expect(document.querySelector('svg')).toBeTruthy()
   })
@@ -51,7 +51,7 @@ describe('PhotoUpload', () => {
   it('FE-COMP-PHOTOUPLOAD-002: options section hidden before files are selected', () => {
     render(<PhotoUpload {...defaultProps} />)
     expect(screen.queryByText('Tag verknüpfen')).not.toBeInTheDocument()
-    expect(screen.queryByPlaceholderText('Optionale Beschriftung...')).not.toBeInTheDocument()
+    expect(screen.queryByPlaceholderText('Optional caption...')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-PHOTOUPLOAD-003: upload button is disabled when no files selected', () => {
@@ -66,7 +66,7 @@ describe('PhotoUpload', () => {
     await uploadFiles([makeFile()])
     expect(screen.getByAltText('photo.jpg')).toBeInTheDocument()
     expect(screen.getByText('Tag verknüpfen')).toBeInTheDocument()
-    expect(screen.getByPlaceholderText('Optionale Beschriftung...')).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('Optional caption...')).toBeInTheDocument()
   })
 
   it('FE-COMP-PHOTOUPLOAD-005: file count label updates correctly', async () => {
@@ -120,7 +120,7 @@ describe('PhotoUpload', () => {
     render(<PhotoUpload {...defaultProps} />)
     await uploadFiles([makeFile()])
 
-    await userEvent.type(screen.getByPlaceholderText('Optionale Beschriftung...'), 'Vacation')
+    await userEvent.type(screen.getByPlaceholderText('Optional caption...'), 'Vacation')
 
     await userEvent.click(getSubmitButton())
 
