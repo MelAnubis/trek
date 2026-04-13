@@ -28,7 +28,7 @@ interface PlacesSidebarProps {
   onDeletePlace: (placeId: number) => void
   days: Day[]
   isMobile: boolean
-  onCategoryFilterChange?: (categoryId: string) => void
+  onCategoryFilterChange?: (categoryIds: Set<string>) => void
   onPlacesFilterChange?: (filter: string) => void
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
 }
@@ -105,8 +105,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
     setCategoryFiltersLocal(prev => {
       const next = new Set(prev)
       if (next.has(catId)) next.delete(catId); else next.add(catId)
-      // Notify parent with first selected or empty
-      onCategoryFilterChange?.(next.size === 1 ? [...next][0] : '')
+      onCategoryFilterChange?.(next)
       return next
     })
   }
@@ -257,7 +256,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
                     )
                   })}
                   {categoryFilters.size > 0 && (
-                    <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.('') }} style={{
+                    <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
                       width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       background: 'transparent', fontFamily: 'inherit', fontSize: 11, color: 'var(--text-faint)',
@@ -317,7 +316,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
                   canEditPlaces && { label: t('common.edit'), icon: Pencil, onClick: () => onEditPlace(place) },
                   selectedDayId && { label: t('planner.addToDay'), icon: CalendarDays, onClick: () => onAssignToDay(place.id, selectedDayId) },
                   place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
-                  (place.lat && place.lng) && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(`https://www.google.com/maps/search/?api=1&query=${place.lat},${place.lng}`, '_blank') },
+                  (place.lat && place.lng) && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(`https://www.google.com/maps/search/?api=1&query=${place.google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + place.google_place_id : place.lat + ',' + place.lng}`, '_blank') },
                   { divider: true },
                   canEditPlaces && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
                 ])}

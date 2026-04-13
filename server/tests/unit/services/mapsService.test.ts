@@ -384,7 +384,12 @@ describe('searchNominatim (fetch stubbed)', () => {
   });
 
   it('MAPS-030b: throws when nominatim response is not ok', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: 'Internal Server Error',
+      text: async () => '',
+    }));
     const { searchNominatim } = await import('../../../src/services/mapsService');
     await expect(searchNominatim('fail')).rejects.toThrow('Nominatim API error');
   });
