@@ -558,10 +558,23 @@ export function addTripPhoto(
   provider: string,
   opts: { shared?: boolean; albumLinkId?: number } = {}
 ): TestTripPhoto {
+  // Insert into trek_photos first (central registry)
+  db.prepare(
+    'INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)'
+  ).run(provider, assetId, userId);
+  const trekPhoto = db.prepare(
+    'SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?'
+  ).get(provider, assetId, userId) as { id: number };
+
   const result = db.prepare(
-    'INSERT OR IGNORE INTO trip_photos (trip_id, user_id, asset_id, provider, shared, album_link_id) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(tripId, userId, assetId, provider, opts.shared ? 1 : 0, opts.albumLinkId ?? null);
-  return db.prepare('SELECT * FROM trip_photos WHERE id = ?').get(result.lastInsertRowid) as TestTripPhoto;
+    'INSERT OR IGNORE INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, ?, ?)'
+  ).run(tripId, userId, trekPhoto.id, opts.shared ? 1 : 0, opts.albumLinkId ?? null);
+  return db.prepare(`
+    SELECT tp.id, tp.trip_id, tp.user_id, tkp.asset_id, tkp.provider, tp.shared, tp.album_link_id
+    FROM trip_photos tp
+    JOIN trek_photos tkp ON tkp.id = tp.photo_id
+    WHERE tp.id = ?
+  `).get(result.lastInsertRowid) as TestTripPhoto;
 }
 
 export interface TestAlbumLink {

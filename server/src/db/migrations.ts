@@ -1467,6 +1467,8 @@ function runMigrations(db: Database.Database): void {
 
         if (assetCol) {
           const providerExpr = hasProvider ? 'provider' : "'immich'";
+          // Qualified alias needed in JOIN context where both trip_photos and trek_photos have provider
+          const providerJoinExpr = hasProvider ? 'tp.provider' : "'immich'";
           const sharedExpr = tpColNames.has('shared') ? 'shared' : '1';
           const addedAtExpr = tpColNames.has('added_at') ? 'COALESCE(added_at, CURRENT_TIMESTAMP)' : 'CURRENT_TIMESTAMP';
           const albumLinkExpr = hasAlbumLink ? 'album_link_id' : 'NULL';
@@ -1496,7 +1498,7 @@ function runMigrations(db: Database.Database): void {
             INSERT OR IGNORE INTO trip_photos_new (trip_id, user_id, photo_id, shared, album_link_id, added_at)
             SELECT tp.trip_id, tp.user_id, tkp.id, ${sharedExpr}, ${albumLinkExpr}, ${addedAtExpr}
             FROM trip_photos tp
-            JOIN trek_photos tkp ON tkp.provider = ${providerExpr} AND tkp.asset_id = tp.${assetCol} AND tkp.owner_id = tp.user_id
+            JOIN trek_photos tkp ON tkp.provider = ${providerJoinExpr} AND tkp.asset_id = tp.${assetCol} AND tkp.owner_id = tp.user_id
           `);
         } else {
           // No asset column at all — just recreate empty

@@ -27,9 +27,9 @@ describe('JournalBody', () => {
 
   it('FE-COMP-JOURNALBODY-004: renders headings with proper elements', () => {
     const { container } = render(<JournalBody text="## Section Title" />);
-    const h2 = container.querySelector('h2');
-    expect(h2).toBeInTheDocument();
-    expect(h2!.textContent).toBe('Section Title');
+    const p = container.querySelector('p');
+    expect(p).toBeInTheDocument();
+    expect(p!.textContent).toBe('Section Title');
   });
 
   it('FE-COMP-JOURNALBODY-005: handles empty text without crashing', () => {

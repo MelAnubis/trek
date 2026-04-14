@@ -94,7 +94,7 @@ export default function JourneyDetailPage() {
   const [showSettings, setShowSettings] = useState(false)
 
   useEffect(() => {
-    if (id) loadJourney(Number(id))
+    if (id) loadJourney(Number(id)).catch(() => {})
   }, [id])
 
   useEffect(() => {
@@ -1428,7 +1428,7 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
   }, [trips])
 
   const cancelPending = () => {
-    if (abortRef.current) abortRef.current.abort()
+    if (abortRef.current) { abortRef.current.abort() }
     abortRef.current = new AbortController()
     return abortRef.current.signal
   }
@@ -1827,7 +1827,7 @@ function DatePicker({ value, onChange, tripDates }: {
 
             {/* Weekday headers */}
             <div className="grid grid-cols-7 mb-1">
-              {Array.from({ length: 7 }, (_, i) => new Date(2024, 0, i).toLocaleDateString(undefined, { weekday: 'narrow' })).map((d, i) => (
+              {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((d, i) => (
                 <div key={i} className="text-center text-[10px] font-medium text-zinc-400 py-1">{d}</div>
               ))}
             </div>
@@ -2311,11 +2311,11 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
     journeyApi.availableTrips().then(d => setTrips(d.trips || [])).catch(() => {})
   }, [])
 
-  const filtered = trips.filter(t => {
-    if (existingTripIds.includes(t.id)) return false
+  const filtered = trips.filter(trip => {
+    if (existingTripIds.includes(trip.id)) return false
     if (!search) return true
     const q = search.toLowerCase()
-    return t.title.toLowerCase().includes(q) || (t.destination || '').toLowerCase().includes(q)
+    return trip.title.toLowerCase().includes(q) || (trip.destination || '').toLowerCase().includes(q)
   })
 
   const handleAdd = async (tripId: number) => {
@@ -2357,26 +2357,26 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
             {filtered.length === 0 && (
               <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.trips.noTripsAvailable')}</p>
             )}
-            {filtered.map(t => (
+            {filtered.map(trip => (
               <div
-                key={t.id}
+                key={trip.id}
                 className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-transparent"
               >
-                <div className="w-9 h-9 rounded-md flex-shrink-0" style={{ background: pickGradient(t.id) }} />
+                <div className="w-9 h-9 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.id) }} />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{t.title}</div>
-                  {(t.destination || t.start_date) && (
+                  <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{trip.title}</div>
+                  {(trip.destination || trip.start_date) && (
                     <div className="text-[11px] text-zinc-500 truncate">
-                      {t.destination}{t.destination && t.start_date ? ' · ' : ''}{t.start_date}
+                      {trip.destination}{trip.destination && trip.start_date ? ' · ' : ''}{trip.start_date}
                     </div>
                   )}
                 </div>
                 <button
-                  onClick={() => handleAdd(t.id)}
-                  disabled={adding === t.id}
+                  onClick={() => handleAdd(trip.id)}
+                  disabled={adding === trip.id}
                   className="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200 disabled:opacity-50"
                 >
-                  {adding === t.id ? '...' : t('journey.trips.link')}
+                  {adding === trip.id ? '...' : t('journey.trips.link')}
                 </button>
               </div>
             ))}

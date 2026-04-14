@@ -473,10 +473,12 @@ describe('getVisitedRegions', () => {
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip' });
     insertPlaceWithCoords(testDb, trip.id, 'Paris Hotel', 48.85, 2.35);
 
-    const resultPromise = getVisitedRegions(user.id);
+    // First call triggers the background geocoding fire-and-forget
+    await getVisitedRegions(user.id);
     // Advance all pending timers (including the 1100ms Nominatim rate-limit delay)
     await vi.runAllTimersAsync();
-    const result = await resultPromise;
+    // Second call returns now-cached data
+    const result = await getVisitedRegions(user.id);
 
     expect(result.regions['FR']).toBeDefined();
 

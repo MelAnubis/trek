@@ -131,6 +131,7 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       if (err?.response?.status === 404) {
         set({ current: null, notFound: true })
       }
+      throw err
     } finally {
       set({ loading: false })
     }

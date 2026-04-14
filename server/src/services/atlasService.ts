@@ -173,17 +173,21 @@ export const CONTINENT_MAP: Record<string, string> = {
 
 let lastNominatimCall = 0;
 
+// Shared throttle: enforces ≥1.1s between any Nominatim request, across all callers.
+async function throttleNominatim() {
+  const elapsed = Date.now() - lastNominatimCall;
+  if (elapsed < 1100) await new Promise(r => setTimeout(r, 1100 - elapsed));
+  lastNominatimCall = Date.now();
+}
+
 export async function reverseGeocodeCountry(lat: number, lng: number): Promise<string | null> {
   const key = roundKey(lat, lng);
   if (geocodeCache.has(key)) return geocodeCache.get(key)!;
-  // Nominatim rate limit: max 1 req/sec
-  const now = Date.now();
-  const elapsed = now - lastNominatimCall;
-  if (elapsed < 1100) await new Promise(r => setTimeout(r, 1100 - elapsed));
-  lastNominatimCall = Date.now();
+  await throttleNominatim();
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`, {
       headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+      signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return null;
     const data = await res.json() as { address?: { country_code?: string } };
@@ -460,15 +464,22 @@ export function unmarkRegionVisited(userId: number, regionCode: string): void {
 
 interface RegionInfo { country_code: string; region_code: string; region_name: string }
 
+// Tracks place IDs currently being geocoded in the background to prevent duplicate enqueuing.
+const geocodingInFlight = new Set<number>();
+
 const regionCache = new Map<string, RegionInfo | null>();
 
 async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInfo | null> {
   const key = roundKey(lat, lng);
   if (regionCache.has(key)) return regionCache.get(key)!;
+  await throttleNominatim();
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&accept-language=en`,
-      { headers: { 'User-Agent': 'TREK Travel Planner' } }
+      {
+        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+        signal: AbortSignal.timeout(10_000),
+      }
     );
     if (!res.ok) return null;
     const data = await res.json() as { address?: Record<string, string> };
@@ -505,20 +516,27 @@ export async function getVisitedRegions(userId: number): Promise<{ regions: Reco
     : [];
   const cachedMap = new Map(cached.map(c => [c.place_id, c]));
 
-  // Resolve uncached places (rate-limited to avoid hammering Nominatim)
-  const uncached = places.filter(p => p.lat && p.lng && !cachedMap.has(p.id));
-  const insertStmt = db.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
-
-  for (const place of uncached) {
-    const info = await reverseGeocodeRegion(place.lat!, place.lng!);
-    if (info) {
-      insertStmt.run(place.id, info.country_code, info.region_code, info.region_name);
-      cachedMap.set(place.id, { place_id: place.id, ...info });
-    }
-    // Nominatim rate limit: 1 req/sec
-    if (uncached.indexOf(place) < uncached.length - 1) {
-      await new Promise(r => setTimeout(r, 1100));
-    }
+  // Kick off background geocoding for uncached places; return cached data immediately.
+  const uncached = places.filter(p => p.lat && p.lng && !cachedMap.has(p.id) && !geocodingInFlight.has(p.id));
+  if (uncached.length > 0) {
+    const insertStmt = db.prepare('INSERT OR REPLACE INTO place_regions (place_id, country_code, region_code, region_name) VALUES (?, ?, ?, ?)');
+    for (const p of uncached) geocodingInFlight.add(p.id);
+    void (async () => {
+      try {
+        for (const place of uncached) {
+          try {
+            const info = await reverseGeocodeRegion(place.lat!, place.lng!);
+            if (info) insertStmt.run(place.id, info.country_code, info.region_code, info.region_name);
+          } catch {
+            // individual failure — continue with remaining places
+          } finally {
+            geocodingInFlight.delete(place.id);
+          }
+        }
+      } catch {
+        for (const p of uncached) geocodingInFlight.delete(p.id);
+      }
+    })();
   }
 
   // Group by country → regions with place counts

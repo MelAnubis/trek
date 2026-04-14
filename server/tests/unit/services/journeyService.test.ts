@@ -1132,7 +1132,11 @@ describe('setPhotoProvider', () => {
 
     setPhotoProvider(photo!.id, 'immich', 'immich-asset-789', user.id);
 
-    const updated = testDb.prepare('SELECT * FROM journey_photos WHERE id = ?').get(photo!.id) as any;
+    const updated = testDb.prepare(`
+      SELECT jp.*, tkp.provider, tkp.asset_id, tkp.owner_id
+      FROM journey_photos jp JOIN trek_photos tkp ON tkp.id = jp.photo_id
+      WHERE jp.id = ?
+    `).get(photo!.id) as any;
     expect(updated.provider).toBe('immich');
     expect(updated.asset_id).toBe('immich-asset-789');
     expect(updated.owner_id).toBe(user.id);
@@ -1321,9 +1325,11 @@ describe('Edge cases', () => {
     ).get(journey.id) as any;
     expect(photoEntry).toBeDefined();
 
-    const photos = testDb.prepare(
-      'SELECT * FROM journey_photos WHERE entry_id = ?'
-    ).all(photoEntry.id);
+    const photos = testDb.prepare(`
+      SELECT jp.*, tkp.asset_id FROM journey_photos jp
+      JOIN trek_photos tkp ON tkp.id = jp.photo_id
+      WHERE jp.entry_id = ?
+    `).all(photoEntry.id);
     expect(photos.length).toBe(1);
     expect((photos[0] as any).asset_id).toBe('immich-photo-1');
   });

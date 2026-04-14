@@ -6,7 +6,7 @@ export default defineConfig({
   test: {
     root: '.',
     globals: true,
-    environment: 'jsdom',
+    environment: './tests/environment/jsdom-native-abort.ts',
     include: [
       'tests/**/*.test.{ts,tsx}',
       'src/**/*.test.{ts,tsx}',

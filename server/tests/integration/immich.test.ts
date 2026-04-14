@@ -190,11 +190,16 @@ describe('Immich album links', () => {
       .get(trip.id, user.id, 'album-xyz', 'Album XYZ', 'immich') as any;
 
     // Insert photos synced from the album
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, asset_id, provider, shared, album_link_id) VALUES (?, ?, ?, ?, 1, ?)').run(trip.id, user.id, 'asset-001', 'immich', linkResult.id);
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, asset_id, provider, shared, album_link_id) VALUES (?, ?, ?, ?, 1, ?)').run(trip.id, user.id, 'asset-002', 'immich', linkResult.id);
+    for (const assetId of ['asset-001', 'asset-002']) {
+      testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', assetId, user.id);
+      const tkp = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', assetId, user.id) as any;
+      testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, 1, ?)').run(trip.id, user.id, tkp.id, linkResult.id);
+    }
 
     // Insert an individually-added photo (no album_link_id)
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, asset_id, provider, shared) VALUES (?, ?, ?, ?, 1)').run(trip.id, user.id, 'asset-manual', 'immich');
+    testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-manual', user.id);
+    const tkpManual = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', 'asset-manual', user.id) as any;
+    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared) VALUES (?, ?, ?, 1)').run(trip.id, user.id, tkpManual.id);
 
     const res = await request(app)
       .delete(`/api/integrations/memories/unified/trips/${trip.id}/album-links/${linkResult.id}`)
@@ -204,7 +209,11 @@ describe('Immich album links', () => {
     expect(res.body.success).toBe(true);
 
     // Album-linked photos should be gone
-    const remainingPhotos = testDb.prepare('SELECT * FROM trip_photos WHERE trip_id = ?').all(trip.id) as any[];
+    const remainingPhotos = testDb.prepare(`
+      SELECT tp.*, tkp.asset_id FROM trip_photos tp
+      JOIN trek_photos tkp ON tkp.id = tp.photo_id
+      WHERE tp.trip_id = ?
+    `).all(trip.id) as any[];
     expect(remainingPhotos.length).toBe(1);
     expect(remainingPhotos[0].asset_id).toBe('asset-manual');
 
@@ -220,7 +229,9 @@ describe('Immich album links', () => {
 
     const linkResult = testDb.prepare('INSERT INTO trip_album_links (trip_id, user_id, album_id, album_name, provider) VALUES (?, ?, ?, ?, ?) RETURNING *')
       .get(trip.id, owner.id, 'album-secret', 'Secret Album', 'immich') as any;
-    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, asset_id, provider, shared, album_link_id) VALUES (?, ?, ?, ?, 1, ?)').run(trip.id, owner.id, 'asset-owned', 'immich', linkResult.id);
+    testDb.prepare('INSERT OR IGNORE INTO trek_photos (provider, asset_id, owner_id) VALUES (?, ?, ?)').run('immich', 'asset-owned', owner.id);
+    const tkpOwned = testDb.prepare('SELECT id FROM trek_photos WHERE provider = ? AND asset_id = ? AND owner_id = ?').get('immich', 'asset-owned', owner.id) as any;
+    testDb.prepare('INSERT INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, 1, ?)').run(trip.id, owner.id, tkpOwned.id, linkResult.id);
 
     // Non-member tries to delete owner's album link — should be denied
     const res = await request(app)
@@ -232,7 +243,11 @@ describe('Immich album links', () => {
     // Link and photos should still exist
     const link = testDb.prepare('SELECT * FROM trip_album_links WHERE id = ?').get(linkResult.id);
     expect(link).toBeDefined();
-    const photo = testDb.prepare('SELECT * FROM trip_photos WHERE asset_id = ?').get('asset-owned');
+    const photo = testDb.prepare(`
+      SELECT tp.* FROM trip_photos tp
+      JOIN trek_photos tkp ON tkp.id = tp.photo_id
+      WHERE tkp.asset_id = ?
+    `).get('asset-owned');
     expect(photo).toBeDefined();
   });
 

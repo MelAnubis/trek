@@ -148,6 +148,7 @@ describe('journeyStore', () => {
     );
     await expect(useJourneyStore.getState().loadJourney(999)).rejects.toThrow();
     expect(useJourneyStore.getState().loading).toBe(false);
+    expect(useJourneyStore.getState().notFound).toBe(true);
   });
 
   // ── createJourney ────────────────────────────────────────────────────────

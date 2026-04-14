@@ -63,10 +63,17 @@ function insertJourneyPhoto(
   entryId: number,
   opts: { filePath?: string; assetId?: string; ownerId?: number } = {}
 ): number {
+  const provider = opts.assetId ? 'immich' : 'local';
+  const filePath = !opts.assetId ? (opts.filePath ?? '/photos/test.jpg') : null;
+  const trekResult = testDb.prepare(`
+    INSERT INTO trek_photos (provider, asset_id, file_path, owner_id, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(provider, opts.assetId ?? null, filePath, opts.ownerId ?? null, Date.now());
+  const trekId = trekResult.lastInsertRowid as number;
   const result = testDb.prepare(`
-    INSERT INTO journey_photos (entry_id, file_path, caption, sort_order, created_at, asset_id, owner_id)
-    VALUES (?, ?, NULL, 0, ?, ?, ?)
-  `).run(entryId, opts.filePath ?? '/photos/test.jpg', Date.now(), opts.assetId ?? null, opts.ownerId ?? null);
+    INSERT INTO journey_photos (entry_id, photo_id, caption, sort_order, created_at)
+    VALUES (?, ?, NULL, 0, ?)
+  `).run(entryId, trekId, Date.now());
   return result.lastInsertRowid as number;
 }
 
