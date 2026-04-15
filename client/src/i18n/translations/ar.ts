@@ -1,4 +1,4 @@
-﻿import en from './en'
+import en from './en'
 
 const ar: Record<string, string | { name: string; category: string }[]> = {
   ...en,

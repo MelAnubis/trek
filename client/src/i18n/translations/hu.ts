@@ -1,4 +1,4 @@
-﻿const hu: Record<string, string | { name: string; category: string }[]> = {
+const hu: Record<string, string | { name: string; category: string }[]> = {
   // Általános
   'common.save': 'Mentés',
   'common.showMore': 'Továbbiak',

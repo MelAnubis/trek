@@ -11,7 +11,6 @@ import {
   extractKmlPlacemarkNodes,
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
-  stripXmlNamespaces,
   type KmlImportSummary,
 } from './kmlImport';
 
@@ -254,8 +253,11 @@ const gpxParser = new XMLParser({
 const kmlParser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: '@_',
+  removeNSPrefix: true,
   isArray: (name) => ['Placemark', 'Folder', 'Document'].includes(name),
 });
+
+export const KMZ_DECOMPRESSED_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
 
 export function importGpx(tripId: string, fileBuffer: Buffer) {
   const parsed = gpxParser.parse(fileBuffer.toString('utf-8'));
@@ -327,14 +329,13 @@ export function importGpx(tripId: string, fileBuffer: Buffer) {
 
 export function importKmlPlaces(tripId: string, fileBuffer: Buffer): PlaceImportResult {
   const decoded = decodeUtf8WithWarning(fileBuffer);
-  const xmlWithoutNamespaces = stripXmlNamespaces(decoded.text);
 
-  const validationResult = XMLValidator.validate(xmlWithoutNamespaces);
+  const validationResult = XMLValidator.validate(decoded.text);
   if (validationResult !== true) {
     throw new Error('Malformed KML: invalid XML structure');
   }
 
-  const parsed = kmlParser.parse(xmlWithoutNamespaces);
+  const parsed = kmlParser.parse(decoded.text);
   const kmlRoot = parsed?.kml ?? parsed;
 
   if (!kmlRoot || typeof kmlRoot !== 'object') {
@@ -391,7 +392,6 @@ export function importKmlPlaces(tripId: string, fileBuffer: Buffer): PlaceImport
   });
 
   insertAll();
-  summary.skippedCount = summary.totalPlacemarks - summary.createdCount;
 
   if (summary.totalPlacemarks === 0) {
     summary.errors.push('No Placemarks found in KML file.');
@@ -400,7 +400,10 @@ export function importKmlPlaces(tripId: string, fileBuffer: Buffer): PlaceImport
   return { places: created, count: created.length, summary };
 }
 
-export async function unpackKmzToKml(kmzBuffer: Buffer): Promise<Buffer> {
+export async function unpackKmzToKml(
+  kmzBuffer: Buffer,
+  decompressedSizeLimit = KMZ_DECOMPRESSED_SIZE_LIMIT,
+): Promise<Buffer> {
   let zip;
   try {
     zip = await unzipper.Open.buffer(kmzBuffer);
@@ -414,6 +417,11 @@ export async function unpackKmzToKml(kmzBuffer: Buffer): Promise<Buffer> {
   }
 
   const preferredEntry = kmlEntries.find((entry) => entry.path.toLowerCase().endsWith('doc.kml')) || kmlEntries[0];
+
+  if (preferredEntry.uncompressedSize > decompressedSizeLimit) {
+    throw new Error('KMZ archive exceeds the maximum allowed decompressed size.');
+  }
+
   return preferredEntry.buffer();
 }
 

@@ -63,7 +63,7 @@ router.post('/import/gpx', authenticate, requireTripAccess, uploadMulter.single(
     return res.status(403).json({ error: 'No permission' });
 
   const { tripId } = req.params;
-  const file = (req as any).file;
+  const file = req.file as Express.Multer.File | undefined;
   if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
   const created = importGpx(tripId, file.buffer);
@@ -84,7 +84,7 @@ router.post('/import/map', authenticate, requireTripAccess, uploadMulter.single(
   }
 
   const { tripId } = req.params;
-  const file = (req as any).file;
+  const file = req.file as Express.Multer.File | undefined;
   if (!file) return res.status(400).json({ error: 'No file uploaded' });
 
   try {

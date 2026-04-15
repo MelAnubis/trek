@@ -50,20 +50,12 @@ function decodeHtmlEntities(value: string): string {
   return withNamedEntities
     .replace(/&#(\d+);/g, (_, dec) => {
       const code = Number(dec);
-      return Number.isFinite(code) ? String.fromCharCode(code) : _;
+      return Number.isFinite(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : _;
     })
     .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
       const code = Number.parseInt(hex, 16);
-      return Number.isFinite(code) ? String.fromCharCode(code) : _;
+      return Number.isFinite(code) && code >= 0 && code <= 0x10ffff ? String.fromCodePoint(code) : _;
     });
-}
-
-export function stripXmlNamespaces(xml: string): string {
-  // KML exports vary heavily; stripping namespace declarations/prefixes makes parsing resilient.
-  return xml
-    .replace(/\sxmlns(:\w+)?="[^"]*"/g, '')
-    .replace(/\sxmlns(:\w+)?='[^']*'/g, '')
-    .replace(/<(\/?)\w+:/g, '<$1');
 }
 
 export function decodeUtf8WithWarning(fileBuffer: Buffer): { text: string; warning: string | null } {

@@ -1,4 +1,4 @@
-﻿const de: Record<string, string | { name: string; category: string }[]> = {
+const de: Record<string, string | { name: string; category: string }[]> = {
   // Allgemein
   'common.save': 'Speichern',
   'common.showMore': 'Mehr anzeigen',

@@ -7,18 +7,9 @@ import {
   parsePlacemarkNode,
   resolveCategoryIdForFolder,
   sanitizeKmlDescription,
-  stripXmlNamespaces,
 } from '../../../src/services/kmlImport';
 
 describe('kmlImportUtils', () => {
-  it('strips KML namespaces and prefixes', () => {
-    const xml = '<kml xmlns="http://www.opengis.net/kml/2.2"><kml:Document><kml:Placemark /></kml:Document></kml>';
-    const stripped = stripXmlNamespaces(xml);
-    expect(stripped).not.toContain('xmlns');
-    expect(stripped).toContain('<Document>');
-    expect(stripped).toContain('<Placemark');
-  });
-
   it('sanitizes HTML descriptions with br to newline', () => {
     const input = 'Line 1<br>Line <b>2</b> &amp; more';
     const output = sanitizeKmlDescription(input);
@@ -62,6 +53,16 @@ describe('kmlImportUtils', () => {
     expect(resolveCategoryIdForFolder('museums', lookup)).toBe(3);
     expect(resolveCategoryIdForFolder('Museum', lookup)).toBeNull();
     expect(resolveCategoryIdForFolder('parks', lookup)).toBe(4);
+  });
+
+  it('decodes non-BMP decimal HTML entities (emoji)', () => {
+    // &#128512; = U+1F600 = 😀 — requires String.fromCodePoint, not fromCharCode
+    expect(sanitizeKmlDescription('&#128512;')).toBe('😀');
+  });
+
+  it('decodes non-BMP hex HTML entities (emoji)', () => {
+    // &#x1F600; = U+1F600 = 😀
+    expect(sanitizeKmlDescription('&#x1F600;')).toBe('😀');
   });
 
   it('returns warning for non-UTF8 payload', () => {

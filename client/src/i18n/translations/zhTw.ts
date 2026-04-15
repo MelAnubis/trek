@@ -1,4 +1,4 @@
-﻿const zhTw: Record<string, string> = {
+const zhTw: Record<string, string> = {
   // Common
   'common.save': '儲存',
   'common.showMore': '顯示更多',

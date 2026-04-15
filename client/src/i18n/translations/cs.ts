@@ -1,4 +1,4 @@
-﻿const cs: Record<string, string | { name: string; category: string }[]> = {
+const cs: Record<string, string | { name: string; category: string }[]> = {
   // Společné (Common)
   'common.save': 'Uložit',
   'common.showMore': 'Zobrazit více',

@@ -1,4 +1,4 @@
-﻿const br: Record<string, string | { name: string; category: string }[]> = {
+const br: Record<string, string | { name: string; category: string }[]> = {
   // Common
   'common.save': 'Salvar',
   'common.showMore': 'Mostrar mais',

@@ -1,4 +1,4 @@
-﻿const ru: Record<string, string> = {
+const ru: Record<string, string> = {
   // Common
   'common.save': 'Сохранить',
   'common.showMore': 'Показать больше',
