@@ -843,6 +843,83 @@ describe('Synology searchSynologyPhotos date range', () => {
   });
 });
 
+// ── Search pagination ─────────────────────────────────────────────────────────
+
+describe('Synology search pagination', () => {
+  it('SYNO-025 — POST /search with { page: 2, size: 50 } sends offset=50 and limit=50 to Synology API', async () => {
+    const { user } = createUser(testDb);
+    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+
+    let capturedBody: URLSearchParams | null = null;
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce({
+        // login
+        ok: true, status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ success: true, data: { sid: 'fake-sid' } }),
+        body: null,
+      } as any)
+      .mockImplementationOnce((_url: string, init?: any) => {
+        capturedBody = init?.body instanceof URLSearchParams
+          ? init.body
+          : new URLSearchParams(String(init?.body ?? ''));
+        return Promise.resolve({
+          ok: true, status: 200,
+          headers: { get: () => 'application/json' },
+          json: async () => ({ success: true, data: { list: [] } }),
+          body: null,
+        } as any);
+      });
+
+    const res = await request(app)
+      .post(`${SYNO}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ page: 2, size: 50 });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody).not.toBeNull();
+    // With the fix: limit=50 is resolved first, then offset = (2-1)*50 = 50
+    expect(capturedBody!.get('offset')).toBe('50');
+    expect(capturedBody!.get('limit')).toBe('50');
+  });
+
+  it('SYNO-026 — POST /search with { page: 3, size: 25 } sends offset=50 and limit=25 to Synology API', async () => {
+    const { user } = createUser(testDb);
+    setSynologyCredentials(testDb, user.id, 'https://synology.example.com', 'admin', 'pass');
+
+    let capturedBody: URLSearchParams | null = null;
+    vi.mocked(safeFetch)
+      .mockResolvedValueOnce({
+        ok: true, status: 200,
+        headers: { get: () => 'application/json' },
+        json: async () => ({ success: true, data: { sid: 'fake-sid' } }),
+        body: null,
+      } as any)
+      .mockImplementationOnce((_url: string, init?: any) => {
+        capturedBody = init?.body instanceof URLSearchParams
+          ? init.body
+          : new URLSearchParams(String(init?.body ?? ''));
+        return Promise.resolve({
+          ok: true, status: 200,
+          headers: { get: () => 'application/json' },
+          json: async () => ({ success: true, data: { list: [] } }),
+          body: null,
+        } as any);
+      });
+
+    const res = await request(app)
+      .post(`${SYNO}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ page: 3, size: 25 });
+
+    expect(res.status).toBe(200);
+    expect(capturedBody).not.toBeNull();
+    // page 3 → page index = 2 (after subtracting 1), offset = 2 * 25 = 50
+    expect(capturedBody!.get('offset')).toBe('50');
+    expect(capturedBody!.get('limit')).toBe('25');
+  });
+});
+
 // ── SSRF catch branch in _fetchSynologyJson ────────────────────────────────────
 
 describe('Synology SSRF blocked error handling', () => {
