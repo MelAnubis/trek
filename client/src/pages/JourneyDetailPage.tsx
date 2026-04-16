@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { useAuthStore } from '../store/authStore'
@@ -20,6 +21,9 @@ import {
   Laugh, Smile, Meh, Annoyed, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronDown, Eye, EyeOff,
 } from 'lucide-react'
+import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
+import MobileEntryView from '../components/Journey/MobileEntryView'
+import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, JourneyDetail } from '../store/journeyStore'
 
 const GRADIENTS = [
@@ -84,7 +88,9 @@ export default function JourneyDetailPage() {
   const fullMapRef = useRef<JourneyMapHandle>(null)
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null)
 
+  const isMobile = useIsMobile()
   const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
+  const [viewingEntry, setViewingEntry] = useState<JourneyEntry | null>(null)
   const [editingEntry, setEditingEntry] = useState<JourneyEntry | null>(null)
   const [lightbox, setLightbox] = useState<{ photos: { id: number; src: string; caption?: string | null; provider?: string; asset_id?: string | null; owner_id?: number | null }[]; index: number } | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<JourneyEntry | null>(null)
@@ -202,10 +208,61 @@ export default function JourneyDetailPage() {
   const dayGroups = groupByDate(timelineEntries)
   const sortedDates = [...dayGroups.keys()].sort()
 
+  const showMobileCombined = isMobile && view === 'timeline'
+
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950">
       <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h, 0px)' }}>
+
+      {/* Mobile combined map+timeline (Polarsteps-style) — renders as fullscreen overlay */}
+      {showMobileCombined && (
+        <MobileMapTimeline
+          entries={timelineEntries}
+          mapEntries={sidebarMapItems}
+          dark={document.documentElement.classList.contains('dark')}
+          onEntryClick={(entry) => setViewingEntry(entry)}
+          onAddEntry={() => {
+            const today = new Date().toISOString().split('T')[0]
+            setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
+          }}
+        />
+      )}
+
+      {/* Fullscreen entry view (mobile) — portal to body for iOS stacking */}
+      {viewingEntry && createPortal(
+        <MobileEntryView
+          entry={viewingEntry}
+          onClose={() => setViewingEntry(null)}
+          onEdit={() => { setViewingEntry(null); setEditingEntry(viewingEntry); }}
+          onDelete={() => { setViewingEntry(null); setDeleteTarget(viewingEntry); }}
+          onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
+        />,
+        document.body
+      )}
+
+      {/* Floating tab toggle on mobile combined view */}
+      {showMobileCombined && (
+        <div className="fixed top-[calc(var(--nav-h,56px)+12px)] left-4 z-30">
+          <div className="flex bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-lg">
+            <button
+              onClick={() => setView('timeline')}
+              className="flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium bg-zinc-900 dark:bg-white text-white dark:text-zinc-900"
+            >
+              <MapPin size={13} />
+              {t('journey.detail.journeyTab') || 'Journey'}
+            </button>
+            <button
+              onClick={() => setView('gallery')}
+              className="flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              <Grid size={13} />
+              {t('journey.share.gallery')}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div style={{ paddingTop: 'var(--nav-h, 0px)' }} className={showMobileCombined ? 'hidden' : ''}>
         <div className="max-w-[1440px] mx-auto px-0 md:px-8 pt-0 md:py-6">
 
           {/* Back link — desktop */}
@@ -298,11 +355,17 @@ export default function JourneyDetailPage() {
               {/* View Controls */}
               <div className="flex items-center justify-between mt-5 mb-5">
                 <div className="flex bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-                  {[
-                    { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
-                    { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
-                    { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
-                  ].map(v => (
+                  {(isMobile
+                    ? [
+                        { id: 'timeline' as const, icon: MapPin, label: t('journey.detail.journeyTab') || 'Journey' },
+                        { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
+                      ]
+                    : [
+                        { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
+                        { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
+                        { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
+                      ]
+                  ).map(v => (
                     <button
                       key={v.id}
                       onClick={() => setView(v.id)}
@@ -317,21 +380,21 @@ export default function JourneyDetailPage() {
                     </button>
                   ))}
                 </div>
-                {view === 'timeline' && (
+                {(!isMobile ? view === 'timeline' : view !== 'gallery') && (
                   <button
                     onClick={() => {
                       const today = new Date().toISOString().split('T')[0]
                       setEditingEntry({ id: 0, journey_id: current.id, author_id: 0, type: 'entry', entry_date: today, visibility: 'private', sort_order: 0, photos: [], created_at: 0, updated_at: 0 } as JourneyEntry)
                     }}
-                    className="w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center hover:bg-zinc-800 dark:hover:bg-zinc-100"
+                    className={`w-8 h-8 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center hover:bg-zinc-800 dark:hover:bg-zinc-100 ${isMobile && view === 'timeline' ? 'hidden' : ''}`}
                   >
                     <Plus size={16} />
                   </button>
                 )}
               </div>
 
-              {/* Timeline */}
-              {view === 'timeline' && (
+              {/* Timeline (desktop only — mobile uses fullscreen combined view above) */}
+              {!isMobile && view === 'timeline' && (
                 <div className="flex flex-col gap-6 pb-24 md:pb-6">
                   {sortedDates.length === 0 && (
                     <div className="text-center py-16">
@@ -398,8 +461,8 @@ export default function JourneyDetailPage() {
                 />
               )}
 
-              {/* Full Map View */}
-              {view === 'map' && <div className="pb-24 md:pb-6"><MapView
+              {/* Full Map View (desktop only — mobile uses combined view) */}
+              {!isMobile && view === 'map' && <div className="pb-24 md:pb-6"><MapView
                 entries={current.entries}
                 mapEntries={mapEntries}
                 sortedDates={sortedDates}
@@ -517,8 +580,8 @@ export default function JourneyDetailPage() {
         </div>
       </div>
 
-      {/* Entry Editor */}
-      {editingEntry && (
+      {/* Entry Editor — portal to body to escape stacking context on iOS */}
+      {editingEntry && createPortal(
         <EntryEditor
           entry={editingEntry}
           journeyId={current.id}
@@ -542,7 +605,8 @@ export default function JourneyDetailPage() {
             setEditingEntry(null)
             loadJourney(Number(id))
           }}
-        />
+        />,
+        document.body
       )}
 
       {/* Journey Settings */}
@@ -2029,8 +2093,9 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.75)' }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[640px] w-full max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-end sm:items-center sm:justify-center sm:p-5" style={{ background: 'rgba(9,9,11,0.75)' }}>
+      <div className="bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[640px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]">
+
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}</h2>
@@ -2187,7 +2252,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {pros.map((p, i) => (
-                    <div key={i} className="flex items-center gap-2 h-9 px-3 bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-800/30 rounded-[10px]">
+                    <div key={i} className="flex items-center gap-2 h-9 px-3 border rounded-[10px] border-zinc-200 dark:border-zinc-700">
                       <span className="w-[5px] h-[5px] rounded-full bg-green-500 flex-shrink-0" />
                       <input
                         value={p}
@@ -2221,7 +2286,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 </div>
                 <div className="flex flex-col gap-1.5">
                   {cons.map((c, i) => (
-                    <div key={i} className="flex items-center gap-2 h-9 px-3 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/30 rounded-[10px]">
+                    <div key={i} className="flex items-center gap-2 h-9 px-3 border rounded-[10px] border-zinc-200 dark:border-zinc-700">
                       <span className="w-[5px] h-[5px] rounded-full bg-red-500 flex-shrink-0" />
                       <input
                         value={c}
@@ -2285,7 +2350,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 />
                 {locationLat && (
                   <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                    <MapPin size={13} className="text-emerald-500" />
+                    <MapPin size={13} className="text-zinc-500 dark:text-zinc-400" />
                   </div>
                 )}
               </div>
@@ -2332,8 +2397,10 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 const active = mood === key
                 return (
                   <button key={key} onClick={() => setMood(active ? '' : key)}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all"
-                    style={{ background: active ? config.bg : 'transparent', color: active ? config.text : '#71717A', borderColor: active ? config.text + '30' : '#E4E4E7' }}>
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium border transition-all ${
+                      active ? '' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500'
+                    }`}
+                    style={active ? { background: config.bg, color: config.text, borderColor: config.text + '30' } : undefined}>
                     <Icon size={12} />
                     {t(config.label)}
                   </button>
@@ -2363,7 +2430,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
         </div>
 
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
           <button onClick={onClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
           <button onClick={handleSave} disabled={saving} className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50">
             {saving ? t('common.saving') : t('common.save')}

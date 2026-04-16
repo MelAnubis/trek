@@ -33,6 +33,8 @@ interface Props {
   dark?: boolean
   activeMarkerId?: string | null
   onMarkerClick?: (id: string, type?: string) => void
+  fullScreen?: boolean
+  paddingBottom?: number
 }
 
 function buildMarkerItems(entries: MapEntry[]): MapMarkerItem[] {
@@ -57,15 +59,20 @@ const MARKER_W = 28
 const MARKER_H = 36
 
 function markerSvg(index: number, highlighted: boolean, dark: boolean): string {
+  // Highlighted: inverted colors for contrast (black on light, white on dark)
   const fill = dark
-    ? (highlighted ? '#FAFAFA' : '#FAFAFA')
-    : (highlighted ? '#18181B' : '#18181B')
+    ? (highlighted ? '#FAFAFA' : '#A1A1AA')
+    : (highlighted ? '#18181B' : '#52525B')
   const textColor = dark
     ? (highlighted ? '#18181B' : '#18181B')
     : (highlighted ? '#fff' : '#fff')
-  const stroke = dark ? '#3F3F46' : '#fff'
+  const stroke = highlighted
+    ? (dark ? '#fff' : '#18181B')
+    : (dark ? '#3F3F46' : '#fff')
   const shadow = highlighted
-    ? 'filter:drop-shadow(0 0 8px rgba(0,0,0,0.4)) drop-shadow(0 2px 6px rgba(0,0,0,0.3))'
+    ? (dark
+        ? 'filter:drop-shadow(0 0 10px rgba(255,255,255,0.35)) drop-shadow(0 2px 6px rgba(0,0,0,0.4))'
+        : 'filter:drop-shadow(0 0 10px rgba(0,0,0,0.3)) drop-shadow(0 2px 6px rgba(0,0,0,0.3))')
     : 'filter:drop-shadow(0 2px 4px rgba(0,0,0,0.25))'
   const label = String(index + 1)
   const scale = highlighted ? 1.2 : 1
@@ -82,7 +89,7 @@ function markerSvg(index: number, highlighted: boolean, dark: boolean): string {
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
 
 const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick },
+  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
@@ -138,7 +145,9 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     highlightMarker(id)
     const marker = markersRef.current.get(id)
     if (marker && mapRef.current) {
-      mapRef.current.flyTo(marker.getLatLng(), Math.max(mapRef.current.getZoom(), 12), { duration: 0.5 })
+      try {
+        mapRef.current.flyTo(marker.getLatLng(), Math.max(mapRef.current.getZoom(), 12), { duration: 0.5 })
+      } catch { /* map not yet initialized */ }
     }
   }, [])
 
@@ -156,7 +165,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     const map = L.map(containerRef.current, {
       zoomControl: false,
       attributionControl: true,
-      scrollWheelZoom: false,
+      scrollWheelZoom: fullScreen ? true : false,
       dragging: true,
       touchZoom: true,
     })
@@ -185,8 +194,8 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       coords.forEach(c => allCoords.push(c))
     }
 
-    // route polyline — subtle dashed connection
-    if (items.length > 1) {
+    // route polyline — only in non-fullscreen (sidebar map) mode
+    if (!fullScreen && items.length > 1) {
       const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
       L.polyline(routeCoords, {
         color: dark ? '#71717A' : '#A1A1AA',
@@ -229,7 +238,8 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       try {
         map.invalidateSize()
         if (allCoords.length > 0) {
-          map.fitBounds(L.latLngBounds(allCoords), { padding: [50, 50], maxZoom: 14 })
+          const pb = paddingBottom || 50
+          map.fitBounds(L.latLngBounds(allCoords), { paddingTopLeft: [50, 50], paddingBottomRight: [50, pb], maxZoom: 14 })
         } else {
           map.setView([30, 0], 2)
         }
@@ -245,7 +255,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       mapRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, dark, mapTileUrl])
+  }, [entries, stableTrail, dark, mapTileUrl, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

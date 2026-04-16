@@ -1958,6 +1958,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.detail.noEntriesHint': 'Add a trip to get started with skeleton entries',
   'journey.detail.noPhotos': 'No photos yet',
   'journey.detail.noPhotosHint': 'Upload photos to entries or browse your Immich/Synology library',
+  'journey.detail.journeyTab': 'Journey',
   'journey.detail.journeyStats': 'Journey Stats',
   'journey.detail.syncedTrips': 'Synced Trips',
   'journey.detail.noTripsLinked': 'No trips linked yet',

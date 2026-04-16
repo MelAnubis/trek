@@ -7,6 +7,8 @@ import { List, Grid, MapPin, Camera, BookOpen, Image } from 'lucide-react'
 import JourneyMap from '../components/Journey/JourneyMap'
 import JournalBody from '../components/Journey/JournalBody'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
+import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
+import { useIsMobile } from '../hooks/useIsMobile'
 
 interface PublicEntry {
   id: number
@@ -62,6 +64,7 @@ export default function JourneyPublicPage() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const isMobile = useIsMobile()
   const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
   const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null }[]; index: number } | null>(null)
   const { t } = useTranslation()
@@ -202,8 +205,20 @@ export default function JourneyPublicPage() {
           </div>
         )}
 
-        {/* Timeline */}
-        {view === 'timeline' && perms.share_timeline && (
+        {/* Mobile combined map+timeline (public, read-only) */}
+        {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && (
+          <MobileMapTimeline
+            entries={entries}
+            mapEntries={mapEntries.map(e => ({ id: String(e.id), lat: e.location_lat!, lng: e.location_lng!, title: e.title, mood: e.mood, entry_date: e.entry_date }))}
+            dark={document.documentElement.classList.contains('dark')}
+            readOnly
+            onEntryClick={() => {}}
+            publicPhotoUrl={(photoId) => `/api/public/journey/${token}/photos/${photoId}/original`}
+          />
+        )}
+
+        {/* Timeline (desktop, or mobile without map permission) */}
+        {(!isMobile || !perms.share_map) && view === 'timeline' && perms.share_timeline && (
           <div className="flex flex-col gap-6">
             {sortedDates.map(date => {
               const dayEntries = groupedEntries.get(date)!
