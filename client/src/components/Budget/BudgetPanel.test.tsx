@@ -416,8 +416,8 @@ describe('BudgetPanel', () => {
     render(<BudgetPanel tripId={1} />);
     await screen.findByText('Flight');
     await screen.findByText('Hotel');
-    // Grand total card shows 300.00
-    expect(screen.getByText('300.00')).toBeInTheDocument();
+    // Grand total card shows 300.00 (integer and decimal are rendered in separate spans)
+    expect(document.body.textContent?.replace(/\s+/g, '')).toMatch(/300[,.]00/);
   });
 
   it('FE-COMP-BUDGET-033: read-only mode hides add/delete/edit controls', async () => {

@@ -779,25 +779,81 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
         document.body
       )}
 
-      {/* Header */}
-      <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{showTrash ? (t('files.trash') || 'Trash') : t('files.title')}</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-faint)' }}>
-            {showTrash
-              ? `${trashFiles.length} ${trashFiles.length === 1 ? 'file' : 'files'}`
-              : (files.length === 1 ? t('files.countSingular') : t('files.count', { count: files.length }))}
-          </p>
-        </div>
-        <button onClick={toggleTrash} style={{
-          padding: '6px 12px', borderRadius: 8, border: '1px solid var(--border-primary)',
-          background: showTrash ? 'var(--accent)' : 'var(--bg-card)',
-          color: showTrash ? 'var(--accent-text)' : 'var(--text-muted)',
-          fontSize: 12, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
-          fontFamily: 'inherit',
+      {/* Toolbar */}
+      <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
+        <div style={{
+          background: 'var(--bg-tertiary)', borderRadius: 18,
+          padding: '14px 16px 14px 22px',
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
         }}>
-          <Trash2 size={13} /> {t('files.trash') || 'Trash'}
-        </button>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+            {showTrash ? (t('files.trash') || 'Trash') : t('files.title')}
+          </h2>
+
+          {!showTrash && (
+            <>
+              <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+              <div className="hidden md:inline-flex" style={{ gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+                {[
+                  { id: 'all', label: t('files.filterAll') },
+                  ...(files.some(f => f.starred) ? [{ id: 'starred', icon: Star } as const] : []),
+                  { id: 'pdf', label: t('files.filterPdf') },
+                  { id: 'image', label: t('files.filterImages') },
+                  { id: 'doc', label: t('files.filterDocs') },
+                  ...(files.some(f => f.note_id) ? [{ id: 'collab', label: t('files.filterCollab') || 'Collab' }] : []),
+                ].map(tab => {
+                  const active = filterType === tab.id
+                  const TabIcon = 'icon' in tab ? tab.icon : null
+                  const count = tab.id === 'all' ? files.length
+                    : tab.id === 'starred' ? files.filter(f => f.starred).length
+                    : tab.id === 'pdf' ? files.filter(f => (f.mime_type || '').includes('pdf') || /\.pdf$/i.test(f.original_name)).length
+                    : tab.id === 'image' ? files.filter(f => (f.mime_type || '').startsWith('image/')).length
+                    : tab.id === 'doc' ? files.filter(f => /\.(docx?|xlsx?|txt|csv)$/i.test(f.original_name)).length
+                    : tab.id === 'collab' ? files.filter(f => f.note_id).length
+                    : 0
+                  return (
+                    <button key={tab.id} onClick={() => setFilterType(tab.id)}
+                      style={{
+                        appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                        display: 'inline-flex', alignItems: 'center', gap: 6,
+                        padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
+                        background: active ? 'var(--bg-card)' : 'transparent',
+                        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                        fontWeight: active ? 500 : 400,
+                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> : null}
+                      {'label' in tab && tab.label}
+                      <span style={{
+                        fontSize: 10, fontWeight: 600,
+                        background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
+                        color: 'var(--text-faint)',
+                        padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
+                      }}>{count}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
+
+          <button onClick={toggleTrash} style={{
+            appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+            background: 'var(--accent)', color: 'var(--accent-text)',
+            flexShrink: 0, marginLeft: 'auto',
+            opacity: showTrash ? 1 : 0.88,
+            transition: 'opacity 0.15s ease',
+          }}
+            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={e => e.currentTarget.style.opacity = showTrash ? '1' : '0.88'}
+          >
+            <Trash2 size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('files.trash') || 'Trash'}</span>
+          </button>
+        </div>
       </div>
 
       {showTrash ? (
@@ -835,7 +891,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
           {can('file_upload', trip) && <div
             {...getRootProps()}
             style={{
-              margin: '16px 16px 0', border: '2px dashed', borderRadius: 14, padding: '20px 16px',
+              margin: '16px 28px 0', border: '2px dashed', borderRadius: 14, padding: '20px 16px',
               textAlign: 'center', cursor: 'pointer', transition: 'all 0.15s',
               borderColor: isDragActive ? 'var(--text-secondary)' : 'var(--border-primary)',
               background: isDragActive ? 'var(--bg-secondary)' : 'var(--bg-card)',
@@ -860,7 +916,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
           </div>}
 
           {/* Filter tabs */}
-          <div style={{ display: 'flex', gap: 4, padding: '12px 16px 0', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="md:!hidden" style={{ display: 'flex', gap: 4, padding: '12px 16px 0', flexShrink: 0, flexWrap: 'wrap' }}>
             {[
               { id: 'all', label: t('files.filterAll') },
               ...(files.some(f => f.starred) ? [{ id: 'starred', icon: Star }] : []),
@@ -883,7 +939,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
           </div>
 
           {/* File list */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 28px 16px' }} className="max-md:!px-4">
             {filteredFiles.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)' }}>
                 <FileText size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />

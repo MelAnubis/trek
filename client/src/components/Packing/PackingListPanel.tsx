@@ -729,9 +729,11 @@ function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
 interface PackingListPanelProps {
   tripId: number
   items: PackingItem[]
+  openImportSignal?: number
+  inlineHeader?: boolean
 }
 
-export default function PackingListPanel({ tripId, items }: PackingListPanelProps) {
+export default function PackingListPanel({ tripId, items, openImportSignal = 0, inlineHeader = true }: PackingListPanelProps) {
   const [filter, setFilter] = useState('alle') // 'alle' | 'offen' | 'erledigt'
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCatName, setNewCatName] = useState('')
@@ -896,6 +898,14 @@ export default function PackingListPanel({ tripId, items }: PackingListPanelProp
   const [saveTemplateName, setSaveTemplateName] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
+  const lastHandledImportSignal = useRef(openImportSignal)
+
+  useEffect(() => {
+    if (openImportSignal !== lastHandledImportSignal.current && openImportSignal > 0) {
+      setShowImportModal(true)
+    }
+    lastHandledImportSignal.current = openImportSignal
+  }, [openImportSignal])
   const csvInputRef = useRef<HTMLInputElement>(null)
   const templateDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -999,15 +1009,34 @@ export default function PackingListPanel({ tripId, items }: PackingListPanelProp
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', ...font }}>
 
       {/* ── Header ── */}
-      <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid rgba(0,0,0,0.06)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{t('packing.title')}</h2>
-            <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-faint)' }}>
-              {items.length === 0 ? t('packing.empty') : t('packing.progress', { packed: abgehakt, total: items.length, percent: fortschritt })}
-            </p>
-          </div>
+      <div style={{ padding: inlineHeader ? '20px 24px 16px' : '0 0 16px', flexShrink: 0, borderBottom: inlineHeader ? '1px solid rgba(0,0,0,0.06)' : undefined }}>
+        <div style={{ display: 'flex', alignItems: inlineHeader ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 14 }}>
+          {inlineHeader ? (
+            <div>
+              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{t('packing.title')}</h2>
+              {items.length > 0 && (
+                <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-faint)' }}>
+                  {t('packing.progress', { packed: abgehakt, total: items.length, percent: fortschritt })}
+                </p>
+              )}
+            </div>
+          ) : (
+            items.length > 0 ? (
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-faint)' }}>
+                {t('packing.progress', { packed: abgehakt, total: items.length, percent: fortschritt })}
+              </p>
+            ) : <span />
+          )}
           <div style={{ display: 'flex', gap: 6 }}>
+            {inlineHeader && canEdit && (
+              <button onClick={() => setShowImportModal(true)} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
+                border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
+              }}>
+                <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
+              </button>
+            )}
             {canEdit && abgehakt > 0 && (
               <button onClick={handleClearChecked} style={{
                 fontSize: 11.5, padding: '5px 10px', borderRadius: 99, border: '1px solid rgba(239,68,68,0.3)',
@@ -1016,15 +1045,6 @@ export default function PackingListPanel({ tripId, items }: PackingListPanelProp
                 <span className="hidden sm:inline">{t('packing.clearChecked', { count: abgehakt })}</span>
                 <span className="sm:hidden">{t('packing.clearCheckedShort', { count: abgehakt })}</span>
               </button>
-            )}
-            {canEdit && (
-            <button onClick={() => setShowImportModal(true)} style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-              border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-              fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
-            }}>
-              <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
-            </button>
             )}
             {canEdit && availableTemplates.length > 0 && (
               <div ref={templateDropdownRef} style={{ position: 'relative' }}>
@@ -1151,7 +1171,7 @@ export default function PackingListPanel({ tripId, items }: PackingListPanelProp
 
       {/* ── Filter-Tabs ── */}
       {items.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, padding: '10px 16px 0', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 4, padding: '10px 0 0', flexShrink: 0 }}>
           {[['alle', t('packing.filterAll')], ['offen', t('packing.filterOpen')], ['erledigt', t('packing.filterDone')]].map(([id, label]) => (
             <button key={id} onClick={() => setFilter(id)} style={{
               padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer',
@@ -1165,7 +1185,7 @@ export default function PackingListPanel({ tripId, items }: PackingListPanelProp
 
       {/* ── Liste + Bags Sidebar ── */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 12px 16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
         {items.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
             <Luggage size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 10px' }} />

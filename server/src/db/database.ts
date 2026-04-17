@@ -128,4 +128,11 @@ function isOwner(tripId: number | string, userId: number): boolean {
   return !!db.prepare('SELECT id FROM trips WHERE id = ? AND user_id = ?').get(tripId, userId);
 }
 
+try {
+  const { backfillFlightEndpoints } = require('../services/airportService');
+  backfillFlightEndpoints();
+} catch (err) {
+  console.error('[DB] Flight endpoint backfill failed:', err);
+}
+
 export { db, closeDb, reinitialize, getPlaceWithTags, canAccessTrip, isOwner };

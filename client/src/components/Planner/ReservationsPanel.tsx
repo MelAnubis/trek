@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
@@ -142,6 +142,17 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             <TypeIcon size={12} style={{ color: typeInfo.color }} />
             {t(typeInfo.labelKey)}
           </span>
+          {r.needs_review ? (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              fontSize: 11, fontWeight: 600, color: '#b45309',
+              padding: '3px 8px', borderRadius: 6,
+              background: 'rgba(245,158,11,0.12)',
+            }} title={t('reservations.needsReviewHint')}>
+              <AlertCircle size={11} />
+              {t('reservations.needsReview')}
+            </span>
+          ) : null}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <span style={{
@@ -218,15 +229,35 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
           </div>
         )}
 
+        {(() => {
+          const eps = r.endpoints || []
+          const from = eps.find(e => e.role === 'from')
+          const to = eps.find(e => e.role === 'to')
+          if (!from || !to) return null
+          return (
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              padding: '8px 12px', borderRadius: 10,
+              background: 'var(--bg-tertiary)',
+              fontSize: 12.5, color: 'var(--text-primary)',
+            }}>
+              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{from.name}</span>
+              <TypeIcon size={14} style={{ color: typeInfo.color, flexShrink: 0 }} />
+              <span style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{to.name}</span>
+            </div>
+          )
+        })()}
+
         {/* Type-specific metadata */}
         {(() => {
           const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
           if (!meta || Object.keys(meta).length === 0) return null
+          const hasEndpoints = (r.endpoints || []).some(e => e.role === 'from') && (r.endpoints || []).some(e => e.role === 'to')
           const cells: { label: string; value: string }[] = []
           if (meta.airline) cells.push({ label: t('reservations.meta.airline'), value: meta.airline })
           if (meta.flight_number) cells.push({ label: t('reservations.meta.flightNumber'), value: meta.flight_number })
-          if (meta.departure_airport) cells.push({ label: t('reservations.meta.from'), value: meta.departure_airport })
-          if (meta.arrival_airport) cells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
+          if (!hasEndpoints && meta.departure_airport) cells.push({ label: t('reservations.meta.from'), value: meta.departure_airport })
+          if (!hasEndpoints && meta.arrival_airport) cells.push({ label: t('reservations.meta.to'), value: meta.arrival_airport })
           if (meta.train_number) cells.push({ label: t('reservations.meta.trainNumber'), value: meta.train_number })
           if (meta.platform) cells.push({ label: t('reservations.meta.platform'), value: meta.platform })
           if (meta.seat) cells.push({ label: t('reservations.meta.seat'), value: meta.seat })
@@ -351,10 +382,20 @@ interface SectionProps {
   children: React.ReactNode
   defaultOpen?: boolean
   accent: 'green' | string
+  storageKey?: string
 }
 
-function Section({ title, count, children, defaultOpen = true, accent }: SectionProps) {
-  const [open, setOpen] = useState(defaultOpen)
+function Section({ title, count, children, defaultOpen = true, accent, storageKey }: SectionProps) {
+  const [open, setOpen] = useState(() => {
+    if (!storageKey || typeof window === 'undefined') return defaultOpen
+    const stored = window.localStorage.getItem(storageKey)
+    if (stored === null) return defaultOpen
+    return stored === '1'
+  })
+  useEffect(() => {
+    if (!storageKey || typeof window === 'undefined') return
+    window.localStorage.setItem(storageKey, open ? '1' : '0')
+  }, [open, storageKey])
   return (
     <div style={{ marginBottom: 28 }}>
       <button onClick={() => setOpen(o => !o)} style={{
@@ -537,12 +578,12 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
         ) : (
           <>
             {allPending.length > 0 && (
-              <Section title={t('reservations.pending')} count={allPending.length} accent="gray">
+              <Section title={t('reservations.pending')} count={allPending.length} accent="gray" storageKey={`trek:bookings-pending-open:${tripId}`}>
                 {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} />)}
               </Section>
             )}
             {allConfirmed.length > 0 && (
-              <Section title={t('reservations.confirmed')} count={allConfirmed.length} accent="green">
+              <Section title={t('reservations.confirmed')} count={allConfirmed.length} accent="green" storageKey={`trek:bookings-confirmed-open:${tripId}`}>
                 {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} />)}
               </Section>
             )}

@@ -371,6 +371,11 @@ export const mapsApi = {
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => r.data),
 }
 
+export const airportsApi = {
+  search: (q: string, signal?: AbortSignal) => apiClient.get('/airports/search', { params: { q }, signal }).then(r => r.data),
+  byIata: (iata: string) => apiClient.get(`/airports/${encodeURIComponent(iata)}`).then(r => r.data),
+}
+
 export const budgetApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget`).then(r => r.data),
   create: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/budget`, data).then(r => r.data),

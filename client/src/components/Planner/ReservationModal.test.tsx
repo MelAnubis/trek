@@ -107,7 +107,7 @@ describe('ReservationModal', () => {
     expect(screen.getByRole('button', { name: /Accommodation/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Restaurant/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Train/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Rental Car/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Car$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Cruise/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Event/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Tour/i })).toBeInTheDocument();
@@ -575,16 +575,14 @@ describe('ReservationModal', () => {
     expect(screen.queryByPlaceholderText('0.00')).not.toBeInTheDocument();
   });
 
-  it('FE-PLANNER-RESMODAL-042: flight type metadata saved with airline and airports', async () => {
+  it('FE-PLANNER-RESMODAL-042: flight type metadata saved with airline and flight number', async () => {
     const onSave = vi.fn().mockResolvedValue(undefined);
     render(<ReservationModal {...defaultProps} onSave={onSave} />);
 
     await userEvent.click(screen.getByRole('button', { name: /Flight/i }));
-    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'AF 447');
+    await userEvent.type(screen.getByPlaceholderText(/e\.g\. Lufthansa/i), 'AF 447 CDG → JFK');
     await userEvent.type(screen.getByPlaceholderText('Lufthansa'), 'Air France');
     await userEvent.type(screen.getByPlaceholderText('LH 123'), 'AF 447');
-    await userEvent.type(screen.getByPlaceholderText('FRA'), 'CDG');
-    await userEvent.type(screen.getByPlaceholderText('NRT'), 'JFK');
 
     await userEvent.click(screen.getByRole('button', { name: /^Add$/i }));
 
@@ -595,8 +593,6 @@ describe('ReservationModal', () => {
         metadata: expect.objectContaining({
           airline: 'Air France',
           flight_number: 'AF 447',
-          departure_airport: 'CDG',
-          arrival_airport: 'JFK',
         }),
       })
     );
@@ -640,7 +636,7 @@ describe('ReservationModal', () => {
 
   it('FE-PLANNER-RESMODAL-045: car type shows date/time section', async () => {
     render(<ReservationModal {...defaultProps} />);
-    await userEvent.click(screen.getByRole('button', { name: /Rental Car/i }));
+    await userEvent.click(screen.getByRole('button', { name: /^Car$/i }));
     // Car type still shows date fields (not hotel which hides them)
     await waitFor(() => {
       expect(screen.getAllByTestId('date-picker').length).toBeGreaterThan(0);

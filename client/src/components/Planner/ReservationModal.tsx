@@ -11,7 +11,58 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { openFile } from '../../utils/fileDownload'
-import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation } from '../../types'
+import AirportSelect, { type Airport } from './AirportSelect'
+import LocationSelect, { type LocationPoint } from './LocationSelect'
+import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation, ReservationEndpoint } from '../../types'
+
+const TRANSPORT_TYPES = ['flight', 'train', 'cruise', 'car'] as const
+type TransportType = typeof TRANSPORT_TYPES[number]
+const isTransport = (t: string): t is TransportType => (TRANSPORT_TYPES as readonly string[]).includes(t)
+
+interface EndpointPick {
+  airport?: Airport
+  location?: LocationPoint
+}
+
+function endpointFromAirport(a: Airport, role: 'from' | 'to', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
+  return {
+    role, sequence,
+    name: a.city ? `${a.city} (${a.iata})` : a.name,
+    code: a.iata,
+    lat: a.lat, lng: a.lng,
+    timezone: a.tz,
+    local_date: date,
+    local_time: time,
+  }
+}
+
+function endpointFromLocation(l: LocationPoint, role: 'from' | 'to', sequence: number, date: string | null, time: string | null): Omit<ReservationEndpoint, 'id' | 'reservation_id'> {
+  return {
+    role, sequence,
+    name: l.name,
+    code: null,
+    lat: l.lat, lng: l.lng,
+    timezone: null,
+    local_date: date,
+    local_time: time,
+  }
+}
+
+function airportFromEndpoint(e: ReservationEndpoint | undefined): Airport | null {
+  if (!e || !e.code) return null
+  return {
+    iata: e.code, icao: null,
+    name: e.name, city: e.name.replace(/\s*\([A-Z]{3}\)\s*$/, ''),
+    country: '',
+    lat: e.lat, lng: e.lng,
+    tz: e.timezone || '',
+  }
+}
+
+function locationFromEndpoint(e: ReservationEndpoint | undefined): LocationPoint | null {
+  if (!e) return null
+  return { name: e.name, lat: e.lat, lng: e.lng, address: null }
+}
 
 const TYPE_OPTIONS = [
   { value: 'flight',     labelKey: 'reservations.type.flight',     Icon: Plane },
@@ -98,6 +149,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const [showFilePicker, setShowFilePicker] = useState(false)
   const [linkedFileIds, setLinkedFileIds] = useState<number[]>([])
   const [unlinkedFileIds, setUnlinkedFileIds] = useState<number[]>([])
+  const [fromPick, setFromPick] = useState<EndpointPick>({})
+  const [toPick, setToPick] = useState<EndpointPick>({})
 
   const assignmentOptions = useMemo(
     () => buildAssignmentOptions(days, assignments, t, locale),
@@ -148,6 +201,20 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         price: meta.price || '',
         budget_category: (meta.budget_category && budgetItems.some(i => i.category === meta.budget_category)) ? meta.budget_category : '',
       })
+
+      const eps = reservation.endpoints || []
+      const from = eps.find(e => e.role === 'from')
+      const to = eps.find(e => e.role === 'to')
+      if (reservation.type === 'flight') {
+        setFromPick({ airport: airportFromEndpoint(from) || undefined })
+        setToPick({ airport: airportFromEndpoint(to) || undefined })
+      } else if (isTransport(reservation.type)) {
+        setFromPick({ location: locationFromEndpoint(from) || undefined })
+        setToPick({ location: locationFromEndpoint(to) || undefined })
+      } else {
+        setFromPick({})
+        setToPick({})
+      }
     } else {
       setForm({
         title: '', type: 'other', status: 'pending',
@@ -160,6 +227,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
       })
       setPendingFiles([])
+      setFromPick({})
+      setToPick({})
     }
   }, [reservation, isOpen, selectedDayId])
 
@@ -202,10 +271,14 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       if (form.type === 'flight') {
         if (form.meta_airline) metadata.airline = form.meta_airline
         if (form.meta_flight_number) metadata.flight_number = form.meta_flight_number
-        if (form.meta_departure_airport) metadata.departure_airport = form.meta_departure_airport
-        if (form.meta_arrival_airport) metadata.arrival_airport = form.meta_arrival_airport
-        if (form.meta_departure_timezone) metadata.departure_timezone = form.meta_departure_timezone
-        if (form.meta_arrival_timezone) metadata.arrival_timezone = form.meta_arrival_timezone
+        if (fromPick.airport) {
+          metadata.departure_airport = fromPick.airport.iata
+          metadata.departure_timezone = fromPick.airport.tz
+        }
+        if (toPick.airport) {
+          metadata.arrival_airport = toPick.airport.iata
+          metadata.arrival_timezone = toPick.airport.tz
+        }
       } else if (form.type === 'hotel') {
         if (form.meta_check_in_time) metadata.check_in_time = form.meta_check_in_time
         if (form.meta_check_in_end_time) metadata.check_in_end_time = form.meta_check_in_end_time
@@ -224,6 +297,21 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         if (form.price) metadata.price = form.price
         if (form.budget_category) metadata.budget_category = form.budget_category
       }
+      const endpoints: ReturnType<typeof endpointFromAirport>[] = []
+      if (isTransport(form.type)) {
+        const startDate = (form.reservation_time || '').split('T')[0] || null
+        const startTime = (form.reservation_time || '').split('T')[1]?.slice(0, 5) || null
+        const endDate = form.end_date || null
+        const endTime = form.reservation_end_time || null
+        if (form.type === 'flight') {
+          if (fromPick.airport) endpoints.push(endpointFromAirport(fromPick.airport, 'from', 0, startDate, startTime))
+          if (toPick.airport) endpoints.push(endpointFromAirport(toPick.airport, 'to', 1, endDate, endTime))
+        } else {
+          if (fromPick.location) endpoints.push(endpointFromLocation(fromPick.location, 'from', 0, startDate, startTime))
+          if (toPick.location) endpoints.push(endpointFromLocation(toPick.location, 'to', 1, endDate, endTime))
+        }
+      }
+
       const saveData: Record<string, any> = {
         title: form.title, type: form.type, status: form.status,
         reservation_time: form.type === 'hotel' ? null : form.reservation_time,
@@ -233,6 +321,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         assignment_id: form.assignment_id || null,
         accommodation_id: form.type === 'hotel' ? (form.accommodation_id || null) : null,
         metadata: Object.keys(metadata).length > 0 ? metadata : null,
+        endpoints: isTransport(form.type) ? endpoints : [],
+        needs_review: false,
       }
       // Auto-create/update budget entry if price is set, or signal removal if cleared
       if (isBudgetEnabled) {
@@ -394,11 +484,12 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 }}
               />
             </div>
-            {form.type === 'flight' && (
+            {form.type === 'flight' && fromPick.airport && (
               <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={labelStyle}>{t('reservations.meta.departureTimezone')}</label>
-                <input type="text" value={form.meta_departure_timezone} onChange={e => set('meta_departure_timezone', e.target.value)}
-                  placeholder="e.g. CET, UTC+1" style={inputStyle} />
+                <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
+                  {fromPick.airport.tz}
+                </div>
               </div>
             )}
           </div>
@@ -414,51 +505,75 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <label style={labelStyle}>{form.type === 'flight' ? t('reservations.arrivalTime') : form.type === 'car' ? t('reservations.returnTime') : t('reservations.endTime')}</label>
               <CustomTimePicker value={form.reservation_end_time} onChange={v => set('reservation_end_time', v)} />
             </div>
-            {form.type === 'flight' && (
+            {form.type === 'flight' && toPick.airport && (
               <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={labelStyle}>{t('reservations.meta.arrivalTimezone')}</label>
-                <input type="text" value={form.meta_arrival_timezone} onChange={e => set('meta_arrival_timezone', e.target.value)}
-                  placeholder="e.g. JST, UTC+9" style={inputStyle} />
+                <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>
+                  {toPick.airport.tz}
+                </div>
               </div>
             )}
           </div>
           {isEndBeforeStart && (
             <div style={{ fontSize: 11, color: '#ef4444', marginTop: -6 }}>{t('reservations.validation.endBeforeStart')}</div>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <label style={labelStyle}>{t('reservations.status')}</label>
-              <CustomSelect
-                value={form.status}
-                onChange={value => set('status', value)}
-                options={[
-                  { value: 'pending', label: t('reservations.pending') },
-                  { value: 'confirmed', label: t('reservations.confirmed') },
-                ]}
-                size="sm"
-              />
-            </div>
-          </div>
         </>
         )}
 
-        {/* Location + Booking Code */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* Location (own row for non-transport, non-hotel types) */}
+        {!isTransport(form.type) && form.type !== 'hotel' && (
           <div>
             <label style={labelStyle}>{t('reservations.locationAddress')}</label>
             <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
               placeholder={t('reservations.locationPlaceholder')} style={inputStyle} />
           </div>
+        )}
+
+        {/* Booking Code + Status */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label style={labelStyle}>{t('reservations.confirmationCode')}</label>
             <input type="text" value={form.confirmation_number} onChange={e => set('confirmation_number', e.target.value)}
               placeholder={t('reservations.confirmationPlaceholder')} style={inputStyle} />
           </div>
+          <div>
+            <label style={labelStyle}>{t('reservations.status')}</label>
+            <CustomSelect
+              value={form.status}
+              onChange={value => set('status', value)}
+              options={[
+                { value: 'pending', label: t('reservations.pending') },
+                { value: 'confirmed', label: t('reservations.confirmed') },
+              ]}
+              size="sm"
+            />
+          </div>
         </div>
 
-        {/* Type-specific fields */}
+        {/* From / To endpoints for transport bookings */}
+        {isTransport(form.type) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>{t('reservations.meta.from')}</label>
+              {form.type === 'flight' ? (
+                <AirportSelect value={fromPick.airport || null} onChange={a => setFromPick({ airport: a || undefined })} />
+              ) : (
+                <LocationSelect value={fromPick.location || null} onChange={l => setFromPick({ location: l || undefined })} />
+              )}
+            </div>
+            <div>
+              <label style={labelStyle}>{t('reservations.meta.to')}</label>
+              {form.type === 'flight' ? (
+                <AirportSelect value={toPick.airport || null} onChange={a => setToPick({ airport: a || undefined })} />
+              ) : (
+                <LocationSelect value={toPick.location || null} onChange={l => setToPick({ location: l || undefined })} />
+              )}
+            </div>
+          </div>
+        )}
+
         {form.type === 'flight' && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label style={labelStyle}>{t('reservations.meta.airline') || 'Airline'}</label>
               <input type="text" value={form.meta_airline} onChange={e => set('meta_airline', e.target.value)}
@@ -468,16 +583,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <label style={labelStyle}>{t('reservations.meta.flightNumber') || 'Flight No.'}</label>
               <input type="text" value={form.meta_flight_number} onChange={e => set('meta_flight_number', e.target.value)}
                 placeholder="LH 123" style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>{t('reservations.meta.from') || 'From'}</label>
-              <input type="text" value={form.meta_departure_airport} onChange={e => set('meta_departure_airport', e.target.value)}
-                placeholder="FRA" style={inputStyle} />
-            </div>
-            <div>
-              <label style={labelStyle}>{t('reservations.meta.to') || 'To'}</label>
-              <input type="text" value={form.meta_arrival_airport} onChange={e => set('meta_arrival_airport', e.target.value)}
-                placeholder="NRT" style={inputStyle} />
             </div>
           </div>
         )}
@@ -528,8 +633,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                 />
               </div>
             </div>
-            {/* Check-in/out times + Status */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {/* Check-in / check-in-until / check-out */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label style={labelStyle}>{t('reservations.meta.checkIn')}</label>
                 <CustomTimePicker value={form.meta_check_in_time} onChange={v => set('meta_check_in_time', v)} />
@@ -541,18 +646,6 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <div>
                 <label style={labelStyle}>{t('reservations.meta.checkOut')}</label>
                 <CustomTimePicker value={form.meta_check_out_time} onChange={v => set('meta_check_out_time', v)} />
-              </div>
-              <div>
-                <label style={labelStyle}>{t('reservations.status')}</label>
-                <CustomSelect
-                  value={form.status}
-                  onChange={value => set('status', value)}
-                  options={[
-                    { value: 'pending', label: t('reservations.pending') },
-                    { value: 'confirmed', label: t('reservations.confirmed') },
-                  ]}
-                  size="sm"
-                />
               </div>
             </div>
           </>

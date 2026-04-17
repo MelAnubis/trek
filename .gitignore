@@ -16,7 +16,8 @@ client/public/icons/*.png
 *.sqlite-wal
 
 # User data
-server/data/
+server/data/*
+!server/data/airports.json
 server/uploads/
 
 # Environment

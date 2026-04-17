@@ -36,36 +36,102 @@ import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
-import { ListTodo } from 'lucide-react'
+import { ListTodo, Upload, Plus } from 'lucide-react'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
     return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'todo') || 'packing'
   })
   const setSubTabPersist = (tab: 'packing' | 'todo') => { setSubTab(tab); sessionStorage.setItem(`trip-lists-subtab-${tripId}`, tab) }
+  const [importPackingSignal, setImportPackingSignal] = useState(0)
+  const [addTodoSignal, setAddTodoSignal] = useState(0)
   const { t } = useTranslation()
+
+  const tabs = [
+    { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck, count: packingItems.length },
+    { id: 'todo' as const, label: t('todo.subtab.todo'), icon: ListTodo, count: todoItems.length },
+  ]
+
   return (
     <div>
-      <div style={{ display: 'flex', gap: 4, padding: '4px 16px 0', borderBottom: '1px solid var(--border-faint)', marginBottom: 8 }}>
-        {([
-          { id: 'packing' as const, label: t('todo.subtab.packing'), icon: PackageCheck },
-          { id: 'todo' as const, label: t('todo.subtab.todo'), icon: ListTodo },
-        ]).map(tab => (
-          <button key={tab.id} onClick={() => setSubTabPersist(tab.id)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, padding: '8px 14px',
-              border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: 'none',
-              color: subTab === tab.id ? 'var(--text-primary)' : 'var(--text-faint)',
-              borderBottom: subTab === tab.id ? '2px solid var(--text-primary)' : '2px solid transparent',
-              marginBottom: -1, transition: 'color 0.15s',
-            }}>
-            <tab.icon size={14} />
-            {tab.label}
-          </button>
-        ))}
+      <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
+        <div style={{
+          background: 'var(--bg-tertiary)', borderRadius: 18,
+          padding: '14px 16px 14px 22px',
+          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
+        }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+            {t('trip.tabs.lists')}
+          </h2>
+          <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
+          <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+            {tabs.map(tab => {
+              const active = subTab === tab.id
+              const Icon = tab.icon
+              return (
+                <button key={tab.id} onClick={() => setSubTabPersist(tab.id)}
+                  style={{
+                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
+                    background: active ? 'var(--bg-card)' : 'transparent',
+                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
+                    fontWeight: active ? 500 : 400,
+                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <Icon size={13} style={{ color: active ? 'var(--text-primary)' : 'var(--text-faint)' }} />
+                  <span className="hidden sm:inline">{tab.label}</span>
+                  <span style={{
+                    fontSize: 10, fontWeight: 600,
+                    background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
+                    color: 'var(--text-faint)',
+                    padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
+                  }}>{tab.count}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {subTab === 'packing' && (
+            <button onClick={() => setImportPackingSignal(s => s + 1)} style={{
+              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+              marginLeft: 'auto',
+              transition: 'opacity 0.15s ease',
+            }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              <Upload size={14} strokeWidth={2.5} />
+              <span className="hidden sm:inline">{t('packing.import')}</span>
+            </button>
+          )}
+          {subTab === 'todo' && (
+            <button onClick={() => setAddTodoSignal(s => s + 1)} style={{
+              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+              marginLeft: 'auto',
+              transition: 'opacity 0.15s ease',
+            }}
+              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+            >
+              <Plus size={14} strokeWidth={2.5} />
+              <span className="hidden sm:inline">{t('todo.addItem')}</span>
+            </button>
+          )}
+        </div>
       </div>
-      {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} />}
-      {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} />}
+      <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
+        {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} inlineHeader={false} />}
+        {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
+      </div>
     </div>
   )
 }
@@ -169,6 +235,23 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [fitKey, setFitKey] = useState<number>(0)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
   const [deletePlaceId, setDeletePlaceId] = useState<number | null>(null)
+
+  const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
+  const [visibleConnections, setVisibleConnections] = useState<number[]>(() => {
+    if (typeof window === 'undefined' || !connectionsStorageKey) return []
+    try {
+      const stored = window.localStorage.getItem(connectionsStorageKey)
+      return stored ? JSON.parse(stored) as number[] : []
+    } catch { return [] }
+  })
+  useEffect(() => {
+    if (typeof window === 'undefined' || !connectionsStorageKey) return
+    window.localStorage.setItem(connectionsStorageKey, JSON.stringify(visibleConnections))
+  }, [connectionsStorageKey, visibleConnections])
+  const toggleConnection = useCallback((id: number) => {
+    setVisibleConnections(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }, [])
+  const [mapTransportDetail, setMapTransportDetail] = useState<Reservation | null>(null)
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
   useEffect(() => {
@@ -628,6 +711,13 @@ export default function TripPlannerPage(): React.ReactElement | null {
               rightWidth={rightCollapsed ? 0 : rightWidth}
               hasInspector={!!selectedPlace}
               hasDayDetail={!!showDayDetail && !selectedPlace}
+              reservations={reservations}
+              showReservationStats={settings.route_calculation !== false}
+              visibleConnectionIds={visibleConnections}
+              onReservationClick={(rid) => {
+                const r = reservations.find(x => x.id === rid)
+                if (r) setMapTransportDetail(r)
+              }}
             />
 
 
@@ -674,6 +764,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   onAssignToDay={handleAssignToDay}
                   onRouteCalculated={(r) => { if (r) { setRoute(r.coordinates); setRouteInfo({ distance: r.distanceText, duration: r.durationText, walkingText: r.walkingText, drivingText: r.drivingText }) } else { setRoute(null); setRouteInfo(null) } }}
                   reservations={reservations}
+                  visibleConnectionIds={visibleConnections}
+                  onToggleConnection={toggleConnection}
+                  externalTransportDetail={mapTransportDetail}
+                  onExternalTransportDetailHandled={() => setMapTransportDetail(null)}
                   onAddReservation={(dayId) => { setEditingReservation(null); tripActions.setSelectedDay(dayId); setShowReservationModal(true) }}
                   onDayDetail={(day) => { setShowDayDetail(day); setSelectedPlaceId(null); selectAssignment(null) }}
                   onRemoveAssignment={handleRemoveAssignment}
@@ -914,7 +1008,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'buchungen' && (
-          <div style={{ height: '100%', maxWidth: 1800, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
             <ReservationsPanel
               tripId={tripId}
               reservations={reservations}
@@ -930,13 +1024,13 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'listen' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', maxWidth: 1800, margin: '0 auto', width: '100%', padding: '8px 0', paddingBottom: 'calc(var(--bottom-nav-h) + 8px)' }}>
+          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
             <ListsContainer tripId={tripId} packingItems={packingItems} todoItems={todoItems} />
           </div>
         )}
 
         {activeTab === 'finanzplan' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', maxWidth: 1800, margin: '0 auto', width: '100%', padding: '8px 0', paddingBottom: 'calc(var(--bottom-nav-h) + 8px)' }}>
+          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
             <BudgetPanel tripId={tripId} tripMembers={tripMembers} />
           </div>
         )}

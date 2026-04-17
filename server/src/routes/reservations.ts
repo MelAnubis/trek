@@ -31,7 +31,7 @@ router.get('/', authenticate, (req: Request, res: Response) => {
 router.post('/', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId } = req.params;
-  const { title, reservation_time, reservation_end_time, location, confirmation_number, notes, day_id, place_id, assignment_id, status, type, accommodation_id, metadata, create_accommodation, create_budget_entry } = req.body;
+  const { title, reservation_time, reservation_end_time, location, confirmation_number, notes, day_id, place_id, assignment_id, status, type, accommodation_id, metadata, create_accommodation, create_budget_entry, endpoints, needs_review } = req.body;
 
   const trip = verifyTripAccess(tripId, authReq.user.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
@@ -44,7 +44,8 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   const { reservation, accommodationCreated } = createReservation(tripId, {
     title, reservation_time, reservation_end_time, location,
     confirmation_number, notes, day_id, place_id, assignment_id,
-    status, type, accommodation_id, metadata, create_accommodation
+    status, type, accommodation_id, metadata, create_accommodation,
+    endpoints, needs_review
   });
 
   if (accommodationCreated) {
@@ -101,7 +102,7 @@ router.put('/positions', authenticate, (req: Request, res: Response) => {
 router.put('/:id', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, id } = req.params;
-  const { title, reservation_time, reservation_end_time, location, confirmation_number, notes, day_id, place_id, assignment_id, status, type, accommodation_id, metadata, create_accommodation, create_budget_entry } = req.body;
+  const { title, reservation_time, reservation_end_time, location, confirmation_number, notes, day_id, place_id, assignment_id, status, type, accommodation_id, metadata, create_accommodation, create_budget_entry, endpoints, needs_review } = req.body;
 
   const trip = verifyTripAccess(tripId, authReq.user.id);
   if (!trip) return res.status(404).json({ error: 'Trip not found' });
@@ -115,7 +116,8 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   const { reservation, accommodationChanged } = updateReservation(id, tripId, {
     title, reservation_time, reservation_end_time, location,
     confirmation_number, notes, day_id, place_id, assignment_id,
-    status, type, accommodation_id, metadata, create_accommodation
+    status, type, accommodation_id, metadata, create_accommodation,
+    endpoints, needs_review
   }, current);
 
   if (accommodationChanged) {

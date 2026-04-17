@@ -1,4 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import ReactDOM from 'react-dom'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
@@ -37,7 +38,7 @@ type FilterType = 'all' | 'my' | 'overdue' | 'done' | string
 
 interface Member { id: number; username: string; avatar: string | null }
 
-export default function TodoListPanel({ tripId, items }: { tripId: number; items: TodoItem[] }) {
+export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
   const { addTodoItem, updateTodoItem, deleteTodoItem, toggleTodoItem } = useTripStore()
   const canEdit = useCanDo('packing_edit')
   const toast = useToast()
@@ -55,6 +56,15 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
+  const lastHandledAddSignal = useRef(addItemSignal)
+
+  useEffect(() => {
+    if (addItemSignal !== lastHandledAddSignal.current && addItemSignal > 0) {
+      setSelectedId(null)
+      setIsAddingNew(true)
+    }
+    lastHandledAddSignal.current = addItemSignal
+  }, [addItemSignal])
   const [sortByPrio, setSortByPrio] = useState(false)
   const [addingCategory, setAddingCategory] = useState(false)
   const [newCategoryName, setNewCategoryName] = useState('')
@@ -160,12 +170,12 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
       {/* ── Left Sidebar ── */}
       <div style={{
         width: isMobile ? 52 : 220, flexShrink: 0, borderRight: '1px solid var(--border-faint)',
-        padding: isMobile ? '12px 6px' : '16px 10px', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto',
+        padding: isMobile ? '12px 6px' : '16px 12px 16px 0', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto',
         transition: 'width 0.2s',
       }}>
         {/* Progress Card */}
         {!isMobile && <div style={{
-          margin: '0 6px 12px', padding: '14px 14px 12px', borderRadius: 14,
+          margin: '0 0 12px', padding: '14px 14px 12px', borderRadius: 14,
           background: 'var(--bg-hover)',
           border: '1px solid var(--border-primary)',
           boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
@@ -192,9 +202,12 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
         <SidebarItem id="overdue" icon={AlertCircle} label={t('todo.filter.overdue')} count={overdueCount} />
         <SidebarItem id="done" icon={CheckCheck} label={t('todo.filter.done')} count={doneCount} />
 
-        {/* Sort by priority */}
+        {/* Sort by */}
+        {!isMobile && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          {t('todo.sidebar.sortBy')}
+        </div>}
         <button onClick={() => setSortByPrio(v => !v)}
-          title={isMobile ? t('todo.sortByPrio') : undefined}
+          title={isMobile ? t('todo.priority') : undefined}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
             gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px',
@@ -206,7 +219,7 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
           onMouseEnter={e => { if (!sortByPrio) e.currentTarget.style.background = 'var(--bg-hover)' }}
           onMouseLeave={e => { if (!sortByPrio) e.currentTarget.style.background = 'transparent' }}>
           <Flag size={isMobile ? 18 : 15} style={{ flexShrink: 0, opacity: 0.7 }} />
-          {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{t('todo.sortByPrio')}</span>}
+          {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{t('todo.priority')}</span>}
         </button>
 
         {/* Categories */}
@@ -250,27 +263,6 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
             </span>
           </div>
         </div>
-
-        {/* Add task */}
-        {canEdit && (
-          <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border-faint)' }}>
-            <button
-              onClick={() => { setSelectedId(null); setIsAddingNew(true) }}
-              style={{
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                width: '100%', padding: '9px 16px', borderRadius: 8,
-                background: isAddingNew ? 'var(--text-primary)' : 'var(--bg-hover)',
-                color: isAddingNew ? 'var(--bg-primary)' : 'var(--text-primary)',
-                border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 13, fontWeight: 600, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { if (!isAddingNew) { e.currentTarget.style.background = 'var(--text-primary)'; e.currentTarget.style.color = 'var(--bg-primary)'; e.currentTarget.style.borderColor = 'var(--text-primary)' } }}
-              onMouseLeave={e => { if (!isAddingNew) { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.borderColor = 'var(--border-primary)' } }}>
-              <Plus size={14} />
-              {t('todo.addItem')}
-            </button>
-          </div>
-        )}
 
         {/* Task list */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
@@ -407,18 +399,27 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
           </div>
         </div>
       )}
-      {isAddingNew && !selectedItem && !isMobile && (
-        <NewTaskPane
-          tripId={tripId}
-          categories={categories}
-          members={members}
-          defaultCategory={typeof filter === 'string' && categories.includes(filter) ? filter : null}
-          onCreated={(id) => { setIsAddingNew(false); setSelectedId(id) }}
-          onClose={() => setIsAddingNew(false)}
-        />
-      )}
-      {isAddingNew && !selectedItem && isMobile && (
+      {isAddingNew && !selectedItem && !isMobile && ReactDOM.createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
+          className="modal-backdrop"
+          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
+          <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100vh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
+            ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px' } } }}>
+            <NewTaskPane
+              tripId={tripId}
+              categories={categories}
+              members={members}
+              defaultCategory={typeof filter === 'string' && categories.includes(filter) ? filter : null}
+              onCreated={(id) => { setIsAddingNew(false); setSelectedId(id) }}
+              onClose={() => setIsAddingNew(false)}
+            />
+          </div>
+        </div>,
+        document.body
+      )}
+      {isAddingNew && !selectedItem && isMobile && ReactDOM.createPortal(
+        <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
+          className="modal-backdrop"
           style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px 16px 0 0' } } }}>
@@ -431,7 +432,8 @@ export default function TodoListPanel({ tripId, items }: { tripId: number; items
               onClose={() => setIsAddingNew(false)}
             />
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
@@ -647,6 +649,7 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
   const [desc, setDesc] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [category, setCategory] = useState(defaultCategory || '')
+  const [addingCategory, setAddingCategoryInline] = useState(false)
   const [assignedUserId, setAssignedUserId] = useState<number | null>(null)
   const [priority, setPriority] = useState(0)
   const [saving, setSaving] = useState(false)
@@ -657,9 +660,10 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
     if (!name.trim()) return
     setSaving(true)
     try {
+      const trimmedCategory = category.trim()
       const item = await addTodoItem(tripId, {
         name: name.trim(), description: desc || null, priority,
-        due_date: dueDate || null, category: category || null,
+        due_date: dueDate || null, category: trimmedCategory || null,
         assigned_user_id: assignedUserId,
       } as any)
       if (item?.id) onCreated(item.id)
@@ -696,19 +700,49 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
 
         <div>
           <label style={labelStyle}>{t('todo.detail.category')}</label>
-          <CustomSelect
-            value={category}
-            onChange={v => setCategory(v)}
-            options={[
-              { value: '', label: t('todo.noCategory') },
-              ...categories.map(c => ({
-                value: c, label: c,
-                icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
-              })),
-            ]}
-            placeholder={t('todo.noCategory')}
-            size="sm"
-          />
+          {addingCategory ? (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                autoFocus
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') setAddingCategoryInline(false); if (e.key === 'Escape') { setCategory(''); setAddingCategoryInline(false) } }}
+                placeholder={t('todo.newCategory')}
+                style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+              />
+              <button type="button" onClick={() => setAddingCategoryInline(false)}
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                <Check size={14} />
+              </button>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 4 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <CustomSelect
+                  value={category}
+                  onChange={v => setCategory(v)}
+                  options={[
+                    { value: '', label: t('todo.noCategory') },
+                    ...categories.map(c => ({
+                      value: c, label: c,
+                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
+                    })),
+                    ...(category && !categories.includes(category) ? [{
+                      value: category, label: `${category} (${t('todo.newCategoryLabel') || 'new'})`,
+                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />,
+                    }] : []),
+                  ]}
+                  placeholder={t('todo.noCategory')}
+                  size="sm"
+                />
+              </div>
+              <button type="button" onClick={() => { setCategory(''); setAddingCategoryInline(true) }}
+                title={t('todo.newCategory')}
+                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div>

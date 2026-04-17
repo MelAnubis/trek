@@ -8,6 +8,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.css'
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { mapsApi } from '../../api/client'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
+import ReservationOverlay from './ReservationOverlay'
+import type { Reservation } from '../../types'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -385,7 +387,16 @@ export const MapView = memo(function MapView({
   rightWidth = 0,
   hasInspector = false,
   hasDayDetail = false,
-}) {
+  reservations = [] as Reservation[],
+  showReservationStats = false,
+  visibleConnectionIds = [] as number[],
+  onReservationClick,
+}: any) {
+  const visibleReservations = useMemo(() => {
+    if (!visibleConnectionIds || visibleConnectionIds.length === 0) return []
+    const set = new Set(visibleConnectionIds)
+    return reservations.filter((r: Reservation) => set.has(r.id))
+  }, [reservations, visibleConnectionIds])
   // Dynamic padding: account for sidebars + bottom inspector + day detail panel
   const paddingOpts = useMemo(() => {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
@@ -569,6 +580,13 @@ export const MapView = memo(function MapView({
           )
         } catch { return null }
       })}
+
+      <ReservationOverlay
+        reservations={visibleReservations}
+        showConnections
+        showStats={showReservationStats}
+        onEndpointClick={onReservationClick}
+      />
     </MapContainer>
   )
 })

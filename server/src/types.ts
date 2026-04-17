@@ -139,6 +139,20 @@ export interface BudgetItemMember {
   budget_item_id?: number;
 }
 
+export interface ReservationEndpoint {
+  id: number;
+  reservation_id: number;
+  role: 'from' | 'to' | 'stop';
+  sequence: number;
+  name: string;
+  code: string | null;
+  lat: number;
+  lng: number;
+  timezone: string | null;
+  local_time: string | null;
+  local_date: string | null;
+}
+
 export interface Reservation {
   id: number;
   trip_id: number;
@@ -155,6 +169,8 @@ export interface Reservation {
   type: string;
   accommodation_id?: number | null;
   metadata?: string | null;
+  needs_review?: number;
+  endpoints?: ReservationEndpoint[];
   created_at?: string;
   day_number?: number;
   place_name?: string;

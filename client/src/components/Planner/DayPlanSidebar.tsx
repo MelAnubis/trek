@@ -4,7 +4,7 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
-import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X, Route as RouteIcon } from 'lucide-react'
 
 const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, event: Ticket, tour: Users, other: FileText }
 import { assignmentsApi, reservationsApi } from '../../api/client'
@@ -170,6 +170,10 @@ interface DayPlanSidebarProps {
   onEditPlace: (place: Place) => void
   onDeletePlace: (placeId: number) => void
   reservations?: Reservation[]
+  visibleConnectionIds?: number[]
+  onToggleConnection?: (reservationId: number) => void
+  externalTransportDetail?: Reservation | null
+  onExternalTransportDetailHandled?: () => void
   onAddReservation: () => void
   onNavigateToFiles?: () => void
   onAddPlace?: () => void
@@ -189,6 +193,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   onReorder, onUpdateDayTitle, onRouteCalculated,
   onAssignToDay, onRemoveAssignment, onEditPlace, onDeletePlace,
   reservations = [],
+  visibleConnectionIds = [],
+  onToggleConnection,
+  externalTransportDetail,
+  onExternalTransportDetailHandled,
   onAddReservation,
   onAddPlace,
   onAddPlaceToDay,
@@ -234,6 +242,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const [hoveredId, setHoveredId] = useState(null)
   const [transportDetail, setTransportDetail] = useState(null)
   const [transportPosVersion, setTransportPosVersion] = useState(0)
+
+  useEffect(() => {
+    if (externalTransportDetail) {
+      setTransportDetail(externalTransportDetail)
+      onExternalTransportDetailHandled?.()
+    }
+  }, [externalTransportDetail, onExternalTransportDetailHandled])
   const [timeConfirm, setTimeConfirm] = useState<{
     dayId: number; fromId: number; time: string;
     // For drag & drop reorder
@@ -1570,6 +1585,29 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 </div>
                               )}
                             </div>
+                            {onToggleConnection && (res.endpoints || []).length >= 2 && (() => {
+                              const active = visibleConnectionIds.includes(res.id)
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={e => { e.stopPropagation(); onToggleConnection(res.id) }}
+                                  title={t(active ? 'map.hideConnections' : 'map.showConnections')}
+                                  style={{
+                                    flexShrink: 0, appearance: 'none',
+                                    width: 26, height: 26, borderRadius: 6,
+                                    display: 'grid', placeItems: 'center', cursor: 'pointer',
+                                    border: 'none',
+                                    background: active ? color : 'transparent',
+                                    color: active ? '#fff' : 'var(--text-faint)',
+                                    transition: 'all 0.12s',
+                                  }}
+                                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
+                                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
+                                >
+                                  <RouteIcon size={13} />
+                                </button>
+                              )
+                            })()}
                           </div>
                           {showDropLineAfter && <div style={{ height: 2, background: 'var(--text-primary)', borderRadius: 1, margin: '2px 8px' }} />}
                           </React.Fragment>

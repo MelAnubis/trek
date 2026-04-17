@@ -137,6 +137,20 @@ export interface BudgetMember {
   paid: boolean
 }
 
+export interface ReservationEndpoint {
+  id?: number
+  reservation_id?: number
+  role: 'from' | 'to' | 'stop'
+  sequence: number
+  name: string
+  code: string | null
+  lat: number
+  lng: number
+  timezone: string | null
+  local_time: string | null
+  local_date: string | null
+}
+
 export interface Reservation {
   id: number
   trip_id: number
@@ -158,6 +172,8 @@ export interface Reservation {
   accommodation_id?: number | null
   day_plan_position?: number | null
   metadata?: Record<string, string> | string | null
+  needs_review?: number
+  endpoints?: ReservationEndpoint[]
   created_at: string
 }
 

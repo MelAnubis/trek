@@ -1,9 +1,58 @@
 import { db, canAccessTrip } from '../db/database';
 import { Reservation } from '../types';
 
+export interface ReservationEndpoint {
+  id?: number;
+  reservation_id?: number;
+  role: 'from' | 'to' | 'stop';
+  sequence: number;
+  name: string;
+  code: string | null;
+  lat: number;
+  lng: number;
+  timezone: string | null;
+  local_time: string | null;
+  local_date: string | null;
+}
+
+type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
+
 export function verifyTripAccess(tripId: string | number, userId: number) {
   return canAccessTrip(tripId, userId);
 }
+
+function loadEndpointsByTrip(tripId: string | number): Map<number, ReservationEndpoint[]> {
+  const rows = db.prepare(`
+    SELECT e.* FROM reservation_endpoints e
+    JOIN reservations r ON e.reservation_id = r.id
+    WHERE r.trip_id = ?
+    ORDER BY e.reservation_id, e.sequence
+  `).all(tripId) as ReservationEndpoint[];
+  const map = new Map<number, ReservationEndpoint[]>();
+  for (const r of rows) {
+    const list = map.get(r.reservation_id!) ?? [];
+    list.push(r);
+    map.set(r.reservation_id!, list);
+  }
+  return map;
+}
+
+function loadEndpoints(reservationId: number): ReservationEndpoint[] {
+  return db.prepare(
+    'SELECT * FROM reservation_endpoints WHERE reservation_id = ? ORDER BY sequence'
+  ).all(reservationId) as ReservationEndpoint[];
+}
+
+const saveEndpoints = db.transaction((reservationId: number, endpoints: EndpointInput[]) => {
+  db.prepare('DELETE FROM reservation_endpoints WHERE reservation_id = ?').run(reservationId);
+  const insert = db.prepare(`
+    INSERT INTO reservation_endpoints (reservation_id, role, sequence, name, code, lat, lng, timezone, local_time, local_date)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  endpoints.forEach((e, i) => {
+    insert.run(reservationId, e.role, e.sequence ?? i, e.name, e.code ?? null, e.lat, e.lng, e.timezone ?? null, e.local_time ?? null, e.local_date ?? null);
+  });
+});
 
 export function listReservations(tripId: string | number) {
   const reservations = db.prepare(`
@@ -18,7 +67,6 @@ export function listReservations(tripId: string | number) {
     ORDER BY r.reservation_time ASC, r.created_at ASC
   `).all(tripId) as any[];
 
-  // Attach per-day positions for multi-day reservations
   const dayPositions = db.prepare(`
     SELECT rdp.reservation_id, rdp.day_id, rdp.position
     FROM reservation_day_positions rdp
@@ -32,15 +80,18 @@ export function listReservations(tripId: string | number) {
     posMap.get(dp.reservation_id)![dp.day_id] = dp.position;
   }
 
+  const endpointsMap = loadEndpointsByTrip(tripId);
+
   for (const r of reservations) {
     r.day_positions = posMap.get(r.id) || null;
+    r.endpoints = endpointsMap.get(r.id) || [];
   }
 
   return reservations;
 }
 
 export function getReservationWithJoins(id: string | number) {
-  return db.prepare(`
+  const row = db.prepare(`
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
       ap.place_id as accommodation_place_id, acc_p.name as accommodation_name
     FROM reservations r
@@ -49,7 +100,10 @@ export function getReservationWithJoins(id: string | number) {
     LEFT JOIN day_accommodations ap ON r.accommodation_id = ap.id
     LEFT JOIN places acc_p ON ap.place_id = acc_p.id
     WHERE r.id = ?
-  `).get(id);
+  `).get(id) as any;
+  if (!row) return undefined;
+  row.endpoints = loadEndpoints(row.id);
+  return row;
 }
 
 interface CreateAccommodation {
@@ -76,13 +130,16 @@ interface CreateReservationData {
   accommodation_id?: number;
   metadata?: any;
   create_accommodation?: CreateAccommodation;
+  endpoints?: EndpointInput[];
+  needs_review?: boolean;
 }
 
 export function createReservation(tripId: string | number, data: CreateReservationData): { reservation: any; accommodationCreated: boolean } {
   const {
     title, reservation_time, reservation_end_time, location,
     confirmation_number, notes, day_id, place_id, assignment_id,
-    status, type, accommodation_id, metadata, create_accommodation
+    status, type, accommodation_id, metadata, create_accommodation,
+    endpoints, needs_review
   } = data;
 
   let accommodationCreated = false;
@@ -101,8 +158,8 @@ export function createReservation(tripId: string | number, data: CreateReservati
   }
 
   const result = db.prepare(`
-    INSERT INTO reservations (trip_id, day_id, place_id, assignment_id, title, reservation_time, reservation_end_time, location, confirmation_number, notes, status, type, accommodation_id, metadata)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO reservations (trip_id, day_id, place_id, assignment_id, title, reservation_time, reservation_end_time, location, confirmation_number, notes, status, type, accommodation_id, metadata, needs_review)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId,
     day_id || null,
@@ -117,8 +174,13 @@ export function createReservation(tripId: string | number, data: CreateReservati
     status || 'pending',
     type || 'other',
     resolvedAccommodationId,
-    metadata ? JSON.stringify(metadata) : null
+    metadata ? JSON.stringify(metadata) : null,
+    needs_review ? 1 : 0
   );
+
+  if (endpoints && endpoints.length > 0) {
+    saveEndpoints(Number(result.lastInsertRowid), endpoints);
+  }
 
   // Sync check-in/out to accommodation if linked
   if (accommodation_id && metadata) {
@@ -187,13 +249,16 @@ interface UpdateReservationData {
   accommodation_id?: number;
   metadata?: any;
   create_accommodation?: CreateAccommodation;
+  endpoints?: EndpointInput[];
+  needs_review?: boolean;
 }
 
 export function updateReservation(id: string | number, tripId: string | number, data: UpdateReservationData, current: Reservation): { reservation: any; accommodationChanged: boolean } {
   const {
     title, reservation_time, reservation_end_time, location,
     confirmation_number, notes, day_id, place_id, assignment_id,
-    status, type, accommodation_id, metadata, create_accommodation
+    status, type, accommodation_id, metadata, create_accommodation,
+    endpoints, needs_review
   } = data;
 
   let accommodationChanged = false;
@@ -234,7 +299,8 @@ export function updateReservation(id: string | number, tripId: string | number, 
       status = COALESCE(?, status),
       type = COALESCE(?, type),
       accommodation_id = ?,
-      metadata = ?
+      metadata = ?,
+      needs_review = COALESCE(?, needs_review)
     WHERE id = ?
   `).run(
     title || null,
@@ -250,8 +316,13 @@ export function updateReservation(id: string | number, tripId: string | number, 
     type || null,
     resolvedAccId,
     metadata !== undefined ? (metadata ? JSON.stringify(metadata) : null) : current.metadata,
+    needs_review === undefined ? null : (needs_review ? 1 : 0),
     id
   );
+
+  if (endpoints !== undefined) {
+    saveEndpoints(Number(id), endpoints);
+  }
 
   // Sync check-in/out to accommodation if linked
   const resolvedMeta = metadata !== undefined ? metadata : (current.metadata ? JSON.parse(current.metadata as string) : null);
