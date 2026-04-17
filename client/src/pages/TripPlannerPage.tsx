@@ -233,8 +233,18 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [fitKey, setFitKey] = useState<number>(0)
+  const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
   const [deletePlaceId, setDeletePlaceId] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!trip) return
+    if (initialFitTripId.current === trip.id) return
+    const hasGeoPlaces = places.some(p => p.lat != null && p.lng != null)
+    if (!hasGeoPlaces) return
+    initialFitTripId.current = trip.id
+    setFitKey(k => k + 1)
+  }, [trip, places])
 
   const connectionsStorageKey = tripId ? `trek:visible-connections:${tripId}` : null
   const [visibleConnections, setVisibleConnections] = useState<number[]>(() => {
