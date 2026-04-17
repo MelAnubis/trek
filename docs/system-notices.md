@@ -138,7 +138,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
 
 **Never remove or renumber an entry. Never reuse an ID.**
 
-Dismissals are stored in the database keyed by `id`. Removing an entry means dismissed users would see it again if you ever add a notice with the same ID. If a notice is no longer needed, set `maxVersion` to the last app version on which it should appear — do not delete the entry.
+Dismissals are stored in the database keyed by `id`. Removing an entry means dismissed users would see it again if you ever add a notice with the same ID. If a notice is no longer needed, set `maxVersion` to the upper version on which it should appear (e.g. `4.0.0` means show notice until `4.0.0` is reached) — do not delete the entry.
 
 ---
 
