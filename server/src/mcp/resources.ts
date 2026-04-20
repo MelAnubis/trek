@@ -13,7 +13,7 @@ import { listCategories } from '../services/categoryService';
 import { listBucketList, listVisitedCountries, getStats as getAtlasStats, listManuallyVisitedRegions } from '../services/atlasService';
 import { getNotifications } from '../services/inAppNotifications';
 import { getActivePlanId, getActivePlan, getPlanData, getEntries as getVacayEntries, getHolidays } from '../services/vacayService';
-import { isAddonEnabled } from '../services/adminService';
+import { isAddonEnabled, getCollabFeatures } from '../services/adminService';
 import { ADDON_IDS } from '../addons';
 import { canAccessJourney, getJourneyFull, listEntries, listJourneys } from '../services/journeyService';
 import { canRead, canReadTrips } from './scopes';
@@ -188,7 +188,8 @@ export function registerResources(server: McpServer, userId: number, scopes: str
   );
 
   // Collab notes for a trip
-  if (isAddonEnabled(ADDON_IDS.COLLAB) && canRead(scopes, 'collab')) server.registerResource(
+  const collabFeatures = isAddonEnabled(ADDON_IDS.COLLAB) ? getCollabFeatures() : null;
+  if (collabFeatures?.notes && canRead(scopes, 'collab')) server.registerResource(
     'trip-collab-notes',
     new ResourceTemplate('trek://trips/{tripId}/collab-notes', { list: undefined }),
     { description: 'Shared collaborative notes for a trip', mimeType: 'application/json' },
@@ -319,8 +320,8 @@ export function registerResources(server: McpServer, userId: number, scopes: str
     );
   }
 
-  // Collab polls & messages (addon-gated)
-  if (isAddonEnabled(ADDON_IDS.COLLAB) && canRead(scopes, 'collab')) {
+  // Collab polls (addon + sub-feature gated)
+  if (collabFeatures?.polls && canRead(scopes, 'collab')) {
     server.registerResource(
       'trip-collab-polls',
       new ResourceTemplate('trek://trips/{tripId}/collab/polls', { list: undefined }),
@@ -332,7 +333,10 @@ export function registerResources(server: McpServer, userId: number, scopes: str
         return jsonContent(uri.href, polls);
       }
     );
+  }
 
+  // Collab messages (addon + sub-feature gated)
+  if (collabFeatures?.chat && canRead(scopes, 'collab')) {
     server.registerResource(
       'trip-collab-messages',
       new ResourceTemplate('trek://trips/{tripId}/collab/messages', { list: undefined }),

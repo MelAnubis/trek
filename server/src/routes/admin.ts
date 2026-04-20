@@ -266,6 +266,7 @@ router.get('/collab-features', (_req: Request, res: Response) => {
 
 router.put('/collab-features', (req: Request, res: Response) => {
   const result = svc.updateCollabFeatures(req.body);
+  invalidateMcpSessions();
   const authReq = req as AuthRequest;
   writeAudit({
     userId: authReq.user.id,

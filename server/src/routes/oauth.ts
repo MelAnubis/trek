@@ -87,6 +87,20 @@ oauthPublicRouter.get('/.well-known/oauth-authorization-server', (req: Request, 
     scope_descriptions:                    Object.fromEntries(
       ALL_SCOPES.map(s => [s, SCOPE_INFO[s].label])
     ),
+    resource_parameter_supported:          true,
+  });
+});
+
+// RFC 9728 Protected Resource Metadata
+oauthPublicRouter.get('/.well-known/oauth-protected-resource', (_req: Request, res: Response) => {
+  if (!isAddonEnabled(ADDON_IDS.MCP)) return res.status(404).end();
+  const base = (getAppUrl() || '').replace(/\/+$/, '');
+  res.json({
+    resource:                 `${base}/mcp`,
+    authorization_servers:    [base],
+    bearer_methods_supported: ['header'],
+    scopes_supported:         ALL_SCOPES,
+    resource_name:            'TREK MCP',
   });
 });
 
@@ -98,7 +112,7 @@ oauthPublicRouter.post('/oauth/token', tokenLimiter, (req: Request, res: Respons
 
   // Accept both JSON and application/x-www-form-urlencoded
   const body: Record<string, string> = typeof req.body === 'object' ? req.body : {};
-  const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier, refresh_token } = body;
+  const { grant_type, code, redirect_uri, client_id, client_secret, code_verifier, refresh_token, resource } = body;
   const ip = getClientIp(req);
 
   if (!isAddonEnabled(ADDON_IDS.MCP)) {
@@ -133,6 +147,12 @@ oauthPublicRouter.post('/oauth/token', tokenLimiter, (req: Request, res: Respons
       return res.status(400).json({ error: 'invalid_grant', error_description: 'Authorization grant is invalid.' });
     }
 
+    // RFC 8707: if the auth code was bound to a resource, the token request must present the same value
+    if (pending.resource && resource && pending.resource !== resource.replace(/\/+$/, '')) {
+      writeAudit({ userId: pending.userId, action: 'oauth.token.grant_failed', details: { client_id, reason: 'resource_mismatch' }, ip });
+      return res.status(400).json({ error: 'invalid_grant', error_description: 'Authorization grant is invalid.' });
+    }
+
     // Verify client secret
     if (!authenticateClient(client_id, client_secret)) {
       logWarn(`[OAuth] Invalid client credentials for client_id=${client_id} ip=${ip ?? '-'}`);
@@ -146,8 +166,8 @@ oauthPublicRouter.post('/oauth/token', tokenLimiter, (req: Request, res: Respons
       return res.status(400).json({ error: 'invalid_grant', error_description: 'Authorization grant is invalid.' });
     }
 
-    const tokens = issueTokens(client_id, pending.userId, pending.scopes);
-    writeAudit({ userId: pending.userId, action: 'oauth.token.issue', details: { client_id, scopes: pending.scopes }, ip });
+    const tokens = issueTokens(client_id, pending.userId, pending.scopes, null, pending.resource ?? null);
+    writeAudit({ userId: pending.userId, action: 'oauth.token.issue', details: { client_id, scopes: pending.scopes, audience: pending.resource ?? null }, ip });
     return res.json(tokens);
   }
 
@@ -275,6 +295,7 @@ oauthApiRouter.get('/authorize/validate', validateLimiter, optionalAuth, (req: R
       state:                  params.state,
       code_challenge:         params.code_challenge || '',
       code_challenge_method:  params.code_challenge_method || '',
+      resource:               typeof params.resource === 'string' ? params.resource : undefined,
     },
     userId,
   );
@@ -298,7 +319,7 @@ oauthApiRouter.post('/authorize', requireCookieAuth, (req: Request, res: Respons
   const { user } = req as AuthRequest;
   const {
     client_id, redirect_uri, scope, state,
-    code_challenge, code_challenge_method, approved,
+    code_challenge, code_challenge_method, approved, resource,
   } = req.body as {
     client_id: string;
     redirect_uri: string;
@@ -307,6 +328,7 @@ oauthApiRouter.post('/authorize', requireCookieAuth, (req: Request, res: Respons
     code_challenge: string;
     code_challenge_method: string;
     approved: boolean;
+    resource?: string;
   };
   const ip = getClientIp(req);
 
@@ -332,6 +354,7 @@ oauthApiRouter.post('/authorize', requireCookieAuth, (req: Request, res: Respons
     state,
     code_challenge,
     code_challenge_method,
+    resource,
   };
 
   const validation = validateAuthorizeRequest(params, user.id);
@@ -350,6 +373,7 @@ oauthApiRouter.post('/authorize', requireCookieAuth, (req: Request, res: Respons
     userId: user.id,
     redirectUri: redirect_uri,
     scopes,
+    resource: validation.resource ?? null,
     codeChallenge: code_challenge,
     codeChallengeMethod: 'S256',
   });

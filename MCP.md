@@ -53,10 +53,11 @@ management required — just provide the server URL:
 > The path to `npx` may need to be adjusted for your system (e.g. `C:\PROGRA~1\nodejs\npx.cmd` on Windows).
 
 **What happens automatically:**
-1. The client fetches `/.well-known/oauth-authorization-server` to discover the TREK authorization server.
-2. The client registers itself via [Dynamic Client Registration (RFC 7591)](https://www.rfc-editor.org/rfc/rfc7591).
-3. Your browser opens TREK's consent screen, where you choose which scopes (permissions) to grant.
-4. The client receives a short-lived access token and a rotating refresh token — no re-authorization needed.
+1. The client fetches `/.well-known/oauth-protected-resource` (RFC 9728) to discover the authorization server and bind the `/mcp` endpoint.
+2. The client fetches `/.well-known/oauth-authorization-server` for the full AS metadata.
+3. The client registers itself via [Dynamic Client Registration (RFC 7591)](https://www.rfc-editor.org/rfc/rfc7591).
+4. Your browser opens TREK's consent screen, where you choose which scopes (permissions) to grant.
+5. The client receives a short-lived access token audience-bound to `/mcp` (RFC 8707) and a rotating refresh token — no re-authorization needed.
 
 > **Requirement:** The `APP_URL` environment variable must be set to your TREK instance's public URL for OAuth
 > discovery to work correctly.

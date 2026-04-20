@@ -12,7 +12,7 @@ import {
 import {
   createOrUpdateShareLink, getShareLink, deleteShareLink,
 } from '../../services/shareService';
-import { isAddonEnabled } from '../../services/adminService';
+import { isAddonEnabled, getCollabFeatures } from '../../services/adminService';
 import { ADDON_IDS } from '../../addons';
 import { countMessages, listPolls } from '../../services/collabService';
 import {
@@ -161,6 +161,7 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
       const packingEnabled = isAddonEnabled(ADDON_IDS.PACKING);
       const budgetEnabled  = isAddonEnabled(ADDON_IDS.BUDGET);
       const collabEnabled  = isAddonEnabled(ADDON_IDS.COLLAB);
+      const collabFeatures = collabEnabled ? getCollabFeatures() : null;
       // Scope gates — sections not covered by the client's OAuth scopes are omitted.
       // Core trip data (metadata, days, members, accommodations) is always included
       // because this tool is always registered and needed for navigation.
@@ -173,16 +174,16 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
       let pollCount = 0;
       let messageCount = 0;
       if (canReadCollab) {
-        pollCount    = listPolls(tripId).length;
-        messageCount = countMessages(tripId);
+        if (collabFeatures?.polls) pollCount    = listPolls(tripId).length;
+        if (collabFeatures?.chat)  messageCount = countMessages(tripId);
       }
       const notice = getDeprecationNotice();
-      const data = {
+      const summaryData = {
         ...summary,
-        reservations:  canReadRes     ? summary.reservations  : undefined,
-        packing:       canReadPacking ? summary.packing        : undefined,
-        budget:        canReadBudget  ? summary.budget         : undefined,
-        collab_notes:  canReadCollab  ? summary.collab_notes   : [],
+        reservations:  canReadRes                                    ? summary.reservations : undefined,
+        packing:       canReadPacking                                ? summary.packing      : undefined,
+        budget:        canReadBudget                                 ? summary.budget       : undefined,
+        collab_notes:  canReadCollab && collabFeatures?.notes        ? summary.collab_notes : [],
         todos,
         pollCount,
         messageCount,
@@ -191,19 +192,10 @@ export function registerTripTools(server: McpServer, userId: number, scopes: str
         isError: true as const,
         content: [
           { type: 'text' as const, text: notice },
-          { type: 'text' as const, text: JSON.stringify(data, null, 2) },
+          { type: 'text' as const, text: JSON.stringify(summaryData, null, 2) },
         ],
       };
-      return ok({
-        ...summary,
-        reservations:  canReadRes     ? summary.reservations  : undefined,
-        packing:       canReadPacking ? summary.packing        : undefined,
-        budget:        canReadBudget  ? summary.budget         : undefined,
-        collab_notes:  canReadCollab  ? summary.collab_notes   : [],
-        todos,
-        pollCount,
-        messageCount,
-      });
+      return ok(summaryData);
     }
   );
 

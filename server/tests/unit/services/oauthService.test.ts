@@ -38,6 +38,7 @@ vi.mock('../../../src/mcp/sessionManager', () => ({ revokeUserSessions: vi.fn(),
 vi.mock('../../../src/demo/demo-reset', () => ({ saveBaseline: vi.fn() }));
 vi.mock('../../../src/services/adminService', () => ({
   isAddonEnabled: vi.fn().mockReturnValue(true),
+  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
 
 import { createTables } from '../../../src/db/schema';

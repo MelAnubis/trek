@@ -6,6 +6,7 @@ import { ADDON_IDS } from '../addons';
 import { User } from '../types';
 import { writeAudit, logWarn } from './auditLog';
 import { revokeUserSessionsForClient } from '../mcp/sessionManager';
+import { getAppUrl } from './oidcService';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -28,6 +29,7 @@ interface PendingCode {
   userId: number;
   redirectUri: string;
   scopes: string[];
+  resource: string | null;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
   expiresAt: number;
@@ -67,6 +69,7 @@ interface OAuthTokenRow {
   access_token_hash: string;
   refresh_token_hash: string;
   scopes: string;           // JSON array
+  audience: string | null;
   access_token_expires_at: string;
   refresh_token_expires_at: string;
   revoked_at: string | null;
@@ -243,6 +246,7 @@ export function createAuthCode(params: {
   userId: number;
   redirectUri: string;
   scopes: string[];
+  resource: string | null;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
 }): string | null {
@@ -294,6 +298,7 @@ export function issueTokens(
   userId: number,
   scopes: string[],
   parentTokenId: number | null = null,
+  audience: string | null = null,
 ): {
   access_token: string;
   refresh_token: string;
@@ -312,9 +317,9 @@ export function issueTokens(
 
   db.prepare(`
     INSERT INTO oauth_tokens
-      (client_id, user_id, access_token_hash, refresh_token_hash, scopes, access_token_expires_at, refresh_token_expires_at, parent_token_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(clientId, userId, accessHash, refreshHash, JSON.stringify(scopes), accessExpiry.toISOString(), refreshExpiry.toISOString(), parentTokenId);
+      (client_id, user_id, access_token_hash, refresh_token_hash, scopes, audience, access_token_expires_at, refresh_token_expires_at, parent_token_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(clientId, userId, accessHash, refreshHash, JSON.stringify(scopes), audience, accessExpiry.toISOString(), refreshExpiry.toISOString(), parentTokenId);
 
   return {
     access_token:  rawAccess,
@@ -333,12 +338,13 @@ export interface OAuthTokenInfo {
   user: User;
   scopes: string[];
   clientId: string;
+  audience: string | null;
 }
 
 export function getUserByAccessToken(rawToken: string): OAuthTokenInfo | null {
   const hash = hashToken(rawToken);
   const row = db.prepare(`
-    SELECT ot.scopes, ot.revoked_at, ot.access_token_expires_at,
+    SELECT ot.scopes, ot.audience, ot.revoked_at, ot.access_token_expires_at,
            ot.user_id, ot.client_id, u.username, u.email, u.role
     FROM oauth_tokens ot
     JOIN users u ON ot.user_id = u.id
@@ -353,6 +359,7 @@ export function getUserByAccessToken(rawToken: string): OAuthTokenInfo | null {
     user: { id: row.user_id, username: row.username, email: row.email, role: row.role as 'admin' | 'user' },
     scopes: JSON.parse(row.scopes),
     clientId: row.client_id,
+    audience: row.audience ?? null,
   };
 }
 
@@ -406,7 +413,7 @@ export function refreshTokens(
 
   const hash = hashToken(rawRefreshToken);
   const row = db.prepare(`
-    SELECT id, client_id, user_id, scopes, refresh_token_expires_at, revoked_at, parent_token_id
+    SELECT id, client_id, user_id, scopes, audience, refresh_token_expires_at, revoked_at, parent_token_id
     FROM oauth_tokens WHERE refresh_token_hash = ?
   `).get(hash) as OAuthTokenRow | undefined;
 
@@ -442,7 +449,7 @@ export function refreshTokens(
 
   revokeUserSessionsForClient(row.user_id, clientId);
 
-  const tokens = issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id);
+  const tokens = issueTokens(clientId, row.user_id, JSON.parse(row.scopes), row.id, row.audience ?? null);
   writeAudit({ userId: row.user_id, action: 'oauth.token.refresh', details: { client_id: clientId }, ip });
 
   return { tokens };
@@ -522,6 +529,7 @@ export interface AuthorizeParams {
   state?: string;
   code_challenge: string;
   code_challenge_method: string;
+  resource?: string;
 }
 
 export interface ValidateAuthorizeResult {
@@ -530,6 +538,7 @@ export interface ValidateAuthorizeResult {
   error_description?: string;
   client?: { name: string; allowed_scopes: string[] };
   scopes?: string[];
+  resource?: string | null;
   /** true when user is logged in but consent UI must be shown */
   consentRequired?: boolean;
   /** true when the request is valid but user is not authenticated */
@@ -573,6 +582,13 @@ export function validateAuthorizeRequest(
     return { valid: false, error: 'invalid_redirect_uri', error_description: 'redirect_uri does not match any registered URI' };
   }
 
+  // RFC 8707 resource indicator: if provided, must identify the TREK MCP endpoint exactly
+  const mcpResource = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+  const resource = params.resource ? params.resource.replace(/\/+$/, '') : null;
+  if (resource !== null && resource !== mcpResource) {
+    return { valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' };
+  }
+
   const requestedScopes = (params.scope || '').split(' ').filter(Boolean);
   if (requestedScopes.length === 0) {
     return { valid: false, error: 'invalid_scope', error_description: 'At least one scope is required' };
@@ -599,6 +615,7 @@ export function validateAuthorizeRequest(
     valid: true,
     client: { name: client.name, allowed_scopes: allowedScopes },
     scopes: grantedScopes,
+    resource: resource ?? mcpResource,
     consentRequired,
     scopeSelectable: client.created_via === 'dcr',
   };

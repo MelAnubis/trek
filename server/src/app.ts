@@ -77,6 +77,11 @@ export function createApp(): express.Application {
 
   const shouldForceHttps = process.env.FORCE_HTTPS === 'true';
 
+  // RFC 8414 / RFC 9728: discovery docs are world-readable — open CORS regardless of deployment config
+  app.use(
+    ['/.well-known/oauth-authorization-server', '/.well-known/oauth-protected-resource'],
+    cors({ origin: '*', credentials: false }),
+  );
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(helmet({
     contentSecurityPolicy: {

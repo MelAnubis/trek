@@ -42,7 +42,10 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
   const isAddonEnabledMock = vi.fn().mockReturnValue(true);
   return { isAddonEnabledMock };
 });
-vi.mock('../../../src/services/adminService', () => ({ isAddonEnabled: isAddonEnabledMock }));
+vi.mock('../../../src/services/adminService', () => ({
+  isAddonEnabled: isAddonEnabledMock,
+  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
+}));
 
 const { mockGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),

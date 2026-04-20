@@ -38,6 +38,7 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
 });
 vi.mock('../../../src/services/adminService', () => ({
   isAddonEnabled: isAddonEnabledMock,
+  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
 
 import { createTables } from '../../../src/db/schema';

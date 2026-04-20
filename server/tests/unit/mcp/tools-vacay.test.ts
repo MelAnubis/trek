@@ -41,6 +41,7 @@ vi.mock('../../../src/websocket', () => ({ broadcast: broadcastMock }));
 
 vi.mock('../../../src/services/adminService', () => ({
   isAddonEnabled: vi.fn().mockReturnValue(true),
+  getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
 
 // Mock async service functions that make external calls

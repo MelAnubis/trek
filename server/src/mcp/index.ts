@@ -11,6 +11,7 @@ import { registerResources } from './resources';
 import { registerTools } from './tools';
 import { McpSession, sessions, revokeUserSessions, revokeUserSessionsForClient } from './sessionManager';
 import { writeAudit, getClientIp } from '../services/auditLog';
+import { getAppUrl } from '../services/oidcService';
 
 export { revokeUserSessions, revokeUserSessionsForClient };
 
@@ -151,6 +152,12 @@ const sessionSweepInterval = setInterval(() => {
 // Prevent the interval from keeping the process alive if nothing else is running
 sessionSweepInterval.unref();
 
+function setAuthChallenge(res: Response, error = 'invalid_token'): void {
+  const base = (getAppUrl() || '').replace(/\/+$/, '');
+  res.set('WWW-Authenticate',
+    `Bearer realm="TREK MCP", resource_metadata="${base}/.well-known/oauth-protected-resource", error="${error}"`);
+}
+
 interface VerifyTokenResult {
   user: User;
   /** null = full access (static token or JWT); string[] = OAuth 2.1 scoped access */
@@ -173,6 +180,11 @@ function verifyToken(authHeader: string | undefined): VerifyTokenResult | null {
   if (token.startsWith('trekoa_')) {
     const result = getUserByAccessToken(token);
     if (!result) return null;
+    // RFC 8707: if the token carries an audience, it must match this resource endpoint
+    if (result.audience !== null) {
+      const expected = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+      if (result.audience !== expected) return null;
+    }
     return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
   }
 
@@ -211,6 +223,7 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
 
   const tokenResult = verifyToken(req.headers['authorization']);
   if (!tokenResult) {
+    setAuthChallenge(res);
     res.status(401).json({ error: 'Access token required' });
     return;
   }
@@ -231,10 +244,12 @@ export async function mcpHandler(req: Request, res: Response): Promise<void> {
       return;
     }
     if (session.userId !== user.id) {
+      setAuthChallenge(res);
       res.status(403).json({ error: 'Session belongs to a different user' });
       return;
     }
     if (session.clientId !== clientId) {
+      setAuthChallenge(res);
       res.status(403).json({ error: 'Session was created with a different OAuth client' });
       return;
     }

@@ -1767,6 +1767,11 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('no such table') && !err.message?.includes('FOREIGN KEY')) throw err;
       }
     },
+    // Migration: RFC 8707 resource indicators — audience-bind OAuth tokens to /mcp
+    () => {
+      try { db.exec('ALTER TABLE oauth_tokens ADD COLUMN audience TEXT'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {
