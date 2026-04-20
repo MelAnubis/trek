@@ -205,6 +205,37 @@ oauthPublicRouter.post('/oauth/register', dcrLimiter, (req: Request, res: Respon
   if (redirectUris.length === 0) {
     return res.status(400).json({ error: 'invalid_redirect_uri', error_description: 'redirect_uris is required and must be a non-empty array' });
   }
+  // OAuth 2.1 + RFC 8252: confidential web apps need HTTPS; public
+  // clients (MCP, native) are limited to loopback or a reverse-DNS
+  // private-use scheme. This rejects `http://evil.example` DCR payloads
+  // that today would otherwise be accepted since we previously only
+  // checked shape. Dangerous URL schemes (`javascript:`, `data:` etc.)
+  // are explicitly rejected — the authorize flow later 302s the
+  // browser to this URI, which with `javascript:` would execute
+  // attacker-controlled script under our redirect origin's context.
+  const DANGEROUS_SCHEMES = new Set([
+    'javascript:', 'data:', 'vbscript:', 'file:', 'blob:', 'about:', 'chrome:', 'chrome-extension:',
+  ]);
+  const allowed = redirectUris.every((u) => {
+    try {
+      const url = new URL(u);
+      if (DANGEROUS_SCHEMES.has(url.protocol)) return false;
+      if (url.protocol === 'https:') return true;
+      if (url.protocol === 'http:' && (url.hostname === 'localhost' || url.hostname === '127.0.0.1' || url.hostname === '[::1]')) return true;
+      // RFC 8252 §7.1 private-use scheme: must be a reverse-DNS name
+      // (e.g. `com.example.myapp:/callback`). Requiring a dot in the
+      // scheme is a cheap heuristic that rules out bare `myapp:` and
+      // `x:` one-off schemes the spec explicitly discourages.
+      const schemeBody = url.protocol.slice(0, -1);
+      if (/^[a-z][a-z0-9+.-]*$/i.test(schemeBody) && schemeBody.includes('.')) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  });
+  if (!allowed) {
+    return res.status(400).json({ error: 'invalid_redirect_uri', error_description: 'redirect_uris must be HTTPS, loopback HTTP, or a private custom scheme' });
+  }
 
   const rawName = typeof body.client_name === 'string' ? body.client_name.trim().slice(0, 100) : '';
   const clientName = rawName || 'MCP Client';

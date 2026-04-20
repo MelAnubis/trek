@@ -14,6 +14,8 @@ export interface OidcDiscoveryDoc {
   authorization_endpoint: string;
   token_endpoint: string;
   userinfo_endpoint: string;
+  jwks_uri?: string;
+  issuer?: string;
   _issuer?: string;
 }
 
@@ -138,6 +140,12 @@ export async function discover(issuer: string, discoveryUrl?: string | null): Pr
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch OIDC discovery document');
   const doc = (await res.json()) as OidcDiscoveryDoc;
+  // Validate that the discovery doc's issuer matches the operator-configured
+  // one. A MITM or compromised doc could otherwise supply a crafted issuer
+  // that passes jwt.verify() because we used doc.issuer as the expected value.
+  if (doc.issuer && doc.issuer !== issuer) {
+    throw new Error(`OIDC discovery issuer mismatch: expected "${issuer}", got "${doc.issuer}"`);
+  }
   doc._issuer = url;
   discoveryCache = doc;
   discoveryCacheTime = Date.now();
@@ -222,6 +230,102 @@ export async function getUserInfo(userinfoEndpoint: string, accessToken: string)
 }
 
 // ---------------------------------------------------------------------------
+// id_token verification (signature + iss + aud + exp)
+// ---------------------------------------------------------------------------
+
+// 5 minute JWKS cache — short enough to pick up key rotation within a
+// reasonable window, long enough that normal login flow doesn't fetch
+// JWKS on every callback.
+const JWKS_TTL_MS = 5 * 60 * 1000;
+type JwksEntry = { keys: Array<Record<string, unknown>>; fetchedAt: number };
+const jwksCache = new Map<string, JwksEntry>();
+
+async function fetchJwks(jwksUri: string): Promise<Array<Record<string, unknown>>> {
+  const cached = jwksCache.get(jwksUri);
+  if (cached && Date.now() - cached.fetchedAt < JWKS_TTL_MS) return cached.keys;
+  const res = await fetch(jwksUri);
+  if (!res.ok) throw new Error(`JWKS fetch failed: HTTP ${res.status}`);
+  const json = (await res.json()) as { keys?: Array<Record<string, unknown>> };
+  const keys = json.keys ?? [];
+  jwksCache.set(jwksUri, { keys, fetchedAt: Date.now() });
+  return keys;
+}
+
+function base64UrlDecode(input: string): Buffer {
+  const padded = input.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - (input.length % 4)) % 4);
+  return Buffer.from(padded, 'base64');
+}
+
+/**
+ * Verify an OIDC id_token end-to-end: signature against the provider's
+ * JWKS, issuer match, audience match, and exp/nbf. Does NOT verify a
+ * nonce — the server doesn't currently send one in the auth request;
+ * when that's added, pass the expected nonce here and check `claims.nonce`.
+ *
+ * Returning the claims lets callers cross-check `sub` / `email` against
+ * the userinfo response. A mismatch would mean the provider's userinfo
+ * endpoint is speaking for a different subject than the id_token — a
+ * classic IdP-side compromise signal worth refusing login over.
+ */
+export async function verifyIdToken(
+  idToken: string,
+  doc: OidcDiscoveryDoc,
+  clientId: string,
+  expectedIssuer: string,
+): Promise<{ ok: true; claims: Record<string, unknown> } | { ok: false; error: string }> {
+  if (!doc.jwks_uri) return { ok: false, error: 'no_jwks_uri' };
+  const parts = idToken.split('.');
+  if (parts.length !== 3) return { ok: false, error: 'malformed_token' };
+
+  let header: { kid?: string; alg?: string };
+  try { header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8')); }
+  catch { return { ok: false, error: 'bad_header' }; }
+
+  const alg = header.alg;
+  if (!alg || !/^(RS256|RS384|RS512|ES256|ES384|ES512|PS256|PS384|PS512)$/.test(alg)) {
+    return { ok: false, error: 'unsupported_alg' };
+  }
+
+  let keys: Array<Record<string, unknown>>;
+  try { keys = await fetchJwks(doc.jwks_uri); }
+  catch (e) { return { ok: false, error: 'jwks_fetch_failed' }; }
+
+  // When the token carries a `kid`, refuse to fall back to any other
+  // key in the JWKS — a mismatch means the token was signed with a key
+  // the provider no longer publishes, and we should reject rather than
+  // mask the failure by trying another key.
+  const jwk = header.kid
+    ? keys.find((k) => k['kid'] === header.kid)
+    : keys[0];
+  if (!jwk) return { ok: false, error: 'no_matching_key' };
+
+  let publicKey;
+  try {
+    // Node 16+ understands JWK directly; no PEM conversion library needed.
+    // Node's crypto accepts a JWK object directly as `{ key, format: 'jwk' }`.
+    // The type signature isn't strict on our TS config so we cast through any.
+    publicKey = crypto.createPublicKey({ key: jwk as any, format: 'jwk' });
+  } catch {
+    return { ok: false, error: 'key_import_failed' };
+  }
+
+  let claims: Record<string, unknown>;
+  try {
+    const verified = jwt.verify(idToken, publicKey, {
+      algorithms: [alg as jwt.Algorithm],
+      issuer: expectedIssuer,
+      audience: clientId,
+    });
+    claims = typeof verified === 'string' ? {} : (verified as Record<string, unknown>);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : 'verify_failed';
+    return { ok: false, error: `signature_or_claim_mismatch: ${msg}` };
+  }
+
+  return { ok: true, claims };
+}
+
+// ---------------------------------------------------------------------------
 // Find or create user by OIDC sub / email
 // ---------------------------------------------------------------------------
 
@@ -286,21 +390,34 @@ export function findOrCreateUser(
   const existing = db.prepare('SELECT id FROM users WHERE LOWER(username) = LOWER(?)').get(username);
   if (existing) username = `${username}_${Date.now() % 10000}`;
 
-  const result = db.prepare(
-    'INSERT INTO users (username, email, password_hash, role, oidc_sub, oidc_issuer, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
-  ).run(username, email, hash, role, sub, config.issuer, process.env.APP_VERSION || '0.0.0');
-
-  if (validInvite) {
-    const updated = db.prepare(
-      'UPDATE invite_tokens SET used_count = used_count + 1 WHERE id = ? AND (max_uses = 0 OR used_count < max_uses)',
-    ).run(validInvite.id);
-    if (updated.changes === 0) {
-      console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exceeded max_uses (race condition)`);
+  // Atomic registration: if an invite was presented, the increment IS
+  // the capacity check — UPDATE matches zero rows the moment another
+  // concurrent callback wins the last slot, and the transaction aborts
+  // the user INSERT. Without this, two parallel OIDC callbacks could
+  // both pass the earlier SELECT-based check and each create a user.
+  const inviteRaceError = new Error('invite_exhausted');
+  try {
+    const createUser = db.transaction(() => {
+      if (validInvite) {
+        const updated = db.prepare(
+          'UPDATE invite_tokens SET used_count = used_count + 1 WHERE id = ? AND (max_uses = 0 OR used_count < max_uses)',
+        ).run(validInvite.id);
+        if (updated.changes === 0) throw inviteRaceError;
+      }
+      return db.prepare(
+        'INSERT INTO users (username, email, password_hash, role, oidc_sub, oidc_issuer, first_seen_version, login_count) VALUES (?, ?, ?, ?, ?, ?, ?, 0)',
+      ).run(username, email, hash, role, sub, config.issuer, process.env.APP_VERSION || '0.0.0');
+    });
+    const result = createUser() as { lastInsertRowid: number | bigint };
+    user = { id: Number(result.lastInsertRowid), username, email, role } as User;
+    return { user };
+  } catch (err) {
+    if (err === inviteRaceError) {
+      console.warn(`[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`);
+      return { error: 'registration_disabled' };
     }
+    throw err;
   }
-
-  user = { id: Number(result.lastInsertRowid), username, email, role } as User;
-  return { user };
 }
 
 // ---------------------------------------------------------------------------

@@ -1799,6 +1799,83 @@ function runMigrations(db: Database.Database): void {
       try { db.exec('ALTER TABLE todo_items ADD COLUMN reminded_at DATETIME'); }
       catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // Migration: security audit batch 1 — columns + indexes required
+    // by several fixes bundled into one PR.
+    // - share_tokens.expires_at: public share links now get a 90-day
+    //   TTL by default; existing rows stay NULL (= no expiry) to avoid
+    //   silently breaking already-published links.
+    // - Missing indexes on high-cardinality query paths (see PERF-H1
+    //   in the audit): every listTrips() used to full-scan trips on
+    //   user_id, and notifications/photos/reservations had similar
+    //   gaps.
+    () => {
+      try { db.exec('ALTER TABLE share_tokens ADD COLUMN expires_at TEXT'); }
+      catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      db.exec(`
+        CREATE INDEX IF NOT EXISTS idx_trips_user_id ON trips(user_id);
+        CREATE INDEX IF NOT EXISTS idx_trips_created_at ON trips(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_photos_day_id ON photos(day_id);
+        CREATE INDEX IF NOT EXISTS idx_photos_place_id ON photos(place_id);
+        CREATE INDEX IF NOT EXISTS idx_reservations_day_id ON reservations(day_id);
+        CREATE INDEX IF NOT EXISTS idx_share_tokens_token ON share_tokens(token);
+      `);
+      try {
+        // day_accommodations may have either start_day_id/end_day_id or a
+        // single day_id depending on how far the schema has evolved;
+        // build whichever index makes sense for the live columns.
+        const cols = db.prepare("PRAGMA table_info('day_accommodations')").all() as Array<{ name: string }>;
+        const names = new Set(cols.map((c) => c.name));
+        if (names.has('start_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_start_day_id ON day_accommodations(start_day_id)');
+        if (names.has('end_day_id')) db.exec('CREATE INDEX IF NOT EXISTS idx_day_accommodations_end_day_id ON day_accommodations(end_day_id)');
+      } catch { /* table may not exist on very old installs */ }
+      try {
+        // notifications schema has varied; probe before indexing.
+        const cols = db.prepare("PRAGMA table_info('notifications')").all() as Array<{ name: string }>;
+        const names = new Set(cols.map((c) => c.name));
+        if (names.has('target') && names.has('scope')) {
+          db.exec('CREATE INDEX IF NOT EXISTS idx_notifications_target_scope ON notifications(target, scope)');
+        }
+      } catch { /* notifications table may not exist on very old installs */ }
+    },
+    // Migration: widen idempotency_keys primary key to (key, user_id,
+    // method, path). The middleware lookup was widened in the same audit
+    // batch so a reused X-Idempotency-Key against a different endpoint
+    // does not replay the cached body of an unrelated request. The old
+    // PK was only (key, user_id), so the `INSERT OR IGNORE` on the
+    // second endpoint silently skipped — the cache never stored request
+    // B's response and replays re-executed the handler. Rebuild the
+    // table with the widened PK, preserving existing rows (the old PK
+    // guarantees no conflicts in the new, strictly looser unique key).
+    () => {
+      const hasTable = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'idempotency_keys'").get();
+      if (!hasTable) return;
+      db.exec(`
+        CREATE TABLE idempotency_keys_new (
+          key         TEXT NOT NULL,
+          user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          method      TEXT NOT NULL,
+          path        TEXT NOT NULL,
+          status_code INTEGER NOT NULL,
+          response_body TEXT NOT NULL,
+          created_at  INTEGER NOT NULL DEFAULT (strftime('%s','now')),
+          PRIMARY KEY (key, user_id, method, path)
+        );
+        INSERT INTO idempotency_keys_new (key, user_id, method, path, status_code, response_body, created_at)
+          SELECT key, user_id, method, path, status_code, response_body, created_at FROM idempotency_keys;
+        DROP TABLE idempotency_keys;
+        ALTER TABLE idempotency_keys_new RENAME TO idempotency_keys;
+        CREATE INDEX IF NOT EXISTS idx_idempotency_keys_created ON idempotency_keys(created_at);
+      `);
+    },
+    // SEC-H6: revoke all OAuth tokens issued before audience binding was
+    // enforced. mcp/index.ts now unconditionally checks audience; tokens
+    // with audience=null would be permanently rejected by the check, so
+    // removing them here avoids leaving dead rows and makes the intent clear.
+    () => {
+      const hasCol = db.prepare("SELECT name FROM pragma_table_info('oauth_tokens') WHERE name = 'audience'").get();
+      if (!hasCol) return;
+      db.prepare('DELETE FROM oauth_tokens WHERE audience IS NULL').run();
+    },
   ];
 
   if (currentVersion < migrations.length) {

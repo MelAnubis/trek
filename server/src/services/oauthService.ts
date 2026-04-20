@@ -582,10 +582,16 @@ export function validateAuthorizeRequest(
     return { valid: false, error: 'invalid_redirect_uri', error_description: 'redirect_uri does not match any registered URI' };
   }
 
-  // RFC 8707 resource indicator: if provided, must identify the TREK MCP endpoint exactly
+  // RFC 8707 resource indicator: if provided, must identify the TREK
+  // MCP endpoint exactly. If the client didn't supply `resource`, we
+  // bind the token to the MCP endpoint by default — previously this
+  // left `audience = null`, and the audience-bind check on MCP requests
+  // then treated a null audience as "valid for any resource".
   const mcpResource = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
-  const resource = params.resource ? params.resource.replace(/\/+$/, '') : null;
-  if (resource !== null && resource !== mcpResource) {
+  const resource = params.resource
+    ? params.resource.replace(/\/+$/, '')
+    : mcpResource;
+  if (resource !== mcpResource) {
     return { valid: false, error: 'invalid_target', error_description: 'Requested resource must be the TREK MCP endpoint' };
   }
 

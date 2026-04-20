@@ -180,11 +180,10 @@ function verifyToken(authHeader: string | undefined): VerifyTokenResult | null {
   if (token.startsWith('trekoa_')) {
     const result = getUserByAccessToken(token);
     if (!result) return null;
-    // RFC 8707: if the token carries an audience, it must match this resource endpoint
-    if (result.audience !== null) {
-      const expected = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
-      if (result.audience !== expected) return null;
-    }
+    // RFC 8707: audience must always match this resource endpoint.
+    // Pre-audit tokens with audience=null are revoked by the SEC-H6 migration.
+    const expected = `${(getAppUrl() || '').replace(/\/+$/, '')}/mcp`;
+    if (result.audience !== expected) return null;
     return { user: result.user, scopes: result.scopes, clientId: result.clientId, isStaticToken: false };
   }
 

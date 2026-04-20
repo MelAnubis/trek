@@ -5,11 +5,9 @@ import cookieParser from 'cookie-parser';
 import path from 'node:path';
 import fs from 'node:fs';
 
-import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from './config';
 import { logDebug, logWarn, logError } from './services/auditLog';
 import { enforceGlobalMfaPolicy } from './middleware/mfaPolicy';
-import { authenticate } from './middleware/auth';
+import { authenticate, verifyJwtAndLoadUser } from './middleware/auth';
 import { db } from './db/database';
 
 import authRoutes from './routes/auth';
@@ -76,6 +74,19 @@ export function createApp(): express.Application {
   }
 
   const shouldForceHttps = process.env.FORCE_HTTPS === 'true';
+  // HSTS is worth enabling any time we're serving production traffic,
+  // not only when FORCE_HTTPS is set. Self-hosters behind Traefik /
+  // Caddy / Cloudflare Tunnel typically leave FORCE_HTTPS unset (the
+  // proxy handles the redirect for them), and the previous "HSTS off by
+  // default" meant those instances never advertised HSTS at all.
+  //
+  // `includeSubDomains` stays OFF by default on purpose: an instance
+  // running on an apex domain would otherwise force HTTPS on every
+  // sibling subdomain the same operator may still be running over plain
+  // HTTP. Operators who want the stricter policy opt in with
+  // `HSTS_INCLUDE_SUBDOMAINS=true`.
+  const hstsActive = shouldForceHttps || process.env.NODE_ENV === 'production';
+  const hstsIncludeSubdomains = process.env.HSTS_INCLUDE_SUBDOMAINS === 'true';
 
   // RFC 8414 / RFC 9728: discovery docs are world-readable — open CORS regardless of deployment config
   app.use(
@@ -112,7 +123,7 @@ export function createApp(): express.Application {
       }
     },
     crossOriginEmbedderPolicy: false,
-    hsts: shouldForceHttps ? { maxAge: 31536000, includeSubDomains: false } : false,
+    hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
   }));
 
   if (shouldForceHttps) {
@@ -161,12 +172,33 @@ export function createApp(): express.Application {
     });
   }
 
-  // Static: avatars, covers, and journey photos
+  // Static: avatars, covers, and journey photos.
+  //
+  // Security model (audit SEC-M9): these paths are unauthenticated by
+  // design. All filenames are server-chosen UUID v4 (see `uuid()` in
+  // the multer storage config for avatars / covers / journey uploads),
+  // which gives each asset >122 bits of namespace entropy — not
+  // guessable via enumeration. An attacker would need to have already
+  // seen the URL (email, shared journey, etc.) to request the file.
+  //
+  // Moving these behind auth would also break:
+  //   - Unauthenticated trip-card rendering on public share links
+  //   - Journey public-share pages (/public/journey/:token)
+  //   - Email-embedded avatars
+  //
+  // The `/uploads/photos/...` route below is DIFFERENT: photo URLs are
+  // not embedded in unauthenticated UI contexts, so that endpoint IS
+  // gated (session JWT with pv, or a share token scoped to the photo's
+  // trip).
   app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
   app.use('/uploads/covers', express.static(path.join(__dirname, '../uploads/covers')));
   app.use('/uploads/journey', express.static(path.join(__dirname, '../uploads/journey')));
 
-  // Photos require auth or valid share token
+  // Photos require either a valid logged-in session (via JWT with the
+  // password_version gate) OR a share token that covers the SPECIFIC
+  // photo's trip. Previously any share token for any trip could request
+  // any photo filename by UUID — fine in practice because UUIDs are
+  // unguessable, but the auth model was wrong.
   app.get('/uploads/photos/:filename', (req: Request, res: Response) => {
     const safeName = path.basename(req.params.filename);
     const filePath = path.join(__dirname, '../uploads/photos', safeName);
@@ -174,17 +206,28 @@ export function createApp(): express.Application {
     if (!resolved.startsWith(path.resolve(__dirname, '../uploads/photos'))) {
       return res.status(403).send('Forbidden');
     }
+    // existsSync here is cheap and avoids a sendFile error frame; kept
+    // sync because the handler is already short-lived.
     if (!fs.existsSync(resolved)) return res.status(404).send('Not found');
 
     const authHeader = req.headers.authorization;
-    const token = (req.query.token as string) || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
-    if (!token) return res.status(401).send('Authentication required');
+    const rawToken = (req.query.token as string) || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null);
+    if (!rawToken) return res.status(401).send('Authentication required');
 
-    try {
-      jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
-    } catch {
-      const shareRow = db.prepare('SELECT id FROM share_tokens WHERE token = ?').get(token);
-      if (!shareRow) return res.status(401).send('Authentication required');
+    // JWT session path (with pv check).
+    const user = verifyJwtAndLoadUser(rawToken);
+    if (user) return res.sendFile(resolved);
+
+    // Share-token path: require the token to cover the exact trip the
+    // photo belongs to. Expired tokens fall through to 401.
+    const photo = db.prepare('SELECT trip_id FROM photos WHERE filename = ?').get(safeName) as { trip_id: number } | undefined;
+    if (!photo) return res.status(401).send('Authentication required');
+
+    const share = db.prepare(
+      "SELECT trip_id FROM share_tokens WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
+    ).get(rawToken) as { trip_id: number } | undefined;
+    if (!share || share.trip_id !== photo.trip_id) {
+      return res.status(401).send('Authentication required');
     }
     res.sendFile(resolved);
   });

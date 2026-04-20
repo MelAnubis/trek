@@ -15,7 +15,9 @@ import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from './apiKe
 import { createEphemeralToken } from './ephemeralTokens';
 import { revokeUserSessions } from '../mcp';
 import { startTripReminders } from '../scheduler';
+import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
+import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -175,8 +177,44 @@ export function normalizeBackupCode(input: string): string {
   return String(input || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
+// Legacy SHA-256 hex hash. Kept so existing stored hashes (from before
+// the bcrypt migration) can still be verified in `matchBackupCode`
+// without forcing every user to re-enrol their MFA device. New hashes
+// are produced by `hashBackupCodeBcrypt` below.
 export function hashBackupCode(input: string): string {
   return crypto.createHash('sha256').update(normalizeBackupCode(input)).digest('hex');
+}
+
+const BCRYPT_BACKUP_COST = 10;
+
+/**
+ * Hash a backup code with bcrypt for at-rest storage. Backup codes only
+ * have ~40 bits of entropy (8 hex chars) so a plain SHA-256 rainbow
+ * table cracks them in minutes if the DB ever leaks. bcrypt with a
+ * moderate cost raises that cost by ~3-4 orders of magnitude.
+ */
+export function hashBackupCodeBcrypt(input: string): string {
+  return bcrypt.hashSync(normalizeBackupCode(input), BCRYPT_BACKUP_COST);
+}
+
+/**
+ * Constant-time match of a plaintext backup code against a stored hash
+ * in either format (bcrypt or legacy SHA-256 hex). Used by login and
+ * password-reset flows; callers that need to CONSUME the matching
+ * entry should use this to find the index, then splice it out.
+ */
+export function matchBackupCode(plaintext: string, storedHash: string): boolean {
+  if (!storedHash) return false;
+  if (storedHash.startsWith('$2')) {
+    // bcrypt hash — compareSync is constant-time internally.
+    try { return bcrypt.compareSync(normalizeBackupCode(plaintext), storedHash); }
+    catch { return false; }
+  }
+  // Legacy SHA-256 hex. Compare the SHA-256 of the input against the
+  // stored hex with a constant-time comparator so timing can't leak.
+  const candidate = hashBackupCode(plaintext);
+  if (candidate.length !== storedHash.length) return false;
+  return crypto.timingSafeEqual(Buffer.from(candidate), Buffer.from(storedHash));
 }
 
 export function generateBackupCodes(count = MFA_BACKUP_CODE_COUNT): string[] {
@@ -260,7 +298,7 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     require_mfa: requireMfaRow?.value === 'true',
     allowed_file_types: (db.prepare("SELECT value FROM app_settings WHERE key = 'allowed_file_types'").get() as { value: string } | undefined)?.value || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv',
     demo_mode: isDemo,
-    demo_email: isDemo ? 'demo@trek.app' : undefined,
+    demo_email: isDemo ? DEMO_EMAIL_PRIMARY : undefined,
     demo_password: isDemo ? 'demo12345' : undefined,
     timezone: process.env.TZ || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     notification_channel: notifChannel,
@@ -283,7 +321,7 @@ export function demoLogin(): { error?: string; status?: number; token?: string; 
   if (process.env.DEMO_MODE !== 'true') {
     return { error: 'Not found', status: 404 };
   }
-  const user = db.prepare('SELECT * FROM users WHERE email = ?').get('demo@trek.app') as User | undefined;
+  const user = db.prepare('SELECT * FROM users WHERE email = ?').get(DEMO_EMAIL_PRIMARY) as User | undefined;
   if (!user) return { error: 'Demo user not found', status: 500 };
   const token = generateToken(user);
   const safe = stripUserForClient(user) as Record<string, unknown>;
@@ -458,7 +496,7 @@ export function changePassword(
   if (isOidcOnlyMode()) {
     return { error: 'Password authentication is disabled.', status: 403 };
   }
-  if (process.env.DEMO_MODE === 'true' && userEmail === 'demo@trek.app') {
+  if (process.env.DEMO_MODE === 'true' && isDemoEmail(userEmail)) {
     return { error: 'Password change is disabled in demo mode.', status: 403 };
   }
 
@@ -480,7 +518,7 @@ export function changePassword(
 }
 
 export function deleteAccount(userId: number, userEmail: string, userRole: string): { error?: string; status?: number; success?: boolean } {
-  if (process.env.DEMO_MODE === 'true' && userEmail === 'demo@trek.app') {
+  if (process.env.DEMO_MODE === 'true' && isDemoEmail(userEmail)) {
     return { error: 'Account deletion is disabled in demo mode.', status: 403 };
   }
   if (userRole === 'admin') {
@@ -600,11 +638,13 @@ export function getSettings(userId: number): { error?: string; status?: number; 
 // Avatar
 // ---------------------------------------------------------------------------
 
-export function saveAvatar(userId: number, filename: string) {
+export async function saveAvatar(userId: number, filename: string) {
   const current = db.prepare('SELECT avatar FROM users WHERE id = ?').get(userId) as { avatar: string | null } | undefined;
   if (current && current.avatar) {
+    // Fire-and-forget: leftover files are harmless; the DB update is
+    // the source of truth for which avatar is current.
     const oldPath = path.join(avatarDir, current.avatar);
-    if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    await fs.promises.rm(oldPath, { force: true }).catch(() => {});
   }
 
   db.prepare('UPDATE users SET avatar = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(filename, userId);
@@ -613,11 +653,11 @@ export function saveAvatar(userId: number, filename: string) {
   return { success: true, avatar_url: avatarUrl(updated || {}) };
 }
 
-export function deleteAvatar(userId: number) {
+export async function deleteAvatar(userId: number) {
   const current = db.prepare('SELECT avatar FROM users WHERE id = ?').get(userId) as { avatar: string | null } | undefined;
   if (current && current.avatar) {
     const filePath = path.join(avatarDir, current.avatar);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    await fs.promises.rm(filePath, { force: true }).catch(() => {});
   }
   db.prepare('UPDATE users SET avatar = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(userId);
   return { success: true };
@@ -865,7 +905,7 @@ export function getTravelStats(userId: number) {
 // ---------------------------------------------------------------------------
 
 export function setupMfa(userId: number, userEmail: string): { error?: string; status?: number; secret?: string; otpauth_url?: string; qrPromise?: Promise<string> } {
-  if (process.env.DEMO_MODE === 'true' && userEmail === 'demo@nomad.app') {
+  if (process.env.DEMO_MODE === 'true' && isDemoEmail(userEmail)) {
     return { error: 'MFA is not available in demo mode.', status: 403 };
   }
   const row = db.prepare('SELECT mfa_enabled FROM users WHERE id = ?').get(userId) as { mfa_enabled: number } | undefined;
@@ -898,7 +938,7 @@ export function enableMfa(userId: number, code?: string): { error?: string; stat
     return { error: 'Invalid verification code', status: 401 };
   }
   const backupCodes = generateBackupCodes();
-  const backupHashes = backupCodes.map(hashBackupCode);
+  const backupHashes = backupCodes.map(hashBackupCodeBcrypt);
   const enc = encryptMfaSecret(pending);
   db.prepare('UPDATE users SET mfa_enabled = 1, mfa_secret = ?, mfa_backup_codes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(
     enc,
@@ -914,7 +954,7 @@ export function disableMfa(
   userEmail: string,
   body: { password?: string; code?: string }
 ): { error?: string; status?: number; success?: boolean; mfa_enabled?: boolean } {
-  if (process.env.DEMO_MODE === 'true' && userEmail === 'demo@nomad.app') {
+  if (process.env.DEMO_MODE === 'true' && isDemoEmail(userEmail)) {
     return { error: 'MFA cannot be changed in demo mode.', status: 403 };
   }
   const policy = db.prepare("SELECT value FROM app_settings WHERE key = 'require_mfa'").get() as { value: string } | undefined;
@@ -973,8 +1013,9 @@ export function verifyMfaLogin(body: {
     const okTotp = authenticator.verify({ token: tokenStr.replace(/\s/g, ''), secret });
     if (!okTotp) {
       const hashes = parseBackupCodeHashes(user.mfa_backup_codes);
-      const candidateHash = hashBackupCode(tokenStr);
-      const idx = hashes.findIndex(h => h === candidateHash);
+      // matchBackupCode handles both bcrypt and legacy SHA-256 hashes;
+      // any store older than the bcrypt migration keeps working.
+      const idx = hashes.findIndex((h) => matchBackupCode(tokenStr, h));
       if (idx === -1) {
         return { error: 'Invalid verification code', status: 401 };
       }
@@ -1166,8 +1207,7 @@ export function resetPassword(body: {
     const okTotp = authenticator.verify({ token: supplied.replace(/\s/g, ''), secret });
     if (!okTotp) {
       const hashes = parseBackupCodeHashes(user.mfa_backup_codes);
-      const candidateHash = hashBackupCode(supplied);
-      const idx = hashes.findIndex(h => h === candidateHash);
+      const idx = hashes.findIndex((h) => matchBackupCode(supplied, h));
       if (idx === -1) return { error: 'Invalid MFA code', status: 401 };
       backupCodeConsumedIndex = idx;
     }
@@ -1193,6 +1233,16 @@ export function resetPassword(body: {
       hashes.splice(backupCodeConsumedIndex, 1);
       db.prepare('UPDATE users SET mfa_backup_codes = ? WHERE id = ?').run(JSON.stringify(hashes), user.id);
     }
+    // Revoke every other credential class the user had. The
+    // password_version bump alone invalidates JWT cookie sessions, but
+    // MCP static tokens and OAuth 2.1 bearer tokens are separate stores
+    // that survive the bump unless we prune them here.
+    db.prepare('DELETE FROM mcp_tokens WHERE user_id = ?').run(user.id);
+    try {
+      db.prepare(
+        "UPDATE oauth_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = ? AND revoked_at IS NULL"
+      ).run(user.id);
+    } catch { /* oauth_tokens table may not exist in very old installs */ }
   })();
 
   // Kick off any MCP/WS session cleanup — same hook the account-delete path uses.
@@ -1267,7 +1317,7 @@ export function createResourceToken(userId: number, purpose?: string): { error?:
 export function isDemoUser(userId: number): boolean {
   if (process.env.DEMO_MODE !== 'true') return false;
   const user = db.prepare('SELECT email FROM users WHERE id = ?').get(userId) as { email: string } | undefined;
-  return user?.email === 'demo@nomad.app';
+  return isDemoEmail(user?.email);
 }
 
 export function verifyMcpToken(rawToken: string): User | null {
@@ -1285,12 +1335,15 @@ export function verifyMcpToken(rawToken: string): User | null {
   return null;
 }
 
+/**
+ * Verify a JWT the same way `middleware/auth.ts#verifyJwtAndLoadUser`
+ * does — including the `password_version` check — so that stolen tokens
+ * lose access the moment the victim resets their password.
+ *
+ * This is the single entry point every non-cookie JWT verification path
+ * (MCP bearer, WebSocket handshake, file-download query tokens, photo
+ * route) should go through.
+ */
 export function verifyJwtToken(token: string): User | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number };
-    const user = db.prepare('SELECT id, username, email, role FROM users WHERE id = ?').get(decoded.id) as User | undefined;
-    return user || null;
-  } catch {
-    return null;
-  }
+  return verifyJwtAndLoadUser(token);
 }

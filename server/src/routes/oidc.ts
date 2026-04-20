@@ -9,6 +9,7 @@ import {
   consumeAuthCode,
   exchangeCodeForToken,
   getUserInfo,
+  verifyIdToken,
   findOrCreateUser,
   touchLastLogin,
   generateToken,
@@ -97,9 +98,39 @@ router.get('/callback', async (req: Request, res: Response) => {
       return res.redirect(frontendUrl('/login?oidc_error=token_failed'));
     }
 
+    // Strict id_token verification: signature via JWKS + iss + aud.
+    // Previously only the access_token was used to hit userinfo, so a
+    // compromised provider or MITM could supply a crafted userinfo
+    // response the server would blindly trust. When the id_token is
+    // missing from the token response (non-compliant provider) we still
+    // reject — an Authorization Code flow MUST return one per OIDC Core.
+    if (!tokenData.id_token) {
+      console.error('[OIDC] Token response missing id_token — refusing login');
+      return res.redirect(frontendUrl('/login?oidc_error=no_id_token'));
+    }
+    const idVerify = await verifyIdToken(
+      tokenData.id_token,
+      doc,
+      config.clientId,
+      config.issuer,
+    );
+    if (idVerify.ok !== true) {
+      const reason = 'error' in idVerify ? idVerify.error : 'unknown';
+      console.error('[OIDC] id_token verification failed:', reason);
+      return res.redirect(frontendUrl('/login?oidc_error=id_token_invalid'));
+    }
+
     const userInfo = await getUserInfo(doc.userinfo_endpoint, tokenData.access_token);
     if (!userInfo.email) {
       return res.redirect(frontendUrl('/login?oidc_error=no_email'));
+    }
+    // Cross-check: the userinfo response must be for the same subject
+    // the id_token signed. Catches a compromised userinfo endpoint that
+    // speaks for a different principal than the id_token's claim.
+    const tokenSub = idVerify.claims.sub;
+    if (typeof tokenSub === 'string' && userInfo.sub && userInfo.sub !== tokenSub) {
+      console.error('[OIDC] userinfo.sub does not match id_token.sub — refusing login');
+      return res.redirect(frontendUrl('/login?oidc_error=subject_mismatch'));
     }
 
     const result = findOrCreateUser(userInfo, config, pending.inviteToken);
@@ -126,7 +157,7 @@ router.get('/exchange', (req: Request, res: Response) => {
   const result = consumeAuthCode(code);
   if ('error' in result) return res.status(400).json({ error: result.error });
 
-  setAuthCookie(res, result.token);
+  setAuthCookie(res, result.token, req);
   res.json({ token: result.token });
 });
 

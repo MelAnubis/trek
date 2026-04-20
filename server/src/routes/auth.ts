@@ -39,7 +39,7 @@ import {
   requestPasswordReset,
   resetPassword,
 } from '../services/authService';
-import { sendPasswordResetEmail } from '../services/notifications';
+import { sendPasswordResetEmail, getAppUrl } from '../services/notifications';
 
 const router = express.Router();
 
@@ -127,10 +127,10 @@ router.get('/app-config', optionalAuth, (req: Request, res: Response) => {
   res.json(getAppConfig(user));
 });
 
-router.post('/demo-login', (_req: Request, res: Response) => {
+router.post('/demo-login', (req: Request, res: Response) => {
   const result = demoLogin();
   if (result.error) return res.status(result.status!).json({ error: result.error });
-  setAuthCookie(res, result.token!);
+  setAuthCookie(res, result.token!, req);
   res.json({ token: result.token, user: result.user });
 });
 
@@ -144,7 +144,7 @@ router.post('/register', authLimiter, (req: Request, res: Response) => {
   const result = registerUser(req.body);
   if (result.error) return res.status(result.status!).json({ error: result.error });
   writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
-  setAuthCookie(res, result.token!);
+  setAuthCookie(res, result.token!, req);
   res.status(201).json({ token: result.token, user: result.user });
 });
 
@@ -155,7 +155,7 @@ router.post('/login', authLimiter, (req: Request, res: Response) => {
   }
   if (result.error) return res.status(result.status!).json({ error: result.error });
   if (result.mfa_required) return res.json({ mfa_required: true, mfa_token: result.mfa_token });
-  setAuthCookie(res, result.token!);
+  setAuthCookie(res, result.token!, req);
   res.json({ token: result.token, user: result.user });
 });
 
@@ -178,11 +178,12 @@ router.post('/forgot-password', forgotLimiter, async (req: Request, res: Respons
   const outcome = requestPasswordReset(rawEmail, ip);
 
   if (outcome.reason === 'issued' && outcome.tokenForDelivery && outcome.userEmail) {
-    // Build the reset URL from the incoming request origin so dev /
-    // prod both work without extra config.
-    const origin = (req.headers['origin'] as string | undefined)
-      || (req.headers['referer'] ? new URL(req.headers['referer'] as string).origin : undefined)
-      || `${req.protocol}://${req.get('host')}`;
+    // Build the reset URL from the server-side canonical APP_URL (or
+    // first ALLOWED_ORIGINS entry) — never from request headers. A
+    // crafted `Origin` / `Host` / `Referer` would otherwise put an
+    // attacker-controlled domain into the emailed reset link while the
+    // token itself is still legitimate.
+    const origin = getAppUrl();
     const url = `${origin.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(outcome.tokenForDelivery)}`;
 
     // Audit the REQUEST always — even for "no user" — so abuse is visible.
@@ -231,8 +232,8 @@ router.get('/me', authenticate, (req: Request, res: Response) => {
   res.json({ user });
 });
 
-router.post('/logout', (_req: Request, res: Response) => {
-  clearAuthCookie(res);
+router.post('/logout', (req: Request, res: Response) => {
+  clearAuthCookie(res, req);
   res.json({ success: true });
 });
 
@@ -276,15 +277,15 @@ router.get('/me/settings', authenticate, (req: Request, res: Response) => {
   res.json({ settings: result.settings });
 });
 
-router.post('/avatar', authenticate, demoUploadBlock, avatarUpload.single('avatar'), (req: Request, res: Response) => {
+router.post('/avatar', authenticate, demoUploadBlock, avatarUpload.single('avatar'), async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
-  res.json(saveAvatar(authReq.user.id, req.file.filename));
+  res.json(await saveAvatar(authReq.user.id, req.file.filename));
 });
 
-router.delete('/avatar', authenticate, (req: Request, res: Response) => {
+router.delete('/avatar', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  res.json(deleteAvatar(authReq.user.id));
+  res.json(await deleteAvatar(authReq.user.id));
 });
 
 router.get('/users', authenticate, (req: Request, res: Response) => {
@@ -329,7 +330,7 @@ router.post('/mfa/verify-login', mfaLimiter, (req: Request, res: Response) => {
   const result = verifyMfaLogin(req.body);
   if (result.error) return res.status(result.status!).json({ error: result.error });
   writeAudit({ userId: result.auditUserId!, action: 'user.login', ip: getClientIp(req), details: { mfa: true } });
-  setAuthCookie(res, result.token!);
+  setAuthCookie(res, result.token!, req);
   res.json({ token: result.token, user: result.user });
 });
 

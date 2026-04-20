@@ -9,6 +9,7 @@ import { validateStringLengths } from '../middleware/validate';
 import { checkPermission } from '../services/permissions';
 import { AuthRequest } from '../types';
 import { db } from '../db/database';
+import { BLOCKED_EXTENSIONS } from '../services/fileService';
 import {
   verifyTripAccess,
   listNotes,
@@ -41,8 +42,10 @@ const noteUpload = multer({
   defParamCharset: 'utf8',
   fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const BLOCKED = ['.svg', '.html', '.htm', '.xml', '.xhtml', '.js', '.jsx', '.ts', '.exe', '.bat', '.sh', '.cmd', '.msi', '.dll', '.com', '.vbs', '.ps1', '.php'];
-    if (BLOCKED.includes(ext) || file.mimetype.includes('svg') || file.mimetype.includes('html') || file.mimetype.includes('javascript')) {
+    // Share the single BLOCKED_EXTENSIONS list from fileService so
+    // executable/script attachments can't sneak in via collab when the
+    // main uploader already rejects them.
+    if (BLOCKED_EXTENSIONS.includes(ext) || file.mimetype.includes('svg') || file.mimetype.includes('html') || file.mimetype.includes('javascript')) {
       const err: Error & { statusCode?: number } = new Error('File type not allowed');
       err.statusCode = 400;
       return cb(err);

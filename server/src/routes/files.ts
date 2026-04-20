@@ -210,7 +210,7 @@ router.post('/:id/restore', authenticate, (req: Request, res: Response) => {
 });
 
 // Permanently delete from trash
-router.delete('/:id/permanent', authenticate, (req: Request, res: Response) => {
+router.delete('/:id/permanent', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, id } = req.params;
 
@@ -222,13 +222,13 @@ router.delete('/:id/permanent', authenticate, (req: Request, res: Response) => {
   const file = getDeletedFile(id, tripId);
   if (!file) return res.status(404).json({ error: 'File not found in trash' });
 
-  permanentDeleteFile(file);
+  await permanentDeleteFile(file);
   res.json({ success: true });
   broadcast(tripId, 'file:deleted', { fileId: Number(id) }, req.headers['x-socket-id'] as string);
 });
 
 // Empty entire trash
-router.delete('/trash/empty', authenticate, (req: Request, res: Response) => {
+router.delete('/trash/empty', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId } = req.params;
 
@@ -237,7 +237,7 @@ router.delete('/trash/empty', authenticate, (req: Request, res: Response) => {
   if (!checkPermission('file_delete', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
 
-  const deleted = emptyTrash(tripId);
+  const deleted = await emptyTrash(tripId);
   res.json({ success: true, deleted });
 });
 

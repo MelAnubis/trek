@@ -4,6 +4,7 @@ import { db } from '../db/database';
 import { JWT_SECRET } from '../config';
 import { AuthRequest, OptionalAuthRequest, User } from '../types';
 import { applyIdempotency } from './idempotency';
+import { isDemoEmail } from '../services/demo';
 
 export function extractToken(req: Request): string | null {
   // Prefer httpOnly cookie; fall back to Authorization: Bearer (MCP, API clients)
@@ -13,7 +14,18 @@ export function extractToken(req: Request): string | null {
   return (authHeader && authHeader.split(' ')[1]) || null;
 }
 
-function verifyJwtAndLoadUser(token: string): User | null {
+/**
+ * Verify a JWT and load its user, enforcing the password_version gate.
+ *
+ * Exported so every auth surface in the codebase (MCP bearer tokens,
+ * file download query tokens, the photo-serving route) goes through the
+ * same check. A password reset bumps `users.password_version`, which
+ * invalidates every JWT that embedded the prior value — but only if
+ * every verify path actually compares the claim. Previously several
+ * paths called `jwt.verify` directly and skipped the DB lookup, so a
+ * stolen token kept working after the victim reset.
+ */
+export function verifyJwtAndLoadUser(token: string): User | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number; pv?: number };
     const row = db.prepare(
@@ -93,8 +105,8 @@ const adminOnly = (req: Request, res: Response, next: NextFunction): void => {
 
 const demoUploadBlock = (req: Request, res: Response, next: NextFunction): void => {
   const authReq = req as AuthRequest;
-  if (process.env.DEMO_MODE === 'true' && authReq.user?.email === 'demo@nomad.app') {
-    res.status(403).json({ error: 'Uploads are disabled in demo mode. Self-host NOMAD for full functionality.' });
+  if (process.env.DEMO_MODE === 'true' && isDemoEmail(authReq.user?.email)) {
+    res.status(403).json({ error: 'Uploads are disabled in demo mode. Self-host TREK for full functionality.' });
     return;
   }
   next();

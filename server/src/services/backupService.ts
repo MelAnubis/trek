@@ -5,6 +5,7 @@ import fs from 'fs';
 import Database from 'better-sqlite3';
 import { db, closeDb, reinitialize } from '../db/database';
 import * as scheduler from '../scheduler';
+import { invalidatePermissionsCache } from './permissions';
 
 // ---------------------------------------------------------------------------
 // Paths
@@ -246,6 +247,12 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
       }
     } finally {
       reinitialize();
+      // The restored DB has different permission-override rows from
+      // the pre-restore DB, but our process-local permissions cache
+      // still holds the pre-restore state. Any request using a cached
+      // permission would decide against the wrong grants until the
+      // next restart. Dropping the cache forces a fresh read.
+      invalidatePermissionsCache();
     }
 
     fs.rmSync(extractDir, { recursive: true, force: true });
@@ -253,6 +260,13 @@ export async function restoreFromZip(zipPath: string): Promise<RestoreResult> {
   } catch (err: unknown) {
     console.error('Restore error:', err);
     if (fs.existsSync(extractDir)) fs.rmSync(extractDir, { recursive: true, force: true });
+    // Belt-and-braces: the inner `finally` already drops the permissions
+    // cache after a successful swap, but if the extraction/copy step
+    // itself threw before the DB swap even started, the cache wasn't
+    // stale anyway. Invalidating here too costs nothing and guarantees
+    // we never serve cached permissions that don't match the DB state
+    // we leave the process in after a failed restore.
+    try { invalidatePermissionsCache(); } catch { /* best-effort */ }
     throw err;
   }
 }
