@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import { journeyApi } from '../api/client'
 import { useTranslation, SUPPORTED_LANGUAGES } from '../i18n'
@@ -10,6 +10,7 @@ import {
   ThumbsUp, ThumbsDown,
 } from 'lucide-react'
 import JourneyMap from '../components/Journey/JourneyMap'
+import type { JourneyMapHandle } from '../components/Journey/JourneyMap'
 import JournalBody from '../components/Journey/JournalBody'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
@@ -93,6 +94,15 @@ export default function JourneyPublicPage() {
   const { t } = useTranslation()
   const [showLangPicker, setShowLangPicker] = useState(false)
   const locale = useSettingsStore(s => s.settings.language) || 'en'
+  const mapRef = useRef<JourneyMapHandle>(null)
+  const [activeEntryId, setActiveEntryId] = useState<string | null>(null)
+
+  const handleMarkerClick = useCallback((entryId: string) => {
+    setActiveEntryId(entryId)
+    mapRef.current?.highlightMarker(entryId)
+    document.querySelector(`[data-entry-id="${entryId}"]`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  }, [])
 
   useEffect(() => {
     if (!token) return
@@ -119,12 +129,13 @@ export default function JourneyPublicPage() {
   )
   const allPhotos = useMemo(() => entries.flatMap(e => (e.photos || []).map(p => ({ photo: p, entry: e }))), [entries])
 
-  // Map entries with day color/label for colored markers
+  // Map entries with day color/label for colored markers.
+  // dayIdx is derived from sortedDates (ALL timeline dates) so marker colors
+  // stay in sync with the timeline day headers even when some days have no locations.
   const sidebarMapItems = useMemo(() => {
-    const uniqueDates = [...new Set(mapEntries.map(e => e.entry_date).sort())]
     const counters = new Map<string, number>()
     return mapEntries.map(e => {
-      const dayIdx = uniqueDates.indexOf(e.entry_date)
+      const dayIdx = sortedDates.indexOf(e.entry_date)
       const dayLabel = (counters.get(e.entry_date) ?? 0) + 1
       counters.set(e.entry_date, dayLabel)
       return {
@@ -139,7 +150,7 @@ export default function JourneyPublicPage() {
         dayLabel,
       }
     })
-  }, [mapEntries])
+  }, [mapEntries, sortedDates])
 
   // Two-column desktop layout: timeline feed left + sticky map right
   const desktopTwoColumn = !isMobile && perms.share_timeline && perms.share_map
@@ -153,7 +164,7 @@ export default function JourneyPublicPage() {
   // When switching to desktop two-column, 'map' standalone tab no longer exists
   useEffect(() => {
     if (desktopTwoColumn && view === 'map') setView('timeline')
-  }, [desktopTwoColumn])
+  }, [desktopTwoColumn, view])
 
   if (loading) {
     return (
@@ -223,8 +234,18 @@ export default function JourneyPublicPage() {
                 const hasProscons = prosArr.length > 0 || consArr.length > 0
                 const lightboxPhotos = photos.map(p => ({ id: String(p.id), src: photoUrl(p, token!, 'original'), caption: p.caption }))
 
+                const isActive = activeEntryId === String(entry.id)
                 return (
-                  <div key={entry.id} className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden">
+                  <div
+                    key={entry.id}
+                    data-entry-id={String(entry.id)}
+                    onMouseEnter={() => {
+                      if (!desktopTwoColumn) return
+                      setActiveEntryId(String(entry.id))
+                      mapRef.current?.highlightMarker(String(entry.id))
+                    }}
+                    style={isActive && desktopTwoColumn ? { outline: `2px solid ${dayColor}`, outlineOffset: '3px', borderRadius: '16px' } : undefined}
+                    className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden">
 
                     {/* Photo area */}
                     {photos.length === 1 && (
@@ -324,7 +345,7 @@ export default function JourneyPublicPage() {
 
                       {/* Pros & Cons */}
                       {hasProscons && (
-                        <div className="grid grid-cols-2 gap-3 mt-4">
+                        <div className={`grid gap-3 mt-4 ${prosArr.length > 0 && consArr.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {prosArr.length > 0 && (
                             <div className="rounded-xl border border-green-200 dark:border-green-800/30 p-3" style={{ background: 'linear-gradient(180deg, #F0FDF4 0%, white 100%)' }}>
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-700 mb-2">
@@ -476,19 +497,19 @@ export default function JourneyPublicPage() {
       {/* Content */}
       {desktopTwoColumn ? (
         // ── Desktop two-column: scrollable timeline feed + sticky map ──────────
-        <div className="flex" style={{ alignItems: 'flex-start' }}>
+        <div className="max-w-[1440px] mx-auto flex" style={{ alignItems: 'flex-start' }}>
           {/* Left: feed */}
-          <div className="flex-1 min-w-0 px-8 py-6" style={{ maxWidth: 780 }}>
+          <div className="flex-1 min-w-0 px-8 py-6">
             {renderTabs(availableViews)}
             {view === 'timeline' && perms.share_timeline && renderTimeline()}
             {view === 'gallery' && perms.share_gallery && renderGallery()}
           </div>
 
-          {/* Right: sticky map */}
+          {/* Right: sticky map — matches auth page aside proportions */}
           <aside
             className="flex-shrink-0"
             style={{
-              width: '44%', minWidth: 380, maxWidth: 680,
+              width: '44%', minWidth: 420, maxWidth: 760,
               position: 'sticky', top: 0, height: '100dvh',
               padding: '16px 16px 16px 0',
               alignSelf: 'flex-start',
@@ -496,10 +517,13 @@ export default function JourneyPublicPage() {
           >
             <div className="h-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <JourneyMap
+                ref={mapRef}
                 checkins={[]}
                 entries={sidebarMapItems as any}
                 height={9999}
                 fullScreen
+                activeMarkerId={activeEntryId ?? undefined}
+                onMarkerClick={handleMarkerClick}
               />
             </div>
           </aside>
@@ -536,7 +560,7 @@ export default function JourneyPublicPage() {
           {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && (
             <MobileMapTimeline
               entries={timelineEntries}
-              mapEntries={mapEntries.map(e => ({ id: String(e.id), lat: e.location_lat!, lng: e.location_lng!, title: e.title, mood: e.mood, entry_date: e.entry_date }))}
+              mapEntries={sidebarMapItems as any}
               dark={document.documentElement.classList.contains('dark')}
               readOnly
               onEntryClick={() => {}}

@@ -190,7 +190,9 @@ export default function JourneyDetailPage() {
       const winner = lastPast || firstAhead
       if (winner) {
         setActiveEntryId(winner.id)
-        mapRef.current?.highlightMarker(winner.id)
+        if (locatedEntryIdsRef.current.has(winner.id)) {
+          mapRef.current?.highlightMarker(winner.id)
+        }
       }
     }
     const onScroll = () => {
@@ -282,11 +284,16 @@ export default function JourneyDetailPage() {
   )
 
   const sidebarMapItems = useMemo(() => {
+    const allDates = [...new Set(
+      (current?.entries || [])
+        .filter(e => e.title !== 'Gallery' && e.title !== '[Trip Photos]')
+        .map(e => e.entry_date)
+        .sort()
+    )]
     const sorted = [...mapEntries].sort((a, b) => a.entry_date.localeCompare(b.entry_date))
-    const uniqueDates = [...new Set(sorted.map(e => e.entry_date))]
     const dayCounters = new Map<string, number>()
     return sorted.map(e => {
-      const dayIdx = uniqueDates.indexOf(e.entry_date)
+      const dayIdx = allDates.indexOf(e.entry_date)
       const dayLabel = (dayCounters.get(e.entry_date) ?? 0) + 1
       dayCounters.set(e.entry_date, dayLabel)
       return {
@@ -302,7 +309,12 @@ export default function JourneyDetailPage() {
         dayLabel,
       }
     })
-  }, [mapEntries])
+  }, [mapEntries, current?.entries])
+
+  const locatedEntryIdsRef = useRef(new Set<string>())
+  useEffect(() => {
+    locatedEntryIdsRef.current = new Set(sidebarMapItems.map(m => m.id))
+  }, [sidebarMapItems])
 
   const tripDates = useMemo(() => {
     const dates = new Set<string>()
