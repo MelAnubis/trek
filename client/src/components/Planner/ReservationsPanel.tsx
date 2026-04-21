@@ -148,13 +148,15 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
     >
-      {/* Header */}
+      {/* Header — wraps to a second row on narrow screens so the status/category chips
+          never collide with the title. */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+        flexWrap: 'wrap',
         padding: '12px 14px',
         background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)',
       }}>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, minWidth: 0, flexWrap: 'wrap' }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
             fontSize: 12, fontWeight: 600, color: confirmed ? '#16a34a' : '#d97706',
