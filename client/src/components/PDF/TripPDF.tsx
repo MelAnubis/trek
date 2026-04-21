@@ -96,12 +96,12 @@ async function fetchPlacePhotos(assignments) {
   const allPlaces = Object.values(assignments).flatMap(a => a.map(x => x.place)).filter(Boolean)
   const unique = [...new Map(allPlaces.map(p => [p.id, p])).values()]
 
-  const toFetch = unique.filter(p => !p.image_url && p.google_place_id)
+  const toFetch = unique.filter(p => !p.image_url && (p.google_place_id || p.osm_id))
 
   await Promise.allSettled(
     toFetch.map(async (place) => {
       try {
-        const data = await mapsApi.placePhoto(place.google_place_id)
+        const data = await mapsApi.placePhoto(place.google_place_id || place.osm_id)
         if (data.photoUrl) photoMap[place.id] = data.photoUrl
       } catch {}
     })
