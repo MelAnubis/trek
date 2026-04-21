@@ -30,6 +30,8 @@ const fr: Record<string, string> = {
   'common.none': 'Aucun',
   'common.date': 'Date',
   'common.rename': 'Renommer',
+  'common.discardChanges': 'Ignorer les modifications',
+  'common.discard': 'Ignorer',
   'common.name': 'Nom',
   'common.email': 'E-mail',
   'common.password': 'Mot de passe',

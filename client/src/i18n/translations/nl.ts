@@ -30,6 +30,8 @@ const nl: Record<string, string> = {
   'common.none': 'Geen',
   'common.date': 'Datum',
   'common.rename': 'Hernoemen',
+  'common.discardChanges': 'Wijzigingen verwerpen',
+  'common.discard': 'Verwerpen',
   'common.name': 'Naam',
   'common.email': 'E-mail',
   'common.password': 'Wachtwoord',

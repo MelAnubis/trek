@@ -30,6 +30,8 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Nincs',
   'common.date': 'Dátum',
   'common.rename': 'Átnevezés',
+  'common.discardChanges': 'Változtatások elvetése',
+  'common.discard': 'Elveti',
   'common.name': 'Név',
   'common.email': 'E-mail',
   'common.password': 'Jelszó',

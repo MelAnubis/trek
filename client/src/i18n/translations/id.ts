@@ -30,6 +30,8 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Tidak ada',
   'common.date': 'Tanggal',
   'common.rename': 'Ganti nama',
+  'common.discardChanges': 'Buang perubahan',
+  'common.discard': 'Buang',
   'common.name': 'Nama',
   'common.email': 'Email',
   'common.password': 'Kata sandi',

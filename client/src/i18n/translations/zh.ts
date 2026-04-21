@@ -30,6 +30,8 @@ const zh: Record<string, string> = {
   'common.none': '无',
   'common.date': '日期',
   'common.rename': '重命名',
+  'common.discardChanges': '放弃更改',
+  'common.discard': '放弃',
   'common.name': '名称',
   'common.email': '邮箱',
   'common.password': '密码',

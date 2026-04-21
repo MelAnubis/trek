@@ -30,6 +30,8 @@ const zhTw: Record<string, string> = {
   'common.none': '無',
   'common.date': '日期',
   'common.rename': '重新命名',
+  'common.discardChanges': '捨棄變更',
+  'common.discard': '捨棄',
   'common.name': '名稱',
   'common.email': '郵箱',
   'common.password': '密碼',

@@ -3002,6 +3002,10 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
   const [saving, setSaving] = useState(false)
   const [showAddTrip, setShowAddTrip] = useState(false)
   const [unlinkTarget, setUnlinkTarget] = useState<{ trip_id: number; title: string } | null>(null)
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
+
+  const isDirty = title !== journey.title || subtitle !== (journey.subtitle || '')
+  const handleClose = () => { if (isDirty) setShowDiscardConfirm(true); else onClose() }
   const coverRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
   const navigate = useNavigate()
@@ -3060,12 +3064,12 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none" style={{ background: 'rgba(9,9,11,0.75)' }} onClick={onClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
+    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none" style={{ background: 'rgba(9,9,11,0.75)' }} onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
       <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[480px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
+          <button onClick={handleClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
@@ -3212,7 +3216,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
             {journey.status === 'archived' ? <ArchiveRestore size={14} /> : <Archive size={14} />}
             <span className="hidden md:inline">{journey.status === 'archived' ? t('journey.settings.reopenJourney') : t('journey.settings.endJourney')}</span>
           </button>
-          <button onClick={onClose} className="h-9 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
+          <button onClick={handleClose} className="h-9 px-3.5 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
           <button onClick={handleSave} disabled={saving || !title.trim()} className="h-9 px-3.5 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40">
             {saving ? t('common.saving') : t('common.save')}
           </button>
@@ -3257,6 +3261,16 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
         title={t('journey.settings.deleteJourney')}
         message={t('journey.settings.deleteMessage', { title: journey.title })}
         confirmLabel={t('common.delete')}
+        danger
+      />
+
+      <ConfirmDialog
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={() => { setShowDiscardConfirm(false); onClose() }}
+        title={t('common.discardChanges')}
+        message={t('journey.editor.discardChangesConfirm')}
+        confirmLabel={t('common.discard')}
         danger
       />
     </div>

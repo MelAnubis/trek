@@ -30,6 +30,8 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Žádné',
   'common.date': 'Datum',
   'common.rename': 'Přejmenovat',
+  'common.discardChanges': 'Zahodit změny',
+  'common.discard': 'Zahodit',
   'common.name': 'Jméno',
   'common.email': 'E-mail',
   'common.password': 'Heslo',

@@ -26,6 +26,8 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Brak',
   'common.date': 'Data',
   'common.rename': 'Zmień nazwę',
+  'common.discardChanges': 'Odrzuć zmiany',
+  'common.discard': 'Odrzuć',
   'common.name': 'Nazwa',
   'common.email': 'E-mail',
   'common.password': 'Hasło',

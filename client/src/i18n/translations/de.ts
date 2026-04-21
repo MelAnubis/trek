@@ -30,6 +30,8 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Keine',
   'common.date': 'Datum',
   'common.rename': 'Umbenennen',
+  'common.discardChanges': 'Änderungen verwerfen',
+  'common.discard': 'Verwerfen',
   'common.name': 'Name',
   'common.email': 'E-Mail',
   'common.password': 'Passwort',

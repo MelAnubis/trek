@@ -34,6 +34,8 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'لا شيء',
   'common.date': 'التاريخ',
   'common.rename': 'إعادة تسمية',
+  'common.discardChanges': 'تجاهل التغييرات',
+  'common.discard': 'تجاهل',
   'common.name': 'الاسم',
   'common.email': 'البريد الإلكتروني',
   'common.password': 'كلمة المرور',

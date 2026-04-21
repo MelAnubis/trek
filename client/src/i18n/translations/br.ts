@@ -30,6 +30,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'common.none': 'Nenhum',
   'common.date': 'Data',
   'common.rename': 'Renomear',
+  'common.discardChanges': 'Descartar alterações',
+  'common.discard': 'Descartar',
   'common.name': 'Nome',
   'common.email': 'E-mail',
   'common.password': 'Senha',

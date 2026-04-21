@@ -30,6 +30,8 @@ const ru: Record<string, string> = {
   'common.none': 'Нет',
   'common.date': 'Дата',
   'common.rename': 'Переименовать',
+  'common.discardChanges': 'Отменить изменения',
+  'common.discard': 'Отменить',
   'common.name': 'Имя',
   'common.email': 'Эл. почта',
   'common.password': 'Пароль',
