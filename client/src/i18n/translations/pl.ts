@@ -1571,6 +1571,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Przy przesyłaniu kopiuj zdjęcia journey także do Immich',
   'memories.providerUrlHintSynology': 'Uwzględnij ścieżkę aplikacji Photos w URL, np. https://nas:5001/photo',
   'memories.testConnection': 'Test',
+  'memories.testShort': 'Test',
   'memories.connected': 'Połączono',
   'memories.disconnected': 'Nie połączono',
   'memories.connectionSuccess': 'Połączono z Immich',

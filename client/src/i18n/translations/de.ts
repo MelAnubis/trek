@@ -1625,6 +1625,7 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Journey-Fotos beim Upload auch zu Immich spiegeln',
   'memories.providerUrlHintSynology': 'Füge den Fotos-App-Pfad in die URL ein, z.B. https://nas:5001/photo',
   'memories.testConnection': 'Verbindung testen',
+  'memories.testShort': 'Testen',
   'memories.testFirst': 'Verbindung zuerst testen',
   'memories.connected': 'Verbunden',
   'memories.disconnected': 'Nicht verbunden',

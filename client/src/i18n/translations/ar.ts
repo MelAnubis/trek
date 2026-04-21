@@ -1623,6 +1623,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'نسخ صور الرحلة إلى Immich عند الرفع',
   'memories.providerUrlHintSynology': 'أدرج مسار تطبيق Photos في URL، مثل https://nas:5001/photo',
   'memories.testConnection': 'اختبار الاتصال',
+  'memories.testShort': 'اختبار',
   'memories.testFirst': 'اختبر الاتصال أولاً',
   'memories.connected': 'متصل',
   'memories.disconnected': 'غير متصل',

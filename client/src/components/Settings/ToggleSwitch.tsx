@@ -2,9 +2,10 @@ import React from 'react'
 
 export default function ToggleSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
   return (
-    <button onClick={onToggle}
+    <button type="button" onClick={onToggle}
       style={{
-        position: 'relative', width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+        position: 'relative', width: 44, height: 24, minWidth: 44, flexShrink: 0,
+        borderRadius: 12, border: 'none', padding: 0, cursor: 'pointer',
         background: on ? 'var(--accent, #111827)' : 'var(--border-primary, #d1d5db)',
         transition: 'background 0.2s',
       }}>

@@ -1562,6 +1562,7 @@ const es: Record<string, string> = {
   'memories.immichAutoUpload': 'Duplicar las fotos del journey en Immich al subirlas',
   'memories.providerUrlHintSynology': 'Incluye la ruta de la aplicación Photos en la URL, p.ej. https://nas:5001/photo',
   'memories.testConnection': 'Probar conexión',
+  'memories.testShort': 'Probar',
   'memories.testFirst': 'Probar conexión primero',
   'memories.connected': 'Conectado',
   'memories.disconnected': 'No conectado',

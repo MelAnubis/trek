@@ -1619,6 +1619,7 @@ const nl: Record<string, string> = {
   'memories.immichAutoUpload': 'Journey-foto\'s bij upload ook naar Immich spiegelen',
   'memories.providerUrlHintSynology': 'Voeg het pad van de Photos-app toe aan de URL, bijv. https://nas:5001/photo',
   'memories.testConnection': 'Verbinding testen',
+  'memories.testShort': 'Testen',
   'memories.testFirst': 'Test eerst de verbinding',
   'memories.connected': 'Verbonden',
   'memories.disconnected': 'Niet verbonden',

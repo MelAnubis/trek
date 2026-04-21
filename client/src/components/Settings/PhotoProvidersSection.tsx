@@ -5,6 +5,7 @@ import { useToast } from '../../components/shared/Toast'
 import apiClient from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import Section from './Section'
+import ToggleSwitch from './ToggleSwitch'
 
 interface ProviderField {
   key: string
@@ -222,15 +223,13 @@ export default function PhotoProvidersSection(): React.ReactElement {
           {fields.map(field => (
             <div key={`${provider.id}-${field.key}`}>
               {field.input_type === 'checkbox' ? (
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={values[field.key] === 'true'}
-                    onChange={e => handleProviderFieldChange(provider.id, field.key, e.target.checked ? 'true' : 'false')}
-                    className="w-4 h-4 rounded border-slate-300 accent-slate-900"
+                <div className="flex items-center gap-3">
+                  <ToggleSwitch
+                    on={values[field.key] === 'true'}
+                    onToggle={() => handleProviderFieldChange(provider.id, field.key, values[field.key] === 'true' ? 'false' : 'true')}
                   />
                   <span className="text-sm font-medium text-slate-700">{t(`memories.${field.label}`)}</span>
-                </label>
+                </div>
               ) : (
                 <>
                   <label className="block text-sm font-medium text-slate-700 mb-1.5">{t(`memories.${field.label}`)}</label>
@@ -248,7 +247,9 @@ export default function PhotoProvidersSection(): React.ReactElement {
               )}
             </div>
           ))}
-          <div className="flex items-center gap-3">
+          {/* Wraps on mobile so the connection badge drops to its own row
+              instead of clipping off the side of the card. */}
+          <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => handleSaveProvider(provider)}
               disabled={!canSave || !!saving[provider.id] || isProviderSaveDisabled(provider)}
@@ -266,15 +267,17 @@ export default function PhotoProvidersSection(): React.ReactElement {
               {testing
                 ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" />
                 : <Camera className="w-4 h-4" />}
-              {t('memories.testConnection')}
+              <span className="sm:hidden">{t('memories.testShort')}</span>
+              <span className="hidden sm:inline">{t('memories.testConnection')}</span>
             </button>
+            {/* On mobile the badge sits on its own row thanks to flex-wrap, so force a line break via basis-full. */}
             {connected ? (
-              <span className="text-xs font-medium text-green-600 flex items-center gap-1">
+              <span className="basis-full sm:basis-auto text-xs font-medium text-green-600 flex items-center gap-1">
                 <span className="w-2 h-2 bg-green-500 rounded-full" />
                 {t('memories.connected')}
               </span>
             ) : (
-              <span className="text-xs font-medium text-slate-400 flex items-center gap-1">
+              <span className="basis-full sm:basis-auto text-xs font-medium text-slate-400 flex items-center gap-1">
                 <span className="w-2 h-2 bg-slate-300 rounded-full" />
                 {t('memories.disconnected')}
               </span>

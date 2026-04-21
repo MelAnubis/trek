@@ -1621,6 +1621,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Zrcadlit fotky journey při nahrávání také do Immich',
   'memories.providerUrlHintSynology': 'Zahrňte cestu aplikace Photos do URL, např. https://nas:5001/photo',
   'memories.testConnection': 'Otestovat připojení',
+  'memories.testShort': 'Otestovat',
   'memories.testFirst': 'Nejprve otestujte připojení',
   'memories.connected': 'Připojeno',
   'memories.disconnected': 'Nepřipojeno',

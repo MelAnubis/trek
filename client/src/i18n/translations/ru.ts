@@ -1619,6 +1619,7 @@ const ru: Record<string, string> = {
   'memories.immichAutoUpload': 'Дублировать фото journey в Immich при загрузке',
   'memories.providerUrlHintSynology': 'Включите путь приложения Photos в URL, например https://nas:5001/photo',
   'memories.testConnection': 'Проверить подключение',
+  'memories.testShort': 'Проверить',
   'memories.testFirst': 'Сначала проверьте подключение',
   'memories.connected': 'Подключено',
   'memories.disconnected': 'Не подключено',

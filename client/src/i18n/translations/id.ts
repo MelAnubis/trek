@@ -1682,6 +1682,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Salin foto journey ke Immich saat diunggah',
   'memories.providerUrlHintSynology': 'Sertakan path aplikasi Photos di URL, mis. https://nas:5001/photo',
   'memories.testConnection': 'Uji koneksi',
+  'memories.testShort': 'Uji',
   'memories.testFirst': 'Uji koneksi terlebih dahulu',
   'memories.connected': 'Terhubung',
   'memories.disconnected': 'Tidak terhubung',

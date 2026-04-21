@@ -1619,6 +1619,7 @@ const fr: Record<string, string> = {
   'memories.immichAutoUpload': 'Répliquer les photos du journey vers Immich au téléversement',
   'memories.providerUrlHintSynology': 'Incluez le chemin de l\'application Photos dans l\'URL, ex. https://nas:5001/photo',
   'memories.testConnection': 'Tester la connexion',
+  'memories.testShort': 'Tester',
   'memories.testFirst': 'Testez la connexion avant de sauvegarder',
   'memories.connected': 'Connecté',
   'memories.disconnected': 'Non connecté',

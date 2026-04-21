@@ -1698,6 +1698,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Mirror journey photos to Immich on upload',
   'memories.providerUrlHintSynology': 'Include the Photos app path in the URL, e.g. https://nas:5001/photo',
   'memories.testConnection': 'Test connection',
+  'memories.testShort': 'Test',
   'memories.testFirst': 'Test connection first',
   'memories.connected': 'Connected',
   'memories.disconnected': 'Not connected',

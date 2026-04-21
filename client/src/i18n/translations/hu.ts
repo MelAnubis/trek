@@ -1690,6 +1690,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Journey-fotók feltöltésekor másolat Immich-be is',
   'memories.providerUrlHintSynology': 'Adja meg a Photos alkalmazás elérési útját az URL-ben, pl. https://nas:5001/photo',
   'memories.testConnection': 'Kapcsolat tesztelése',
+  'memories.testShort': 'Teszt',
   'memories.testFirst': 'Először teszteld a kapcsolatot',
   'memories.connected': 'Csatlakoztatva',
   'memories.disconnected': 'Nincs csatlakoztatva',

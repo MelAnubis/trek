@@ -240,14 +240,18 @@ export default function MapSettingsTab(): React.ReactElement {
                 : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
             }`}
           >
-            <span className="absolute top-2 right-2 text-[9px] font-semibold tracking-wide uppercase px-1.5 py-[3px] rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 leading-none">
-              {t('settings.mapExperimental')}
-            </span>
             <Box size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
-            <div>
-              <div className="text-sm font-medium text-slate-900 dark:text-white">Mapbox GL</div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">
+                <span className="sm:hidden">Mapbox</span>
+                <span className="hidden sm:inline">Mapbox GL</span>
+              </div>
               <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapMapboxSubtitle')}</div>
             </div>
+            {/* Experimental badge only on ≥sm; on mobile there's no room next to the title. */}
+            <span className="hidden sm:inline-block absolute top-2 right-2 text-[9px] font-semibold tracking-wide uppercase px-1.5 py-[3px] rounded bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 leading-none">
+              {t('settings.mapExperimental')}
+            </span>
           </button>
         </div>
         <p className="text-xs text-slate-400 mt-2">

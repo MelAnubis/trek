@@ -1620,6 +1620,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Rispecchia le foto del journey su Immich al caricamento',
   'memories.providerUrlHintSynology': 'Includi il percorso dell\'app Foto nell\'URL, es. https://nas:5001/photo',
   'memories.testConnection': 'Test connessione',
+  'memories.testShort': 'Prova',
   'memories.testFirst': 'Testa prima la connessione',
   'memories.connected': 'Connesso',
   'memories.disconnected': 'Non connesso',

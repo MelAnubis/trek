@@ -1619,6 +1619,7 @@ const zh: Record<string, string> = {
   'memories.immichAutoUpload': '上传 Journey 照片时同步到 Immich',
   'memories.providerUrlHintSynology': '在 URL 中包含照片应用路径，例如 https://nas:5001/photo',
   'memories.testConnection': '测试连接',
+  'memories.testShort': '测试',
   'memories.testFirst': '请先测试连接',
   'memories.connected': '已连接',
   'memories.disconnected': '未连接',

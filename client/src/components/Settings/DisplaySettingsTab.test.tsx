@@ -155,7 +155,9 @@ describe('DisplaySettingsTab', () => {
     const updateSetting = vi.fn().mockResolvedValue(undefined);
     seedStore(useSettingsStore, { settings: buildSettings({ time_format: '12h' }), updateSetting });
     render(<DisplaySettingsTab />);
-    await user.click(screen.getByText('24h (14:30)'));
+    // The label is split across a text node ('24h') and a responsive span (' (14:30)').
+    // Click the button that contains the 24h text instead of matching the full string.
+    await user.click(screen.getByRole('button', { name: /24h/ }));
     expect(updateSetting).toHaveBeenCalledWith('time_format', '24h');
   });
 

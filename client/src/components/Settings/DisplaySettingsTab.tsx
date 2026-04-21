@@ -188,8 +188,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.timeFormat')}</label>
         <div className="flex gap-3">
           {[
-            { value: '24h', label: '24h (14:30)' },
-            { value: '12h', label: '12h (2:30 PM)' },
+            { value: '24h', short: '24h', example: '14:30' },
+            { value: '12h', short: '12h', example: '2:30 PM' },
           ].map(opt => (
             <button
               key={opt.value}
@@ -207,7 +207,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
                 transition: 'all 0.15s',
               }}
             >
-              {opt.label}
+              {opt.short}
+              <span className="hidden sm:inline">{` (${opt.example})`}</span>
             </button>
           ))}
         </div>

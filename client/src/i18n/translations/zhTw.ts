@@ -1679,6 +1679,7 @@ const zhTw: Record<string, string> = {
   'memories.immichAutoUpload': '上傳 Journey 照片時同步到 Immich',
   'memories.providerUrlHintSynology': '在網址中包含照片應用程式路徑，例如 https://nas:5001/photo',
   'memories.testConnection': '測試連線',
+  'memories.testShort': '測試',
   'memories.testFirst': '請先測試連線',
   'memories.connected': '已連線',
   'memories.disconnected': '未連線',

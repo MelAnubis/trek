@@ -1662,6 +1662,7 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'memories.immichAutoUpload': 'Espelhar fotos da jornada no Immich ao enviar',
   'memories.providerUrlHintSynology': 'Inclua o caminho do aplicativo Photos na URL, ex. https://nas:5001/photo',
   'memories.testConnection': 'Testar conexão',
+  'memories.testShort': 'Testar',
   'memories.testFirst': 'Teste a conexão primeiro',
   'memories.connected': 'Conectado',
   'memories.disconnected': 'Não conectado',
