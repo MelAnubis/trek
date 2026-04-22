@@ -9,6 +9,7 @@ import * as svc from '../services/journeyService';
 import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
+import { getAllowedExtensions } from '../services/fileService';
 
 const router = express.Router();
 
@@ -25,9 +26,26 @@ const storage = multer.diskStorage({
   },
 });
 
+const imageFilter: multer.Options['fileFilter'] = (_req, file, cb) => {
+  if (!file.mimetype.startsWith('image/') || file.mimetype.includes('svg')) {
+    const err: Error & { statusCode?: number } = new Error('Only image files are allowed');
+    err.statusCode = 400;
+    return cb(err);
+  }
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  const allowed = getAllowedExtensions().split(',').map(e => e.trim().toLowerCase());
+  if (!allowed.includes('*') && !allowed.includes(ext)) {
+    const err: Error & { statusCode?: number } = new Error(`File type .${ext} is not allowed`);
+    err.statusCode = 400;
+    return cb(err);
+  }
+  cb(null, true);
+};
+
 const upload = multer({
   storage,
   limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: imageFilter,
 });
 
 // ── Static prefix routes (MUST come before /:id) ─────────────────────────
