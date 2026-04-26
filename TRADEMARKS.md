@@ -20,14 +20,14 @@ goodwill, or designs (our "Marks").
 
 Whenever you use our Marks, you must always do so in a way that does not mislead
 anyone about exactly who is the source of the software. For example, you cannot
-say you are distributing the "TREK" software when you're distributing a modified
-version of it, because people would think they would be getting the same
-software that they can get directly from us when they aren't. You also cannot
-use our Marks on your website in a way that suggests that your website is an
-official TREK website or that we endorse your website. But, if true, you can
-say you like TREK, that you participate in the TREK community, that you are
-providing an unmodified version of TREK, or that you wrote a guide describing
-how to use TREK.
+say you are distributing TREK when you're distributing a modified version of it,
+because people would think they would be getting the same software that they
+can get directly from us when they aren't. You also cannot use our Marks on
+your website in a way that suggests that your website is an official TREK
+website or that we endorse your website. But, if true, you can say you like
+TREK, that you participate in the TREK community, that you are providing an
+unmodified version of TREK, or that you wrote a guide describing how to use
+TREK.
 
 This fundamental requirement, that it is always clear to people what they are
 getting and from whom, is reflected throughout this policy. It should also
@@ -56,7 +56,7 @@ in any way.
 
 ## Distribution of executable code that you have compiled, or modified code
 
-You may use the word Mark "TREK", but not any TREK logos, to truthfully
+You may use the word mark "TREK", but not any TREK logos, to truthfully
 describe the origin of the software that you are providing, that is, that the
 code you are distributing is a modification of TREK. You may say, for example,
 that "this software is derived from the source code for TREK."
@@ -94,11 +94,11 @@ redistributed:
 
 ## Statements about your software's relation to TREK
 
-You may use the word Mark, but not TREK logos, to truthfully describe the
-relationship between your software and ours. Our Mark should be used after a
-verb or preposition that describes the relationship between your software and
-ours. So you may say, for example, "Bob's app for TREK" but may not say "Bob's
-TREK app." Some other examples that may work for you are:
+You may use the word mark, but not TREK logos, to truthfully describe the
+relationship between your software and ours. The word mark "TREK" should be
+used after a verb or preposition that describes the relationship between your
+software and ours. So you may say, for example, "Bob's app for TREK" but may
+not say "Bob's TREK app." Some other examples that may work for you are:
 
 * [Your software] uses TREK
 * [Your software] is powered by TREK
