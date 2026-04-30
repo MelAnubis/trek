@@ -2,7 +2,7 @@
 interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
 import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X, Route as RouteIcon } from 'lucide-react'
 
@@ -14,6 +14,7 @@ import PlaceAvatar from '../shared/PlaceAvatar'
 import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 import WeatherWidget from '../Weather/WeatherWidget'
 import { useToast } from '../shared/Toast'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -190,6 +191,8 @@ interface DayPlanSidebarProps {
   onEditTransport?: (reservation: Reservation) => void
   onEditReservation?: (reservation: Reservation) => void
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
+  initialScrollTop?: number
+  onScrollTopChange?: (top: number) => void
 }
 
 const DayPlanSidebar = React.memo(function DayPlanSidebar({
@@ -218,6 +221,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   onEditTransport,
   onEditReservation,
   onAddBookingToAssignment,
+  initialScrollTop,
+  onScrollTopChange,
 }: DayPlanSidebarProps) {
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -270,6 +275,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   } | null>(null)
   const inputRef = useRef(null)
   const dragDataRef = useRef(null)
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null)
+  useLayoutEffect(() => {
+    if (scrollContainerRef.current && initialScrollTop) {
+      scrollContainerRef.current.scrollTop = initialScrollTop
+    }
+  }, [])
   const initedTransportIds = useRef(new Set<number>()) // Speichert Drag-Daten als Backup (dataTransfer geht bei Re-Render verloren)
   // Remember which assignment we last auto-scrolled into view so we don't
   // keep yanking the user back whenever they scroll away while the same
@@ -1117,7 +1128,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
       </div>
 
       {/* Tagesliste */}
-      <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+      <div className={`scroll-container${draggingId ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {days.map((day, index) => {
           const isSelected = selectedDayId === day.id
           const isExpanded = expandedDays.has(day.id)
@@ -2228,7 +2239,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   {res.notes && (
                     <div style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
                       <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{res.notes}</Markdown></div>
+                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
                     </div>
                   )}
 
