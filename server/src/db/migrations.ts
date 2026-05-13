@@ -2267,7 +2267,9 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_gpx_tracks_trip_id ON gpx_tracks(trip_id);
       `);
     },
-    if (currentVersion < migrations.length) {
+  ];
+
+  if (currentVersion < migrations.length) {
     for (let i = currentVersion; i < migrations.length; i++) {
       console.log(`[DB] Running migration ${i + 1}/${migrations.length}`);
       try {
@@ -2288,3 +2290,4 @@ function runMigrations(db: Database.Database): void {
 }
 
 export { runMigrations };
+
