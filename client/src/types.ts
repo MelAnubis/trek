@@ -23,6 +23,7 @@ export interface Trip {
   cover_url: string | null
   is_archived: boolean
   reminder_days: number
+  trip_type: string | null  // 'general' | 'cycling'
   owner_id: number
   created_at: string
   updated_at: string

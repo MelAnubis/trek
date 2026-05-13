@@ -234,12 +234,16 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   const newReminder = reminder_days !== undefined
     ? (Number(reminder_days) >= 0 && Number(reminder_days) <= 30 ? Number(reminder_days) : oldReminder)
     : oldReminder;
+  // ── trip_type (cycling | general) ───────────────────────────────────────
+  const newTripType = (data as any).trip_type !== undefined
+    ? (data as any).trip_type
+    : (trip as any).trip_type ?? 'general';
 
   db.prepare(`
     UPDATE trips SET title=?, description=?, start_date=?, end_date=?,
-      currency=?, is_archived=?, cover_image=?, reminder_days=?, updated_at=CURRENT_TIMESTAMP
+      currency=?, is_archived=?, cover_image=?, reminder_days=?, trip_type=?, updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, tripId);
+  `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newTripType, tripId);
 
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);

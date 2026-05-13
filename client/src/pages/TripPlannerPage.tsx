@@ -26,7 +26,7 @@ import BudgetPanel from '../components/Budget/BudgetPanel'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
-import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train } from 'lucide-react'
+import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
@@ -40,6 +40,8 @@ import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
 import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
+import GpxManager from '../components/Elevation/GpxManager'
+import ElevationDetail, { type GpxTrack } from '../components/Elevation/ElevationDetail'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -185,6 +187,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const files = useTripStore(s => s.files)
   const selectedDayId = useTripStore(s => s.selectedDayId)
   const isLoading = useTripStore(s => s.isLoading)
+  // GPX tracks for cycling trips
+  const [gpxTracks, setGpxTracks] = React.useState<GpxTrack[]>([])
+  const [gpxTracksWithPoints, setGpxTracksWithPoints] = React.useState<GpxTrack[]>([])
+  const isCycling = (trip as any)?.trip_type === 'cycling'
   // Actions — stable references, don't cause re-renders
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
@@ -232,6 +238,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
     ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
+    ...(isCycling ? [{ id: 'gpx', label: 'GPX', icon: Mountain }] : []),
+    ...(isCycling ? [{ id: 'elevation', label: 'Elevación', icon: Mountain }] : []),
   ]
 
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -1193,6 +1201,56 @@ export default function TripPlannerPage(): React.ReactElement | null {
         {activeTab === 'collab' && (
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
             <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
+          </div>
+        )}
+
+        {activeTab === 'gpx' && (
+          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
+            <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
+              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 18, padding: '14px 22px', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Tracks GPX
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
+                  Sube y gestiona los tracks GPX de este viaje en bicicleta
+                </p>
+              </div>
+            </div>
+            <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
+              <GpxManager
+                tripId={tripId}
+                onTracksChange={(tracks) => {
+                  setGpxTracks(tracks)
+                  // Load points for active tracks (for elevation chart)
+                  const active = tracks.filter((t: any) => t.is_active !== 0)
+                  Promise.all(
+                    active.map((t: any) =>
+                      fetch(`/api/trips/${tripId}/gpx/${t.id}/points`, { credentials: 'include' })
+                        .then(r => r.ok ? r.json() : t)
+                        .catch(() => t)
+                    )
+                  ).then(full => setGpxTracksWithPoints(full as GpxTrack[]))
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'elevation' && (
+          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
+            <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
+              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 18, padding: '14px 22px', marginBottom: 20 }}>
+                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Perfil de Elevación · IBPIndex
+                </h2>
+                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
+                  Análisis de dificultad por track GPX con índice IBP oficial
+                </p>
+              </div>
+            </div>
+            <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
+              <ElevationDetail tracks={gpxTracksWithPoints} />
+            </div>
           </div>
         )}
       </div>

@@ -36,6 +36,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     start_date: '',
     end_date: '',
     reminder_days: 0 as number,
+    trip_type: 'general' as string,
     day_count: 7,
   })
   const [customReminder, setCustomReminder] = useState(false)
@@ -58,12 +59,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         start_date: trip.start_date || '',
         end_date: trip.end_date || '',
         reminder_days: rd,
+        trip_type: trip.trip_type || 'general',
         day_count: trip.day_count || 7,
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
     } else {
-      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7 })
+      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7, trip_type: 'general' })
       setCustomReminder(false)
       setCoverPreview(null)
     }
@@ -104,6 +106,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         start_date: formData.start_date || null,
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
+        trip_type: formData.trip_type,
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
       })
       // Add selected members for newly created trips
@@ -287,6 +290,34 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           <textarea value={formData.description} onChange={e => canEditTrip && update('description', e.target.value)}
             readOnly={!canEditTrip} placeholder={t('dashboard.tripDescriptionPlaceholder')} rows={3}
             className={`${inputCls} resize-none`} />
+        </div>
+
+        {/* ── Tipo de viaje ──────────────────────────────────────────── */}
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">
+            Tipo de viaje
+          </label>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { value: 'general', label: '🌍 General', desc: 'Viaje estándar' },
+              { value: 'cycling', label: '🚴 Bicicleta', desc: 'GPX + Elevación + IBP' },
+            ].map(opt => (
+              <button key={opt.value} type="button"
+                onClick={() => canEditTrip && update('trip_type', opt.value)}
+                style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10, cursor: canEditTrip ? 'pointer' : 'default',
+                  border: (formData as any).trip_type === opt.value
+                    ? '2px solid #3b82f6'
+                    : '1.5px solid #e2e8f0',
+                  background: (formData as any).trip_type === opt.value ? '#eff6ff' : '#f8fafc',
+                  textAlign: 'left', fontFamily: 'inherit',
+                }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', marginBottom: 2 }}>{opt.label}</div>
+                <div style={{ fontSize: 11, color: '#94a3b8' }}>{opt.desc}</div>
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
