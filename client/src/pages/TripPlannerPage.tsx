@@ -416,7 +416,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         const active = tracks.filter(t => t.is_active !== 0)
         Promise.all(
           active.map(t =>
-            fetch(/api/trips//gpx//points, { credentials: 'include' })
+            fetch(`/api/trips/${tripId}/gpx/${t.id}/points`, { credentials: 'include' })
               .then(r => r.ok ? r.json() : t)
               .catch(() => t)
           )
