@@ -423,7 +423,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         ).then(full => setGpxTracksWithPoints(full as any[]))
       })
       .catch(() => {})
-  }, [tripId, isCycling])
+  }, [tripId, isCycling, (trip as any)?.id])
 
   const activeGpxTrack = isCycling && gpxTracksWithPoints.length > 0 ? gpxTracksWithPoints.find((t: any) => t.is_active !== 0) || null : null
   const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, activeGpxTrack)
