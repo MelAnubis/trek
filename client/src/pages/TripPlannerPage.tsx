@@ -409,7 +409,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   // Cargar GPX tracks con puntos automáticamente cuando el viaje es ciclista
   useEffect(() => {
     if (!isCycling || !tripId) return
-    fetch(/api/trips//gpx, { credentials: 'include' })
+    fetch(`/api/trips/${tripId}/gpx`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then((tracks: any[]) => {
         setGpxTracks(tracks)

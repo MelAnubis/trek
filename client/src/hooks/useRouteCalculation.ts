@@ -11,8 +11,13 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
  * Manages route calculation state for a selected day. Extracts geo-coded waypoints from
  * day assignments, draws a straight-line route, and optionally fetches per-segment
  * driving/walking durations via OSRM. Aborts in-flight requests when the day changes.
+ * When activeGpxTrack is provided (cycling trip), uses the GPX track instead of OSRM.
  */
-  export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, activeGpxTrack?: { points: { lat: number; lng: number }[] } | null) {
+export function useRouteCalculation(
+  tripStore: TripStoreState,
+  selectedDayId: number | null,
+  activeGpxTrack?: { points: { lat: number; lng: number }[] } | null
+) {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
@@ -23,6 +28,17 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
   const updateRouteForDay = useCallback(async (dayId: number | null) => {
     if (routeAbortRef.current) routeAbortRef.current.abort()
     if (!dayId) { setRoute(null); setRouteSegments([]); return }
+
+    // ── Si hay GPX activo (viaje ciclista), usar el track GPX directamente ──
+    if (activeGpxTrack?.points && activeGpxTrack.points.length > 1) {
+      const gpxRoute: [number, number][] = activeGpxTrack.points
+        .filter((p: any) => p.lat && p.lng)
+        .map((p: any) => [p.lat, p.lng] as [number, number])
+      setRoute([gpxRoute])
+      setRouteSegments([])
+      return
+    }
+
     // Read directly from store (not a render-phase ref) so callers after optimistic
     // updates or non-optimistic deletes always see the latest assignments.
     const currentAssignments = useTripStore.getState().assignments || {}
@@ -81,16 +97,6 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
 
     const geocodedWaypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng) as { lat: number; lng: number }[]
 
-  // Si hay GPX activo (viaje ciclista), usar el track GPX en lugar de OSRM
-    if (activeGpxTrack?.points && activeGpxTrack.points.length > 1) {
-      const gpxRoute: [number, number][] = activeGpxTrack.points
-        .filter(p => p.lat && p.lng)
-        .map(p => [p.lat, p.lng])
-      setRoute([gpxRoute])
-      setRouteSegments([])
-      return
-    }
-
     if (segments.length === 0 && geocodedWaypoints.length < 2) {
       setRoute(null); setRouteSegments([]); return
     }
@@ -105,7 +111,7 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
       if (err instanceof Error && err.name !== 'AbortError') setRouteSegments([])
       else if (!(err instanceof Error)) setRouteSegments([])
     }
-  }, [routeCalcEnabled])
+  }, [routeCalcEnabled, activeGpxTrack])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -121,13 +127,13 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
       .join('|')
   }, [reservationsForSignature, selectedDayId])
 
-  // Recalculate when assignments or transport positions for the SELECTED day change
+  // Recalculate when assignments, transport positions, or GPX track changes
   const selectedDayAssignments = selectedDayId ? tripStore.assignments?.[String(selectedDayId)] : null
   useEffect(() => {
     if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, activeGpxTrack])
 
   return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }
