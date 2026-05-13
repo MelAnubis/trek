@@ -30,7 +30,6 @@ export function useRouteCalculation(
     if (!dayId) { setRoute(null); setRouteSegments([]); return }
 
     // ── Si hay GPX activo (viaje ciclista), usar el track GPX directamente ──
-    console.log('[GPX] activeGpxTrack:', activeGpxTrack, 'points:', activeGpxTrack?.points?.length)
     if (activeGpxTrack?.points && activeGpxTrack.points.length > 1) {
       const gpxRoute: [number, number][] = activeGpxTrack.points
         .filter((p: any) => p.lat && p.lng)
