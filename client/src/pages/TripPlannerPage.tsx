@@ -406,7 +406,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
     })
   }, [places, mapCategoryFilter, mapPlacesFilter, assignments, expandedDayIds])
 
-  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId)
+  const activeGpxTrack = isCycling && gpxTracksWithPoints.length > 0 ? gpxTracksWithPoints.find((t: any) => t.is_active !== 0) || null : null
+  const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, activeGpxTrack)
 
   const handleSelectDay = useCallback((dayId, skipFit) => {
     const changed = dayId !== selectedDayId

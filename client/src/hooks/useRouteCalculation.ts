@@ -12,7 +12,7 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
  * day assignments, draws a straight-line route, and optionally fetches per-segment
  * driving/walking durations via OSRM. Aborts in-flight requests when the day changes.
  */
-export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null) {
+  export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: number | null, activeGpxTrack?: { points: { lat: number; lng: number }[] } | null) {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
@@ -80,6 +80,16 @@ export function useRouteCalculation(tripStore: TripStoreState, selectedDayId: nu
     if (currentSeg.length >= 2) segments.push(currentSeg)
 
     const geocodedWaypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng) as { lat: number; lng: number }[]
+
+  // Si hay GPX activo (viaje ciclista), usar el track GPX en lugar de OSRM
+    if (activeGpxTrack?.points && activeGpxTrack.points.length > 1) {
+      const gpxRoute: [number, number][] = activeGpxTrack.points
+        .filter(p => p.lat && p.lng)
+        .map(p => [p.lat, p.lng])
+      setRoute([gpxRoute])
+      setRouteSegments([])
+      return
+    }
 
     if (segments.length === 0 && geocodedWaypoints.length < 2) {
       setRoute(null); setRouteSegments([]); return
