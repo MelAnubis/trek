@@ -2229,7 +2229,6 @@ function runMigrations(db: Database.Database): void {
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
-  ];
 
     // Add trip_type column to trips (cycling, general)
     () => {
@@ -2290,4 +2289,5 @@ function runMigrations(db: Database.Database): void {
 }
 
 export { runMigrations };
+
 
