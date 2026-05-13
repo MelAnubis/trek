@@ -158,6 +158,7 @@ export function listTrips(userId: number, archived: number | null) {
 }
 
 interface CreateTripData {
+  trip_type?: string;
   title: string;
   description?: string | null;
   start_date?: string | null;
@@ -173,9 +174,9 @@ export function createTrip(userId: number, data: CreateTripData, maxDays?: numbe
     : 3;
 
   const result = db.prepare(`
-    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd);
+    INSERT INTO trips (user_id, title, description, start_date, end_date, currency, reminder_days, trip_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(userId, data.title, data.description || null, data.start_date || null, data.end_date || null, data.currency || 'EUR', rd, data.trip_type || 'general');
 
   const tripId = result.lastInsertRowid;
   generateDays(tripId, data.start_date || null, data.end_date || null, maxDays, data.day_count);
