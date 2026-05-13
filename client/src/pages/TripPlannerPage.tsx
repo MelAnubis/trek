@@ -406,6 +406,25 @@ export default function TripPlannerPage(): React.ReactElement | null {
     })
   }, [places, mapCategoryFilter, mapPlacesFilter, assignments, expandedDayIds])
 
+  // Cargar GPX tracks con puntos automáticamente cuando el viaje es ciclista
+  useEffect(() => {
+    if (!isCycling || !tripId) return
+    fetch(/api/trips//gpx, { credentials: 'include' })
+      .then(r => r.ok ? r.json() : [])
+      .then((tracks: any[]) => {
+        setGpxTracks(tracks)
+        const active = tracks.filter(t => t.is_active !== 0)
+        Promise.all(
+          active.map(t =>
+            fetch(/api/trips//gpx//points, { credentials: 'include' })
+              .then(r => r.ok ? r.json() : t)
+              .catch(() => t)
+          )
+        ).then(full => setGpxTracksWithPoints(full as any[]))
+      })
+      .catch(() => {})
+  }, [tripId, isCycling])
+
   const activeGpxTrack = isCycling && gpxTracksWithPoints.length > 0 ? gpxTracksWithPoints.find((t: any) => t.is_active !== 0) || null : null
   const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, activeGpxTrack)
 
