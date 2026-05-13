@@ -150,7 +150,7 @@ function parseGpxBuffer(raw: string): {
 
 // ── GET /api/trips/:id/gpx ────────────────────────────────────────────────────
 router.get('/', authenticate, requireTripAccess, (req: Request, res: Response) => {
-  const tripId = (req as AuthRequest).params.id;
+  const tripId = (req as AuthRequest).params.tripId || (req as AuthRequest).params.id;
   try {
     const tracks = db.prepare(
       `SELECT id, trip_id, track_name, orig_name, total_distance, total_elevation_gain,

@@ -273,7 +273,7 @@ export function createApp(): express.Application {
   app.use('/api/trips/:tripId/packing', packingRoutes);
   app.use('/api/trips/:tripId/todo', todoRoutes);
   app.use('/api/trips/:tripId/files', filesRoutes);
-  app.use('/api/trips/:tripId/gpx', gpxTracksRoutes);
+  app.use('/api/trips/:id/gpx', gpxTracksRoutes);
   app.use('/api/trips/:tripId/budget', budgetRoutes);
   app.use('/api/trips/:tripId/collab', collabRoutes);
   app.use('/api/trips/:tripId/reservations', reservationsRoutes);
