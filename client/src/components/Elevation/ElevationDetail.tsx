@@ -377,6 +377,7 @@ function TrackDetail({
                 <YAxis
                   yAxisId="ele"
                   orientation="left"
+                  domain={[Math.floor(minEle * 0.98), Math.ceil(maxEle * 1.02)]}
                   tick={{ fontSize: 10, fill: 'var(--text-tertiary, #64748b)' }}
                   tickFormatter={v => `${v}m`}
                 />
