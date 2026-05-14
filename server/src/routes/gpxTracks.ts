@@ -372,17 +372,25 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       ).all(day.id) as any[];
 
       if (places.length >= 1) {
-        const first = places[0];
-        const last  = places[places.length - 1];
+        const last = places[places.length - 1];
         dayBounds.push({
           dayId:    day.id,
           title:    day.title || `Día ${day.day_number || day.id}`,
-          startLat: first.lat, startLng: first.lng,
-          endLat:   last.lat,  endLng:   last.lng,
+          startLat: last.lat, startLng: last.lng,  // provisional, se sobreescribe abajo
+          endLat:   last.lat, endLng:   last.lng,
         });
       }
     }
-
+// El inicio de cada día es el fin del día anterior
+    for (let i = 1; i < dayBounds.length; i++) {
+      dayBounds[i].startLat = dayBounds[i - 1].endLat;
+      dayBounds[i].startLng = dayBounds[i - 1].endLng;
+    }
+    // El primer día empieza en el primer punto del GPX
+    if (dayBounds.length > 0) {
+      dayBounds[0].startLat = allPoints[0].lat;
+      dayBounds[0].startLng = allPoints[0].lng;
+    }
     if (dayBounds.length === 0) {
       return res.status(400).json({ error: 'No days have places with coordinates' });
     }
