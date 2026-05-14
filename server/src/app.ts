@@ -119,6 +119,7 @@ export function createApp(): express.Application {
       },
   );
   app.use(cors({ origin: corsOrigin, credentials: true }));
+  console.log('[CSP DEBUG] Setting up helmet CSP');
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -154,7 +155,11 @@ export function createApp(): express.Application {
     hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
-
+app.use((_req: any, res: any, next: any) => {
+    const csp = res.getHeader('content-security-policy');
+    if (csp) console.log('[CSP ACTUAL]', csp);
+    next();
+  });
   if (shouldForceHttps) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === '/api/health') return next();
