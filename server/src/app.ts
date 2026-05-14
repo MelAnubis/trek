@@ -142,7 +142,6 @@ export function createApp(): express.Application {
         objectSrc: ["'self'", "blob:", "data:"],
         childSrc: ["'self'", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        objectSrc: ["'none'"],
         frameSrc: ["'none'"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
