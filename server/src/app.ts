@@ -140,7 +140,7 @@ export function createApp(): express.Application {
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com"
         ],
         workerSrc: ["'self'", "blob:"],
-        objectSrc: ["'self'", "blob:", "data:"],
+        objectSrc: false,
         childSrc: ["'self'", "blob:"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         frameSrc: ["'none'"],
