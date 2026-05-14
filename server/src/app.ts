@@ -121,6 +121,7 @@ export function createApp(): express.Application {
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(helmet({
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
