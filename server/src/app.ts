@@ -145,7 +145,7 @@ export function createApp(): express.Application {
         formAction: ["'self'"],
         scriptSrcAttr: ["'none'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        frameSrc: ["'none'"],
+        frameSrc: ["'self'", "blob:", "data:"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }
