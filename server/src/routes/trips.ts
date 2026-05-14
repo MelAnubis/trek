@@ -55,13 +55,13 @@ const coverStorage = multer.diskStorage({
 const uploadCover = multer({
   storage: coverStorage,
   limits: { fileSize: MAX_COVER_SIZE },
-  fileFilter: (_req, file, cb) => {
+fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
-    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    if (file.mimetype.startsWith('image/') && !file.mimetype.includes('svg') && allowedExts.includes(ext)) {
+    const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+    if (allowedExts.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Only jpg, png, gif, webp images allowed'));
+      cb(new Error('Only jpg, png, gif, webp, heic images allowed'));
     }
   },
 });
