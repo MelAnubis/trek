@@ -203,7 +203,10 @@ router.post('/:id/cover', authenticate, demoUploadBlock, uploadCover.single('cov
     try {
       finalFilename = req.file.filename.replace(/\.[^.]+$/, '.jpg');
       const outPath = path.join(coversDir, finalFilename);
-      await sharp(req.file.path).jpeg({ quality: 90 }).toFile(outPath);
+      const tmpPath = `/tmp/${req.file.filename}`;
+      fs.copyFileSync(req.file.path, tmpPath);
+      await sharp(tmpPath).jpeg({ quality: 90 }).toFile(outPath);
+      fs.unlinkSync(tmpPath);
       fs.unlinkSync(req.file.path);
       coverUrl = `/uploads/covers/${finalFilename}`;
     } catch (convErr) {
