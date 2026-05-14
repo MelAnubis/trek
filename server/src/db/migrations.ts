@@ -2230,20 +2230,13 @@ function runMigrations(db: Database.Database): void {
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
 
-    // Add day_id column to gpx_tracks
-    () => {
-      try {
-        db.exec(ALTER TABLE gpx_tracks ADD COLUMN day_id INTEGER REFERENCES days(id) ON DELETE SET NULL);
-        db.exec(CREATE INDEX IF NOT EXISTS idx_gpx_tracks_day_id ON gpx_tracks(day_id));
-      } catch (_) { /* column may already exist */ }
-    },
-    // Add trip_type column to trips (cycling, general)
+    // Migration A: Add trip_type column to trips (cycling | general)
     () => {
       try {
         db.exec(`ALTER TABLE trips ADD COLUMN trip_type TEXT DEFAULT 'general'`);
       } catch (_) { /* column may already exist if running on dev */ }
     },
-    // Create gpx_tracks table for cycling trips
+    // Migration B: Create gpx_tracks table for cycling trips (includes day_id)
     () => {
       db.exec(`
         CREATE TABLE IF NOT EXISTS gpx_tracks (
@@ -2272,7 +2265,7 @@ function runMigrations(db: Database.Database): void {
           created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_gpx_tracks_trip_id ON gpx_tracks(trip_id);
-        CREATE INDEX IF NOT EXISTS idx_gpx_tracks_day_id ON gpx_tracks(day_id);
+        CREATE INDEX IF NOT EXISTS idx_gpx_tracks_day_id  ON gpx_tracks(day_id);
       `);
     },
   ];
@@ -2298,5 +2291,3 @@ function runMigrations(db: Database.Database): void {
 }
 
 export { runMigrations };
-
-

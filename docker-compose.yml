@@ -2,7 +2,7 @@ services:
   trek:
     build: .
     container_name: trek_app
-    read_only: true
+    read_only: false
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -26,7 +26,7 @@ services:
       # IBP API key (obtener en https://www.ibpindex.com/index.php/es/ibp-services/ibp-index-api-v2-0)
       # - IBP_API_KEY=tu_clave_ibp_aqui
     volumes:
-      - ./data:/app/data
+      - //c/003Trek/trek-main/data:/app/data
       - ./uploads:/app/uploads
     restart: unless-stopped
     networks:

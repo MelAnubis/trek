@@ -50,7 +50,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
     try {
       const [tracksData, daysData] = await Promise.all([
         apiFetch(`${API_BASE}/trips/${tripId}/gpx`),
-        apiFetch(`${API_BASE}/trips/${tripId}/days`).catch(() => []),
+        apiFetch(`${API_BASE}/trips/${tripId}/days`).then((d: any) => d.days || d).catch(() => []),
       ])
       setTracks(tracksData)
       setDays(daysData)
