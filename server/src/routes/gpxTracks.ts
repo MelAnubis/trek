@@ -365,7 +365,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     for (const day of days) {
       const places = db.prepare(
         `SELECT p.lat, p.lng, p.name, a.order_index
-         FROM assignments a
+         FROM day_assignments a
          JOIN places p ON p.id = a.place_id
          WHERE a.day_id = ? AND p.lat IS NOT NULL AND p.lng IS NOT NULL
          ORDER BY a.order_index ASC`
