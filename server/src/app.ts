@@ -121,7 +121,6 @@ export function createApp(): express.Application {
   app.use(cors({ origin: corsOrigin, credentials: true }));
   app.use(helmet({
     contentSecurityPolicy: {
-      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'wasm-unsafe-eval'", "'unsafe-eval'"],
@@ -140,8 +139,11 @@ export function createApp(): express.Application {
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com"
         ],
         workerSrc: ["'self'", "blob:"],
-        objectSrc: null,
+        objectSrc: ["'self'", "blob:", "data:"],
         childSrc: ["'self'", "blob:"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        scriptSrcAttr: ["'none'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
         frameSrc: ["'none'"],
         frameAncestors: ["'self'"],
