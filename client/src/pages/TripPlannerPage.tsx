@@ -413,7 +413,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       .then(r => r.ok ? r.json() : [])
       .then((tracks: any[]) => {
         setGpxTracks(tracks)
-        const active = tracks.filter(t => t.is_active !== 0)
+        const active = tracks.filter(t => t.is_active !== 0 || t.day_id)
         Promise.all(
           active.map(t =>
             fetch(`/api/trips/${tripId}/gpx/${t.id}/points`, { credentials: 'include' })
@@ -425,7 +425,17 @@ export default function TripPlannerPage(): React.ReactElement | null {
       .catch(() => {})
   }, [tripId, isCycling, (trip as any)?.id])
 
-  const activeGpxTrack = isCycling && gpxTracksWithPoints.length > 0 ? gpxTracksWithPoints.find((t: any) => t.is_active !== 0) || null : null
+  // Track del día seleccionado o track global activo
+  const activeGpxTrack = React.useMemo(() => {
+    if (!isCycling) return null
+    // Primero buscar track asignado al día seleccionado
+    if (selectedDayId) {
+      const dayTrack = gpxTracksWithPoints.find((t: any) => t.day_id === selectedDayId)
+      if (dayTrack) return dayTrack
+    }
+    // Fallback: track global activo (sin día asignado)
+    return gpxTracksWithPoints.find((t: any) => t.is_active !== 0 && !t.day_id) || null
+  }, [isCycling, selectedDayId, gpxTracksWithPoints])
   const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, activeGpxTrack)
 
   const handleSelectDay = useCallback((dayId, skipFit) => {

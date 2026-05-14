@@ -2230,6 +2230,13 @@ function runMigrations(db: Database.Database): void {
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
 
+    // Add day_id column to gpx_tracks
+    () => {
+      try {
+        db.exec(ALTER TABLE gpx_tracks ADD COLUMN day_id INTEGER REFERENCES days(id) ON DELETE SET NULL);
+        db.exec(CREATE INDEX IF NOT EXISTS idx_gpx_tracks_day_id ON gpx_tracks(day_id));
+      } catch (_) { /* column may already exist */ }
+    },
     // Add trip_type column to trips (cycling, general)
     () => {
       try {
@@ -2261,9 +2268,11 @@ function runMigrations(db: Database.Database): void {
           ibp          INTEGER,
           sort_order   INTEGER DEFAULT 0,
           is_active    INTEGER DEFAULT 1,
+          day_id       INTEGER REFERENCES days(id) ON DELETE SET NULL,
           created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
         );
         CREATE INDEX IF NOT EXISTS idx_gpx_tracks_trip_id ON gpx_tracks(trip_id);
+        CREATE INDEX IF NOT EXISTS idx_gpx_tracks_day_id ON gpx_tracks(day_id);
       `);
     },
   ];
