@@ -1,3 +1,4 @@
+import { normalizeImageFile } from '../../utils/convertHeic'
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
 import { Calendar, Camera, X, Clipboard, UserPlus, Bell } from 'lucide-react'
@@ -137,7 +138,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
   }
 
-  const handleCoverSelect = (file) => {
+  const handleCoverSelect = async (file) => {
+    file = await normalizeImageFile(file)
     if (!file) return
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately

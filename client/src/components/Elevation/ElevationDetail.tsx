@@ -86,10 +86,12 @@ function buildProfile(track: GpxTrack): Profile | null {
   const pts = (track.points || []).filter((p: any) => p.ele != null && p.lat != null)
   if (pts.length < 2) return null
 
-  const step    = Math.max(1, Math.floor(pts.length / 500))
+  // Sample up to 1000 points to preserve detail
+  const step    = Math.max(1, Math.floor(pts.length / 1000))
   const sampled = pts.filter((_: any, i: number) => i % step === 0)
+  // Very light smoothing (±1 point only) to remove GPS noise without flattening peaks
   const smooth  = sampled.map((p: any, i: number) => {
-    const s = Math.max(0, i - 3), e = Math.min(sampled.length - 1, i + 3)
+    const s = Math.max(0, i - 1), e = Math.min(sampled.length - 1, i + 1)
     let sum = 0, cnt = 0
     for (let j = s; j <= e; j++) { sum += sampled[j].ele; cnt++ }
     return { ...p, ele: sum / cnt }
