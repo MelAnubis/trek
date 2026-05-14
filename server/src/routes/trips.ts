@@ -3,6 +3,7 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
+import sharp from 'sharp';
 import { db, canAccessTrip } from '../db/database';
 import { authenticate, demoUploadBlock } from '../middleware/auth';
 import { broadcast } from '../websocket';
@@ -55,7 +56,7 @@ const coverStorage = multer.diskStorage({
 const uploadCover = multer({
   storage: coverStorage,
   limits: { fileSize: MAX_COVER_SIZE },
-fileFilter: (_req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const ext = path.extname(file.originalname).toLowerCase();
     const allowedExts = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
     if (allowedExts.includes(ext)) {
@@ -178,7 +179,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
 
 // ── Cover upload ──────────────────────────────────────────────────────────
 
-router.post('/:id/cover', authenticate, demoUploadBlock, uploadCover.single('cover'), (req: Request, res: Response) => {
+router.post('/:id/cover', authenticate, demoUploadBlock, uploadCover.single('cover'), async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const access = canAccessTrip(req.params.id, authReq.user.id);
   const tripOwnerId = access?.user_id;
@@ -193,7 +194,24 @@ router.post('/:id/cover', authenticate, demoUploadBlock, uploadCover.single('cov
 
   deleteOldCover(trip.cover_image);
 
-  const coverUrl = `/uploads/covers/${req.file.filename}`;
+  // Convert HEIC/HEIF to JPEG for browser compatibility
+  const ext = path.extname(req.file.originalname).toLowerCase();
+  let finalFilename = req.file.filename;
+  let coverUrl = `/uploads/covers/${finalFilename}`;
+
+  if (ext === '.heic' || ext === '.heif') {
+    try {
+      finalFilename = req.file.filename.replace(/\.[^.]+$/, '.jpg');
+      const outPath = path.join(coversDir, finalFilename);
+      await sharp(req.file.path).jpeg({ quality: 90 }).toFile(outPath);
+      fs.unlinkSync(req.file.path);
+      coverUrl = `/uploads/covers/${finalFilename}`;
+    } catch (convErr) {
+      console.error('[cover] HEIC conversion failed:', convErr);
+      // Keep original if conversion fails
+    }
+  }
+
   updateCoverImage(req.params.id, coverUrl);
   res.json({ cover_image: coverUrl });
 });
