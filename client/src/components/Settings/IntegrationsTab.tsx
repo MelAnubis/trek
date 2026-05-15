@@ -6,6 +6,7 @@ import { Trash2, Copy, Terminal, Plus, Check, KeyRound, ChevronDown, ChevronRigh
 import { authApi, oauthApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import PhotoProvidersSection from './PhotoProvidersSection'
+import OneDriveSection from './OneDriveSection'
 import { ALL_SCOPES } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 
@@ -269,6 +270,7 @@ export default function IntegrationsTab(): React.ReactElement {
   return (
     <>
       <PhotoProvidersSection />
+      <OneDriveSection />
       {mcpEnabled && (
         <Section title={t('settings.mcp.title')} icon={Terminal}>
           {/* Endpoint URL */}
