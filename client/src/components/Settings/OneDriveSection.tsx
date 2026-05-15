@@ -51,11 +51,17 @@ export default function OneDriveSection() {
     }
   }, [])
 
-  const handleConnect = () => {
-    if (status.authUrl) {
-      window.location.href = status.authUrl
-    } else {
-      toast.error('URL de autorización no disponible')
+  const handleConnect = async () => {
+    try {
+      const res = await apiClient.get(`${BASE}/settings`)
+      const url = res.data?.authUrl
+      if (url) {
+        window.location.href = url
+      } else {
+        toast.error('URL de autorización no disponible')
+      }
+    } catch {
+      toast.error('Error al obtener URL de autorización')
     }
   }
 
