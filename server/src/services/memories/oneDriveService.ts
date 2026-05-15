@@ -219,23 +219,58 @@ export async function browseTimeline(userId: number) {
 }
 
 // ── Search photos by date range ──────────────────────────────────────────────
+// ── Search photos by date range ──────────────────────────────────────────────
 export async function searchPhotos(userId: number, from?: string, to?: string, page = 1, size = 50) {
-  let filter = 'photo ne null';
-  if (from) filter += ` and createdDateTime ge ${new Date(from).toISOString()}`;
-  if (to)   filter += ` and createdDateTime le ${new Date(to).toISOString()}`;
-  const skip = (page - 1) * size;
-  const result = await graphGet(userId, `/me/drive/special/photos/children?$select=id,name,photo,image,thumbnails,createdDateTime&$top=${size}&$skip=${skip}&$expand=thumbnails&$filter=${encodeURIComponent(filter)}`);
-  if (result.error) return { error: result.error, status: result.status };
+  // Graph no soporta $skip en /drive/special/photos — hay que paginar con nextLink
+  // Cargamos hasta (page * size) items siguiendo nextLinks y devolvemos la página pedida
+  const target = page * size;
+  const collected: any[] = [];
 
-  const photos = (result.data?.value || []).filter((i: any) => i.photo || i.image);
+  let url: string | null =
+    `/me/drive/special/photos/children?$select=id,name,photo,image,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
+
+  while (url && collected.length < target) {
+    const result = await graphGet(userId, url);
+    if (result.error) return { error: result.error, status: result.status };
+
+    const items = (result.data?.value || []).filter((i: any) => i.photo || i.image);
+    for (const item of items) {
+      const taken = item.photo?.takenDateTime || item.createdDateTime;
+      if (from && taken < from) continue;
+      if (to   && taken > to)   continue;
+      collected.push(item);
+    }
+
+    // Si hay filtro de fechas y ya pasamos el rango, paramos
+    if (to && items.length > 0) {
+      const lastTaken = items[items.length - 1]?.photo?.takenDateTime || items[items.length - 1]?.createdDateTime;
+      if (lastTaken && lastTaken < (from || '')) break;
+    }
+
+    const nextLink: string | undefined = result.data?.['@odata.nextLink'];
+    if (!nextLink) break;
+    // nextLink es URL absoluta — extraemos el path+query para graphGet
+    try {
+      const u = new URL(nextLink);
+      url = u.pathname.replace('/v1.0', '') + u.search;
+    } catch {
+      break;
+    }
+  }
+
+  const start = (page - 1) * size;
+  const pageItems = collected.slice(start, start + size);
+
   return {
-    assets:  photos.map((p: any) => ({
+    assets: pageItems.map((p: any) => ({
       id:        p.id,
       name:      p.name,
       takenAt:   p.photo?.takenDateTime || p.createdDateTime,
       thumbnail: p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
+      width:     p.image?.width,
+      height:    p.image?.height,
     })),
-    hasMore: !!(result.data?.['@odata.nextLink']),
+    hasMore: collected.length > start + size,
   };
 }
 
