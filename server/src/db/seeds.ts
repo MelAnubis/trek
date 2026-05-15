@@ -116,15 +116,7 @@ function seedAddons(db: Database.Database): void {
         enabled: 0,
         sort_order: 1,
       },
-      {
-      id: 'onedrive',
-      name: 'OneDrive Photos',
-      description: 'Microsoft OneDrive photo integration',
-      icon: 'onedrive',
-      enabled: 1,
-      sort_order: 2,
-    },
-    ];
+        ];
     const insertProvider = db.prepare('INSERT OR IGNORE INTO photo_providers (id, name, description, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
     for (const p of providerRows) insertProvider.run(p.id, p.name, p.description, p.icon, p.enabled, p.sort_order);
 
