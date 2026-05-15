@@ -246,7 +246,16 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       const connectedProviders = statusResults
         .filter(r => r.connected)
         .map(r => ({ id: r.provider.id, name: r.provider.name, icon: r.provider.icon, config: r.provider.config }))
-      
+
+      // Check OneDrive separately (OAuth provider, not in photo_providers table)
+      try {
+        const odRes = await fetch('/api/integrations/memories/onedrive/status', { credentials: 'include' })
+        const odData = await odRes.json()
+        if (odData?.connected) {
+          connectedProviders.push({ id: 'onedrive', name: 'OneDrive Photos', icon: 'Cloud', config: {} })
+        }
+      } catch { /* OneDrive not available */ }
+
       setAvailableProviders(connectedProviders)
       setConnected(connectedProviders.length > 0)
       if (connectedProviders.length > 0 && !selectedProvider) {
