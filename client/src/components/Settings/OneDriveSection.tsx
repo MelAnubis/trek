@@ -1,8 +1,3 @@
-/**
- * OneDriveSection.tsx
- * Settings panel for OneDrive Photos integration
- * Uses OAuth flow instead of API key fields
- */
 import React, { useEffect, useState } from 'react'
 import { Cloud, CheckCircle, XCircle, LogOut, RefreshCw, FolderOpen } from 'lucide-react'
 import apiClient from '../../api/client'
@@ -44,7 +39,6 @@ export default function OneDriveSection() {
 
   useEffect(() => {
     load()
-    // Handle redirect back from Microsoft OAuth
     const params = new URLSearchParams(window.location.search)
     if (params.get('onedrive_connected')) {
       toast.success('OneDrive conectado correctamente')
@@ -57,14 +51,11 @@ export default function OneDriveSection() {
     }
   }, [])
 
-  const handleConnect = async () => {
-    try {
-      const res = await apiClient.get(`${BASE}/auth-url`)
-      if (res.data?.url) {
-        window.location.href = res.data.url
-      }
-    } catch {
-      toast.error('No se pudo obtener la URL de autorización')
+  const handleConnect = () => {
+    if (status.authUrl) {
+      window.location.href = status.authUrl
+    } else {
+      toast.error('URL de autorización no disponible')
     }
   }
 
@@ -84,10 +75,7 @@ export default function OneDriveSection() {
   }
 
   return (
-    <Section
-      title="OneDrive Photos"
-      icon={Cloud}
-    > 
+    <Section title="OneDrive Photos" icon={Cloud}>
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',
                       color: 'var(--text-tertiary)' }}>
@@ -96,7 +84,6 @@ export default function OneDriveSection() {
         </div>
       ) : status.connected ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Connected state */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 14px',
@@ -134,7 +121,6 @@ export default function OneDriveSection() {
               Desconectar
             </button>
           </div>
-
           <div style={{
             padding: '10px 14px',
             background: 'var(--bg-secondary)',
@@ -149,7 +135,6 @@ export default function OneDriveSection() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Disconnected state */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 14px',
@@ -159,10 +144,9 @@ export default function OneDriveSection() {
           }}>
             <XCircle size={18} color="var(--text-tertiary)" />
             <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              No conectado
+              No conectado — haz clic para conectar tu cuenta de Microsoft
             </div>
           </div>
-
           <button
             onClick={handleConnect}
             style={{
@@ -175,7 +159,6 @@ export default function OneDriveSection() {
               width: '100%',
             }}
           >
-            {/* Microsoft logo SVG */}
             <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
               <rect x="0" y="0" width="10" height="10" fill="#f25022"/>
               <rect x="11" y="0" width="10" height="10" fill="#7fba00"/>
@@ -184,14 +167,12 @@ export default function OneDriveSection() {
             </svg>
             Conectar con Microsoft
           </button>
-
           <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
             Se solicitará acceso de solo lectura a tus fotos de OneDrive.
             Tus credenciales se guardan cifradas y no se comparten.
           </div>
         </div>
       )}
-
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </Section>
   )
