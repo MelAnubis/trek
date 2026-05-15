@@ -12,12 +12,14 @@ import {
 } from '../../services/memories/unifiedService';
 import immichRouter from './immich';
 import synologyRouter from './synology';
+import onedriveRouter from './onedrive';
 import { Selection } from '../../services/memories/helpersService';
 
 const router = express.Router();
 
 router.use('/immich', immichRouter);
 router.use('/synologyphotos', synologyRouter);
+router.use('/onedrive', onedriveRouter);
 
 //------------------------------------------------
 // routes for managing photos linked to trip

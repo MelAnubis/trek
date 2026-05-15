@@ -2229,7 +2229,12 @@ function runMigrations(db: Database.Database): void {
       db.exec(`ALTER TABLE schema_version_new RENAME TO schema_version`)
       db.exec(`UPDATE app_settings SET value = '${process.env.APP_VERSION || '3.0.15'}' WHERE key = 'app_version'`);
     },
-
+// OneDrive OAuth columns
+    () => {
+      try { db.exec(`ALTER TABLE users ADD COLUMN onedrive_access_token TEXT`); } catch (_) {}
+      try { db.exec(`ALTER TABLE users ADD COLUMN onedrive_refresh_token TEXT`); } catch (_) {}
+      try { db.exec(`ALTER TABLE users ADD COLUMN onedrive_token_expiry INTEGER`); } catch (_) {}
+    },
     // Migration A: Add trip_type column to trips (cycling | general)
     () => {
       try {
