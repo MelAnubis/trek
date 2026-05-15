@@ -26,8 +26,8 @@ export function getOAuthConfig() {
 export function getAuthUrl(userId: number): string {
   const { clientId, redirectUri } = getOAuthConfig();
   const state = Buffer.from(JSON.stringify({ userId, ts: Date.now() })).toString('base64url');
-  const scopes = 'offline_access Files.Read Files.ReadAll';
-  return `${AUTH_BASE}/authorize?client_id=${encodeURIComponent(clientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}`;
+  const scopes = 'offline_access Files.Read Files.Read.All User.Read';
+  return `${AUTH_BASE}/authorize?client_id=${encodeURIComponent(clientId)}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&prompt=consent`;
 }
 
 // ── Token exchange ───────────────────────────────────────────────────────────

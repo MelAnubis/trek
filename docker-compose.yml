@@ -2,6 +2,8 @@ services:
   trek:
     build: .
     container_name: trek_app
+    env_file:
+      - .env
     read_only: false
     security_opt:
       - no-new-privileges:true

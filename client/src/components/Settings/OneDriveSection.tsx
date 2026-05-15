@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react'
 import { Cloud, CheckCircle, XCircle, LogOut, RefreshCw, FolderOpen } from 'lucide-react'
-import apiClient from '../../api/client'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 
@@ -8,6 +7,12 @@ interface OneDriveStatus {
   connected: boolean
   user?: { name?: string; email?: string }
   authUrl?: string
+}
+
+async function apiFetch(path: string, opts: RequestInit = {}) {
+  const r = await fetch(path, { ...opts, credentials: 'include' })
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`)
+  return r.json()
 }
 
 export default function OneDriveSection() {
@@ -21,14 +26,14 @@ export default function OneDriveSection() {
   const load = async () => {
     setLoading(true)
     try {
-      const [statusRes, settingsRes] = await Promise.all([
-        apiClient.get(`${BASE}/status`).catch(() => ({ data: { connected: false } })),
-        apiClient.get(`${BASE}/settings`).catch(() => ({ data: {} })),
+      const [statusData, settingsData] = await Promise.all([
+        apiFetch(`${BASE}/status`).catch(() => ({ connected: false })),
+        apiFetch(`${BASE}/settings`).catch(() => ({})),
       ])
       setStatus({
-        connected: !!statusRes.data?.connected,
-        user:      statusRes.data?.user,
-        authUrl:   settingsRes.data?.authUrl,
+        connected: !!statusData?.connected,
+        user:      statusData?.user,
+        authUrl:   settingsData?.authUrl,
       })
     } catch {
       setStatus({ connected: false })
@@ -43,7 +48,6 @@ export default function OneDriveSection() {
     if (params.get('onedrive_connected')) {
       toast.success('OneDrive conectado correctamente')
       window.history.replaceState({}, '', window.location.pathname)
-      load()
     }
     if (params.get('onedrive_error')) {
       toast.error(`Error al conectar OneDrive: ${params.get('onedrive_error')}`)
@@ -53,10 +57,9 @@ export default function OneDriveSection() {
 
   const handleConnect = async () => {
     try {
-      const res = await apiClient.get(`${BASE}/settings`)
-      const url = res.data?.authUrl
-      if (url) {
-        window.location.href = url
+      const data = await apiFetch(`${BASE}/settings`)
+      if (data?.authUrl) {
+        window.location.href = data.authUrl
       } else {
         toast.error('URL de autorización no disponible')
       }
@@ -69,10 +72,9 @@ export default function OneDriveSection() {
     if (!confirm('¿Desconectar OneDrive? Se eliminarán los tokens de acceso.')) return
     setDisconnecting(true)
     try {
-      await apiClient.delete(`${BASE}/disconnect`)
+      await fetch(`${BASE}/disconnect`, { method: 'DELETE', credentials: 'include' })
       toast.success('OneDrive desconectado')
-      setStatus({ connected: false })
-      await load()
+      setStatus({ connected: false, authUrl: status.authUrl })
     } catch {
       toast.error('Error al desconectar')
     } finally {

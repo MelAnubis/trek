@@ -5,7 +5,6 @@
 import express, { Request, Response } from 'express';
 import { authenticate } from '../../middleware/auth';
 import { AuthRequest } from '../../types';
-import { canAccessUserPhoto } from '../../services/memories/helpersService';
 import {
   getConnectionSettings,
   getConnectionStatus,
@@ -43,8 +42,10 @@ router.get('/auth-url', authenticate, (req: Request, res: Response) => {
 // OAuth callback — called by Microsoft after user authorizes
 router.get('/callback', async (req: Request, res: Response) => {
   const { code, state, error } = req.query as Record<string, string>;
+  console.log('[OneDrive callback] code:', !!code, 'state:', !!state, 'error:', error);
 
   if (error) {
+    console.log('[OneDrive callback] error from Microsoft:', error);
     return res.redirect(`/?onedrive_error=${encodeURIComponent(error)}`);
   }
 
@@ -52,18 +53,22 @@ router.get('/callback', async (req: Request, res: Response) => {
   try {
     const decoded = JSON.parse(Buffer.from(state, 'base64url').toString());
     userId = decoded.userId;
-  } catch {
+    console.log('[OneDrive callback] decoded userId:', userId);
+  } catch (e) {
+    console.log('[OneDrive callback] failed to decode state:', e);
     return res.redirect('/?onedrive_error=invalid_state');
   }
 
   if (!userId || !code) return res.redirect('/?onedrive_error=missing_params');
 
+  console.log('[OneDrive callback] exchanging code for userId:', userId);
   const result = await exchangeCode(code, userId);
+  console.log('[OneDrive callback] exchange result:', result);
+
   if (!result.success) {
     return res.redirect(`/?onedrive_error=${encodeURIComponent(result.error || 'auth_failed')}`);
   }
 
-  // Redirect to settings page
   res.redirect('/settings?onedrive_connected=1');
 });
 
@@ -118,14 +123,12 @@ router.post('/albums/:albumId/sync/:tripId', authenticate, async (req: Request, 
 
 // ── Proxy assets ───────────────────────────────────────────────────────────
 router.get('/assets/:tripId/:assetId/:ownerId/thumbnail', authenticate, async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
   const { assetId, ownerId } = req.params;
   if (!isValidAssetId(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
   await streamOneDriveAsset(res, Number(ownerId), assetId, 'thumbnail');
 });
 
 router.get('/assets/:tripId/:assetId/:ownerId/original', authenticate, async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
   const { assetId, ownerId } = req.params;
   if (!isValidAssetId(assetId)) return res.status(400).json({ error: 'Invalid asset ID' });
   await streamOneDriveAsset(res, Number(ownerId), assetId, 'original');
