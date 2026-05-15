@@ -993,7 +993,8 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
   useEffect(() => {
     (async () => {
       try {
-        const addonsData = await addonsApi.enabled()
+        const addonsRes = await fetch('/api/admin/addons', { credentials: 'include' })
+        const addonsData = await addonsRes.json()
         const enabledProviders = (addonsData.addons || []).filter(
           (a: any) => a.type === 'photo_provider' && a.enabled
         )
