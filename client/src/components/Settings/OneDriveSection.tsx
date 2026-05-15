@@ -86,9 +86,8 @@ export default function OneDriveSection() {
   return (
     <Section
       title="OneDrive Photos"
-      description="Conecta tu OneDrive de Microsoft para usar tus fotos en Trek"
-      icon={<Cloud size={18} />}
-    >
+      icon={Cloud}
+    > 
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',
                       color: 'var(--text-tertiary)' }}>
