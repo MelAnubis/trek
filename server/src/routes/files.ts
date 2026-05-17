@@ -78,7 +78,7 @@ const upload = multer({
 // ---------------------------------------------------------------------------
 
 // Authenticated file download (supports cookie, Bearer header, or ?token= query param)
-router.get('/:id/download', (req: Request, res: Response) => {
+router.get('/:id/download', async (req: Request, res: Response) => {
   const { tripId, id } = req.params;
 
   const auth = authenticateDownload(req);
@@ -101,6 +101,19 @@ router.get('/:id/download', (req: Request, res: Response) => {
     res.setHeader('Content-Disposition', `inline; filename="${path.basename(file.original_name || resolved)}"`);
   }
 
+  const isHeic = resolved.toLowerCase().endsWith('.heic') || resolved.toLowerCase().endsWith('.heif');
+  if (isHeic) {
+    try {
+      const heicConvert = (await import('heic-convert')).default;
+      const buf = fs.readFileSync(resolved);
+      const jpeg = await heicConvert({ buffer: buf, format: 'JPEG', quality: 0.9 });
+      const sharp = (await import('sharp')).default;
+      const resized = await sharp(Buffer.from(jpeg)).rotate().resize(1920, 1920, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer();
+      res.set('Content-Type', 'image/jpeg');
+      res.end(resized);
+      return;
+    } catch (e: any) { console.log('[HEIC files error]', e.message); }
+  }
   res.sendFile(resolved);
 });
 

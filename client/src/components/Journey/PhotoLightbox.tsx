@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { fetchImageAsBlob } from '../../api/authUrl'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 
 interface LightboxPhoto {
@@ -15,7 +16,19 @@ interface Props {
   startIndex?: number
   onClose: () => void
 }
-
+function PhotoImg({ src, caption }: { src: string; caption?: string | null }) {
+  const [blobUrl, setBlobUrl] = useState('')
+  useEffect(() => {
+    let revoke = ''
+    fetchImageAsBlob(src).then(url => { revoke = url; setBlobUrl(url) })
+    return () => { if (revoke) URL.revokeObjectURL(revoke) }
+  }, [src])
+  return blobUrl ? (
+    <img src={blobUrl} alt={caption || ''} style={{ maxWidth: '92vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: 4, animation: 'fadeIn 0.15s ease' }} />
+  ) : (
+    <div style={{ width: 60, height: 60, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />
+  )
+}
 export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props) {
   const [idx, setIdx] = useState(startIndex)
   const touchStart = useRef<{ x: number; y: number } | null>(null)
@@ -106,18 +119,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
             <ChevronLeft size={22} />
           </button>
         )}
-
-        {/* Photo */}
-        <img
-          key={photo.id}
-          src={photo.src}
-          alt={photo.caption || ''}
-          style={{
-            maxWidth: '92vw', maxHeight: '92vh',
-            objectFit: 'contain', borderRadius: 4,
-            animation: 'fadeIn 0.15s ease',
-          }}
-        />
+        <PhotoImg src={photo.src} caption={photo.caption} />
 
         {/* Next button */}
         {hasNext && (

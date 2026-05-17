@@ -9,6 +9,7 @@ import { encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
 import { addTripPhotos } from './unifiedService';
 import { Selection, pipeAsset } from './helpersService';
 
+
 const ONEDRIVE_PROVIDER = 'onedrive';
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 const AUTH_BASE = 'https://login.microsoftonline.com/common/oauth2/v2.0';
@@ -224,46 +225,59 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
   const to_   = to   ? new Date(to).toISOString()   : undefined;
   const collected: any[] = [];
 
+  // Años relevantes para el filtro
+  const fromYear = from ? new Date(from).getFullYear() : null;
+  const toYear   = to   ? new Date(to).getFullYear()   : null;
+  const fromMonth = from ? String(new Date(from).getMonth() + 1).padStart(2, '0') : null;
+  const toMonth   = to   ? String(new Date(to).getMonth() + 1).padStart(2, '0')   : null;
+
   // Obtener subcarpetas de /Fotos
   const foldersRes = await graphGet(userId, `/me/drive/root:/Fotos:/children?$select=id,name,folder&$top=100`);
-  console.log('[OD folders]', JSON.stringify(foldersRes.data?.value?.map((f:any) => ({ name: f.name, isFolder: !!f.folder, count: f.folder?.childCount }))));
-  const folderIds: string[] = [];
-  if (!foldersRes.error) {
-    for (const f of foldersRes.data?.value || []) {
-      if (f.folder) folderIds.push(f.id);
-    }
-  }
+  if (foldersRes.error) return { assets: [], hasMore: false };
 
-  // Buscar fotos en cada subcarpeta
-  console.log('[OD folderIds]', folderIds);
-// Expandir subcarpetas de segundo nivel (ej: Camera Roll/2026/04)
   const allFolderIds: string[] = [];
-  for (const folderId of folderIds) {
-    allFolderIds.push(folderId);
-    const subRes = await graphGet(userId, `/me/drive/items/${folderId}/children?$select=id,name,folder&$top=100`);
-    if (!subRes.error) {
-      for (const f of subRes.data?.value || []) {
-        if (f.folder) {
-          allFolderIds.push(f.id);
-          // Tercer nivel (ej: Camera Roll/2026/04)
-          const subSubRes = await graphGet(userId, `/me/drive/items/${f.id}/children?$select=id,name,folder&$top=100`);
-          if (!subSubRes.error) {
-            for (const ff of subSubRes.data?.value || []) {
-              if (ff.folder) allFolderIds.push(ff.id);
-            }
-          }
+
+  for (const f of foldersRes.data?.value || []) {
+    if (!f.folder) continue;
+    allFolderIds.push(f.id);
+
+    // Subcarpetas de segundo nivel (ej: Camera Roll/2026)
+    const subRes = await graphGet(userId, `/me/drive/items/${f.id}/children?$select=id,name,folder&$top=100`);
+    if (subRes.error) continue;
+
+    for (const sub of subRes.data?.value || []) {
+      if (!sub.folder) continue;
+
+      // Filtrar por año si hay filtro de fechas
+      const subYear = parseInt(sub.name);
+      if (fromYear && toYear && !isNaN(subYear)) {
+        if (subYear < fromYear || subYear > toYear) continue;
+      }
+      allFolderIds.push(sub.id);
+
+      // Subcarpetas de tercer nivel (ej: Camera Roll/2026/04)
+      const subSubRes = await graphGet(userId, `/me/drive/items/${sub.id}/children?$select=id,name,folder&$top=100`);
+      if (subSubRes.error) continue;
+
+      for (const subsub of subSubRes.data?.value || []) {
+        if (!subsub.folder) continue;
+
+        // Filtrar por mes si hay filtro de fechas del mismo año
+        const subMonth = subsub.name.padStart(2, '0');
+        if (fromYear && toYear && fromYear === toYear && fromMonth && toMonth) {
+          if (subMonth < fromMonth || subMonth > toMonth) continue;
         }
+        allFolderIds.push(subsub.id);
       }
     }
   }
 
-  // Buscar fotos en cada subcarpeta
+  // Buscar fotos en cada carpeta
   for (const folderId of allFolderIds) {
-     let url: string | null = `/me/drive/items/${folderId}/children?$select=id,name,photo,image,file,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
+    let url: string | null = `/me/drive/items/${folderId}/children?$select=id,name,photo,image,file,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
     while (url) {
       const result = await graphGet(userId, url);
       if (result.error) break;
-      console.log('[OD items]', folderId, result.data?.value?.length, result.data?.value?.slice(0,2)?.map((i:any) => ({ name: i.name, taken: i.photo?.takenDateTime || i.createdDateTime, mime: i.file?.mimeType })));
       const items = (result.data?.value || []).filter((i: any) =>
         i.photo || i.image || i.file?.mimeType?.startsWith('image/')
       );
@@ -325,12 +339,12 @@ export async function streamOneDriveAsset(
       const buf = await r.arrayBuffer();
       res.end(Buffer.from(buf));
     } else {
-      // Original — use Graph download URL
-      const meta = await graphGet(userId, `/me/drive/items/${assetId}?$select=@microsoft.graph.downloadUrl,name`);
-      if (meta.error) { res.status(meta.status || 500).json({ error: meta.error }); return; }
-      const downloadUrl = meta.data?.['@microsoft.graph.downloadUrl'];
-      if (!downloadUrl) { res.status(404).json({ error: 'Download URL not found' }); return; }
-      const r = await fetch(downloadUrl);
+      // Use large thumbnail from Graph (already JPEG, no HEIC issues)
+      const meta = await graphGet(userId, `/me/drive/items/${assetId}/thumbnails/0`);
+      if (meta.error || !meta.data) { res.status(404).json({ error: 'Not found' }); return; }
+      const url = meta.data.large?.url || meta.data.medium?.url || meta.data.small?.url;
+      if (!url) { res.status(404).json({ error: 'Thumbnail URL not found' }); return; }
+      const r = await fetch(url);
       if (!r.ok) { res.status(r.status).end(); return; }
       res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
       res.setHeader('Cache-Control', 'private, max-age=3600');

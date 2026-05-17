@@ -10,6 +10,7 @@ import { fail, success } from './helpersService';
 import { encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
 import * as photoCache from './trekPhotoCache';
 import { ensureLocalThumbnail } from './thumbnailService';
+import { streamOneDriveAsset } from './oneDriveService';
 
 // ── Lookup / Register ────────────────────────────────────────────────────
 
@@ -128,6 +129,18 @@ export async function streamPhoto(
 
     const localPath = path.join(uploadsRoot, photo.file_path);
     if (fs.existsSync(localPath)) {
+      const isHeic = localPath.toLowerCase().endsWith('.heic') || localPath.toLowerCase().endsWith('.heif');
+      if (isHeic) {
+        try {
+          const heicConvert = (await import('heic-convert')).default;
+          const buf = fs.readFileSync(localPath);
+          const jpeg = await heicConvert({ buffer: buf, format: 'JPEG', quality: 0.9 });
+          res.set('Content-Type', 'image/jpeg');
+          res.set('Cache-Control', 'public, max-age=86400');
+          res.end(Buffer.from(jpeg));
+          return;
+        } catch (e: any) { console.log('[HEIC local error]', e.message); }
+      }
       res.set('Cache-Control', 'public, max-age=86400');
       res.sendFile(localPath);
       return;
@@ -164,6 +177,10 @@ export async function streamPhoto(
       await streamSynologyAsset(res, userId, photo.owner_id!, photo.asset_id!, kind, undefined, passphrase);
       return;
     }
+    case 'onedrive': {
+      await streamOneDriveAsset(res, userId, photo.asset_id!, kind === 'thumbnail' ? 'thumbnail' : 'original', photo.owner_id!);
+      return;
+    }
     default:
       res.status(400).json({ error: `Unknown provider: ${photo.provider}` });
   }
@@ -198,6 +215,17 @@ export async function getPhotoInfo(
     case 'synologyphotos': {
       const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
       return getSynologyAssetInfo(userId, photo.asset_id!, photo.owner_id!, passphrase);
+    }
+    case 'onedrive': {
+      return success({
+        id: photo.asset_id!,
+        takenAt: photo.created_at,
+        city: null,
+        country: null,
+        width: photo.width,
+        height: photo.height,
+        fileName: photo.asset_id?.split('/').pop() || null,
+      } as AssetInfo);
     }
     default:
       return fail(`Unknown provider: ${photo.provider}`, 400);

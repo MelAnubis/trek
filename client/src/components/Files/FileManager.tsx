@@ -12,9 +12,12 @@ import { useTripStore } from '../../store/tripStore'
 import { getAuthUrl } from '../../api/authUrl'
 import { downloadFile, openFile as openFileUrl } from '../../utils/fileDownload'
 
-function isImage(mimeType) {
-  if (!mimeType) return false
-  return mimeType.startsWith('image/')
+function isImage(mimeType?: string, filename?: string) {
+  if (filename) {
+    const ext = filename.toLowerCase().split('.').pop()
+    if (['heic', 'heif', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'avif', 'bmp', 'tiff'].includes(ext || '')) return true
+  }
+  return (mimeType || '').startsWith('image/')
 }
 
 function getFileIcon(mimeType) {
@@ -381,7 +384,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
   const filteredFiles = files.filter(f => {
     if (filterType === 'starred') return !!f.starred
     if (filterType === 'pdf') return f.mime_type === 'application/pdf'
-    if (filterType === 'image') return isImage(f.mime_type)
+    if (filterType === 'image') return isImage(f.mime_type, f.original_name)
     if (filterType === 'doc') return (f.mime_type || '').includes('word') || (f.mime_type || '').includes('excel') || (f.mime_type || '').includes('text')
     if (filterType === 'collab') return !!f.note_id
     return true
@@ -416,10 +419,10 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
     }
   }
 
-  const imageFiles = filteredFiles.filter(f => isImage(f.mime_type))
+  const imageFiles = filteredFiles.filter(f => isImage(f.mime_type, f.original_name))
 
   const openFile = (file) => {
-    if (isImage(file.mime_type)) {
+    if (isImage(file.mime_type, file.original_name)) {
       const idx = imageFiles.findIndex(f => f.id === file.id)
       setLightboxIndex(idx >= 0 ? idx : 0)
     } else {
@@ -458,7 +461,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             cursor: isTrash ? 'default' : 'pointer', overflow: 'hidden',
           }}
         >
-          {isImage(file.mime_type)
+          {isImage(file.mime_type, file.original_name)
             ? <AuthedImg src={file.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : (() => {
                 const ext = (file.original_name || '').split('.').pop()?.toUpperCase() || '?'

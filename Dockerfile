@@ -13,8 +13,9 @@ WORKDIR /app
 
 # Timezone support + native deps (better-sqlite3 needs build tools)
 COPY server/package*.json ./
-RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ && \
+RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ libheif libheif-dev && \
     npm ci --production && \
+    npm rebuild sharp && \
     rm package-lock.json && \
     apk del python3 make g++ && \
     rm -rf /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx

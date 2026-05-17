@@ -1143,7 +1143,7 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
                 <div className="absolute top-1.5 left-1.5">
                   <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur text-white flex items-center gap-1">
                     <RefreshCw size={7} />
-                   photo.provider === 'immich' ? 'Immich' : photo.provider === 'synologyphotos' ? 'Synology' : photo.provider === 'onedrive' ? 'OneDrive' : photo.provider
+{photo.provider === 'immich' ? 'Immich' : photo.provider === 'synologyphotos' ? 'Synology' : photo.provider === 'onedrive' ? 'OneDrive' : photo.provider}
                   </span>
                 </div>
               )}
