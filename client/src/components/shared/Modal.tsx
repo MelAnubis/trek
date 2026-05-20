@@ -51,7 +51,7 @@ export default function Modal({
   return (
     <div
       className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
-      style={{ backgroundColor: 'rgba(15, 23, 42, 0.5)', paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
+      style={{ backgroundColor: 'rgba(5,5,15,0.6)', paddingTop: 70, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflow: 'hidden' }}
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) onClose()
@@ -61,32 +61,39 @@ export default function Modal({
       <div
         className={`
           trek-modal-enter
-          rounded-2xl overflow-hidden shadow-2xl w-full ${sizeClasses[size] || sizeClasses.md}
+          rounded-2xl overflow-hidden w-full ${sizeClasses[size] || sizeClasses.md}
           flex flex-col
           max-h-[calc(100dvh-var(--bottom-nav-h)-90px)] sm:max-h-[calc(100dvh-90px)]
         `}
-        style={{ background: 'var(--bg-card)' }}
+        style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-primary)',
+          boxShadow: '0 24px 64px rgba(0,0,0,0.25), 0 0 0 1px var(--border-faint)',
+        }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header — stays put even while the body scrolls */}
+        {/* Header */}
         <div className="flex items-center justify-between p-6 flex-shrink-0" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
           <h2 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--text-faint)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
             >
               <X className="w-5 h-5" />
             </button>
           )}
         </div>
 
-        {/* Body — scrolls when content overflows. min-h-0 lets the flex child shrink below its intrinsic height. */}
+        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 min-h-0">
           {children}
         </div>
 
-        {/* Footer — sticky at the bottom of the modal, never compressed */}
+        {/* Footer */}
         {footer && (
           <div className="p-6 flex-shrink-0" style={{ borderTop: '1px solid var(--border-secondary)' }}>
             {footer}

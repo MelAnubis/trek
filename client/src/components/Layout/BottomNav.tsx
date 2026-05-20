@@ -32,24 +32,25 @@ export default function BottomNav() {
   return (
     <>
       <nav
-        className="md:hidden sticky bottom-0 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
+        className="md:hidden sticky bottom-0 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
         style={{
           height: 'calc(84px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: dark ? 'rgba(9,9,11,0.96)' : 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          background: dark ? 'rgba(10,10,20,0.94)' : 'rgba(250,250,255,0.94)',
+          backdropFilter: 'blur(24px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+          borderTop: `1px solid ${dark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.1)'}`,
         }}
       >
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) =>
-              `flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] ${
-                isActive ? 'text-zinc-900 dark:text-white' : 'text-zinc-400 dark:text-zinc-500'
-              }`
-            }
+            className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
+            style={({ isActive }) => ({
+              color: isActive ? 'var(--accent)' : 'var(--text-faint)',
+              transition: 'color 180ms cubic-bezier(0.23,1,0.32,1)',
+            })}
           >
             <Icon size={22} strokeWidth={2} />
             <span className="text-[10px] font-medium">{label}</span>
@@ -57,7 +58,8 @@ export default function BottomNav() {
         ))}
         <button
           onClick={() => setShowProfile(true)}
-          className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px] text-zinc-400 dark:text-zinc-500"
+          className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
+          style={{ color: 'var(--text-faint)' }}
         >
           <User size={22} strokeWidth={2} />
           <span className="text-[10px] font-medium">{t("nav.profile")}</span>
@@ -92,66 +94,81 @@ function ProfileSheet({ onClose }: { onClose: () => void }) {
 
       {/* Sheet */}
       <div
-        className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-2xl overflow-hidden"
-        style={{ animation: 'slideUp 0.25s ease-out', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="absolute bottom-0 left-0 right-0 rounded-t-2xl overflow-hidden"
+        style={{
+          background: 'var(--bg-card)',
+          borderTop: '1px solid var(--border-primary)',
+          animation: 'slideUp 0.25s ease-out',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full bg-zinc-300 dark:bg-zinc-700" />
+          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-primary)' }} />
         </div>
 
         {/* User info */}
         <div className="px-6 pb-4 pt-1">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 flex items-center justify-center text-[16px] font-bold">
+            <div className="w-11 h-11 rounded-full flex items-center justify-center text-[16px] font-bold"
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
               {(user?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold text-zinc-900 dark:text-white">{user?.username}</p>
-              <p className="text-[12px] text-zinc-500 truncate">{user?.email}</p>
+              <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{user?.username}</p>
+              <p className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
             </div>
             {user?.role === 'admin' && (
-              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wide">
+              <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
                 <Shield size={10} /> Admin
               </span>
             )}
           </div>
         </div>
 
-        <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
+        <div className="h-px mx-4" style={{ background: 'var(--border-secondary)' }} />
 
         {/* Links */}
         <div className="py-2 px-2">
           <button
             onClick={() => handleNav('/settings')}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
+            style={{ color: 'var(--text-primary)' }}
+            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <Settings size={18} className="text-zinc-500" />
-            <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t("nav.bottomSettings")}</span>
+            <Settings size={18} style={{ color: 'var(--text-muted)' }} />
+            <span className="text-[14px] font-medium">{t("nav.bottomSettings")}</span>
           </button>
 
           {user?.role === 'admin' && (
             <button
               onClick={() => handleNav('/admin')}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-zinc-50 dark:hover:bg-zinc-800 active:bg-zinc-100 dark:active:bg-zinc-800 transition-colors"
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
+              style={{ color: 'var(--text-primary)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
             >
-              <Shield size={18} className="text-zinc-500" />
-              <span className="text-[14px] font-medium text-zinc-900 dark:text-white">{t("nav.bottomAdmin")}</span>
+              <Shield size={18} style={{ color: 'var(--text-muted)' }} />
+              <span className="text-[14px] font-medium">{t("nav.bottomAdmin")}</span>
             </button>
           )}
         </div>
 
-        <div className="h-px bg-zinc-100 dark:bg-zinc-800 mx-4" />
+        <div className="h-px mx-4" style={{ background: 'var(--border-secondary)' }} />
 
         {/* Logout */}
         <div className="py-2 px-2">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left hover:bg-red-50 dark:hover:bg-red-900/20 active:bg-red-100 transition-colors"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.08)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
             <LogOut size={18} className="text-red-500" />
-            <span className="text-[14px] font-medium text-red-600 dark:text-red-400">{t("nav.bottomLogout")}</span>
+            <span className="text-[14px] font-medium text-red-500">{t("nav.bottomLogout")}</span>
           </button>
         </div>
 
