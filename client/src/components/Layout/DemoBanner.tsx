@@ -25,7 +25,7 @@ const texts: Record<string, DemoTexts> = {
   de: {
     titleBefore: 'Willkommen bei ',
     titleAfter: '',
-    title: 'Willkommen zur TREK Demo',
+    title: 'Willkommen zur Trek Wanderer Demo',
     description: 'Du kannst Reisen ansehen, bearbeiten und eigene erstellen. Alle Aenderungen werden jede Stunde automatisch zurueckgesetzt.',
     resetIn: 'Naechster Reset in',
     minutes: 'Minuten',
@@ -57,7 +57,7 @@ const texts: Record<string, DemoTexts> = {
   en: {
     titleBefore: 'Welcome to ',
     titleAfter: '',
-    title: 'Welcome to the TREK Demo',
+    title: 'Welcome to the Trek Wanderer Demo',
     description: 'You can view, edit and create trips. All changes are automatically reset every hour.',
     resetIn: 'Next reset in',
     minutes: 'minutes',
@@ -89,7 +89,7 @@ const texts: Record<string, DemoTexts> = {
   es: {
     titleBefore: 'Bienvenido a ',
     titleAfter: '',
-    title: 'Bienvenido a la demo de TREK',
+    title: 'Bienvenido a la demo de Trek Wanderer',
     description: 'Puedes ver, editar y crear viajes. Todos los cambios se restablecen automáticamente cada hora.',
     resetIn: 'Próximo reinicio en',
     minutes: 'minutos',
