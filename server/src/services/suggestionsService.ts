@@ -95,23 +95,24 @@ Respond ONLY with a JSON array, no other text:
   {
     "name": "exact place name in the local language or English",
     "description": "1-2 sentences on why this is unmissable",
-    "category": "one of: Nature, Museum, Monument, Viewpoint, Food, Market, Beach, Architecture, Park, Religious, Entertainment, Other"
+    "category": "one of: Nature, Museum, Monument, Viewpoint, Food, Market, Beach, Architecture, Park, Religious, Entertainment, Other",
+    "location": "City and Country where this place is, e.g. 'Sevilla, Spain' or 'Kyoto, Japan'"
   }
 ]`;
 
   return { system, user };
 }
 
-function parseAIJson(raw: string): Array<{ name: string; description: string; category: string }> {
+function parseAIJson(raw: string): Array<{ name: string; description: string; category: string; location?: string }> {
   const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string }>;
+  const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string; location?: string }>;
   if (!Array.isArray(parsed)) throw new Error('AI returned non-array response');
   return parsed.filter(p => p.name && p.description && p.category).slice(0, 20);
 }
 
 // ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
 
-async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
 
@@ -146,7 +147,7 @@ async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], skipName
 
 // ── Google Gemini ────────────────────────────────────────────────────────────
 
-async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
@@ -176,7 +177,7 @@ async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], skipNa
 
 // ── Anthropic Claude ─────────────────────────────────────────────────────────
 
-async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
@@ -209,7 +210,7 @@ async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], skipNa
 
 // ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
 
-async function askAI(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+async function askAI(tripCtx: TripContext, daySegments: DaySegment[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   if (process.env.GROQ_API_KEY) return askGroq(tripCtx, daySegments, skipNames, lang);
   if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, daySegments, skipNames, lang);
   if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, daySegments, skipNames, lang);
@@ -222,19 +223,24 @@ const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 // ── Geocode a single suggestion ───────────────────────────────────────────────
 //
+// locationHint — city + country supplied by the AI, e.g. "Sevilla, Spain".
+// Using it as context prevents Nominatim from finding a place with the same
+// name on the wrong continent.
+//
 // Strategy:
-//   1. Google Places (if user has a key) — most accurate, uses full context
-//   2. Nominatim with place name only — more reliable than name+tripTitle
-//   3. Nominatim with name + tripTitle as fallback
+//   1. Google Places (if user has a key): "name, locationHint"
+//   2. Nominatim: "name, locationHint"   ← precise, uses AI-supplied city
+//   3. Nominatim: name only              ← last resort, may be ambiguous
 //
 // Nominatim policy: max 1 req/sec. Callers must add delay between invocations.
 
-async function geocode(name: string, tripTitle: string, userId: number): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
+async function geocode(name: string, locationHint: string, userId: number): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
+  const query = locationHint ? `${name}, ${locationHint}` : name;
+
   // ── 1. Google Places ───────────────────────────────────────────────────────
   try {
     const mapsKey = getMapsKey(userId);
     if (mapsKey) {
-      const query = `${name}, ${tripTitle}`;
       const googleRes = await fetch(
         `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${mapsKey}&fields=geometry,formatted_address`,
       );
@@ -254,24 +260,26 @@ async function geocode(name: string, tripTitle: string, userId: number): Promise
     }
   } catch { /* fall through to Nominatim */ }
 
-  // ── 2. Nominatim: place name only (most reliable) ─────────────────────────
+  // ── 2. Nominatim: name + location hint (most reliable) ───────────────────
   try {
-    const nResults = await searchNominatim(name);
+    const nResults = await searchNominatim(query);
     const first = nResults[0];
     if (first && first.lat != null && first.lng != null) {
       return { lat: first.lat, lng: first.lng, address: first.address ?? null };
     }
   } catch { /* fall through */ }
 
-  // ── 3. Nominatim: name + trip title as context ────────────────────────────
-  try {
-    await sleep(800); // respect 1 req/sec policy
-    const nResults = await searchNominatim(`${name}, ${tripTitle}`);
-    const first = nResults[0];
-    if (first && first.lat != null && first.lng != null) {
-      return { lat: first.lat, lng: first.lng, address: first.address ?? null };
-    }
-  } catch { /* fall through */ }
+  // ── 3. Nominatim: name only (last resort — may be ambiguous) ─────────────
+  if (locationHint) {
+    try {
+      await sleep(800); // respect 1 req/sec policy
+      const nResults = await searchNominatim(name);
+      const first = nResults[0];
+      if (first && first.lat != null && first.lng != null) {
+        return { lat: first.lat, lng: first.lng, address: first.address ?? null };
+      }
+    } catch { /* fall through */ }
+  }
 
   return { lat: null, lng: null, address: null };
 }
@@ -338,11 +346,10 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
     if (i > 0) await sleep(800);
 
     try {
-      // Use the closest day's area as geocoding context (much better than trip title)
-      const dayIdx = Math.floor(i / Math.max(1, Math.ceil(rawSuggestions.length / Math.max(1, daySegments.length))));
-      const dayAnchor = daySegments[Math.min(dayIdx, daySegments.length - 1)];
-      const geoContext = dayAnchor?.first.address ?? dayAnchor?.first.name ?? trip.title;
-      const geo = await geocode(s.name, geoContext, userId);
+      // The AI knows where each place is — use its "location" field directly.
+      // Fall back to trip title only if AI didn't provide one.
+      const locationHint = s.location || trip.title;
+      const geo = await geocode(s.name, locationHint, userId);
 
       let photo_url: string | null = null;
       if (geo.lat != null && geo.lng != null) {
