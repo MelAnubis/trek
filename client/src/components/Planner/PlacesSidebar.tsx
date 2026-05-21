@@ -1,7 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom'
 import { useState, useMemo, useEffect, useLayoutEffect, useRef, useCallback } from 'react'
-import { Search, Plus, X, CalendarDays, Pencil, Trash2, ExternalLink, Navigation, Upload, ChevronDown, Check, MapPin, Eye, Route } from 'lucide-react'
+import { Search, Plus, X, CalendarDays, Pencil, Trash2, ExternalLink, Navigation, Upload, ChevronDown, Check, MapPin, Eye, Route, Sparkles } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTranslation } from '../../i18n'
@@ -14,6 +14,7 @@ import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import FileImportModal from './FileImportModal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import Tooltip from '../shared/Tooltip'
+import MustSeeSuggestionsModal from './MustSeeSuggestionsModal'
 
 interface PlacesSidebarProps {
   tripId: number
@@ -158,6 +159,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   const canEditPlaces = can('place_edit', trip)
   const isNaverListImportEnabled = true
 
+  const [mustSeeOpen, setMustSeeOpen] = useState(false)
   const [fileImportOpen, setFileImportOpen] = useState(false)
   const [sidebarDropFile, setSidebarDropFile] = useState<File | null>(null)
   const [sidebarDragOver, setSidebarDragOver] = useState(false)
@@ -357,7 +359,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
           <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
         </button>}
         {canEditPlaces && <>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
           <button
             onClick={() => setFileImportOpen(true)}
             style={{
@@ -383,6 +385,22 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
             <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
           </button>
         </div>
+        {/* ✨ Must See — AI suggestions */}
+        <button
+          onClick={() => setMustSeeOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            width: '100%', padding: '6px 12px', borderRadius: 8, marginBottom: 10,
+            border: '1px solid #f59e0b44', background: '#fef3c71a',
+            color: '#b45309', fontSize: 11, fontWeight: 600,
+            cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = '#fef3c740')}
+          onMouseLeave={e => (e.currentTarget.style.background = '#fef3c71a')}
+        >
+          <Sparkles size={11} strokeWidth={2} />
+          ✨ Lugares imprescindibles (IA)
+        </button>
         <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0 10px' }} />
         </>}
 
@@ -844,6 +862,14 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
         pushUndo={pushUndo}
         initialFile={sidebarDropFile}
       />
+      {mustSeeOpen && (
+        <MustSeeSuggestionsModal
+          tripId={tripId}
+          onClose={() => setMustSeeOpen(false)}
+          onAdded={() => loadTrip(tripId)}
+          lang={typeof window !== 'undefined' ? (localStorage.getItem('app_language') || 'en') : 'en'}
+        />
+      )}
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
       {isMobile && (
         <ConfirmDialog

@@ -43,6 +43,7 @@ import journeyPublicRoutes from './routes/journeyPublic';
 import gpxTracksRoutes from './routes/gpxTracks';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
+import suggestionsRoutes from './routes/suggestions';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
 import { Addon } from './types';
@@ -282,6 +283,7 @@ export function createApp(): express.Application {
   app.use('/api/trips/:tripId/collab', collabRoutes);
   app.use('/api/trips/:tripId/reservations', reservationsRoutes);
   app.use('/api/trips/:tripId/days/:dayId/notes', dayNotesRoutes);
+  app.use('/api/trips/:tripId/suggestions', suggestionsRoutes);
   app.get('/api/health', (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
     res.json({ status: 'ok' })

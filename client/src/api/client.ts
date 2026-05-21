@@ -304,6 +304,11 @@ export const packingApi = {
   deleteBag: (tripId: number | string, bagId: number) => apiClient.delete(`/trips/${tripId}/packing/bags/${bagId}`).then(r => r.data),
 }
 
+export const suggestionsApi = {
+  mustSee: (tripId: number | string, lang?: string) =>
+    apiClient.post(`/trips/${tripId}/suggestions/must-see${lang ? `?lang=${lang}` : ''}`).then(r => r.data as { suggestions: Array<{ name: string; description: string; category: string; lat: number | null; lng: number | null; address: string | null; photo_url?: string | null }> }),
+}
+
 export const todoApi = {
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/todo`).then(r => r.data),
   create: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/todo`, data).then(r => r.data),
