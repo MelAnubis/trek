@@ -1,9 +1,13 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+﻿import { useState, useMemo, useRef, useEffect } from 'react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { packingApi, tripsApi, adminApi } from '../../api/client'
+import BikepackImportModal from './BikepackImportModal'
+import BikepackDrawer from './BikepackDrawer'
+
+
 import ReactDOM from 'react-dom'
 import {
   CheckSquare, Square, Trash2, Plus, ChevronDown, ChevronRight,
@@ -920,6 +924,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
   const [saveTemplateName, setSaveTemplateName] = useState('')
   const [showImportModal, setShowImportModal] = useState(false)
   const [importText, setImportText] = useState('')
+  const [showBikepackModal, setShowBikepackModal] = useState(false)
+  const [showBikepackDrawer, setShowBikepackDrawer] = useState(false)
   const lastHandledImportSignal = useRef(openImportSignal)
   const lastHandledClearSignal = useRef(clearCheckedSignal)
   const lastHandledSaveSignal = useRef(saveTemplateSignal)
@@ -1074,15 +1080,29 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                 <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}><X size={14} /></button>
               </div>
             )}
-            {inlineHeader && canEdit && (
-              <button onClick={() => setShowImportModal(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
-              }}>
-                <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
-              </button>
+             {inlineHeader && canEdit && (
+              <div style={{ display: 'flex', gap: 6 }}>
+                <button onClick={() => setShowImportModal(true)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
+                  border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                  fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
+                }}>
+                  <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
+                </button>
+                <button
+                  onClick={() => setShowBikepackModal(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
+                    border: '1px solid #0d9488', fontSize: 12, fontWeight: 500, cursor: 'pointer',
+                    fontFamily: 'inherit', background: 'var(--bg-card)', color: '#0d9488',
+                  }}
+                  title="Importar perfil de equipaje desde Bikepack"
+                >
+                  🚴 <span className="hidden sm:inline">Bikepack</span>
+                </button>
+              </div>
             )}
+
             {inlineHeader && canEdit && abgehakt > 0 && (
               <button onClick={handleClearChecked} style={{
                 fontSize: 11.5, padding: '5px 10px', borderRadius: 99, border: '1px solid rgba(239,68,68,0.3)',
@@ -1305,8 +1325,15 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
       {/* ── Bag Weight Sidebar ── */}
       {bagTrackingEnabled && bags.length > 0 && (
         <div className="hidden xl:block" style={{ width: 260, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 12 }}>
-            {t('packing.bags')}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)' }}>
+              {t('packing.bags')}
+            </div>
+            <button onClick={() => setShowBikepackDrawer(true)}
+              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#0d9488', background: 'none', padding: '3px 8px', borderRadius: 99, border: '1px solid #0d9488', opacity: 0.8, cursor: 'pointer', fontFamily: 'inherit' }}
+              title='Abrir Bikepack'>
+              🚴 Bikepack
+            </button>
           </div>
 
           {bags.map(bag => {
@@ -1508,6 +1535,24 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
         </div>,
         document.body
       )}
+      {showBikepackDrawer && (
+        <BikepackDrawer
+          onClose={() => setShowBikepackDrawer(false)}
+          onImport={() => { setShowBikepackDrawer(false); setShowBikepackModal(true) }}
+        />
+      )}
+      {showBikepackModal && (
+        <BikepackImportModal
+          tripId={tripId}
+          onClose={() => setShowBikepackModal(false)}
+          onImported={() => {
+            // recarga los items del packing list
+            window.dispatchEvent(new CustomEvent('bikepack:imported', { detail: { tripId } }))
+          }}
+        />
+      )}
     </div>
   )
 }
+
+        
