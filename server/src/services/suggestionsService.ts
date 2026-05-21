@@ -71,7 +71,7 @@ async function askGemini(tripCtx: TripContext, existingPlaceNames: string[], lan
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
   const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
