@@ -119,7 +119,6 @@ export function createApp(): express.Application {
       },
   );
   app.use(cors({ origin: corsOrigin, credentials: true }));
-  console.log('[CSP DEBUG] Setting up helmet CSP');
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -137,7 +136,9 @@ export function createApp(): express.Application {
           "https://geocoding-api.open-meteo.com", "https://api.exchangerate-api.com",
           "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
           "https://router.project-osrm.org/route/v1/",
-          "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com"
+          "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
+          // Bikepack integration (iframe + API calls) — both old and new domain during migration
+          "https://rodadas.info:448", "https://trekwanderer.info:448"
         ],
         workerSrc: ["'self'", "blob:"],
         objectSrc: ["'self'", "blob:", "data:"],
@@ -146,7 +147,7 @@ export function createApp(): express.Application {
         formAction: ["'self'"],
         scriptSrcAttr: ["'none'"],
         fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
-        frameSrc: ["'self'", "blob:", "data:"],
+        frameSrc: ["'self'", "blob:", "data:", "https://rodadas.info:448", "https://trekwanderer.info:448"],
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: shouldForceHttps ? [] : null
       }
@@ -155,11 +156,6 @@ export function createApp(): express.Application {
     hsts: hstsActive ? { maxAge: 31536000, includeSubDomains: hstsIncludeSubdomains } : false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
   }));
-app.use((_req: any, res: any, next: any) => {
-    const csp = res.getHeader('content-security-policy');
-    if (csp) console.log('[CSP ACTUAL]', csp);
-    next();
-  });
   if (shouldForceHttps) {
     app.use((req: Request, res: Response, next: NextFunction) => {
       if (req.path === '/api/health') return next();
