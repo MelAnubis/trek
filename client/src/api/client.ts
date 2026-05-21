@@ -305,8 +305,9 @@ export const packingApi = {
 }
 
 export const suggestionsApi = {
+  // Timeout is intentionally long: AI + sequential Nominatim geocoding can take ~30 s for 8 places
   mustSee: (tripId: number | string, lang?: string) =>
-    apiClient.post(`/trips/${tripId}/suggestions/must-see${lang ? `?lang=${lang}` : ''}`).then(r => r.data as { suggestions: Array<{ name: string; description: string; category: string; lat: number | null; lng: number | null; address: string | null; photo_url?: string | null }> }),
+    apiClient.post(`/trips/${tripId}/suggestions/must-see${lang ? `?lang=${lang}` : ''}`, undefined, { timeout: 60000 }).then(r => r.data as { suggestions: Array<{ name: string; description: string; category: string; lat: number | null; lng: number | null; address: string | null; photo_url?: string | null }> }),
 }
 
 export const todoApi = {

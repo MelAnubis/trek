@@ -221,7 +221,7 @@ async function geocode(name: string, tripTitle: string, userId: number): Promise
 
   // ── 3. Nominatim: name + trip title as context ────────────────────────────
   try {
-    await sleep(1100); // respect 1 req/sec policy
+    await sleep(800); // respect 1 req/sec policy
     const nResults = await searchNominatim(`${name}, ${tripTitle}`);
     const first = nResults[0];
     if (first && first.lat != null && first.lng != null) {
@@ -244,14 +244,14 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const rawSuggestions = await askAI(trip, existingNames, lang);
 
   // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
-  // silent failures. A 1.1 s gap between calls keeps us within the policy.
+  // silent failures. 800 ms gap stays within policy and keeps total latency low.
   const results: Suggestion[] = [];
 
   for (let i = 0; i < rawSuggestions.length; i++) {
     const s = rawSuggestions[i];
 
     // Delay before every Nominatim geocode call except the first
-    if (i > 0) await sleep(1100);
+    if (i > 0) await sleep(800);
 
     try {
       const geo = await geocode(s.name, trip.title, userId);
