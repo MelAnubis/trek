@@ -1,15 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // suggestionsService.ts
 //
-// "Must See Places" — uses Claude claude-haiku-4-5 to suggest unmissable spots
-// for a trip, then geocodes them via Nominatim (or Google Places if the user
-// has a key) to get coordinates + a photo URL.
+// "Must See Places" — uses an AI model to suggest unmissable spots for a trip,
+// then geocodes them via Nominatim (or Google Places if the user has a key)
+// to get coordinates + a photo URL.
+//
+// Supported AI providers (in priority order):
+//   1. Google Gemini  — GEMINI_API_KEY   (free tier: 1500 req/day)
+//   2. Anthropic      — ANTHROPIC_API_KEY (paid)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { db } from '../db/database';
 import { getMapsKey, searchNominatim, fetchWikimediaPhoto } from './mapsService';
-
-const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 
 interface TripContext {
   id: number;
@@ -21,28 +23,25 @@ interface TripContext {
 
 export interface Suggestion {
   name: string;
-  description: string;        // 1-2 sentence "why visit" blurb from Claude
-  category: string;           // e.g. "Nature", "Museum", "Food", "Viewpoint"
+  description: string;
+  category: string;
   lat: number | null;
   lng: number | null;
   address: string | null;
   photo_url?: string | null;
 }
 
-// ── Claude call ──────────────────────────────────────────────────────────────
+// ── Shared prompt builder ────────────────────────────────────────────────────
 
-async function askClaude(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
-
+function buildPrompt(tripCtx: TripContext, existingPlaceNames: string[], lang: string): { system: string; user: string } {
   const dateRange = [tripCtx.start_date, tripCtx.end_date].filter(Boolean).join(' → ');
   const existing = existingPlaceNames.length
     ? `\nAlready in itinerary (skip these): ${existingPlaceNames.join(', ')}`
     : '';
 
-  const systemPrompt = `You are a world-class travel expert. When asked for must-see places for a trip, you respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
+  const system = `You are a world-class travel expert. When asked for must-see places for a trip, you respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  const userPrompt = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${existing}
+  const user = `Trip: "${tripCtx.title}"${tripCtx.description ? `\nDetails: ${tripCtx.description}` : ''}${dateRange ? `\nDates: ${dateRange}` : ''}${existing}
 
 List the top 8 must-see places or experiences for this trip. Focus on iconic, unique, or highly recommended spots that define the destination.
 
@@ -55,7 +54,55 @@ Respond ONLY with a JSON array, no other text:
   }
 ]`;
 
-  const response = await fetch(ANTHROPIC_API_URL, {
+  return { system, user };
+}
+
+function parseAIJson(raw: string): Array<{ name: string; description: string; category: string }> {
+  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+  const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string }>;
+  if (!Array.isArray(parsed)) throw new Error('AI returned non-array response');
+  return parsed.filter(p => p.name && p.description && p.category).slice(0, 10);
+}
+
+// ── Google Gemini ────────────────────────────────────────────────────────────
+
+async function askGemini(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
+
+  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: `${system}\n\n${user}` }] }],
+      generationConfig: { maxOutputTokens: 1024, temperature: 0.7 },
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Gemini API error ${response.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await response.json() as {
+    candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
+  };
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  return parseAIJson(raw);
+}
+
+// ── Anthropic Claude ─────────────────────────────────────────────────────────
+
+async function askClaude(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
+
+  const { system, user } = buildPrompt(tripCtx, existingPlaceNames, lang);
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -65,8 +112,8 @@ Respond ONLY with a JSON array, no other text:
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 1024,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
+      system,
+      messages: [{ role: 'user', content: user }],
     }),
   });
 
@@ -77,23 +124,27 @@ Respond ONLY with a JSON array, no other text:
 
   const data = await response.json() as { content: Array<{ type: string; text: string }> };
   const raw = data.content?.find(c => c.type === 'text')?.text ?? '';
+  return parseAIJson(raw);
+}
 
-  // Strip possible markdown fences
-  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string }>;
-  if (!Array.isArray(parsed)) throw new Error('Claude returned non-array response');
+// ── AI router (Gemini first, Claude fallback) ────────────────────────────────
 
-  return parsed.filter(p => p.name && p.description && p.category).slice(0, 10);
+async function askAI(tripCtx: TripContext, existingPlaceNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string }>> {
+  if (process.env.GEMINI_API_KEY) {
+    return askGemini(tripCtx, existingPlaceNames, lang);
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return askClaude(tripCtx, existingPlaceNames, lang);
+  }
+  throw new Error('NO_AI_KEY: No AI API key configured. Set GEMINI_API_KEY or ANTHROPIC_API_KEY.');
 }
 
 // ── Geocode a single suggestion ───────────────────────────────────────────────
 
 async function geocode(name: string, tripTitle: string, userId: number): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
-  // Build a query combining place name and trip destination
   const query = `${name}, ${tripTitle}`;
 
   try {
-    // Try Google Places first if user has a key
     const mapsKey = getMapsKey(userId);
     if (mapsKey) {
       const googleRes = await fetch(
@@ -129,20 +180,16 @@ async function geocode(name: string, tripTitle: string, userId: number): Promise
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export async function getMustSeeSuggestions(tripId: number, userId: number, lang = 'en'): Promise<Suggestion[]> {
-  // 1. Load trip context from DB
   const trip = db.prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?').get(tripId) as TripContext | undefined;
   if (!trip) throw new Error('Trip not found');
 
-  // 2. Get existing place names to avoid duplicates
   const existingPlaces = db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>;
   const existingNames = existingPlaces.map(p => p.name);
 
-  // 3. Ask Claude for suggestions
-  const rawSuggestions = await askClaude(trip, existingNames, lang);
+  const rawSuggestions = await askAI(trip, existingNames, lang);
 
-  // 4. Geocode each suggestion (in parallel, max 5 concurrent)
   const results: Suggestion[] = [];
-  const chunks = [];
+  const chunks: typeof rawSuggestions[] = [];
   for (let i = 0; i < rawSuggestions.length; i += 3) {
     chunks.push(rawSuggestions.slice(i, i + 3));
   }
@@ -152,7 +199,6 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
       chunk.map(async (s) => {
         const geo = await geocode(s.name, trip.title, userId);
 
-        // 5. Fetch a photo from Wikimedia if we have coords
         let photo_url: string | null = null;
         if (geo.lat != null && geo.lng != null) {
           try {

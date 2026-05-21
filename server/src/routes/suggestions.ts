@@ -23,10 +23,10 @@ router.post('/must-see', authenticate, requireTripAccess, async (req: Request, r
     res.json({ suggestions });
   } catch (err: any) {
     const msg: string = err?.message ?? 'Unknown error';
-    if (msg.includes('ANTHROPIC_API_KEY')) {
-      return res.status(503).json({ error: 'AI suggestions are not configured. Ask your admin to set ANTHROPIC_API_KEY.' });
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'AI suggestions are not configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
     }
-    if (msg.includes('Claude API error')) {
+    if (msg.includes('Gemini API error') || msg.includes('Claude API error')) {
       return res.status(502).json({ error: `AI service error: ${msg}` });
     }
     console.error('[suggestions] must-see error:', err);
