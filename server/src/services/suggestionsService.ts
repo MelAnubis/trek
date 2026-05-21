@@ -58,7 +58,55 @@ export interface Suggestion {
   photo_url?: string | null;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+// Reverse-geocode a single coordinate to the nearest town/village name.
+// Uses Nominatim /reverse — much faster than forward search.
+// Returns null on failure (caller skips gracefully).
+async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+  try {
+    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&accept-language=en`;
+    const res = await fetch(url, { headers: { 'User-Agent': 'trek-app/1.0' } });
+    if (!res.ok) return null;
+    const data = await res.json() as {
+      address?: { village?: string; town?: string; city?: string; municipality?: string; county?: string; country?: string };
+    };
+    const a = data.address;
+    if (!a) return null;
+    const locality = a.village || a.town || a.city || a.municipality || a.county;
+    return locality ? `${locality}, ${a.country ?? ''}`.trim().replace(/,$/, '') : null;
+  } catch { return null; }
+}
+
+// Resolve named stops for a set of tracks.
+// If waypoints exist → use them directly.
+// If not → reverse-geocode sampled track points (up to 6) to get town names.
+// Returns the resolved stop names in route order.
+async function resolveTrackStops(
+  allTracks: GpxTrackInfo[],
+): Promise<string[]> {
+  const allWaypoints = allTracks.flatMap(t => t.waypoint_names);
+  if (allWaypoints.length > 0) return allWaypoints;
+
+  // No named waypoints — reverse-geocode sampled points
+  const allPts = allTracks.flatMap(t => t.sampled_pts);
+  if (allPts.length === 0) return [];
+
+  // Pick 6 evenly-spaced points (first, ~4 intermediate, last)
+  const indices: number[] = [0];
+  const step = Math.max(1, Math.floor((allPts.length - 1) / 5));
+  for (let i = step; i < allPts.length - 1; i += step) indices.push(i);
+  indices.push(allPts.length - 1);
+  const pts = [...new Set(indices)].map(i => allPts[i]);
+
+  const stops: string[] = [];
+  for (let i = 0; i < pts.length; i++) {
+    if (i > 0) await sleep(800); // Nominatim 1 req/sec policy
+    const name = await reverseGeocode(pts[i].lat, pts[i].lng);
+    if (name) stops.push(name);
+  }
+  return stops;
+}
 
 // Extract the most meaningful city/country label from a full address string.
 function extractCity(address: string | null, fallback: string): string {
@@ -94,18 +142,15 @@ function buildPrompt(
   tripCtx: TripContext,
   daySegments: DaySegment[],
   tripTracks: GpxTrackInfo[],
+  resolvedStops: string[],   // named stops: waypoints or reverse-geocoded towns
   skipNames: string[],
   lang: string,
 ): { system: string; user: string } {
 
   const system = `You are a world-class travel expert. Respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
 
-  // ── Collect all GPS context from tracks ──────────────────────────────────
-  const allTracks = [
-    ...tripTracks,
-    ...daySegments.flatMap(d => d.tracks),
-  ];
-  const allWaypoints  = allTracks.flatMap(t => t.waypoint_names);
+  // ── Collect GPS context ───────────────────────────────────────────────────
+  const allTracks     = [...tripTracks, ...daySegments.flatMap(d => d.tracks)];
   const allSampledPts = allTracks.flatMap(t => t.sampled_pts);
 
   // ── Build the question ───────────────────────────────────────────────────
@@ -119,30 +164,21 @@ function buildPrompt(
 
   let question: string;
 
-  if (allSampledPts.length >= 2) {
-    // ── Best case: real GPS coordinates available ─────────────────────────
-    const fromLabel = allWaypoints.length >= 2
-      ? allWaypoints[0]
+  if (resolvedStops.length >= 2 || allSampledPts.length >= 2) {
+    // ── Use named stops (waypoints or reverse-geocoded towns) ─────────────
+    const fromLabel = resolvedStops.length >= 1
+      ? resolvedStops[0]
       : fmtCoord(allSampledPts[0]);
-    const toLabel = allWaypoints.length >= 2
-      ? allWaypoints[allWaypoints.length - 1]
+    const toLabel = resolvedStops.length >= 2
+      ? resolvedStops[resolvedStops.length - 1]
       : fmtCoord(allSampledPts[allSampledPts.length - 1]);
 
-    // All intermediate waypoints (named stops along the route — up to 20)
-    const midWaypoints = allWaypoints.slice(1, -1).slice(0, 20);
-    // Fallback: sampled coordinates if no named waypoints
-    const midPts  = allSampledPts.slice(1, -1);
-    const step    = Math.max(1, Math.floor(midPts.length / 8));
-    const midCoords = midPts.filter((_, i) => i % step === 0).slice(0, 8).map(fmtCoord);
+    // Show ALL intermediate named stops (towns give far better context than coords)
+    const midStops = resolvedStops.slice(1, -1);
+    const viaClause = midStops.length > 0
+      ? ` via ${midStops.join(' → ')}`
+      : '';
 
-    const viaClause = midWaypoints.length > 0
-      ? ` via the following route stops: ${midWaypoints.join(' → ')}`
-      : midCoords.length > 0
-        ? ` passing through GPS coordinates ${midCoords.join(' → ')}`
-        : '';
-
-    // Trip title gives crucial cultural context (e.g. "Camino del Cid",
-    // "Via de la Plata") that the AI uses to recall specific historic places.
     question = `I am doing the trip "${tripCtx.title}", travelling from ${fromLabel} to ${toLabel}${viaClause}. What are the top ${total} must-see places, villages, monuments, or experiences along this specific route? Prioritise places that are physically on or very close to the route — iconic stops, historic towns, viewpoints, monasteries, castles, or natural landmarks that define this journey. Do not suggest places from other regions or countries.`;
 
   } else {
@@ -187,11 +223,11 @@ function parseAIJson(raw: string): Array<{ name: string; description: string; ca
 
 // ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
 
-async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, skipNames, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
 
   const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -222,11 +258,11 @@ async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], tripTrac
 
 // ── Google Gemini ────────────────────────────────────────────────────────────
 
-async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, skipNames, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
@@ -252,11 +288,11 @@ async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], tripTr
 
 // ── Anthropic Claude ─────────────────────────────────────────────────────────
 
-async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, skipNames, lang);
+  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -285,14 +321,12 @@ async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], tripTr
 
 // ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
 
-async function askAI(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
-  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, daySegments, tripTracks, skipNames, lang);
-  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, daySegments, tripTracks, skipNames, lang);
-  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, daySegments, tripTracks, skipNames, lang);
+async function askAI(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
+  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
+  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
   throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
 }
-
-const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
 // Bounding box of all day-anchor coordinates, used to reject suggestions that
 // fall outside the trip's geographic area.
@@ -488,7 +522,13 @@ export async function getMustSeeSuggestions(tripId: number, userId: number, lang
   const skipNames = (db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>)
     .map(p => p.name);
 
-  const rawSuggestions = await askAI(trip, daySegments, tripLevelTracks, skipNames, lang);
+  // Resolve named stops for the route:
+  // - If track has <wpt> waypoints → use them (instant, no extra calls)
+  // - If not → reverse-geocode sampled GPS points to get real town names
+  //   so the AI knows "Covarrubias, Spain" instead of "41.840°N 3.420°W"
+  const resolvedStops = await resolveTrackStops(allTracks);
+
+  const rawSuggestions = await askAI(trip, daySegments, tripLevelTracks, resolvedStops, skipNames, lang);
 
   // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
   // silent failures. 800 ms gap stays within policy and keeps total latency low.
