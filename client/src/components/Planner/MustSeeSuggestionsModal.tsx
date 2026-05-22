@@ -210,10 +210,11 @@ export default function MustSeeSuggestionsModal({
     setStep('adding')
     setAddingProgress(0)
 
-    // Mutable local snapshot of days + assignments so that each successive
-    // insertion sees the positions already taken by previous insertions.
+    // Mutable local snapshot — updated between iterations so each new place
+    // sees positions already taken by previous ones in the same day.
+    const safeDays = days ?? []
     const localDays: Array<{ id: number; assignments: Assignment[] }> =
-      days.map(d => ({ id: d.id, assignments: [...(d.assignments ?? [])] }))
+      safeDays.map(d => ({ id: d.id, assignments: [...(d.assignments ?? [])] }))
 
     let added = 0
     for (const s of toAdd) {
@@ -229,43 +230,39 @@ export default function MustSeeSuggestionsModal({
         })
         const placeId: number = createRes?.place?.id ?? createRes?.id
 
+        // 2. Assign + position only when we have a valid place and days
         if (placeId && localDays.length > 0) {
-          // 2. Find the best day + insertion index
           const { dayId, insertAt } = findBestDayAndPosition(s, localDays)
 
-          // 3. Assign the place to that day
           const assignRes = await assignmentsApi.create(tripId, dayId, { place_id: placeId })
           const newAssignment: Assignment = assignRes?.assignment ?? assignRes
 
-          // 4. Reorder if not inserting at the end
           const daySnap = localDays.find(d => d.id === dayId)
-          if (daySnap) {
+          if (daySnap && newAssignment?.id) {
             const existingIds = daySnap.assignments.map(a => a.id)
             if (insertAt < existingIds.length) {
-              const reorderedIds = [
+              await assignmentsApi.reorder(tripId, dayId, [
                 ...existingIds.slice(0, insertAt),
                 newAssignment.id,
                 ...existingIds.slice(insertAt),
-              ]
-              await assignmentsApi.reorder(tripId, dayId, reorderedIds)
+              ])
             }
-            // Update local snapshot so next iteration sees this place
             daySnap.assignments.splice(insertAt, 0, newAssignment)
           }
         }
 
         added++
-      } catch { /* skip silently — partial success is fine */ }
-      setAddingProgress(Math.round((added / toAdd.length) * 100))
+      } catch (err) {
+        console.warn('[MustSee] failed to add place:', (err as any)?.message ?? err)
+      }
+      setAddingProgress(Math.round(((toAdd.indexOf(s) + 1) / toAdd.length) * 100))
     }
 
     setStep('done')
-    const dayCount = new Set(
-      toAdd.map(s => findBestDayAndPosition(s, days.map(d => ({ id: d.id, assignments: d.assignments ?? [] }))).dayId)
-    ).size
     toast.success(
-      `${added} ${added === 1 ? 'lugar añadido' : 'lugares añadidos'} ` +
-      `en ${dayCount} ${dayCount === 1 ? 'día' : 'días'}`
+      added === 0
+        ? 'No se pudo añadir ningún lugar'
+        : `${added} ${added === 1 ? 'lugar añadido' : 'lugares añadidos'} al itinerario`
     )
     setTimeout(() => { onAdded(); onClose() }, 1200)
   }
