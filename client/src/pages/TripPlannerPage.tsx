@@ -39,6 +39,7 @@ import { useRouteCalculation } from '../hooks/useRouteCalculation'
 import { usePlaceSelection } from '../hooks/usePlaceSelection'
 import { usePlannerHistory } from '../hooks/usePlannerHistory'
 import type { Accommodation, TripMember, Day, Place, Reservation, PackingItem, TodoItem } from '../types'
+import { findNearestDay } from '../utils/geoUtils'
 import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import GpxManager from '../components/Elevation/GpxManager'
 import ElevationDetail, { type GpxTrack } from '../components/Elevation/ElevationDetail'
@@ -543,6 +544,18 @@ export default function TripPlannerPage(): React.ReactElement | null {
           try { await tripActions.addFile(tripId, fd) } catch {}
         }
       }
+
+      // Auto-assign to nearest day based on geolocation
+      if (place?.id && place.lat != null && place.lng != null) {
+        const state = useTripStore.getState()
+        const nearestDayId = findNearestDay(place.lat, place.lng, state.days, state.assignments)
+        if (nearestDayId) {
+          try {
+            await tripActions.assignPlaceToDay(tripId, nearestDayId, place.id)
+          } catch { /* best effort — place is still created */ }
+        }
+      }
+
       toast.success(t('trip.toast.placeAdded'))
       if (place?.id) {
         const capturedId = place.id
