@@ -108,8 +108,13 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
     // even when previous additions in this batch shift the centroid
     const liveAssignments: AssignmentsMap = { ...assignments }
 
+    // Pre-sort suggestions by latitude so the fallback round-robin distributes
+    // them geographically across days (north→south or vice-versa)
+    const sorted = [...toAdd].sort((a, b) => (a.lat ?? 0) - (b.lat ?? 0))
+
     let added = 0
-    for (const s of toAdd) {
+    for (let i = 0; i < sorted.length; i++) {
+      const s = sorted[i]
       try {
         const data = await placesApi.create(tripId, {
           name:        s.name,
@@ -122,17 +127,23 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
         const place = data?.place
         added++
 
-        // Auto-assign to nearest day based on geolocation
-        if (place?.id && place.lat != null && place.lng != null && days.length > 0) {
-          const nearestDayId = findNearestDay(place.lat, place.lng, days, liveAssignments)
-          if (nearestDayId) {
-            try {
-              const assignData = await assignmentsApi.create(tripId, nearestDayId, { place_id: place.id })
-              // Update live snapshot so subsequent places use up-to-date centroids
-              const existing = liveAssignments[String(nearestDayId)] ?? []
-              liveAssignments[String(nearestDayId)] = [...existing, assignData.assignment]
-            } catch { /* best effort */ }
+        if (place?.id && days.length > 0) {
+          // 1st choice: geo-based nearest day (works when days already have places)
+          let targetDayId: number | null = null
+          if (place.lat != null && place.lng != null) {
+            targetDayId = findNearestDay(place.lat, place.lng, days, liveAssignments)
           }
+          // Fallback: distribute evenly across days when centroids aren't available
+          if (!targetDayId) {
+            targetDayId = days[i % days.length].id
+          }
+
+          try {
+            const assignData = await assignmentsApi.create(tripId, targetDayId, { place_id: place.id })
+            // Update live snapshot so subsequent places use up-to-date centroids
+            const existing = liveAssignments[String(targetDayId)] ?? []
+            liveAssignments[String(targetDayId)] = [...existing, assignData.assignment]
+          } catch { /* best effort */ }
         }
       } catch { /* skip silently — partial success is fine */ }
       setAddingProgress(Math.round((added / toAdd.length) * 100))

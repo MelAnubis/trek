@@ -546,12 +546,20 @@ export default function TripPlannerPage(): React.ReactElement | null {
       }
 
       // Auto-assign to nearest day based on geolocation
-      if (place?.id && place.lat != null && place.lng != null) {
+      if (place?.id) {
         const state = useTripStore.getState()
-        const nearestDayId = findNearestDay(place.lat, place.lng, state.days, state.assignments)
-        if (nearestDayId) {
+        // 1st choice: nearest day by Haversine centroid
+        let targetDayId: number | null = null
+        if (place.lat != null && place.lng != null) {
+          targetDayId = findNearestDay(place.lat, place.lng, state.days, state.assignments)
+        }
+        // Fallback: use the currently selected day
+        if (!targetDayId) {
+          targetDayId = selectedDayId
+        }
+        if (targetDayId) {
           try {
-            await tripActions.assignPlaceToDay(tripId, nearestDayId, place.id)
+            await tripActions.assignPlaceToDay(tripId, targetDayId, place.id)
           } catch { /* best effort — place is still created */ }
         }
       }
@@ -564,7 +572,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         })
       }
     }
-  }, [editingPlace, editingAssignmentId, tripId, toast, pushUndo])
+  }, [editingPlace, editingAssignmentId, tripId, toast, pushUndo, selectedDayId])
 
   const handleDeletePlace = useCallback((placeId) => {
     setDeletePlaceId(placeId)
