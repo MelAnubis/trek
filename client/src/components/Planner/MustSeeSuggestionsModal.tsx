@@ -20,6 +20,8 @@ interface Suggestion {
   lng: number | null
   address: string | null
   photo_url?: string | null
+  /** Which confirmed stop or intermediate town this is near (from the backend) */
+  near_place?: string | null
 }
 
 interface Props {
@@ -263,6 +265,11 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
                             {s.category}
                           </span>
                         </div>
+                        {s.near_place && (
+                          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 3, fontStyle: 'italic' }}>
+                            cerca de {s.near_place.split(',')[0]}
+                          </div>
+                        )}
                         <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>{s.description}</p>
                         {s.address && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 5 }}>
