@@ -205,8 +205,15 @@ export default function MustSeeSuggestionsModal({
   }
 
   async function handleAdd() {
+    // ── First line: always fires when button is clicked ───────────────────────
+    console.log('[MustSee] handleAdd called — selected:', selected.size,
+      'suggestions:', suggestions.length, 'days:', (days ?? []).length)
+
     const toAdd = suggestions.filter((_, i) => selected.has(i))
-    if (toAdd.length === 0) return
+    if (toAdd.length === 0) {
+      console.warn('[MustSee] toAdd is empty — nothing selected')
+      return
+    }
     setStep('adding')
     setAddingProgress(0)
 
@@ -216,7 +223,7 @@ export default function MustSeeSuggestionsModal({
     const localDays: Array<{ id: number; assignments: Assignment[] }> =
       safeDays.map(d => ({ id: d.id, assignments: [...(d.assignments ?? [])] }))
 
-    console.log('[MustSee] handleAdd — tripId:', tripId, 'toAdd:', toAdd.length,
+    console.log('[MustSee] toAdd:', toAdd.length,
       'localDays:', localDays.map(d => `day${d.id}(${d.assignments.length}asn)`))
 
     let placesCreated = 0
