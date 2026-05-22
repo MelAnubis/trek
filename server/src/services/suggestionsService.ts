@@ -586,10 +586,37 @@ function buildDescriptionsPrompt(
 type AIDescription = { name: string; description: string };
 
 function parseDescriptionJson(raw: string): AIDescription[] {
-  const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const parsed = JSON.parse(clean) as AIDescription[];
-  if (!Array.isArray(parsed)) throw new Error('AI returned non-array');
-  return parsed.filter(p => p.name && p.description);
+  // Strip markdown code fences
+  let clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
+
+  // Extract the JSON array — find the outermost [ ... ] so stray text before/after is ignored
+  const arrStart = clean.indexOf('[');
+  if (arrStart !== -1) {
+    const arrEnd = clean.lastIndexOf(']');
+    clean = arrEnd !== -1 ? clean.slice(arrStart, arrEnd + 1) : clean.slice(arrStart);
+  }
+
+  // Try a full parse first
+  try {
+    const parsed = JSON.parse(clean) as AIDescription[];
+    if (!Array.isArray(parsed)) throw new Error('not-array');
+    return parsed.filter(p => p.name && p.description);
+  } catch {
+    // Truncated JSON (e.g. max_tokens cut mid-object): extract complete objects with regex
+    const results: AIDescription[] = [];
+    // Match complete {"name":"...","description":"..."} objects (handles escaped quotes inside values)
+    const re = /\{\s*"name"\s*:\s*"((?:[^"\\]|\\.)*)"\s*,\s*"description"\s*:\s*"((?:[^"\\]|\\.)*)"\s*\}/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(raw)) !== null) {
+      try {
+        const name = JSON.parse(`"${m[1]}"`);
+        const description = JSON.parse(`"${m[2]}"`);
+        if (name && description) results.push({ name, description });
+      } catch { /* skip malformed entry */ }
+    }
+    if (results.length > 0) return results;
+    throw new Error('Could not extract any valid descriptions from AI response');
+  }
 }
 
 async function askGroqDescriptions(
@@ -603,7 +630,7 @@ async function askGroqDescriptions(
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
-      max_tokens: 2048,
+      max_tokens: 4096,   // 20 POIs × ~100 tokens each needs more than 2048
       temperature: 0.6,
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
     }),
@@ -625,7 +652,7 @@ async function askGeminiDescriptions(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${system}\n\n${user}` }] }],
-      generationConfig: { maxOutputTokens: 2048, temperature: 0.6 },
+      generationConfig: { maxOutputTokens: 4096, temperature: 0.6 },
     }),
   });
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
@@ -650,7 +677,7 @@ async function askClaudeDescriptions(
     },
     body: JSON.stringify({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 2048,
+      max_tokens: 4096,
       system,
       messages: [{ role: 'user', content: user }],
     }),

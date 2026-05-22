@@ -216,7 +216,12 @@ export default function MustSeeSuggestionsModal({
     const localDays: Array<{ id: number; assignments: Assignment[] }> =
       safeDays.map(d => ({ id: d.id, assignments: [...(d.assignments ?? [])] }))
 
-    let added = 0
+    console.log('[MustSee] handleAdd — tripId:', tripId, 'toAdd:', toAdd.length,
+      'localDays:', localDays.map(d => `day${d.id}(${d.assignments.length}asn)`))
+
+    let placesCreated = 0
+    let placesAssigned = 0
+
     for (const s of toAdd) {
       try {
         // 1. Create the place record
@@ -228,14 +233,24 @@ export default function MustSeeSuggestionsModal({
           address:     s.address,
           image_url:   s.photo_url ?? null,
         })
-        const placeId: number = createRes?.place?.id ?? createRes?.id
+        const placeId: number | undefined = createRes?.place?.id ?? createRes?.id
+        console.log('[MustSee] created place:', s.name, '→ id', placeId)
 
-        // 2. Assign + position only when we have a valid place and days
-        if (placeId && localDays.length > 0) {
+        if (!placeId) {
+          console.error('[MustSee] no placeId returned for', s.name, createRes)
+          continue
+        }
+
+        placesCreated++
+
+        // 2. Assign + position only when we have days to assign to
+        if (localDays.length > 0) {
           const { dayId, insertAt } = findBestDayAndPosition(s, localDays)
+          console.log('[MustSee] assigning', s.name, '→ dayId', dayId, 'insertAt', insertAt)
 
           const assignRes = await assignmentsApi.create(tripId, dayId, { place_id: placeId })
           const newAssignment: Assignment = assignRes?.assignment ?? assignRes
+          console.log('[MustSee] assigned → assignmentId', newAssignment?.id)
 
           const daySnap = localDays.find(d => d.id === dayId)
           if (daySnap && newAssignment?.id) {
@@ -248,23 +263,35 @@ export default function MustSeeSuggestionsModal({
               ])
             }
             daySnap.assignments.splice(insertAt, 0, newAssignment)
+            placesAssigned++
           }
+        } else {
+          // No days defined — place goes to the unassigned pool
+          placesCreated-- // don't double count
+          placesAssigned++ // treat as success (place was created)
+          placesCreated++
+          console.warn('[MustSee] no days in trip — place added to pool (not assigned to a day)')
         }
-
-        added++
-      } catch (err) {
-        console.warn('[MustSee] failed to add place:', (err as any)?.message ?? err)
+      } catch (err: any) {
+        const msg = err?.response?.data?.error ?? err?.message ?? String(err)
+        console.error('[MustSee] FAILED for', s.name, ':', msg, err)
       }
       setAddingProgress(Math.round(((toAdd.indexOf(s) + 1) / toAdd.length) * 100))
     }
 
+    console.log('[MustSee] done — placesCreated:', placesCreated, 'placesAssigned:', placesAssigned)
+
     setStep('done')
-    toast.success(
-      added === 0
-        ? 'No se pudo añadir ningún lugar'
-        : `${added} ${added === 1 ? 'lugar añadido' : 'lugares añadidos'} al itinerario`
-    )
-    setTimeout(() => { onAdded(); onClose() }, 1200)
+    if (placesCreated === 0) {
+      toast.error('No se pudo crear ningún lugar — revisa la consola del navegador')
+    } else if (localDays.length === 0) {
+      toast.success(`${placesCreated} ${placesCreated === 1 ? 'lugar añadido' : 'lugares añadidos'} (sin etapas — asígnalos en el planificador)`)
+    } else if (placesAssigned < placesCreated) {
+      toast.success(`${placesAssigned} de ${placesCreated} lugares asignados a etapas`)
+    } else {
+      toast.success(`${placesAssigned} ${placesAssigned === 1 ? 'lugar añadido' : 'lugares añadidos'} al itinerario`)
+    }
+    setTimeout(() => { onAdded(); onClose() }, 1400)
   }
 
   const allSelected = suggestions.length > 0 && selected.size === suggestions.length
