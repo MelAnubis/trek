@@ -892,6 +892,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       {mustSeeOpen && (
         <MustSeeSuggestionsModal
           tripId={tripId}
+          days={days}
           onClose={() => setMustSeeOpen(false)}
           onAdded={() => loadTrip(tripId)}
           lang={typeof window !== 'undefined' ? (localStorage.getItem('app_language') || 'en') : 'en'}

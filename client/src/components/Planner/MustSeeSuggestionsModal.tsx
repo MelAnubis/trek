@@ -2,15 +2,19 @@
 // MustSeeSuggestionsModal.tsx
 //
 // AI-powered "Must See Places" modal.
-// Calls the backend to get Claude suggestions for a trip, shows a checklist
+// Calls the backend to get suggestions for a trip, shows a checklist
 // with photos, and adds selected places to the trip.
+//
+// Smart insertion: each added place is automatically assigned to the correct
+// day and inserted at the position that minimises route detour.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react'
 import { X, Sparkles, Loader2, MapPin, CheckCircle2, AlertCircle, ImageOff } from 'lucide-react'
-import { suggestionsApi, placesApi } from '../../api/client'
+import { suggestionsApi, placesApi, assignmentsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
+import type { Day, Assignment } from '../../types'
 
 interface Suggestion {
   name: string
@@ -20,14 +24,14 @@ interface Suggestion {
   lng: number | null
   address: string | null
   photo_url?: string | null
-  /** Which confirmed stop or intermediate town this is near (from the backend) */
   near_place?: string | null
 }
 
 interface Props {
   tripId: number
+  days: Day[]                  // current days with their assignments (including place coords)
   onClose: () => void
-  onAdded: () => void       // called after places are successfully added
+  onAdded: () => void
   lang?: string
 }
 
@@ -50,14 +54,122 @@ function getCategoryColor(cat: string) {
   return CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other
 }
 
-export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang = 'en' }: Props) {
+// ── Geographic helpers ────────────────────────────────────────────────────────
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2
+  return R * 2 * Math.asin(Math.sqrt(a))
+}
+
+/**
+ * Given a suggestion and a mutable snapshot of days (with their current
+ * assignments), return:
+ *  - `dayId`:    the day to assign this suggestion to
+ *  - `insertAt`: the 0-based index to insert at within that day's assignments
+ *
+ * Day selection:
+ *   1. Match `near_place` against assignment place names (case-insensitive partial)
+ *   2. Fallback: day whose assignments contain the geographically closest place
+ *   3. Last resort: first day
+ *
+ * Position selection (minimum-detour algorithm):
+ *   For each candidate gap between consecutive assignments A and B, the cost is
+ *   dist(A→S) + dist(S→B) − dist(A→B).  We also consider inserting before the
+ *   first or after the last assignment.  The position with lowest cost wins.
+ */
+function findBestDayAndPosition(
+  suggestion: Suggestion,
+  localDays: Array<{ id: number; assignments: Assignment[] }>,
+): { dayId: number; insertAt: number } {
+  if (localDays.length === 0) return { dayId: 0, insertAt: 0 }
+
+  // ── 1. Find target day ────────────────────────────────────────────────────
+  let targetIdx = -1
+
+  // Try near_place name match
+  if (suggestion.near_place) {
+    const needle = suggestion.near_place.toLowerCase()
+    for (let i = 0; i < localDays.length; i++) {
+      const hit = localDays[i].assignments.some(a => {
+        const n = a.place?.name?.toLowerCase() ?? ''
+        return n.includes(needle.substring(0, 12)) || needle.includes(n.substring(0, 12))
+      })
+      if (hit) { targetIdx = i; break }
+    }
+  }
+
+  // Fallback: geographically closest existing assignment
+  if (targetIdx === -1 && suggestion.lat != null && suggestion.lng != null) {
+    let bestDist = Infinity
+    for (let i = 0; i < localDays.length; i++) {
+      for (const a of localDays[i].assignments) {
+        if (a.place?.lat == null || a.place?.lng == null) continue
+        const d = haversineKm(suggestion.lat, suggestion.lng, a.place.lat, a.place.lng)
+        if (d < bestDist) { bestDist = d; targetIdx = i }
+      }
+    }
+  }
+
+  if (targetIdx === -1) targetIdx = 0
+  const targetDay = localDays[targetIdx]
+
+  // ── 2. Find best insertion position ──────────────────────────────────────
+  const assignments = targetDay.assignments
+  if (assignments.length === 0 || suggestion.lat == null || suggestion.lng == null) {
+    return { dayId: targetDay.id, insertAt: assignments.length }
+  }
+
+  // Only consider assignments that have valid coordinates
+  const pts = assignments
+    .map((a, i) => ({ i, lat: a.place?.lat, lng: a.place?.lng }))
+    .filter((p): p is { i: number; lat: number; lng: number } =>
+      p.lat != null && p.lng != null)
+
+  if (pts.length === 0) return { dayId: targetDay.id, insertAt: assignments.length }
+
+  const sLat = suggestion.lat, sLng = suggestion.lng
+  let bestPos = assignments.length  // default: append at end
+  let bestCost = Infinity
+
+  // Before the first assignment
+  const costFirst = haversineKm(sLat, sLng, pts[0].lat, pts[0].lng)
+  if (costFirst < bestCost) { bestCost = costFirst; bestPos = 0 }
+
+  // Between each consecutive pair
+  for (let k = 0; k < pts.length - 1; k++) {
+    const A = pts[k], B = pts[k + 1]
+    const detour =
+      haversineKm(A.lat, A.lng, sLat, sLng) +
+      haversineKm(sLat, sLng, B.lat, B.lng) -
+      haversineKm(A.lat, A.lng, B.lat, B.lng)
+    if (detour < bestCost) { bestCost = detour; bestPos = A.i + 1 }
+  }
+
+  // After the last assignment
+  const last = pts[pts.length - 1]
+  const costLast = haversineKm(sLat, sLng, last.lat, last.lng)
+  if (costLast < bestCost) { bestPos = last.i + 1 }
+
+  return { dayId: targetDay.id, insertAt: bestPos }
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
+
+export default function MustSeeSuggestionsModal({
+  tripId, days, onClose, onAdded, lang = 'en',
+}: Props) {
   const { t } = useTranslation()
   const toast = useToast()
 
-  const [step, setStep]             = useState<'loading' | 'results' | 'adding' | 'done' | 'error'>('loading')
+  const [step, setStep]               = useState<'loading' | 'results' | 'adding' | 'done' | 'error'>('loading')
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [selected, setSelected]     = useState<Set<number>>(new Set())
-  const [error, setError]           = useState('')
+  const [selected, setSelected]       = useState<Set<number>>(new Set())
+  const [error, setError]             = useState('')
   const [addingProgress, setAddingProgress] = useState(0)
 
   useEffect(() => { fetchSuggestions() }, [])
@@ -68,12 +180,10 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
     try {
       const data = await suggestionsApi.mustSee(tripId, lang)
       setSuggestions(data.suggestions)
-      // Pre-select all
-      setSelected(new Set(data.suggestions.map((_, i) => i)))
+      setSelected(new Set(data.suggestions.map((_: any, i: number) => i)))
       setStep('results')
     } catch (err: any) {
-      const msg = err?.response?.data?.error ?? err?.message ?? 'Unknown error'
-      setError(msg)
+      setError(err?.response?.data?.error ?? err?.message ?? 'Unknown error')
       setStep('error')
     }
   }
@@ -87,11 +197,11 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
   }
 
   function toggleAll() {
-    if (selected.size === suggestions.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(suggestions.map((_, i) => i)))
-    }
+    setSelected(
+      selected.size === suggestions.length
+        ? new Set()
+        : new Set(suggestions.map((_: any, i: number) => i)),
+    )
   }
 
   async function handleAdd() {
@@ -100,10 +210,16 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
     setStep('adding')
     setAddingProgress(0)
 
+    // Mutable local snapshot of days + assignments so that each successive
+    // insertion sees the positions already taken by previous insertions.
+    const localDays: Array<{ id: number; assignments: Assignment[] }> =
+      days.map(d => ({ id: d.id, assignments: [...(d.assignments ?? [])] }))
+
     let added = 0
     for (const s of toAdd) {
       try {
-        await placesApi.create(tripId, {
+        // 1. Create the place record
+        const createRes = await placesApi.create(tripId, {
           name:        s.name,
           description: s.description,
           lat:         s.lat,
@@ -111,17 +227,47 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
           address:     s.address,
           image_url:   s.photo_url ?? null,
         })
+        const placeId: number = createRes?.place?.id ?? createRes?.id
+
+        if (placeId && localDays.length > 0) {
+          // 2. Find the best day + insertion index
+          const { dayId, insertAt } = findBestDayAndPosition(s, localDays)
+
+          // 3. Assign the place to that day
+          const assignRes = await assignmentsApi.create(tripId, dayId, { place_id: placeId })
+          const newAssignment: Assignment = assignRes?.assignment ?? assignRes
+
+          // 4. Reorder if not inserting at the end
+          const daySnap = localDays.find(d => d.id === dayId)
+          if (daySnap) {
+            const existingIds = daySnap.assignments.map(a => a.id)
+            if (insertAt < existingIds.length) {
+              const reorderedIds = [
+                ...existingIds.slice(0, insertAt),
+                newAssignment.id,
+                ...existingIds.slice(insertAt),
+              ]
+              await assignmentsApi.reorder(tripId, dayId, reorderedIds)
+            }
+            // Update local snapshot so next iteration sees this place
+            daySnap.assignments.splice(insertAt, 0, newAssignment)
+          }
+        }
+
         added++
       } catch { /* skip silently — partial success is fine */ }
       setAddingProgress(Math.round((added / toAdd.length) * 100))
     }
 
     setStep('done')
-    toast.success(`${added} ${added === 1 ? 'lugar añadido' : 'lugares añadidos'} al viaje`)
-    setTimeout(() => {
-      onAdded()
-      onClose()
-    }, 1200)
+    const dayCount = new Set(
+      toAdd.map(s => findBestDayAndPosition(s, days.map(d => ({ id: d.id, assignments: d.assignments ?? [] }))).dayId)
+    ).size
+    toast.success(
+      `${added} ${added === 1 ? 'lugar añadido' : 'lugares añadidos'} ` +
+      `en ${dayCount} ${dayCount === 1 ? 'día' : 'días'}`
+    )
+    setTimeout(() => { onAdded(); onClose() }, 1200)
   }
 
   const allSelected = suggestions.length > 0 && selected.size === suggestions.length
@@ -132,7 +278,6 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
         className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full"
         style={{ maxWidth: 540, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
       >
-
         {/* ── Header ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
           <Sparkles size={18} style={{ color: '#f59e0b' }} />
@@ -150,18 +295,16 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
         {/* ── Body ── */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
 
-          {/* Loading */}
           {step === 'loading' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '48px 0', color: 'var(--text-muted)' }}>
               <Loader2 size={32} className="animate-spin" style={{ color: '#f59e0b' }} />
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)' }}>Consultando con la IA…</div>
+                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)' }}>Buscando lugares…</div>
                 <div style={{ fontSize: 12 }}>Esto puede tardar unos segundos</div>
               </div>
             </div>
           )}
 
-          {/* Error */}
           {step === 'error' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 0' }}>
               <AlertCircle size={32} style={{ color: '#ef4444' }} />
@@ -178,7 +321,6 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
             </div>
           )}
 
-          {/* Done */}
           {step === 'done' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '48px 0', color: '#16a34a' }}>
               <CheckCircle2 size={40} />
@@ -186,18 +328,16 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
             </div>
           )}
 
-          {/* Adding (progress) */}
           {step === 'adding' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '48px 0' }}>
               <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
               <div style={{ width: '60%', height: 6, borderRadius: 99, background: 'var(--border-faint)', overflow: 'hidden' }}>
                 <div style={{ width: `${addingProgress}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.3s ease', borderRadius: 99 }} />
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Añadiendo lugares… {addingProgress}%</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Añadiendo y ordenando… {addingProgress}%</span>
             </div>
           )}
 
-          {/* Results */}
           {step === 'results' && (
             <>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
@@ -241,7 +381,6 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
                             <ImageOff size={20} />
                           </div>
                         )}
-                        {/* Selection indicator */}
                         <div style={{
                           position: 'absolute', top: 4, right: 4,
                           width: 18, height: 18, borderRadius: '50%',
