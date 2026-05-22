@@ -1,18 +1,26 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // suggestionsService.ts
 //
-// "Must See Places" — uses an AI model to suggest unmissable spots for a trip,
-// then geocodes them via Nominatim (or Google Places if the user has a key)
-// to get coordinates + a photo URL.
+// "Must See Places" — multi-source POI discovery (Komoot/AllTrails style):
 //
-// Supported AI providers (in priority order):
-//   1. Groq            — GROQ_API_KEY      (free: console.groq.com)
-//   2. Google Gemini   — GEMINI_API_KEY    (free: aistudio.google.com/apikey)
-//   3. Anthropic       — ANTHROPIC_API_KEY (paid)
+//  Source A — Overpass API (multiple public mirrors):
+//    Compact [bbox:...] query → post-filter by distance to route.
+//    Finds OSM monuments, historic, viewpoints, nature features.
+//
+//  Source B — Wikipedia GeoSearch (automatic fallback when Overpass fails):
+//    Wikipedia's /w/api.php?list=geosearch finds all Wikipedia articles
+//    geotagged within the trip bounding box.  Works from any network,
+//    returns the *most notable* places (Monasterio de Silos, Covarrubias …).
+//
+//  Then for the top 20 POIs from either source:
+//    - AI single batch call for descriptions
+//    - Wikimedia photos in parallel batches
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { db } from '../db/database';
-import { getMapsKey, searchNominatim, fetchWikimediaPhoto } from './mapsService';
+import { fetchWikimediaPhoto } from './mapsService';
+
+// ── Domain types ──────────────────────────────────────────────────────────────
 
 interface TripContext {
   id: number;
@@ -22,30 +30,18 @@ interface TripContext {
   end_date?: string | null;
 }
 
-interface ExistingPlace {
+interface ConfirmedPlace {
   name: string;
   address: string | null;
-}
-
-// GPX track summary for a single track
-interface GpxTrackInfo {
-  track_name: string;
-  day_id: number | null;
-  total_distance: number | null;
-  start_lat: number | null; start_lng: number | null;
-  end_lat:   number | null; end_lng:   number | null;
-  waypoint_names: string[];
-  sampled_pts: Array<{ lat: number; lng: number }>; // evenly spaced route points
-}
-
-// One entry per day that has at least one assigned place
-interface DaySegment {
+  lat: number | null;
+  lng: number | null;
   day_number: number;
-  date: string | null;
-  day_title: string | null;
-  first: { name: string; address: string | null; lat: number | null; lng: number | null };
-  last:  { name: string; address: string | null; lat: number | null; lng: number | null };
-  tracks: GpxTrackInfo[]; // GPX tracks assigned to this day
+  order_index: number;
+}
+
+interface GpxTrackInfo {
+  day_id: number | null;
+  sampled_pts: Array<{ lat: number; lng: number }>;
 }
 
 export interface Suggestion {
@@ -56,245 +52,596 @@ export interface Suggestion {
   lng: number | null;
   address: string | null;
   photo_url?: string | null;
+  near_place?: string | null;
 }
+
+// Overpass element (node/way/relation with optional center coords)
+interface OverpassElement {
+  type: 'node' | 'way' | 'relation';
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+// Unified internal POI record used after Overpass OR Wikipedia discovery
+interface RankedPOI {
+  name: string;
+  lat: number;
+  lng: number;
+  category: string;
+  osmType: string;
+  address: string | null;
+  score: number;
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
 const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
 
-// Reverse-geocode a single coordinate to the nearest town/village name.
-// Uses Nominatim /reverse — much faster than forward search.
-// Returns null on failure (caller skips gracefully).
-async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
-  try {
-    const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&accept-language=en`;
-    const res = await fetch(url, { headers: { 'User-Agent': 'trek-app/1.0' } });
-    if (!res.ok) return null;
-    const data = await res.json() as {
-      address?: { village?: string; town?: string; city?: string; municipality?: string; county?: string; country?: string };
-    };
-    const a = data.address;
-    if (!a) return null;
-    const locality = a.village || a.town || a.city || a.municipality || a.county;
-    return locality ? `${locality}, ${a.country ?? ''}`.trim().replace(/,$/, '') : null;
-  } catch { return null; }
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-// Resolve named stops for a set of tracks.
-// If waypoints exist → use them directly.
-// If not → reverse-geocode sampled track points (up to 6) to get town names.
-// Returns the resolved stop names in route order.
-async function resolveTrackStops(
-  allTracks: GpxTrackInfo[],
-): Promise<string[]> {
-  const allWaypoints = allTracks.flatMap(t => t.waypoint_names);
-  if (allWaypoints.length > 0) return allWaypoints;
-
-  // No named waypoints — reverse-geocode sampled points
-  const allPts = allTracks.flatMap(t => t.sampled_pts);
-  if (allPts.length === 0) return [];
-
-  // Pick 6 evenly-spaced points (first, ~4 intermediate, last)
-  const indices: number[] = [0];
-  const step = Math.max(1, Math.floor((allPts.length - 1) / 5));
-  for (let i = step; i < allPts.length - 1; i += step) indices.push(i);
-  indices.push(allPts.length - 1);
-  const pts = [...new Set(indices)].map(i => allPts[i]);
-
-  const stops: string[] = [];
-  for (let i = 0; i < pts.length; i++) {
-    if (i > 0) await sleep(800); // Nominatim 1 req/sec policy
-    const name = await reverseGeocode(pts[i].lat, pts[i].lng);
-    if (name) stops.push(name);
-  }
-  return stops;
+/** Returns true when (lat, lng) is within `maxKm` of at least one route point. */
+function isNearRoute(
+  lat: number, lng: number,
+  routePoints: Array<{ lat: number; lng: number }>,
+  maxKm: number,
+): boolean {
+  return routePoints.some(p => haversineKm(lat, lng, p.lat, p.lng) <= maxKm);
 }
 
-// Extract the most meaningful city/country label from a full address string.
-function extractCity(address: string | null, fallback: string): string {
-  if (!address) return fallback;
-  const parts = address.split(',').map(p => p.trim()).filter(p => p && !/^\d{4,}/.test(p));
-  if (parts.length >= 2) return parts.slice(-2).join(', ');
-  return parts[0] || fallback;
-}
-
-// Sample up to `n` evenly-spaced points from a GPX points_json string.
-// Always includes the very first and very last point.
-function sampleTrackPoints(pointsJson: string, n = 10): Array<{ lat: number; lng: number }> {
+function sampleTrackPoints(
+  pointsJson: string,
+  n = 10,
+): Array<{ lat: number; lng: number }> {
   try {
     const pts = JSON.parse(pointsJson) as Array<{ lat: number; lng: number }>;
     if (pts.length === 0) return [];
     if (pts.length <= n) return pts.map(p => ({ lat: p.lat, lng: p.lng }));
     const step = (pts.length - 1) / (n - 1);
-    const out: Array<{ lat: number; lng: number }> = [];
-    for (let i = 0; i < n; i++) {
-      const idx = Math.round(i * step);
-      out.push({ lat: pts[idx].lat, lng: pts[idx].lng });
-    }
-    return out;
+    return Array.from({ length: n }, (_, i) => {
+      const idx = Math.min(Math.round(i * step), pts.length - 1);
+      return { lat: pts[idx].lat, lng: pts[idx].lng };
+    });
   } catch { return []; }
 }
 
-// Format a coordinate pair for the AI prompt
-function fmtCoord(p: { lat: number; lng: number }): string {
-  return `${p.lat.toFixed(3)}°${p.lat >= 0 ? 'N' : 'S'} ${Math.abs(p.lng).toFixed(3)}°${p.lng <= 0 ? 'W' : 'E'}`;
+/** Compute bounding box of route points + a buffer in degrees. */
+function routeBBox(
+  routePoints: Array<{ lat: number; lng: number }>,
+  bufKm = 3,
+): { south: number; north: number; west: number; east: number } {
+  const lats = routePoints.map(p => p.lat);
+  const lngs = routePoints.map(p => p.lng);
+  const buf = bufKm / 111;
+  return {
+    south: Math.min(...lats) - buf,
+    north: Math.max(...lats) + buf,
+    west:  Math.min(...lngs) - buf,
+    east:  Math.max(...lngs) + buf,
+  };
 }
 
-function buildPrompt(
-  tripCtx: TripContext,
-  daySegments: DaySegment[],
-  tripTracks: GpxTrackInfo[],
-  resolvedStops: string[],   // named stops: waypoints or reverse-geocoded towns
+// ── Source A: Overpass API ────────────────────────────────────────────────────
+
+/** Public Overpass mirrors tried in order.  Some block data-center IPs. */
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
+];
+
+/**
+ * Build a short Overpass QL query using a global [bbox:...] filter.
+ * This is ~300 chars total — safe for all mirrors and HTTP gateways.
+ */
+function buildOverpassQuery(bbox: ReturnType<typeof routeBBox>): string {
+  const { south, north, west, east } = bbox;
+  return `[out:json][timeout:28][bbox:${south.toFixed(5)},${west.toFixed(5)},${north.toFixed(5)},${east.toFixed(5)}];
+(
+  node["tourism"~"^(attraction|museum|viewpoint)$"];
+  node["historic"]["name"];
+  node["natural"~"^(peak|waterfall|gorge|cave_entrance|cliff)$"]["name"];
+  way["tourism"~"^(attraction|museum|viewpoint)$"]["name"];
+  way["historic"]["name"];
+  relation["historic"]["name"];
+  relation["tourism"~"^(attraction|museum|viewpoint)$"]["name"];
+);
+out center tags qt;`;
+}
+
+/**
+ * Try all Overpass mirrors IN PARALLEL with a short per-request timeout.
+ * Returns the first successful result; if all fail, returns [].
+ * Running in parallel means total wait = slowest-that-succeeds, not sum-of-all.
+ */
+async function fetchFromOverpass(query: string): Promise<OverpassElement[]> {
+  const body = new URLSearchParams({ data: query }).toString();
+
+  const tryEndpoint = async (endpoint: string): Promise<OverpassElement[]> => {
+    const host = endpoint.replace(/^https?:\/\//, '').split('/')[0];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8_000); // 8 s per mirror
+    try {
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+          'User-Agent': 'TrekApp/1.0 (travel planning; https://trekwanderer.info)',
+        },
+        body,
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json() as { elements?: OverpassElement[] };
+      const n = data.elements?.length ?? 0;
+      console.log(`[suggestions] Overpass ${host} → ${n} elements ✓`);
+      if (n === 0) throw new Error('empty'); // treat empty as failure so others are tried
+      return data.elements!;
+    } catch (err: any) {
+      clearTimeout(timer);
+      const reason = err?.name === 'AbortError' ? 'timeout' : (err?.message ?? 'failed');
+      console.warn(`[suggestions] Overpass ${host} → ${reason}`);
+      throw err; // re-throw so Promise.any can skip it
+    }
+  };
+
+  try {
+    // Promise.any resolves with the FIRST mirror that returns results
+    return await Promise.any(OVERPASS_ENDPOINTS.map(tryEndpoint));
+  } catch {
+    // AggregateError: every mirror failed
+    return [];
+  }
+}
+
+// ── Source B: Wikipedia GeoSearch (fallback) ──────────────────────────────────
+
+/**
+ * Wikipedia GeoSearch using multiple gscoord+gsradius queries (NOT gsbbox).
+ *
+ * Reason: the gsbbox parameter has a known bug in the GeoData extension when
+ * both longitudes are negative (e.g. Spain), consistently returning 0 results.
+ *
+ * Fix: sample up to 10 evenly-spaced points along the route and issue one
+ * gscoord query per point with gsradius=10000 (the API maximum = 10 km).
+ * All queries run in parallel via Promise.allSettled → fast (~1-2 s).
+ *
+ * API docs: https://www.mediawiki.org/wiki/API:Geosearch
+ */
+async function fetchFromWikipedia(
+  routePoints: Array<{ lat: number; lng: number }>,
+  lang = 'es',
+): Promise<Array<{ title: string; lat: number; lng: number }>> {
+
+  // Sample up to 10 evenly-spaced points (API max radius = 10 km, so ~10 circles cover ~200 km)
+  const N = Math.min(10, routePoints.length);
+  const step = routePoints.length > 1 ? (routePoints.length - 1) / (N - 1) : 0;
+  const pts = Array.from({ length: N }, (_, i) => {
+    const idx = Math.min(Math.round(i * step), routePoints.length - 1);
+    return routePoints[idx];
+  });
+
+  const queryOne = async (l: string, pt: { lat: number; lng: number }) => {
+    const params = new URLSearchParams({
+      action:   'query',
+      list:     'geosearch',
+      gscoord:  `${pt.lat}|${pt.lng}`,
+      gsradius: '10000',  // 10 km — API maximum
+      gslimit:  '20',
+      format:   'json',
+      origin:   '*',
+    });
+    const res = await fetch(`https://${l}.wikipedia.org/w/api.php?${params}`, {
+      headers: { 'User-Agent': 'TrekApp/1.0 (https://trekwanderer.info)' },
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json() as {
+      query?: { geosearch?: Array<{ title: string; lat: number; lon: number }> };
+    };
+    return data.query?.geosearch ?? [];
+  };
+
+  for (const l of [lang, lang === 'es' ? 'en' : 'es']) {
+    try {
+      const settled = await Promise.allSettled(pts.map(pt => queryOne(l, pt)));
+      const seen = new Set<string>();
+      const merged: Array<{ title: string; lat: number; lng: number }> = [];
+      for (const r of settled) {
+        if (r.status !== 'fulfilled') continue;
+        for (const item of r.value) {
+          if (!seen.has(item.title)) {
+            seen.add(item.title);
+            merged.push({ title: item.title, lat: item.lat, lng: item.lon });
+          }
+        }
+      }
+      console.log(`[suggestions] Wikipedia ${l} (${N} gscoord queries) → ${merged.length} articles`);
+      if (merged.length > 0) return merged;
+    } catch (err: any) {
+      console.warn(`[suggestions] Wikipedia ${l} → ${err?.message}`);
+    }
+  }
+  return [];
+}
+
+// ── OSM tag → Trek category ───────────────────────────────────────────────────
+
+function osmTagToCategory(tags: Record<string, string>): string {
+  const { tourism, historic, natural, amenity } = tags;
+  if (tourism === 'museum')    return 'Museum';
+  if (tourism === 'viewpoint') return 'Viewpoint';
+  if (natural === 'peak' || natural === 'waterfall' || natural === 'gorge' ||
+      natural === 'cave_entrance' || natural === 'cliff') return 'Nature';
+  if (historic === 'monastery' || historic === 'abbey' || historic === 'chapel' ||
+      historic === 'church'    || historic === 'shrine') return 'Religious';
+  if (amenity === 'monastery'  || amenity === 'place_of_worship') return 'Religious';
+  if (historic === 'castle' || historic === 'tower'   || historic === 'manor'  ||
+      historic === 'palace' || historic === 'fort'    || historic === 'fortress' ||
+      historic === 'ruins'  || historic === 'archaeological_site' ||
+      historic === 'city_gate' || historic === 'bridge') return 'Monument';
+  if (historic) return 'Monument';
+  if (tourism === 'attraction') return 'Monument';
+  return 'Other';
+}
+
+// ── Overpass element importance score ─────────────────────────────────────────
+
+function scorePOI(el: OverpassElement): number {
+  const tags = el.tags ?? {};
+  let s = 0;
+  if (el.type === 'relation') s += 3;
+  else if (el.type === 'way') s += 2;
+  if (tags.wikipedia) s += 5;
+  if (tags.wikidata)  s += 3;
+  if (tags['name:en']) s += 1;
+  const h = tags.historic;
+  if (h === 'castle' || h === 'monastery' || h === 'abbey' ||
+      h === 'ruins'  || h === 'archaeological_site') s += 4;
+  else if (h === 'manor' || h === 'palace' || h === 'fort' ||
+           h === 'fortress' || h === 'city_gate' || h === 'bridge') s += 3;
+  else if (h) s += 2;
+  const t = tags.tourism;
+  if (t === 'attraction' || t === 'museum') s += 3;
+  if (t === 'viewpoint') s += 1;
+  const n = tags.natural;
+  if (n === 'peak' || n === 'gorge' || n === 'waterfall' || n === 'cave_entrance') s += 2;
+  return s;
+}
+
+// ── Filter & rank Overpass elements into RankedPOI[] ─────────────────────────
+
+const HISTORIC_NOISE = new Set([
+  'wayside_cross', 'milestone', 'boundary_stone', 'stone',
+  'pillory', 'tomb', 'grave_yard', 'yes', 'district',
+]);
+
+function filterAndRankPOIs(
+  elements: OverpassElement[],
+  skipNames: string[],
+  routePoints: Array<{ lat: number; lng: number }>,
+  corridorKm: number,
+  maxResults = 20,
+): RankedPOI[] {
+  const skipSet   = new Set(skipNames.map(n => n.toLowerCase()));
+  const seenName  = new Set<string>();
+  const seenCoord: Array<{ lat: number; lng: number }> = [];
+  const ranked: RankedPOI[] = [];
+
+  for (const el of elements) {
+    const tags = el.tags ?? {};
+    const name = tags.name || tags['name:en'];
+    if (!name || name.trim().length < 2) continue;
+    if (tags.historic && HISTORIC_NOISE.has(tags.historic)) continue;
+    if (skipSet.has(name.toLowerCase())) continue;
+
+    let lat: number, lng: number;
+    if (el.type === 'node' && el.lat != null && el.lon != null) {
+      lat = el.lat; lng = el.lon;
+    } else if (el.center) {
+      lat = el.center.lat; lng = el.center.lon;
+    } else continue;
+
+    // Must be within the route corridor
+    if (!isNearRoute(lat, lng, routePoints, corridorKm)) continue;
+
+    const nameKey = name.toLowerCase().trim();
+    if (seenName.has(nameKey)) continue;
+    if (seenCoord.some(c => haversineKm(lat, lng, c.lat, c.lng) < 0.15)) continue;
+    seenName.add(nameKey);
+    seenCoord.push({ lat, lng });
+
+    const osmType = tags.historic ?? tags.tourism ?? tags.natural ?? 'attraction';
+    ranked.push({ name, lat, lng, category: osmTagToCategory(tags), osmType, address: null, score: scorePOI(el) });
+  }
+
+  ranked.sort((a, b) => b.score - a.score);
+  return ranked.slice(0, maxResults);
+}
+
+/** Convert Wikipedia GeoSearch hits to RankedPOI[], filtering by corridor. */
+function wikiToPOIs(
+  items: Array<{ title: string; lat: number; lng: number }>,
+  skipNames: string[],
+  routePoints: Array<{ lat: number; lng: number }>,
+  corridorKm: number,
+  maxResults = 20,
+): RankedPOI[] {
+  const skipSet   = new Set(skipNames.map(n => n.toLowerCase()));
+  const seenCoord: Array<{ lat: number; lng: number }> = [];
+  const result: RankedPOI[] = [];
+
+  for (const item of items) {
+    if (skipSet.has(item.title.toLowerCase())) continue;
+    if (!isNearRoute(item.lat, item.lng, routePoints, corridorKm)) continue;
+    if (seenCoord.some(c => haversineKm(item.lat, item.lng, c.lat, c.lng) < 0.15)) continue;
+    seenCoord.push({ lat: item.lat, lng: item.lng });
+
+    result.push({
+      name:     item.title,
+      lat:      item.lat,
+      lng:      item.lng,
+      category: 'Monument',   // Wikipedia place articles are typically landmarks
+      osmType:  'landmark',
+      address:  null,
+      score:    5,            // All Wikipedia articles are "notable"
+    });
+    if (result.length >= maxResults) break;
+  }
+  return result;
+}
+
+// ── Source C: Nominatim category search (last resort) ────────────────────────
+
+/**
+ * Nominatim /search with bounded viewbox, queried for each of several
+ * category terms.  Nominatim uses the same OSM database as Overpass but is
+ * a different service — confirmed reachable from the Docker container.
+ *
+ * Rate limit: 1 req/sec → sequential with 800 ms sleep.
+ * With 8 terms: ~7 s.  Returns real places with real coordinates.
+ */
+const NOMINATIM_TERMS: Record<string, string[]> = {
+  es: ['monasterio', 'castillo', 'ermita', 'mirador', 'museo', 'ruinas', 'palacio', 'torre'],
+  en: ['monastery',  'castle',   'chapel', 'viewpoint', 'museum', 'ruins', 'palace', 'tower'],
+};
+
+async function searchNominatimCategories(
+  bbox: ReturnType<typeof routeBBox>,
+  routePoints: Array<{ lat: number; lng: number }>,
+  corridorKm: number,
   skipNames: string[],
   lang: string,
+  maxResults = 20,
+): Promise<RankedPOI[]> {
+  // Nominatim viewbox: left,top,right,bottom = minLng, maxLat, maxLng, minLat
+  const viewbox = [
+    bbox.west.toFixed(4),
+    bbox.north.toFixed(4),
+    bbox.east.toFixed(4),
+    bbox.south.toFixed(4),
+  ].join(',');
+
+  const terms = NOMINATIM_TERMS[lang === 'es' ? 'es' : 'en'];
+  const skipSet   = new Set(skipNames.map(n => n.toLowerCase()));
+  const seenName  = new Set<string>();
+  const seenCoord: Array<{ lat: number; lng: number }> = [];
+  const results: RankedPOI[] = [];
+
+  for (let i = 0; i < terms.length && results.length < maxResults; i++) {
+    if (i > 0) await sleep(800); // Nominatim ≤ 1 req/s policy
+
+    try {
+      const params = new URLSearchParams({
+        q:                terms[i],
+        format:           'json',
+        limit:            '15',
+        viewbox,
+        bounded:          '1',
+        namedetails:      '1',
+        addressdetails:   '0',
+        'accept-language': lang === 'es' ? 'es,en' : 'en,es',
+      });
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?${params}`,
+        { headers: { 'User-Agent': 'trek-app/1.0 (https://trekwanderer.info)' } },
+      );
+      if (!res.ok) { console.warn(`[suggestions] Nominatim "${terms[i]}" → HTTP ${res.status}`); continue; }
+
+      const items = await res.json() as Array<{
+        lat: string; lon: string;
+        display_name?: string;
+        namedetails?: { name?: string };
+        class?: string; type?: string;
+        importance?: number;
+      }>;
+
+      for (const item of items) {
+        const lat = parseFloat(item.lat);
+        const lng = parseFloat(item.lon);
+        if (isNaN(lat) || isNaN(lng)) continue;
+        if (!isNearRoute(lat, lng, routePoints, corridorKm)) continue;
+
+        const name = item.namedetails?.name ?? item.display_name?.split(',')[0]?.trim() ?? '';
+        if (name.length < 3) continue;
+
+        const nameKey = name.toLowerCase();
+        if (skipSet.has(nameKey) || seenName.has(nameKey)) continue;
+        if (seenCoord.some(c => haversineKm(lat, lng, c.lat, c.lng) < 0.2)) continue;
+
+        seenName.add(nameKey);
+        seenCoord.push({ lat, lng });
+
+        const tags: Record<string, string> = { [item.class ?? 'tourism']: item.type ?? 'attraction' };
+        results.push({
+          name,
+          lat,
+          lng,
+          category: osmTagToCategory(tags),
+          osmType:  item.type ?? item.class ?? 'attraction',
+          address:  item.display_name ?? null,
+          score:    Math.round((item.importance ?? 0.5) * 10),
+        });
+      }
+    } catch (err: any) {
+      console.warn(`[suggestions] Nominatim "${terms[i]}" → ${err?.message}`);
+    }
+  }
+
+  console.log(`[suggestions] Nominatim → ${results.length} POIs`);
+  return results.sort((a, b) => b.score - a.score).slice(0, maxResults);
+}
+
+// ── POI discovery: Overpass → Wikipedia → Nominatim ──────────────────────────
+
+async function discoverRoutePOIs(
+  routePoints: Array<{ lat: number; lng: number }>,
+  corridorKm: number,
+  skipNames: string[],
+  lang: string,
+): Promise<RankedPOI[]> {
+  const bbox = routeBBox(routePoints, corridorKm + 1);
+
+  // ── A: Overpass (4 mirrors in parallel, 8 s each) ─────────────────────────
+  const overpassElements = await fetchFromOverpass(buildOverpassQuery(bbox));
+  if (overpassElements.length > 0) {
+    const pois = filterAndRankPOIs(overpassElements, skipNames, routePoints, corridorKm);
+    if (pois.length > 0) { console.log(`[suggestions] Source: Overpass (${pois.length} POIs)`); return pois; }
+  }
+
+  // ── B: Wikipedia multi-point gscoord (10 queries in parallel) ────────────
+  console.log('[suggestions] Overpass failed → Wikipedia GeoSearch…');
+  const wikiItems = await fetchFromWikipedia(routePoints, lang);
+  if (wikiItems.length > 0) {
+    const pois = wikiToPOIs(wikiItems, skipNames, routePoints, corridorKm);
+    if (pois.length > 0) { console.log(`[suggestions] Source: Wikipedia (${pois.length} POIs)`); return pois; }
+  }
+
+  // ── C: Nominatim category search (sequential, 1 req/s) ───────────────────
+  console.log('[suggestions] Wikipedia failed → Nominatim category search…');
+  const nominatimPOIs = await searchNominatimCategories(bbox, routePoints, corridorKm, skipNames, lang);
+  if (nominatimPOIs.length > 0) { console.log(`[suggestions] Source: Nominatim (${nominatimPOIs.length} POIs)`); return nominatimPOIs; }
+
+  console.warn('[suggestions] No POIs found from any source');
+  return [];
+}
+
+// ── Near-place detection ──────────────────────────────────────────────────────
+
+function findNearestConfirmedPlace(
+  lat: number, lng: number,
+  confirmed: ConfirmedPlace[],
+  maxKm = 30,
+): string | null {
+  let best: string | null = null;
+  let bestDist = maxKm;
+  for (const p of confirmed) {
+    if (p.lat == null || p.lng == null) continue;
+    const d = haversineKm(lat, lng, p.lat, p.lng);
+    if (d < bestDist) { bestDist = d; best = p.name; }
+  }
+  return best;
+}
+
+// ── AI description generation ─────────────────────────────────────────────────
+
+function buildDescriptionsPrompt(
+  tripTitle: string,
+  pois: RankedPOI[],
+  lang: string,
 ): { system: string; user: string } {
+  const system =
+    `You are a world-class travel expert. ` +
+    `Respond ONLY with a valid JSON array — no markdown, no extra text. ` +
+    `Language for descriptions: ${lang}.`;
 
-  const system = `You are a world-class travel expert. Respond ONLY with valid JSON — no markdown, no explanation. Language for names and descriptions: ${lang}.`;
+  const list = pois.map((p, i) =>
+    `${i + 1}. "${p.name}" [${p.osmType}]`,
+  ).join('\n');
 
-  // ── Collect GPS context ───────────────────────────────────────────────────
-  const allTracks     = [...tripTracks, ...daySegments.flatMap(d => d.tracks)];
-  const allSampledPts = allTracks.flatMap(t => t.sampled_pts);
-
-  // ── Build the question ───────────────────────────────────────────────────
-  const total = daySegments.length > 0
-    ? Math.max(8, Math.min(daySegments.length * 2, 12))
-    : 10;
-
-  const skipSection = skipNames.length
-    ? `\nDo NOT suggest any of these (already visited): ${skipNames.join(', ')}.`
-    : '';
-
-  let question: string;
-
-  if (resolvedStops.length >= 2 || allSampledPts.length >= 2) {
-    // ── Use named stops (waypoints or reverse-geocoded towns) ─────────────
-    const fromLabel = resolvedStops.length >= 1
-      ? resolvedStops[0]
-      : fmtCoord(allSampledPts[0]);
-    const toLabel = resolvedStops.length >= 2
-      ? resolvedStops[resolvedStops.length - 1]
-      : fmtCoord(allSampledPts[allSampledPts.length - 1]);
-
-    // Show ALL intermediate named stops (towns give far better context than coords)
-    const midStops = resolvedStops.slice(1, -1);
-    const viaClause = midStops.length > 0
-      ? ` via ${midStops.join(' → ')}`
-      : '';
-
-    question = `I am doing the trip "${tripCtx.title}", travelling from ${fromLabel} to ${toLabel}${viaClause}. What are the top ${total} must-see places, villages, monuments, or experiences along this specific route? Prioritise places that are physically on or very close to the route — iconic stops, historic towns, viewpoints, monasteries, castles, or natural landmarks that define this journey. Do not suggest places from other regions or countries.`;
-
-  } else {
-    // ── Fallback: no GPS data, use day anchors or trip title ─────────────
-    let routeFrom: string | null = null;
-    let routeTo:   string | null = null;
-    if (daySegments.length > 0) {
-      routeFrom = extractCity(daySegments[0].first.address, daySegments[0].first.name);
-      const last = daySegments[daySegments.length - 1];
-      routeTo   = extractCity(last.last.address, last.last.name);
-    }
-    if (routeFrom && routeTo && routeFrom !== routeTo) {
-      question = `I am doing the trip "${tripCtx.title}", travelling from ${routeFrom} to ${routeTo}. What are the top ${total} must-see places, villages, monuments, or experiences along this route? Only include places on or very close to this route.`;
-    } else if (routeFrom) {
-      question = `I am doing the trip "${tripCtx.title}" near ${routeFrom}. What are the top ${total} must-see places or experiences in this area?`;
-    } else {
-      question = `What are the top ${total} must-see places or experiences for the trip "${tripCtx.title}"?`;
-    }
-  }
-
-  const user = `${question}${skipSection}
-
-Respond ONLY with a JSON array, no other text:
-[
-  {
-    "name": "exact place name in the local language or English",
-    "description": "1-2 sentences on why this is unmissable",
-    "category": "one of: Nature, Museum, Monument, Viewpoint, Food, Market, Beach, Architecture, Park, Religious, Entertainment, Other",
-    "location": "City and Country, e.g. 'Porto, Portugal'"
-  }
-]`;
+  const user =
+    `I am cycling the route "${tripTitle}". ` +
+    `For each of these places found along the route, write a compelling 1-2 sentence description ` +
+    `explaining why it is worth visiting. Be specific: mention the architecture, history, legend, ` +
+    `natural feature or cultural significance that makes it unmissable.\n\n` +
+    `${list}\n\n` +
+    `Respond ONLY with a JSON array — one object per place, in the same order:\n` +
+    `[\n  {"name": "exact place name", "description": "1-2 sentence description"}\n]`;
 
   return { system, user };
 }
 
-function parseAIJson(raw: string): Array<{ name: string; description: string; category: string; location?: string }> {
+type AIDescription = { name: string; description: string };
+
+function parseDescriptionJson(raw: string): AIDescription[] {
   const clean = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
-  const parsed = JSON.parse(clean) as Array<{ name: string; description: string; category: string; location?: string }>;
-  if (!Array.isArray(parsed)) throw new Error('AI returned non-array response');
-  return parsed.filter(p => p.name && p.description && p.category).slice(0, 20);
+  const parsed = JSON.parse(clean) as AIDescription[];
+  if (!Array.isArray(parsed)) throw new Error('AI returned non-array');
+  return parsed.filter(p => p.name && p.description);
 }
 
-// ── Groq (OpenAI-compatible, free) ──────────────────────────────────────────
-
-async function askGroq(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askGroqDescriptions(
+  tripTitle: string, pois: RankedPOI[], lang: string,
+): Promise<AIDescription[]> {
   const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) throw new Error('GROQ_API_KEY is not configured');
-
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
-
-  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  if (!apiKey) throw new Error('GROQ_API_KEY not configured');
+  const { system, user } = buildDescriptionsPrompt(tripTitle, pois, lang);
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: 'llama-3.3-70b-versatile',
       max_tokens: 2048,
-      temperature: 0.7,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
+      temperature: 0.6,
+      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
     }),
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Groq API error ${response.status}: ${text.slice(0, 200)}`);
-  }
-
-  const data = await response.json() as { choices: Array<{ message: { content: string } }> };
-  const raw = data.choices?.[0]?.message?.content ?? '';
-  return parseAIJson(raw);
+  if (!res.ok) throw new Error(`Groq ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json() as { choices: Array<{ message: { content: string } }> };
+  return parseDescriptionJson(data.choices?.[0]?.message?.content ?? '');
 }
 
-// ── Google Gemini ────────────────────────────────────────────────────────────
-
-async function askGemini(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askGeminiDescriptions(
+  tripTitle: string, pois: RankedPOI[], lang: string,
+): Promise<AIDescription[]> {
   const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY is not configured');
-
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+  const { system, user } = buildDescriptionsPrompt(tripTitle, pois, lang);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
-
-  const response = await fetch(url, {
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       contents: [{ parts: [{ text: `${system}\n\n${user}` }] }],
-      generationConfig: { maxOutputTokens: 2048, temperature: 0.7 },
+      generationConfig: { maxOutputTokens: 2048, temperature: 0.6 },
     }),
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Gemini API error ${response.status}: ${text.slice(0, 200)}`);
-  }
-
-  const data = await response.json() as {
+  if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json() as {
     candidates: Array<{ content: { parts: Array<{ text: string }> } }>;
   };
-  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-  return parseAIJson(raw);
+  return parseDescriptionJson(data.candidates?.[0]?.content?.parts?.[0]?.text ?? '');
 }
 
-// ── Anthropic Claude ─────────────────────────────────────────────────────────
-
-async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
+async function askClaudeDescriptions(
+  tripTitle: string, pois: RankedPOI[], lang: string,
+): Promise<AIDescription[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
-
-  const { system, user } = buildPrompt(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
+  const { system, user } = buildDescriptionsPrompt(tripTitle, pois, lang);
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -308,275 +655,133 @@ async function askClaude(tripCtx: TripContext, daySegments: DaySegment[], tripTr
       messages: [{ role: 'user', content: user }],
     }),
   });
-
-  if (!response.ok) {
-    const text = await response.text().catch(() => '');
-    throw new Error(`Claude API error ${response.status}: ${text.slice(0, 200)}`);
-  }
-
-  const data = await response.json() as { content: Array<{ type: string; text: string }> };
-  const raw = data.content?.find(c => c.type === 'text')?.text ?? '';
-  return parseAIJson(raw);
+  if (!res.ok) throw new Error(`Claude ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json() as { content: Array<{ type: string; text: string }> };
+  return parseDescriptionJson(data.content?.find(c => c.type === 'text')?.text ?? '');
 }
 
-// ── AI router: Groq → Gemini → Claude ───────────────────────────────────────
-
-async function askAI(tripCtx: TripContext, daySegments: DaySegment[], tripTracks: GpxTrackInfo[], resolvedStops: string[], skipNames: string[], lang: string): Promise<Array<{ name: string; description: string; category: string; location?: string }>> {
-  if (process.env.GROQ_API_KEY) return askGroq(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
-  if (process.env.GEMINI_API_KEY) return askGemini(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
-  if (process.env.ANTHROPIC_API_KEY) return askClaude(tripCtx, daySegments, tripTracks, resolvedStops, skipNames, lang);
-  throw new Error('NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.');
-}
-
-// Bounding box of all day-anchor coordinates, used to reject suggestions that
-// fall outside the trip's geographic area.
-interface TripBounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
-
-function getTripBounds(daySegments: DaySegment[], allTracks: GpxTrackInfo[]): TripBounds | null {
-  const lats: number[] = [];
-  const lngs: number[] = [];
-  // Day-anchor places
-  for (const d of daySegments) {
-    if (d.first.lat != null && d.first.lng != null) { lats.push(d.first.lat); lngs.push(d.first.lng); }
-    if (d.last.lat  != null && d.last.lng  != null) { lats.push(d.last.lat);  lngs.push(d.last.lng);  }
-  }
-  // GPX track start/end points (much more precise than day anchors for trekking)
-  for (const t of allTracks) {
-    if (t.start_lat != null && t.start_lng != null) { lats.push(t.start_lat); lngs.push(t.start_lng); }
-    if (t.end_lat   != null && t.end_lng   != null) { lats.push(t.end_lat);   lngs.push(t.end_lng);   }
-  }
-  if (lats.length === 0) return null;
-  return { minLat: Math.min(...lats), maxLat: Math.max(...lats), minLng: Math.min(...lngs), maxLng: Math.max(...lngs) };
-}
-
-function isWithinTripBounds(lat: number, lng: number, bounds: TripBounds): boolean {
-  // 1.5° ≈ 130–167 km buffer around the bounding box of all day anchors.
-  const B = 1.5;
-  return lat >= bounds.minLat - B && lat <= bounds.maxLat + B
-      && lng >= bounds.minLng - B && lng <= bounds.maxLng + B;
-}
-
-// ── Geocode a single suggestion ───────────────────────────────────────────────
-//
-// locationHint — city + country supplied by the AI, e.g. "Sevilla, Spain".
-// Using it as context prevents Nominatim from finding a place with the same
-// name on the wrong continent.
-//
-// Strategy:
-//   1. Google Places (if user has a key): "name, locationHint"
-//   2. Nominatim: "name, locationHint"   ← precise, uses AI-supplied city
-//   3. Nominatim: name only              ← last resort, may be ambiguous
-//
-// Nominatim policy: max 1 req/sec. Callers must add delay between invocations.
-
-async function geocode(name: string, locationHint: string, userId: number): Promise<{ lat: number | null; lng: number | null; address: string | null }> {
-  const query = locationHint ? `${name}, ${locationHint}` : name;
-
-  // ── 1. Google Places ───────────────────────────────────────────────────────
-  try {
-    const mapsKey = getMapsKey(userId);
-    if (mapsKey) {
-      const googleRes = await fetch(
-        `https://maps.googleapis.com/maps/api/place/textsearch/json?query=${encodeURIComponent(query)}&key=${mapsKey}&fields=geometry,formatted_address`,
-      );
-      if (googleRes.ok) {
-        const gdata = await googleRes.json() as {
-          results: Array<{ geometry: { location: { lat: number; lng: number } }; formatted_address: string }>;
-        };
-        const first = gdata.results?.[0];
-        if (first) {
-          return {
-            lat: first.geometry.location.lat,
-            lng: first.geometry.location.lng,
-            address: first.formatted_address ?? null,
-          };
-        }
-      }
-    }
-  } catch { /* fall through to Nominatim */ }
-
-  // ── 2. Nominatim: name + location hint (most reliable) ───────────────────
-  try {
-    const nResults = await searchNominatim(query);
-    const first = nResults[0];
-    if (first && first.lat != null && first.lng != null) {
-      return { lat: first.lat, lng: first.lng, address: first.address ?? null };
-    }
-  } catch { /* fall through */ }
-
-  // ── 3. Nominatim: name only (last resort — may be ambiguous) ─────────────
-  if (locationHint) {
-    try {
-      await sleep(800); // respect 1 req/sec policy
-      const nResults = await searchNominatim(name);
-      const first = nResults[0];
-      if (first && first.lat != null && first.lng != null) {
-        return { lat: first.lat, lng: first.lng, address: first.address ?? null };
-      }
-    } catch { /* fall through */ }
-  }
-
-  return { lat: null, lng: null, address: null };
+async function getAIDescriptions(
+  tripTitle: string, pois: RankedPOI[], lang: string,
+): Promise<AIDescription[]> {
+  if (process.env.GROQ_API_KEY)      return askGroqDescriptions(tripTitle, pois, lang);
+  if (process.env.GEMINI_API_KEY)    return askGeminiDescriptions(tripTitle, pois, lang);
+  if (process.env.ANTHROPIC_API_KEY) return askClaudeDescriptions(tripTitle, pois, lang);
+  throw new Error(
+    'NO_AI_KEY: No AI API key configured. ' +
+    'Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY.',
+  );
 }
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function getMustSeeSuggestions(tripId: number, userId: number, lang = 'en'): Promise<Suggestion[]> {
-  const trip = db.prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?').get(tripId) as TripContext | undefined;
+export async function getMustSeeSuggestions(
+  tripId: number,
+  _userId: number,
+  lang = 'en',
+): Promise<Suggestion[]> {
+
+  // Trip metadata
+  const trip = db
+    .prepare('SELECT id, title, description, start_date, end_date FROM trips WHERE id = ?')
+    .get(tripId) as TripContext | undefined;
   if (!trip) throw new Error('Trip not found');
 
-  // ── Build day segments: first + last place per day, with coordinates ────
-  // ── Query active GPX tracks for this trip ────────────────────────────────
-  const gpxRows = db.prepare(`
-    SELECT track_name, day_id, total_distance,
-           start_lat, start_lng, end_lat, end_lng,
-           waypoints_json, points_json
-    FROM gpx_tracks
-    WHERE trip_id = ? AND is_active = 1
-    ORDER BY day_id, sort_order
-  `).all(tripId) as Array<{
-    track_name: string; day_id: number | null; total_distance: number | null;
-    start_lat: number | null; start_lng: number | null;
-    end_lat:   number | null; end_lng:   number | null;
-    waypoints_json: string; points_json: string;
-  }>;
-
-  const parseTrack = (row: typeof gpxRows[0]): GpxTrackInfo => {
-    let waypoint_names: string[] = [];
-    try {
-      const wpts = JSON.parse(row.waypoints_json || '[]') as Array<{ name?: string }>;
-      waypoint_names = wpts.map(w => w.name ?? '').filter(Boolean);
-    } catch { /* ignore */ }
-    const sampled_pts = sampleTrackPoints(row.points_json || '[]', 10);
-    // If start/end aren't in DB, derive them from sampled points
-    const start_lat = row.start_lat ?? sampled_pts[0]?.lat ?? null;
-    const start_lng = row.start_lng ?? sampled_pts[0]?.lng ?? null;
-    const end_lat   = row.end_lat   ?? sampled_pts[sampled_pts.length - 1]?.lat ?? null;
-    const end_lng   = row.end_lng   ?? sampled_pts[sampled_pts.length - 1]?.lng ?? null;
-    return { ...row, start_lat, start_lng, end_lat, end_lng, waypoint_names, sampled_pts };
-  };
-
-  // Split tracks: day-assigned vs trip-level (day_id = null)
-  const gpxByDayId = new Map<number, GpxTrackInfo[]>();
-  const tripLevelTracks: GpxTrackInfo[] = [];
-  for (const row of gpxRows) {
-    const t = parseTrack(row);
-    if (row.day_id != null) {
-      if (!gpxByDayId.has(row.day_id)) gpxByDayId.set(row.day_id, []);
-      gpxByDayId.get(row.day_id)!.push(t);
-    } else {
-      tripLevelTracks.push(t);
-    }
-  }
-
-  // ── Build day segments: first + last place per day, with coordinates ────
-  const dayRows = db.prepare(`
-    SELECT
-      d.day_number, d.id AS day_id,
-      d.date,
-      d.title          AS day_title,
-      p.name,
-      p.address,
-      p.lat,
-      p.lng,
-      da.order_index
+  // Confirmed stops (places already in the trip)
+  const confirmed = db.prepare(`
+    SELECT p.name, p.address, p.lat, p.lng, d.day_number, da.order_index
     FROM days d
     JOIN day_assignments da ON da.day_id = d.id
     JOIN places p           ON p.id = da.place_id
     WHERE d.trip_id = ?
     ORDER BY d.day_number, da.order_index
-  `).all(tripId) as Array<{
-    day_number: number; day_id: number; date: string | null; day_title: string | null;
-    name: string; address: string | null; lat: number | null; lng: number | null;
-    order_index: number;
-  }>;
+  `).all(tripId) as ConfirmedPlace[];
 
-  // Group rows by day_number, preserving insertion order
-  const byDay = new Map<number, typeof dayRows>();
-  for (const row of dayRows) {
-    if (!byDay.has(row.day_number)) byDay.set(row.day_number, []);
-    byDay.get(row.day_number)!.push(row);
+  // GPX tracks — sample 10 pts each
+  const gpxRows = db.prepare(`
+    SELECT day_id, points_json
+    FROM gpx_tracks
+    WHERE trip_id = ? AND is_active = 1
+    ORDER BY day_id, sort_order
+  `).all(tripId) as Array<{ day_id: number | null; points_json: string }>;
+
+  const allTracks: GpxTrackInfo[] = gpxRows.map(row => ({
+    day_id: row.day_id,
+    sampled_pts: sampleTrackPoints(row.points_json || '[]', 10),
+  }));
+
+  // Build route polyline: GPX points + confirmed place coords
+  const routePoints: Array<{ lat: number; lng: number }> = [
+    ...allTracks.flatMap(t => t.sampled_pts),
+    ...confirmed
+      .filter(p => p.lat != null && p.lng != null)
+      .map(p => ({ lat: p.lat as number, lng: p.lng as number })),
+  ];
+
+  if (routePoints.length === 0) {
+    console.warn('[suggestions] No route points — cannot discover POIs');
+    return [];
   }
 
-  const daySegments: DaySegment[] = [];
-  for (const [, rows] of byDay) {
-    const f = rows[0];
-    const l = rows[rows.length - 1];
-    daySegments.push({
-      day_number: f.day_number,
-      date:       f.date,
-      day_title:  f.day_title,
-      first: { name: f.name, address: f.address, lat: f.lat, lng: f.lng },
-      last:  { name: l.name, address: l.address, lat: l.lat, lng: l.lng },
-      tracks: gpxByDayId.get(f.day_id) ?? [],
+  // Skip names = places already in the trip
+  const skipNames = (
+    db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>
+  ).map(p => p.name);
+
+  // Discover POIs: Overpass first, Wikipedia GeoSearch as fallback
+  const t0 = Date.now();
+  console.log(`[suggestions] Discovering POIs for tripId=${tripId} (${routePoints.length} route pts)…`);
+  const topPOIs = await discoverRoutePOIs(routePoints, 2, skipNames, lang);
+  console.log(`[suggestions] ${topPOIs.length} POIs found in ${Date.now() - t0} ms:`,
+    topPOIs.map(p => p.name));
+
+  if (topPOIs.length === 0) return [];
+
+  // AI descriptions (single batch call)
+  let descriptions: AIDescription[] = [];
+  try {
+    descriptions = await getAIDescriptions(trip.title, topPOIs, lang);
+  } catch (err: any) {
+    const msg: string = err?.message ?? '';
+    if (msg.includes('NO_AI_KEY')) throw err;
+    console.error('[suggestions] AI descriptions failed (using fallbacks):', msg);
+  }
+
+  const descMap = new Map<string, string>(
+    descriptions.map(d => [d.name.toLowerCase(), d.description]),
+  );
+
+  // Fetch Wikimedia photos in batches of 5 (parallel)
+  const BATCH = 5;
+  const photoUrls: (string | null)[] = new Array(topPOIs.length).fill(null);
+  for (let i = 0; i < topPOIs.length; i += BATCH) {
+    const settled = await Promise.allSettled(
+      topPOIs.slice(i, i + BATCH).map(p => fetchWikimediaPhoto(p.lat, p.lng, p.name)),
+    );
+    settled.forEach((r, j) => {
+      if (r.status === 'fulfilled' && r.value?.photoUrl) photoUrls[i + j] = r.value.photoUrl;
     });
+    if (i + BATCH < topPOIs.length) await sleep(300);
   }
 
-  // All GPX tracks (for bounding box)
-  const allTracks = [...tripLevelTracks, ...Array.from(gpxByDayId.values()).flat()];
+  // Assemble Suggestion[]
+  return topPOIs.map((poi, idx) => {
+    const descKey = poi.name.toLowerCase();
+    const description =
+      descMap.get(descKey) ??
+      [...descMap.entries()].find(([k]) =>
+        k.includes(descKey.substring(0, 12)) || descKey.includes(k.substring(0, 12)),
+      )?.[1] ??
+      `${poi.osmType.charAt(0).toUpperCase() + poi.osmType.slice(1).replace(/_/g, ' ')} — notable landmark along the route.`;
 
-  // Bounding box: day anchors + GPX track endpoints
-  const tripBounds = getTripBounds(daySegments, allTracks);
-
-  // All place names already in the trip (for the "skip" list)
-  const skipNames = (db.prepare('SELECT name FROM places WHERE trip_id = ?').all(tripId) as Array<{ name: string }>)
-    .map(p => p.name);
-
-  // Resolve named stops for the route:
-  // - If track has <wpt> waypoints → use them (instant, no extra calls)
-  // - If not → reverse-geocode sampled GPS points to get real town names
-  //   so the AI knows "Covarrubias, Spain" instead of "41.840°N 3.420°W"
-  const resolvedStops = await resolveTrackStops(allTracks);
-
-  const rawSuggestions = await askAI(trip, daySegments, tripLevelTracks, resolvedStops, skipNames, lang);
-
-  // Process sequentially: Nominatim enforces 1 req/sec — parallel bursts cause
-  // silent failures. 800 ms gap stays within policy and keeps total latency low.
-  const results: Suggestion[] = [];
-
-  for (let i = 0; i < rawSuggestions.length; i++) {
-    const s = rawSuggestions[i];
-
-    // Delay before every Nominatim geocode call except the first
-    if (i > 0) await sleep(800);
-
-    try {
-      // The AI knows where each place is — use its "location" field directly.
-      const locationHint = s.location || trip.title;
-      const geo = await geocode(s.name, locationHint, userId);
-
-      // ── Geographic sanity check ─────────────────────────────────────────
-      // Reject suggestions that geocode outside the trip's bounding box
-      // + 1.5° buffer (~130–170 km). Catches AI hallucinations like
-      // "Catedral de Salamanca" in a Porto → Figueira da Foz trip.
-      if (tripBounds && geo.lat != null && geo.lng != null) {
-        if (!isWithinTripBounds(geo.lat, geo.lng, tripBounds)) {
-          console.warn(`[suggestions] "${s.name}" (${geo.lat.toFixed(2)},${geo.lng.toFixed(2)}) is outside trip bounds — skipped`);
-          continue;
-        }
-      }
-
-      let photo_url: string | null = null;
-      if (geo.lat != null && geo.lng != null) {
-        try {
-          const wikiResult = await fetchWikimediaPhoto(geo.lat, geo.lng, s.name);
-          photo_url = wikiResult?.photoUrl ?? null;
-        } catch { /* no photo — no problem */ }
-      }
-
-      results.push({
-        name: s.name,
-        description: s.description,
-        category: s.category,
-        lat: geo.lat,
-        lng: geo.lng,
-        address: geo.address,
-        photo_url,
-      });
-    } catch (err) {
-      console.warn(`[suggestions] geocode failed for "${s.name}":`, err);
-    }
-  }
-
-  return results;
+    return {
+      name:       poi.name,
+      description,
+      category:   poi.category,
+      lat:        poi.lat,
+      lng:        poi.lng,
+      address:    poi.address,
+      photo_url:  photoUrls[idx],
+      near_place: findNearestConfirmedPlace(poi.lat, poi.lng, confirmed),
+    };
+  });
 }
