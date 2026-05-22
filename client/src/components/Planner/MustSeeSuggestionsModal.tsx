@@ -8,9 +8,11 @@
 
 import { useState, useEffect } from 'react'
 import { X, Sparkles, Loader2, MapPin, CheckCircle2, AlertCircle, ImageOff } from 'lucide-react'
-import { suggestionsApi, placesApi } from '../../api/client'
+import { suggestionsApi, placesApi, assignmentsApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
+import { findNearestDay } from '../../utils/geoUtils'
+import type { Day, AssignmentsMap } from '../../types'
 
 interface Suggestion {
   name: string
@@ -29,6 +31,8 @@ interface Props {
   onClose: () => void
   onAdded: () => void       // called after places are successfully added
   lang?: string
+  days?: Day[]
+  assignments?: AssignmentsMap
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -50,7 +54,7 @@ function getCategoryColor(cat: string) {
   return CATEGORY_COLORS[cat] ?? CATEGORY_COLORS.Other
 }
 
-export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang = 'en' }: Props) {
+export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang = 'en', days = [], assignments = {} }: Props) {
   const { t } = useTranslation()
   const toast = useToast()
 
@@ -100,10 +104,14 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
     setStep('adding')
     setAddingProgress(0)
 
+    // Keep a live snapshot of assignments so each new place is placed correctly
+    // even when previous additions in this batch shift the centroid
+    const liveAssignments: AssignmentsMap = { ...assignments }
+
     let added = 0
     for (const s of toAdd) {
       try {
-        await placesApi.create(tripId, {
+        const data = await placesApi.create(tripId, {
           name:        s.name,
           description: s.description,
           lat:         s.lat,
@@ -111,7 +119,21 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
           address:     s.address,
           image_url:   s.photo_url ?? null,
         })
+        const place = data?.place
         added++
+
+        // Auto-assign to nearest day based on geolocation
+        if (place?.id && place.lat != null && place.lng != null && days.length > 0) {
+          const nearestDayId = findNearestDay(place.lat, place.lng, days, liveAssignments)
+          if (nearestDayId) {
+            try {
+              const assignData = await assignmentsApi.create(tripId, nearestDayId, { place_id: place.id })
+              // Update live snapshot so subsequent places use up-to-date centroids
+              const existing = liveAssignments[String(nearestDayId)] ?? []
+              liveAssignments[String(nearestDayId)] = [...existing, assignData.assignment]
+            } catch { /* best effort */ }
+          }
+        }
       } catch { /* skip silently — partial success is fine */ }
       setAddingProgress(Math.round((added / toAdd.length) * 100))
     }

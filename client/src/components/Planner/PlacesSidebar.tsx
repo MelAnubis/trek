@@ -895,6 +895,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
           onClose={() => setMustSeeOpen(false)}
           onAdded={() => loadTrip(tripId)}
           lang={typeof window !== 'undefined' ? (localStorage.getItem('app_language') || 'en') : 'en'}
+          days={days}
+          assignments={assignments}
         />
       )}
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
