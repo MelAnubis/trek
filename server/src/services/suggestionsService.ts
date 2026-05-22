@@ -79,26 +79,42 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.asin(Math.sqrt(a));
 }
 
-/** Nominatim reverse-geocode: lat/lng → "Village, Country". Returns null on failure. */
-async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
+/**
+ * Nominatim reverse-geocode result.
+ * `placeLat`/`placeLng` are the centroid of the matched place (from Nominatim `lat`/`lon`),
+ * NOT the query coordinates. We use them to verify that the track point is actually
+ * inside the returned locality — not just "the nearest city 15 km away".
+ */
+interface ReverseGeocodeResult {
+  name: string;      // "Quintana del Pidio, Spain"
+  placeLat: number;  // centroid of the matched place
+  placeLng: number;
+}
+
+/** Nominatim reverse-geocode. Returns the locality name AND its centroid coordinates. */
+async function reverseGeocode(lat: number, lng: number): Promise<ReverseGeocodeResult | null> {
   try {
     const url =
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}` +
-      `&format=json&zoom=10&accept-language=en`;
+      `&format=json&zoom=13&accept-language=en`;
     const res = await fetch(url, { headers: { 'User-Agent': 'trek-app/1.0' } });
     if (!res.ok) return null;
     const data = await res.json() as {
+      lat: string; lon: string;   // ← centroid of the found place
       address?: {
         village?: string; town?: string; city?: string;
         municipality?: string; county?: string; country?: string;
       };
     };
     const a = data.address;
-    if (!a) return null;
+    if (!a || !data.lat || !data.lon) return null;
     const locality = a.village || a.town || a.city || a.municipality || a.county;
-    return locality
-      ? `${locality}, ${a.country ?? ''}`.trim().replace(/,$/, '')
-      : null;
+    if (!locality) return null;
+    return {
+      name: `${locality}, ${a.country ?? ''}`.trim().replace(/,$/, ''),
+      placeLat: parseFloat(data.lat),
+      placeLng: parseFloat(data.lon),
+    };
   } catch { return null; }
 }
 
@@ -125,16 +141,21 @@ function sampleTrackPoints(
 
 /**
  * Sample the GPX track at `maxPoints` positions and reverse-geocode each one.
- * Returns only towns that are farther than `minDistKm` from every confirmed stop
- * (so we don't duplicate what the user already has) and are unique.
+ * Only includes towns that the track ACTUALLY PASSES THROUGH — verified by
+ * checking that the track point is within `maxDistFromPlaceKm` of the matched
+ * place's centroid (as returned by Nominatim `lat`/`lon`).
  *
- * Budget: maxPoints × 0.8 s Nominatim delay ≈ 8 s for 10 points.
+ * This prevents the common bug where Nominatim returns "Lerma" or "Aranda de
+ * Duero" for a track point that is 15 km away from those cities in open country.
+ *
+ * Budget: maxPoints × 0.8 s Nominatim delay ≈ 10 s for 12 points.
  */
 async function findIntermediateStops(
   allTracks: GpxTrackInfo[],
   confirmed: ConfirmedPlace[],
-  minDistKm = 8,
-  maxPoints = 10,
+  maxDistFromPlaceKm = 2,   // track point must be within 2 km of the place centroid
+  minDistFromConfirmedKm = 8,
+  maxPoints = 12,
 ): Promise<IntermediateStop[]> {
   const allPts = allTracks.flatMap(t => t.sampled_pts);
   if (allPts.length === 0) return [];
@@ -153,18 +174,27 @@ async function findIntermediateStops(
 
   for (let i = 0; i < pts.length; i++) {
     if (i > 0) await sleep(800); // Nominatim ≤ 1 req/s
-    const name = await reverseGeocode(pts[i].lat, pts[i].lng);
-    if (!name || seen.has(name)) continue;
+    const result = await reverseGeocode(pts[i].lat, pts[i].lng);
+    if (!result || seen.has(result.name)) continue;
 
-    // Skip if too close to any confirmed place
+    // KEY CHECK: is the track point actually inside this locality?
+    // Nominatim at zoom=13 can still return a city whose centroid is far away.
+    // haversine between query point and place centroid filters false matches.
+    const distToPlace = haversineKm(pts[i].lat, pts[i].lng, result.placeLat, result.placeLng);
+    if (distToPlace > maxDistFromPlaceKm) {
+      console.log(`[suggestions] intermediate skip: "${result.name}" centroid is ${distToPlace.toFixed(1)} km from track point`);
+      continue;
+    }
+
+    // Skip if too close to any confirmed trip stop
     const tooClose = confirmed.some(
       p => p.lat != null && p.lng != null &&
-        haversineKm(pts[i].lat, pts[i].lng, p.lat, p.lng) < minDistKm,
+        haversineKm(pts[i].lat, pts[i].lng, p.lat, p.lng) < minDistFromConfirmedKm,
     );
     if (tooClose) continue;
 
-    seen.add(name);
-    stops.push({ name, lat: pts[i].lat, lng: pts[i].lng });
+    seen.add(result.name);
+    stops.push({ name: result.name, lat: result.placeLat, lng: result.placeLng });
   }
   return stops;
 }
