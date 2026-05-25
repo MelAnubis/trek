@@ -24,6 +24,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
 
   {
     // Page 1 — breaking change first (warn → sorts before the two info notices)
+    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-photos',
     display: 'modal',
     severity: 'warn',
@@ -35,11 +36,12 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 90,
     minVersion: '3.0.0',
-    maxVersion: '4.0.0',
+    maxVersion: '3.1.0',
   },
 
   {
     // Page 2 — flagship feature (only when Journey addon is enabled)
+    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-journey',
     display: 'modal',
     severity: 'info',
@@ -65,11 +67,12 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 80,
     minVersion: '3.0.0',
-    maxVersion: '4.0.0',
+    maxVersion: '3.1.0',
   },
 
   {
     // Page 3 — MCP OAuth 2.1 upgrade (only when MCP addon is enabled)
+    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-mcp',
     display: 'modal',
     severity: 'warn',
@@ -90,11 +93,12 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 75,
     minVersion: '3.0.0',
-    maxVersion: '4.0.0',
+    maxVersion: '3.1.0',
   },
 
   {
     // Page 4 — other highlights
+    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-features',
     display: 'modal',
     severity: 'info',
@@ -112,11 +116,12 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 70,
     minVersion: '3.0.0',
-    maxVersion: '4.0.0',
+    maxVersion: '3.1.0',
   },
 
   {
-    // Page 1 — personal thank-you from the creator (shown first)
+    // Personal thank-you from the creator
+    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-thankyou',
     display: 'modal',
     severity: 'info',
@@ -128,7 +133,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 95,
     minVersion: '3.0.0',
-    maxVersion: '4.0.0',
+    maxVersion: '3.1.0',
   },
 
   // ── 3.0.14 admin notice — whitespace migration collision ───────────────────
