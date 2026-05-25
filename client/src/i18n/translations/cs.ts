@@ -305,7 +305,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description': 'TREK je samohostovaný plánovač cest, který vám pomůže organizovat výlety od prvního nápadu po poslední vzpomínku. Denní plánování, rozpočet, balicí seznamy, fotky a mnoho dalšího — vše na jednom místě, na vašem vlastním serveru.',
   'settings.about.madeWith': 'Vytvořeno s',
-  'settings.about.madeBy': 'komunitou Trek Wanderer.'
+  'settings.about.madeBy': 'komunitou Trek Wanderer.',
   'settings.username': 'Uživatelské jméno',
   'settings.email': 'E-mail',
   'settings.role': 'Role',
