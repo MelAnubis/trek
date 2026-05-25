@@ -37,12 +37,18 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       # 3. Anthropic Claude — de pago: https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
-      # ── Bikepack user sync ────────────────────────────────────────────────
-      # Uncomment to auto-create new users on the Bikepack instance as well.
+      # ── Bikepack integration ──────────────────────────────────────────────
+      # User sync: auto-create new Trek users on the Bikepack instance.
       - BIKEPACK_URL=${BIKEPACK_URL:-}
       - BIKEPACK_ADMIN_EMAIL=${BIKEPACK_ADMIN_EMAIL:-}
       - BIKEPACK_ADMIN_PASSWORD=${BIKEPACK_ADMIN_PASSWORD:-}
       # - BIKEPACK_INSECURE=true   # Uncomment if Bikepack uses a self-signed cert
+      # SSO: same secret on BOTH instances enables transparent cross-login.
+      # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+      - BIKEPACK_SHARED_SECRET=${BIKEPACK_SHARED_SECRET:-}
+      # Cookie name for this instance — set to 'bikepack_session' on the Bikepack side
+      # so Trek and Bikepack cookies don't collide (they share the same domain).
+      - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:-trek_session}
     volumes:
       - //c/003Trek/trek-main/data:/app/data
       - ./uploads:/app/uploads

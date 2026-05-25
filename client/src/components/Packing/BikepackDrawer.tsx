@@ -1,8 +1,9 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FICHERO NUEVO: client/src/components/Packing/BikepackDrawer.tsx
+// FICHERO: client/src/components/Packing/BikepackDrawer.tsx
 //
-// Drawer lateral que embebe Bikepack en un iframe.
-// Se abre desde TripPlannerPage al pulsar el botón 🚴 Bikepack.
+// Drawer lateral que embebe Bikepack en un iframe con SSO automático.
+// El usuario Trek queda autenticado en Bikepack sin necesidad de volver
+// a introducir sus credenciales.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef, useState } from 'react'
@@ -18,7 +19,20 @@ interface Props {
 
 export default function BikepackDrawer({ onClose, onImport }: Props) {
   const [loaded, setLoaded] = useState(false)
+  const [iframeSrc, setIframeSrc] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+
+  // Obtener SSO URL y usarla como src del iframe para auto-login
+  useEffect(() => {
+    fetch('/api/auth/bikepack-sso-url', { credentials: 'include' })
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((d: { ssoUrl: string }) => setIframeSrc(d.ssoUrl))
+      .catch(() => {
+        // Si SSO no está configurado, cargar Bikepack directamente (el usuario
+        // tendrá que autenticarse manualmente).
+        setIframeSrc(BIKEPACK_URL)
+      })
+  }, [])
 
   // Cerrar con Escape
   useEffect(() => {
@@ -120,7 +134,7 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
 
         {/* iframe */}
         <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          {!loaded && (
+          {(!loaded || !iframeSrc) && (
             <div style={{
               position: 'absolute', inset: 0,
               display: 'flex', flexDirection: 'column',
@@ -128,21 +142,23 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
               gap: 12, color: 'var(--text-muted)',
             }}>
               <Loader2 size={24} className="animate-spin" />
-              <span style={{ fontSize: 13 }}>Cargando Bikepack…</span>
+              <span style={{ fontSize: 13 }}>Conectando con Bikepack…</span>
             </div>
           )}
-          <iframe
-            ref={iframeRef}
-            src={BIKEPACK_URL}
-            onLoad={() => setLoaded(true)}
-            style={{
-              width: '100%', height: '100%',
-              border: 'none',
-              opacity: loaded ? 1 : 0,
-              transition: 'opacity 0.2s',
-            }}
-            title="Bikepack"
-          />
+          {iframeSrc && (
+            <iframe
+              ref={iframeRef}
+              src={iframeSrc}
+              onLoad={() => setLoaded(true)}
+              style={{
+                width: '100%', height: '100%',
+                border: 'none',
+                opacity: loaded ? 1 : 0,
+                transition: 'opacity 0.2s',
+              }}
+              title="Bikepack"
+            />
+          )}
         </div>
       </div>
 

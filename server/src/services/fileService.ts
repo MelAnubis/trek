@@ -3,6 +3,7 @@ import fs from 'fs';
 import type { Request } from 'express';
 import { db, canAccessTrip } from '../db/database';
 import { consumeEphemeralToken } from './ephemeralTokens';
+import { COOKIE_NAME } from './cookie';
 import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { TripFile } from '../types';
 
@@ -74,7 +75,7 @@ export function resolveFilePath(filename: string): { resolved: string; safe: boo
 // ---------------------------------------------------------------------------
 
 export function authenticateDownload(req: Request): { userId: number } | { error: string; status: number } {
-  const cookieToken = (req as any).cookies?.trek_session as string | undefined;
+  const cookieToken = (req as any).cookies?.[COOKIE_NAME] as string | undefined;
   const authHeader = req.headers['authorization'];
   const bearerToken = authHeader ? (authHeader.split(' ')[1] || undefined) : undefined;
   const queryToken = req.query.token as string | undefined;

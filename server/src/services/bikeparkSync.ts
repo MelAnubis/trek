@@ -167,3 +167,45 @@ export async function syncUserToBikepark(user: {
     console.warn('[BikeparkSync] Unexpected error:', (err as Error).message);
   }
 }
+
+/**
+ * Fetch the Bikepack packing profile for the Trek user with the given email.
+ * Uses the admin token to find the user by email, then fetches their public
+ * packing profile.  Returns null if Bikepack is not configured or unreachable.
+ */
+export async function fetchUserBikepackProfile(email: string): Promise<unknown | null> {
+  if (!cfg().enabled) return null;
+  try {
+    const token = await getAdminToken();
+    if (!token) return null;
+
+    // List users to find the Bikepack user ID by email
+    const usersRes = await bikeparkFetch('/api/admin/users', 'GET', undefined, token);
+    if (!usersRes.ok) {
+      console.warn(`[BikeparkSync] fetchUserBikepackProfile: could not list users (${usersRes.status})`);
+      return null;
+    }
+
+    const users = usersRes.data as Array<{ id: string; email: string }> ?? [];
+    const found = users.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+    if (!found) {
+      console.warn(`[BikeparkSync] fetchUserBikepackProfile: user ${email} not found on Bikepack`);
+      return null;
+    }
+
+    const profileRes = await bikeparkFetch(
+      `/api/bikepack/profile/public?user_id=${encodeURIComponent(found.id)}`,
+      'GET',
+      undefined,
+      token,
+    );
+    if (!profileRes.ok) {
+      console.warn(`[BikeparkSync] fetchUserBikepackProfile: profile fetch failed (${profileRes.status})`);
+      return null;
+    }
+    return profileRes.data;
+  } catch (err) {
+    console.warn('[BikeparkSync] fetchUserBikepackProfile error:', (err as Error).message);
+    return null;
+  }
+}
