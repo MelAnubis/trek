@@ -71,7 +71,7 @@ interface GooglePlaceDetails extends GooglePlaceResult {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const UA = 'TREK Travel Planner (https://github.com/mauriceboe/TREK)';
+const UA = 'Trek Wanderer (https://github.com/MelAnubis/trek)';
 
 // ── Photo cache (disk-backed) ────────────────────────────────────────────────
 import * as placePhotoCache from './placePhotoCache';
