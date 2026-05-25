@@ -411,7 +411,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description': 'TREK adalah perencana perjalanan self-hosted yang membantu kamu mengatur perjalanan dari ide pertama hingga kenangan terakhir. Perencanaan harian, anggaran, daftar bawaan, foto dan masih banyak lagi — semua di satu tempat, di servermu sendiri.',
   'settings.about.madeWith': 'Dibuat dengan',
-  'settings.about.madeBy': 'oleh komunitas Trek Wanderer.'
+  'settings.about.madeBy': 'oleh komunitas Trek Wanderer.',
   'settings.username': 'Nama pengguna',
   'settings.email': 'Email',
   'settings.role': 'Peran',

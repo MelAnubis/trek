@@ -319,7 +319,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description': 'TREK to samodzielnie hostowany planer podróży, który pomaga organizować wyprawy od pierwszego pomysłu po ostatnie wspomnienie. Planowanie dzienne, budżet, listy pakowania, zdjęcia i wiele więcej — wszystko w jednym miejscu, na własnym serwerze.',
   'settings.about.madeWith': 'Stworzone z',
-  'settings.about.madeBy': 'przez społeczność Trek Wanderer.'
+  'settings.about.madeBy': 'przez społeczność Trek Wanderer.',
   'settings.username': 'Nazwa użytkownika',
   'settings.email': 'E-mail',
   'settings.role': 'Rola',

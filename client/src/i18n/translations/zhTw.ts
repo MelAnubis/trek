@@ -408,7 +408,7 @@ const zhTw: Record<string, string> = {
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description': 'TREK 是一款自架旅遊規劃器，幫助您從最初構想到最後回憶，整理每次旅行。日程規劃、預算、行李清單、照片及更多功能——全部集中在您自己的伺服器上。',
   'settings.about.madeWith': '以',
-  'settings.about.madeBy': '由 Trek Wanderer 社群製作。'
+  'settings.about.madeBy': '由 Trek Wanderer 社群製作。',
   'settings.username': '使用者名稱',
   'settings.email': '郵箱',
   'settings.role': '角色',
