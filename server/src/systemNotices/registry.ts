@@ -41,7 +41,6 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
 
   {
     // Page 2 — flagship feature (only when Journey addon is enabled)
-    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-journey',
     display: 'modal',
     severity: 'info',
@@ -67,12 +66,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 80,
     minVersion: '3.0.0',
-    maxVersion: '3.1.0',
+    maxVersion: '4.0.0',
   },
 
   {
     // Page 3 — MCP OAuth 2.1 upgrade (only when MCP addon is enabled)
-    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-mcp',
     display: 'modal',
     severity: 'warn',
@@ -93,12 +91,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 75,
     minVersion: '3.0.0',
-    maxVersion: '3.1.0',
+    maxVersion: '4.0.0',
   },
 
   {
     // Page 4 — other highlights
-    // maxVersion capped at 3.1.0: not relevant for Trek Wanderer fork
     id: 'v3-features',
     display: 'modal',
     severity: 'info',
@@ -116,7 +113,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     publishedAt: '2026-04-16T00:00:00Z',
     priority: 70,
     minVersion: '3.0.0',
-    maxVersion: '3.1.0',
+    maxVersion: '4.0.0',
   },
 
   {
