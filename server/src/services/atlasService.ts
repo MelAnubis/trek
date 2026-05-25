@@ -196,7 +196,7 @@ export async function reverseGeocodeCountry(lat: number, lng: number): Promise<s
   await throttleNominatim();
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=3&accept-language=en`, {
-      headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+      headers: { 'User-Agent': 'Trek Wanderer (https://github.com/MelAnubis/trek)' },
       signal: AbortSignal.timeout(10_000),
     });
     if (!res.ok) return null;
@@ -542,7 +542,7 @@ async function reverseGeocodeRegion(lat: number, lng: number): Promise<RegionInf
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=8&accept-language=en`,
       {
-        headers: { 'User-Agent': 'TREK Travel Planner (https://github.com/mauriceboe/TREK)' },
+        headers: { 'User-Agent': 'Trek Wanderer (https://github.com/MelAnubis/trek)' },
         signal: AbortSignal.timeout(10_000),
       }
     );
