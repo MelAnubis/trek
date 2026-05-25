@@ -20,6 +20,7 @@ import { TransportModal } from '../components/Planner/TransportModal'
 import ReservationsPanel from '../components/Planner/ReservationsPanel'
 import PackingListPanel from '../components/Packing/PackingListPanel'
 import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
+import BikepackImportModal from '../components/Packing/BikepackImportModal'
 import TodoListPanel from '../components/Todo/TodoListPanel'
 import FileManager from '../components/Files/FileManager'
 import BudgetPanel from '../components/Budget/BudgetPanel'
@@ -53,6 +54,10 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
   const [clearCheckedSignal, setClearCheckedSignal] = useState(0)
   const [saveTemplateSignal, setSaveTemplateSignal] = useState(0)
   const [addTodoSignal, setAddTodoSignal] = useState(0)
+  const [showBikepackModal, setShowBikepackModal] = useState(false)
+  const can = useCanDo()
+  const trip = useTripStore((s) => s.trip)
+  const canEditPacking = can('packing_edit', trip)
   const { t } = useTranslation()
 
   const tabs = [
@@ -141,6 +146,15 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
                   <Upload size={14} strokeWidth={2.5} />
                   <span className="hidden sm:inline">{t('packing.import')}</span>
                 </button>
+                {canEditPacking && (
+                  <button onClick={() => setShowBikepackModal(true)}
+                    className={sharedBtnClass}
+                    style={{ ...sharedBtnStyle, background: 'var(--bg-card)', color: '#0d9488', border: '1px solid #0d9488' }}
+                    title="Importar perfil de equipaje desde Bikepack"
+                  >
+                    🚴 <span className="hidden sm:inline">Bikepack</span>
+                  </button>
+                )}
               </div>
             )
           })()}
@@ -165,6 +179,16 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; p
         {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} />}
         {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
       </div>
+      {showBikepackModal && (
+        <BikepackImportModal
+          tripId={tripId}
+          onClose={() => setShowBikepackModal(false)}
+          onImported={() => {
+            setShowBikepackModal(false)
+            window.dispatchEvent(new CustomEvent('bikepack:imported', { detail: { tripId } }))
+          }}
+        />
+      )}
     </div>
   )
 }
