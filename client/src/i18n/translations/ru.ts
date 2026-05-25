@@ -24,6 +24,7 @@ const ru: Record<string, string> = {
   'common.search': 'Поиск',
   'common.confirm': 'Подтвердить',
   'common.ok': 'ОК',
+  'common.notNow': 'Не сейчас',
   'common.yes': 'Да',
   'common.no': 'Нет',
   'common.or': 'или',

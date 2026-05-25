@@ -300,7 +300,7 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
               onClick={onDismiss}
               className="text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
             >
-              Not now
+              {t('common.notNow')}
             </button>
           )}
         </div>

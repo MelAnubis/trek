@@ -28,6 +28,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'common.search': 'بحث',
   'common.confirm': 'تأكيد',
   'common.ok': 'حسنًا',
+  'common.notNow': 'ليس الآن',
   'common.yes': 'نعم',
   'common.no': 'لا',
   'common.or': 'أو',

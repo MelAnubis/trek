@@ -24,6 +24,7 @@ const nl: Record<string, string> = {
   'common.search': 'Zoeken',
   'common.confirm': 'Bevestigen',
   'common.ok': 'OK',
+  'common.notNow': 'Niet nu',
   'common.yes': 'Ja',
   'common.no': 'Nee',
   'common.or': 'of',

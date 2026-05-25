@@ -20,6 +20,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'common.search': 'Szukaj',
   'common.confirm': 'Potwierdź',
   'common.ok': 'OK',
+  'common.notNow': 'Nie teraz',
   'common.yes': 'Tak',
   'common.no': 'Nie',
   'common.or': 'lub',

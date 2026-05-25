@@ -24,6 +24,7 @@ const zh: Record<string, string> = {
   'common.search': '搜索',
   'common.confirm': '确认',
   'common.ok': '确定',
+  'common.notNow': '暂不',
   'common.yes': '是',
   'common.no': '否',
   'common.or': '或',
