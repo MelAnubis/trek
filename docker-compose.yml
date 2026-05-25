@@ -37,6 +37,12 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       # 3. Anthropic Claude — de pago: https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # ── Bikepack user sync ────────────────────────────────────────────────
+      # Uncomment to auto-create new users on the Bikepack instance as well.
+      - BIKEPACK_URL=${BIKEPACK_URL:-}
+      - BIKEPACK_ADMIN_EMAIL=${BIKEPACK_ADMIN_EMAIL:-}
+      - BIKEPACK_ADMIN_PASSWORD=${BIKEPACK_ADMIN_PASSWORD:-}
+      # - BIKEPACK_INSECURE=true   # Uncomment if Bikepack uses a self-signed cert
     volumes:
       - //c/003Trek/trek-main/data:/app/data
       - ./uploads:/app/uploads

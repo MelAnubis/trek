@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { authenticate, adminOnly } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { writeAudit, getClientIp, logInfo } from '../services/auditLog';
+import { syncUserToBikepark } from '../services/bikeparkSync';
 import * as svc from '../services/adminService';
 import { getAdminUserDefaults, setAdminUserDefaults } from '../services/settingsService';
 import { invalidateMcpSessions } from '../mcp';
@@ -28,6 +29,13 @@ router.post('/users', (req: Request, res: Response) => {
     ip: getClientIp(req),
     details: result.auditDetails,
   });
+  // Mirror new user to Bikepack instance (fire-and-forget)
+  syncUserToBikepark({
+    username: req.body.username,
+    email: req.body.email,
+    password: req.body.password,
+    role: req.body.role,
+  }).catch(() => {});
   res.status(201).json({ user: result.user });
 });
 

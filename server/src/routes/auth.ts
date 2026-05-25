@@ -7,6 +7,7 @@ import { authenticate, optionalAuth, demoUploadBlock } from '../middleware/auth'
 import { AuthRequest, OptionalAuthRequest } from '../types';
 import { writeAudit, getClientIp } from '../services/auditLog';
 import { setAuthCookie, clearAuthCookie } from '../services/cookie';
+import { syncUserToBikepark } from '../services/bikeparkSync';
 import {
   getAppConfig,
   demoLogin,
@@ -145,6 +146,13 @@ router.post('/register', authLimiter, (req: Request, res: Response) => {
   if (result.error) return res.status(result.status!).json({ error: result.error });
   writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
   setAuthCookie(res, result.token!, req);
+  // Mirror new user to Bikepack instance (fire-and-forget)
+  syncUserToBikepark({
+    username: result.user!.username as string,
+    email: result.user!.email as string,
+    password: req.body.password,
+    role: result.user!.role as string,
+  }).catch(() => {});
   res.status(201).json({ token: result.token, user: result.user });
 });
 
