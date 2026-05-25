@@ -1,19 +1,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// FICHERO NUEVO: client/src/components/Packing/BikepackImportModal.tsx
+// FICHERO: client/src/components/Packing/BikepackImportModal.tsx
 //
 // Modal que Trek muestra al pulsar "Importar desde Bikepack".
-// Llama a la API de Bikepack, muestra una vista previa y luego usa
-// packingApi.bulkImport + packingApi.createBag para rellenar el viaje.
+// El perfil de equipaje se obtiene a través del endpoint proxy de Trek
+// (/api/auth/bikepack-profile) para no exponer credenciales al cliente.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect } from 'react'
-import { X, Loader2, Package, CheckCircle2, AlertCircle } from 'lucide-react'
+import { X, Loader2, Package, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react'
 import { packingApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
 
-// URL base de Bikepack — ajustar si cambia el puerto
 const BIKEPACK_URL = 'https://trekwanderer.info:448'
-const BIKEPACK_USER_ID = '0563db31-017c-4b3f-8705-a373b34577d5'
 
 interface BikepackGroup  { id: number; name: string; color: string }
 interface BikepackItem   { id: number; name: string; weight_grams: number; category: string; quantity: number; bag_names: string[] }
@@ -41,12 +39,16 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
   async function fetchProfile() {
     setStep('loading')
     try {
-      // La petición se hace con credentials para enviar la cookie de sesión de Bikepack
-      const res = await fetch(`${BIKEPACK_URL}/api/bikepack/profile/public?user_id=${BIKEPACK_USER_ID}`, {
-
+      // Trek proxies the call to Bikepack — client never talks to Bikepack directly.
+      // The server uses the admin token to find the user by email and fetch their profile.
+      const res = await fetch('/api/auth/bikepack-profile', {
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       })
-      if (!res.ok) throw new Error(`Bikepack devolvió ${res.status}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error || `Error ${res.status}`)
+      }
       const data: BikepackProfile = await res.json()
       setProfile(data)
       setStep('preview')
@@ -142,10 +144,11 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
               <AlertCircle size={28} className="text-red-400" />
               <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center">{error}</p>
               <p className="text-xs text-zinc-400 text-center">
-                Asegúrate de estar logueado en{' '}
-                <a href={BIKEPACK_URL} target="_blank" rel="noreferrer" className="text-teal-500 underline">
-                  Bikepack
+                Si es la primera vez, configura tu perfil en{' '}
+                <a href={BIKEPACK_URL} target="_blank" rel="noreferrer" className="text-teal-500 underline inline-flex items-center gap-1">
+                  Bikepack <ExternalLink size={10} />
                 </a>
+                {' '}y vuelve a intentarlo.
               </p>
               <button
                 onClick={fetchProfile}
@@ -170,7 +173,7 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
               {/* Stats globales */}
               <div className="flex gap-4 mb-4 text-sm">
                 <div className="flex-1 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 py-2 text-center">
-                  <div className="font-medium text-base">{profile.items.length}</div>
+                  <div className="font-medium text-base">{totalItems}</div>
                   <div className="text-zinc-500 text-xs">artículos</div>
                 </div>
                 <div className="flex-1 bg-zinc-50 dark:bg-zinc-800 rounded-lg px-3 py-2 text-center">

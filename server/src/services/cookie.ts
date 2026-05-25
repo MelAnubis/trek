@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-const COOKIE_NAME = 'trek_session';
+export const COOKIE_NAME = process.env.SESSION_COOKIE_NAME ?? 'trek_session';
 
 /**
  * Decide whether the session cookie should carry the `Secure` flag.
