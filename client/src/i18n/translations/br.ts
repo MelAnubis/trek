@@ -402,6 +402,10 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'settings.oauth.toast.revoked': 'Sessão revogada',
   'settings.oauth.toast.revokeError': 'Falha ao revogar sessão',
   'settings.oauth.toast.rotateError': 'Falha ao renovar segredo do cliente',
+  'settings.oauth.modal.machineClient': 'Cliente de máquina (sem login no navegador)',
+  'settings.oauth.modal.machineClientHint': 'Usa o grant client_credentials — sem URIs de redirecionamento. O token é emitido diretamente via client_id + client_secret e age como você dentro dos escopos selecionados.',
+  'settings.oauth.modal.machineClientUsage': 'Obter token: POST /oauth/token com grant_type=client_credentials, client_id e client_secret. Sem navegador, sem refresh token.',
+  'settings.oauth.badge.machine': 'máquina',
   'settings.mustChangePassword': 'Você deve alterar sua senha antes de continuar. Defina uma nova senha abaixo.',
 
   // Login
@@ -2080,6 +2084,8 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.uploadFailed': 'Falha ao enviar fotos',
   'journey.editor.uploadPhotos': 'Enviar fotos',
   'journey.editor.uploading': 'Enviando...',
+  'journey.editor.uploadingProgress': 'Enviando {done}/{total}…',
+  'journey.editor.uploadPartialFailed': '{failed} de {total} fotos falharam — salve novamente para tentar',
   'journey.editor.fromGallery': 'Da galeria',
   'journey.editor.allPhotosAdded': 'Todas as fotos já foram adicionadas',
   'journey.editor.writeStory': 'Escreva sua história...',
