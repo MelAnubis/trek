@@ -24,6 +24,7 @@ const zhTw: Record<string, string> = {
   'common.search': '搜尋',
   'common.confirm': '確認',
   'common.ok': '確定',
+  'common.notNow': '暫不',
   'common.yes': '是',
   'common.no': '否',
   'common.or': '或',

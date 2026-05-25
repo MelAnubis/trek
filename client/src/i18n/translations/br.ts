@@ -24,6 +24,7 @@ const br: Record<string, string | { name: string; category: string }[]> = {
   'common.search': 'Buscar',
   'common.confirm': 'Confirmar',
   'common.ok': 'OK',
+  'common.notNow': 'Agora não',
   'common.yes': 'Sim',
   'common.no': 'Não',
   'common.or': 'ou',

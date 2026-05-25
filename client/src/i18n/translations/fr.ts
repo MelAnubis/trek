@@ -24,6 +24,7 @@ const fr: Record<string, string> = {
   'common.search': 'Rechercher',
   'common.confirm': 'Confirmer',
   'common.ok': 'OK',
+  'common.notNow': 'Pas maintenant',
   'common.yes': 'Oui',
   'common.no': 'Non',
   'common.or': 'ou',

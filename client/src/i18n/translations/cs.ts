@@ -24,6 +24,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'common.search': 'Hledat',
   'common.confirm': 'Potvrdit',
   'common.ok': 'OK',
+  'common.notNow': 'Teď ne',
   'common.yes': 'Ano',
   'common.no': 'Ne',
   'common.or': 'nebo',
