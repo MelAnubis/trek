@@ -526,7 +526,37 @@ export default function JourneyDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button onClick={() => { import('../components/PDF/JourneyBookPDF').then(m => m.downloadJourneyBookPDF(current)) }} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><Download size={14} /></button>
+                    <button
+                      onClick={async (btn) => {
+                        const el = (btn.currentTarget as HTMLButtonElement)
+                        el.disabled = true
+                        try {
+                          const { downloadJourneyBookPDF } = await import('../components/PDF/JourneyBookPDF')
+                          // Fetch GPX tracks for all linked trips
+                          const tracks: any[] = []
+                          for (const trip of (current.trips || [])) {
+                            try {
+                              const list: any[] = await fetch(
+                                `/api/trips/${trip.trip_id}/gpx`,
+                                { credentials: 'include' },
+                              ).then(r => r.ok ? r.json() : [])
+                              const active = list.filter((t: any) => t.is_active)
+                              for (const track of active) {
+                                const full = await fetch(
+                                  `/api/trips/${trip.trip_id}/gpx/${track.id}/points`,
+                                  { credentials: 'include' },
+                                ).then(r => r.ok ? r.json() : null)
+                                if (full) tracks.push({ ...track, points: full.points || [] })
+                              }
+                            } catch { /* ignore per-trip errors */ }
+                          }
+                          downloadJourneyBookPDF(current, tracks)
+                        } finally {
+                          el.disabled = false
+                        }
+                      }}
+                      className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25 disabled:opacity-50"
+                    ><Download size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={async () => {
