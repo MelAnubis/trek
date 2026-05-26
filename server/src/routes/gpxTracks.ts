@@ -2,12 +2,13 @@
  * gpxTracks.ts — Gestión de tracks GPX por viaje en Trek
  *
  * Rutas:
- *   GET    /api/trips/:id/gpx                        → lista tracks del viaje
- *   GET    /api/trips/:id/gpx/:trackId/points        → puntos del track
- *   POST   /api/trips/:id/gpx/upload                 → sube un fichero GPX
- *   PATCH  /api/trips/:id/gpx/:trackId               → renombra / activa / asigna día
- *   DELETE /api/trips/:id/gpx/:trackId               → elimina track
- *   POST   /api/trips/:id/gpx/:trackId/split-by-days → divide GPX en etapas por día
+ *   GET    /api/trips/:id/gpx                          → lista tracks del viaje
+ *   GET    /api/trips/:id/gpx/:trackId/points          → puntos del track
+ *   POST   /api/trips/:id/gpx/upload                   → sube un fichero GPX
+ *   POST   /api/trips/:id/gpx/:trackId/recalculate     → recalcula stats del track
+ *   PATCH  /api/trips/:id/gpx/:trackId                 → renombra / activa / asigna día
+ *   DELETE /api/trips/:id/gpx/:trackId                 → elimina track
+ *   POST   /api/trips/:id/gpx/:trackId/split-by-days   → divide GPX en etapas por día
  */
 import express, { Request, Response } from 'express';
 import multer from 'multer';
@@ -44,7 +45,92 @@ const uploadGpx = multer({
   },
 });
 
-// ── Minimal GPX parser ────────────────────────────────────────────────────────
+// ── Haversine distance in meters ──────────────────────────────────────────────
+function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
+  const R = 6371000;
+  const dLa = (la2 - la1) * Math.PI / 180;
+  const dLo = (lo2 - lo1) * Math.PI / 180;
+  const a = Math.sin(dLa / 2) ** 2 +
+            Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Elevation smoothing (simple moving average, window = 7 points) ────────────
+// Reduces GPS vertical noise before computing gain/loss.
+function smoothElevation(
+  pts: { ele: number | null }[],
+  window = 7,
+): (number | null)[] {
+  const half = Math.floor(window / 2);
+  return pts.map((_, i) => {
+    const start = Math.max(0, i - half);
+    const end   = Math.min(pts.length - 1, i + half);
+    const vals  = [];
+    for (let j = start; j <= end; j++) {
+      if (pts[j].ele != null) vals.push(pts[j].ele as number);
+    }
+    return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
+  });
+}
+
+// ── Elevation stats from a sequence of points (segment-aware) ────────────────
+//
+// Fixes vs original implementation:
+//  1. Threshold-hysteresis: lastSmoothedEle only updates when the threshold
+//     IS crossed — this prevents noise from resetting the baseline on every
+//     point and causing tiny fluctuations to be counted.
+//  2. Elevation smoothed with a 7-point moving average before computing gain/loss.
+//  3. Threshold raised from 2 m to 5 m to better match typical GPS vertical
+//     accuracy (3–5 m RMS).
+//
+function computeElevationStats(
+  pts: { ele: number | null }[],
+): { gain: number; loss: number; max: number | null; min: number | null } {
+  const ELE_THRESHOLD = 5; // metres — raised from 2 m to reduce GPS noise
+  const smoothed = smoothElevation(pts);
+
+  let gain = 0, loss = 0;
+  let maxEle: number | null = null;
+  let minEle: number | null = null;
+  let ref: number | null = null; // reference elevation (only moves when threshold crossed)
+
+  for (const ele of smoothed) {
+    if (ele == null) continue;
+    if (maxEle === null || ele > maxEle) maxEle = ele;
+    if (minEle === null || ele < minEle) minEle = ele;
+
+    if (ref === null) {
+      ref = ele;
+      continue;
+    }
+
+    const diff = ele - ref;
+    if (diff > ELE_THRESHOLD) {
+      gain += diff;
+      ref = ele; // ← only update reference when threshold exceeded
+    } else if (diff < -ELE_THRESHOLD) {
+      loss += Math.abs(diff);
+      ref = ele; // ← only update reference when threshold exceeded
+    }
+    // If |diff| ≤ threshold: DON'T update ref — noise is filtered out
+  }
+
+  return {
+    gain: Math.round(gain),
+    loss: Math.round(loss),
+    max:  maxEle != null ? Math.round(maxEle) : null,
+    min:  minEle != null ? Math.round(minEle) : null,
+  };
+}
+
+// ── Minimal GPX parser (segment-aware) ───────────────────────────────────────
+//
+// Fixes vs original implementation:
+//  1. Parses <trkseg> boundaries — distance and elevation are NOT computed
+//     across segment gaps (GPS dropouts, tunnels, etc.).
+//  2. Handles both lat-before-lon and lon-before-lat attribute order.
+//  3. Falls back to treating all <trkpt> as one segment if no <trkseg> found.
+//
 function parseGpxBuffer(raw: string): {
   trackName: string;
   points: { lat: number; lng: number; ele: number | null; time: string | null }[];
@@ -59,90 +145,100 @@ function parseGpxBuffer(raw: string): {
   const nameMatch = raw.match(/<name>([\s\S]*?)<\/name>/);
   const trackName = nameMatch ? nameMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : 'Track';
 
-  const trkptRe = /<trkpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*>([\s\S]*?)<\/trkpt>/g;
-  const points: { lat: number; lng: number; ele: number | null; time: string | null }[] = [];
-  let m: RegExpExecArray | null;
-  while ((m = trkptRe.exec(raw)) !== null) {
-    const lat = parseFloat(m[1]);
-    const lng = parseFloat(m[2]);
-    const inner = m[3];
-    const eleM = inner.match(/<ele>([\s\S]*?)<\/ele>/);
-    const timeM = inner.match(/<time>([\s\S]*?)<\/time>/);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      points.push({ lat, lng, ele: eleM ? parseFloat(eleM[1]) : null, time: timeM ? timeM[1].trim() : null });
+  // Parse a block of GPX text into trkpt objects
+  function parseTrkpts(block: string) {
+    // Handle lat/lon in either order
+    const re = /<trkpt\s+[^>]*?(lat="([^"]+)"[^>]*?lon="([^"]+)"|lon="([^"]+)"[^>]*?lat="([^"]+)")[^>]*>([\s\S]*?)<\/trkpt>/g;
+    const pts: { lat: number; lng: number; ele: number | null; time: string | null }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(block)) !== null) {
+      const lat = parseFloat(m[2] || m[5]);
+      const lng = parseFloat(m[3] || m[4]);
+      const inner = m[6];
+      const eleM  = inner.match(/<ele>([\s\S]*?)<\/ele>/);
+      const timeM = inner.match(/<time>([\s\S]*?)<\/time>/);
+      if (!isNaN(lat) && !isNaN(lng)) {
+        pts.push({
+          lat, lng,
+          ele:  eleM  ? parseFloat(eleM[1])  : null,
+          time: timeM ? timeM[1].trim()       : null,
+        });
+      }
     }
+    return pts;
   }
 
-  const wptRe = /<wpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*>([\s\S]*?)<\/wpt>/g;
-  const waypoints: { lat: number; lng: number; name: string }[] = [];
-  while ((m = wptRe.exec(raw)) !== null) {
-    const lat = parseFloat(m[1]);
-    const lng = parseFloat(m[2]);
-    const wNameM = m[3].match(/<name>([\s\S]*?)<\/name>/);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      waypoints.push({ lat, lng, name: wNameM ? wNameM[1].trim() : 'Waypoint' });
-    }
+  // Try to split by <trkseg> first
+  const segRe = /<trkseg[^>]*>([\s\S]*?)<\/trkseg>/g;
+  const segments: ReturnType<typeof parseTrkpts>[] = [];
+  let segM: RegExpExecArray | null;
+  while ((segM = segRe.exec(raw)) !== null) {
+    const pts = parseTrkpts(segM[1]);
+    if (pts.length > 0) segments.push(pts);
   }
 
-  function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
-    const R = 6371000;
-    const dLa = (la2 - la1) * Math.PI / 180;
-    const dLo = (lo2 - lo1) * Math.PI / 180;
-    const a = Math.sin(dLa / 2) ** 2 +
-              Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  // Fallback: no <trkseg> found — treat whole file as one segment
+  if (segments.length === 0) {
+    const pts = parseTrkpts(raw);
+    if (pts.length > 0) segments.push(pts);
   }
+
+  // Flatten all points (for storage) and compute stats per segment
+  const allPoints = segments.flat();
 
   let totalDistance = 0;
   let totalElevationGain = 0;
   let totalElevationLoss = 0;
   let maxElevation: number | null = null;
   let minElevation: number | null = null;
-  const ELE_THRESHOLD = 2;
-  let lastSmoothedEle: number | null = null;
 
-  for (let i = 1; i < points.length; i++) {
-    totalDistance += haversineM(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng);
-    const ele = points[i].ele;
-    if (ele != null) {
-      if (maxElevation === null || ele > maxElevation) maxElevation = ele;
-      if (minElevation === null || ele < minElevation) minElevation = ele;
-      if (lastSmoothedEle !== null) {
-        const diff = ele - lastSmoothedEle;
-        if (diff > ELE_THRESHOLD) totalElevationGain += diff;
-        else if (diff < -ELE_THRESHOLD) totalElevationLoss += Math.abs(diff);
-      }
-      lastSmoothedEle = ele;
+  for (const seg of segments) {
+    // Distance: sum haversine within segment (NOT across segment boundaries)
+    for (let i = 1; i < seg.length; i++) {
+      totalDistance += haversineM(seg[i-1].lat, seg[i-1].lng, seg[i].lat, seg[i].lng);
+    }
+
+    // Elevation: smoothed + hysteresis threshold
+    const eleStats = computeElevationStats(seg);
+    totalElevationGain += eleStats.gain;
+    totalElevationLoss += eleStats.loss;
+    if (eleStats.max != null && (maxElevation === null || eleStats.max > maxElevation)) maxElevation = eleStats.max;
+    if (eleStats.min != null && (minElevation === null || eleStats.min < minElevation)) minElevation = eleStats.min;
+  }
+
+  // Waypoints
+  const wptRe = /<wpt\s+lat="([^"]+)"\s+lon="([^"]+)"[^>]*>([\s\S]*?)<\/wpt>/g;
+  const waypoints: { lat: number; lng: number; name: string }[] = [];
+  let wm: RegExpExecArray | null;
+  while ((wm = wptRe.exec(raw)) !== null) {
+    const lat = parseFloat(wm[1]);
+    const lng = parseFloat(wm[2]);
+    const wNameM = wm[3].match(/<name>([\s\S]*?)<\/name>/);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      waypoints.push({ lat, lng, name: wNameM ? wNameM[1].trim() : 'Waypoint' });
     }
   }
 
+  // Duration from timestamps
   let durationSeconds: number | null = null;
-  const first = points[0]?.time;
-  const last = points[points.length - 1]?.time;
-  if (first && last) {
-    const diff = (new Date(last).getTime() - new Date(first).getTime()) / 1000;
+  const firstTime = allPoints[0]?.time;
+  const lastTime  = allPoints[allPoints.length - 1]?.time;
+  if (firstTime && lastTime) {
+    const diff = (new Date(lastTime).getTime() - new Date(firstTime).getTime()) / 1000;
     if (diff > 0) durationSeconds = Math.round(diff);
   }
 
   return {
-    trackName, points, waypoints,
-    totalDistance: totalDistance / 1000,
-    totalElevationGain: Math.round(totalElevationGain),
-    totalElevationLoss: Math.round(totalElevationLoss),
-    maxElevation: maxElevation ? Math.round(maxElevation) : null,
-    minElevation: minElevation ? Math.round(minElevation) : null,
+    trackName,
+    points: allPoints,
+    waypoints,
+    totalDistance:      totalDistance / 1000,
+    totalElevationGain: totalElevationGain,
+    totalElevationLoss: totalElevationLoss,
+    maxElevation,
+    minElevation,
     durationSeconds,
   };
-}
-
-// ── Haversine distance in meters ──────────────────────────────────────────────
-function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
-  const R = 6371000;
-  const dLa = (la2 - la1) * Math.PI / 180;
-  const dLo = (lo2 - lo1) * Math.PI / 180;
-  const a = Math.sin(dLa / 2) ** 2 +
-            Math.cos(la1 * Math.PI / 180) * Math.cos(la2 * Math.PI / 180) * Math.sin(dLo / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 // ── Find nearest point index in GPX ──────────────────────────────────────────
@@ -157,42 +253,24 @@ function nearestPointIdx(
   for (let i = startFrom; i < points.length; i++) {
     const d = haversineM(points[i].lat, points[i].lng, lat, lng);
     if (d < bestDist) { bestDist = d; best = i; }
-    // Stop searching if we're getting farther after finding a close point
     if (d < 50 && i > startFrom + 10) break;
   }
   return best;
 }
 
-// ── Compute stats for a slice of points ──────────────────────────────────────
+// ── Compute stats for a slice of points (used by split-by-days) ──────────────
 function computeStats(points: { lat: number; lng: number; ele: number | null }[]) {
   let totalDistance = 0;
-  let totalElevationGain = 0;
-  let totalElevationLoss = 0;
-  let maxElevation: number | null = null;
-  let minElevation: number | null = null;
-  const ELE_THRESHOLD = 2;
-  let lastEle: number | null = null;
-
   for (let i = 1; i < points.length; i++) {
     totalDistance += haversineM(points[i-1].lat, points[i-1].lng, points[i].lat, points[i].lng);
-    const ele = points[i].ele;
-    if (ele != null) {
-      if (maxElevation === null || ele > maxElevation) maxElevation = ele;
-      if (minElevation === null || ele < minElevation) minElevation = ele;
-      if (lastEle !== null) {
-        const diff = ele - lastEle;
-        if (diff > ELE_THRESHOLD) totalElevationGain += diff;
-        else if (diff < -ELE_THRESHOLD) totalElevationLoss += Math.abs(diff);
-      }
-      lastEle = ele;
-    }
   }
+  const eleStats = computeElevationStats(points);
   return {
-    totalDistance: totalDistance / 1000,
-    totalElevationGain: Math.round(totalElevationGain),
-    totalElevationLoss: Math.round(totalElevationLoss),
-    maxElevation: maxElevation ? Math.round(maxElevation) : null,
-    minElevation: minElevation ? Math.round(minElevation) : null,
+    totalDistance:      totalDistance / 1000,
+    totalElevationGain: eleStats.gain,
+    totalElevationLoss: eleStats.loss,
+    maxElevation:       eleStats.max,
+    minElevation:       eleStats.min,
   };
 }
 
@@ -324,6 +402,44 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
   }
 });
 
+// ── POST /api/trips/:id/gpx/:trackId/recalculate ──────────────────────────────
+// Recalculates distance + elevation stats from stored points without
+// re-uploading the file. Use this after a bug-fix to update existing tracks.
+router.post('/:trackId/recalculate', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const tripId  = (req as AuthRequest).params.id;
+  const trackId = req.params.trackId;
+  try {
+    const track = db.prepare(
+      'SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?'
+    ).get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const points: { lat: number; lng: number; ele: number | null }[] =
+      JSON.parse(track.points_json || '[]');
+    if (points.length < 2) {
+      return res.status(400).json({ error: 'Track has insufficient points' });
+    }
+
+    const stats = computeStats(points);
+    db.prepare(`
+      UPDATE gpx_tracks
+      SET total_distance = ?, total_elevation_gain = ?, total_elevation_loss = ?,
+          max_elevation = ?, min_elevation = ?
+      WHERE id = ?
+    `).run(
+      stats.totalDistance, stats.totalElevationGain, stats.totalElevationLoss,
+      stats.maxElevation, stats.minElevation,
+      trackId
+    );
+
+    const updated = db.prepare('SELECT * FROM gpx_tracks WHERE id = ?').get(trackId) as any;
+    res.json({ ...updated, points: [], waypoints: [] });
+  } catch (e: any) {
+    console.error('[gpx recalculate]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── POST /api/trips/:id/gpx/:trackId/split-by-days ───────────────────────────
 // Divide un GPX largo en etapas usando los lugares de inicio/fin de cada día
 router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Request, res: Response) => {
@@ -332,7 +448,6 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
   const trackId = req.params.trackId;
 
   try {
-    // Cargar el track completo
     const track = db.prepare(
       'SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?'
     ).get(trackId, tripId) as any;
@@ -344,7 +459,6 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       return res.status(400).json({ error: 'Track has insufficient points' });
     }
 
-    // Cargar días del viaje con sus lugares ordenados
     const days = db.prepare(
       `SELECT d.id, d.date, d.title, d.day_number
        FROM days d WHERE d.trip_id = ? ORDER BY d.date ASC, d.day_number ASC`
@@ -354,7 +468,6 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       return res.status(400).json({ error: 'No days found for this trip' });
     }
 
-    // Para cada día, obtener el primer y último lugar con coordenadas
     const dayBounds: {
       dayId: number;
       title: string;
@@ -376,17 +489,16 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
         dayBounds.push({
           dayId:    day.id,
           title:    day.title || `Día ${day.day_number || day.id}`,
-          startLat: last.lat, startLng: last.lng,  // provisional, se sobreescribe abajo
+          startLat: last.lat, startLng: last.lng,
           endLat:   last.lat, endLng:   last.lng,
         });
       }
     }
-// El inicio de cada día es el fin del día anterior
+
     for (let i = 1; i < dayBounds.length; i++) {
       dayBounds[i].startLat = dayBounds[i - 1].endLat;
       dayBounds[i].startLng = dayBounds[i - 1].endLng;
     }
-    // El primer día empieza en el primer punto del GPX
     if (dayBounds.length > 0) {
       dayBounds[0].startLat = allPoints[0].lat;
       dayBounds[0].startLng = allPoints[0].lng;
@@ -395,11 +507,9 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       return res.status(400).json({ error: 'No days have places with coordinates' });
     }
 
-    // Dividir el GPX en etapas
     const created: any[] = [];
     let searchFrom = 0;
 
-    // Borrar tracks con day_id existentes para este viaje (re-split limpio)
     db.prepare(
       'DELETE FROM gpx_tracks WHERE trip_id = ? AND day_id IS NOT NULL'
     ).run(tripId);
@@ -407,20 +517,15 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     for (let i = 0; i < dayBounds.length; i++) {
       const day = dayBounds[i];
 
-      // Encontrar punto más cercano al inicio del día
       const startIdx = nearestPointIdx(allPoints, day.startLat, day.startLng, searchFrom);
 
-      // Encontrar punto más cercano al fin del día (buscar desde startIdx)
       let endIdx: number;
       if (i === dayBounds.length - 1) {
-        // Último día — usar el último punto del GPX
         endIdx = allPoints.length - 1;
       } else {
         endIdx = nearestPointIdx(allPoints, day.endLat, day.endLng, startIdx);
-        // Si el siguiente día empieza donde este termina, el endIdx es el startIdx del siguiente
         const nextDay = dayBounds[i + 1];
         const nextStartIdx = nearestPointIdx(allPoints, nextDay.startLat, nextDay.startLng, startIdx);
-        // Usar el más cercano al final del día actual
         const distEnd  = haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng);
         const distNext = haversineM(allPoints[nextStartIdx].lat, allPoints[nextStartIdx].lng, day.endLat, day.endLng);
         endIdx = distEnd <= distNext ? endIdx : nextStartIdx;
