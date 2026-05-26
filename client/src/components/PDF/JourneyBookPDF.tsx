@@ -123,18 +123,37 @@ function buildRouteCardSvg(entries: JourneyEntry[], tracks: PdfGpxTrack[]): stri
   const mercLat = (lat: number) => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))
   const mMin = mercLat(minLat), mMax = mercLat(maxLat)
 
-  // Padding per axis (12%)
-  const mPad  = Math.max((mMax - mMin) * 0.12, 0.004)
-  const lgPad = Math.max((maxLng - minLng) * 0.12, 0.004)
+  // Padding per axis (10%)
+  const mPad  = Math.max((mMax - mMin) * 0.10, 0.004)
+  const lgPad = Math.max((maxLng - minLng) * 0.10, 0.004)
   const bMMin = mMin - mPad,  bMMax = mMax + mPad
   const bLMin = minLng - lgPad, bLMax = maxLng + lgPad
 
-  // Scale X and Y INDEPENDENTLY so the route always fills the canvas.
-  // This deliberately "distorts" geographic proportions for elongated routes
-  // (e.g. 850 km E-W) — it looks far better than a thin horizontal line.
+  // Strictly aspect-ratio-correct canvas size
+  const cH_strict = W * (bMMax - bMMin) / (bLMax - bLMin)
+  const cW_strict = H * (bLMax - bLMin) / (bMMax - bMMin)
+
+  // Allow up to 2.5× stretch beyond strict AR so the route fills the canvas
+  // without extreme distortion. Independent scaling would be ∞× — too much.
+  const MAX_STRETCH = 2.5
+  let cW: number, cH: number
+
+  if (cH_strict <= H) {
+    // Route is wider than canvas ratio → stretch Y up to MAX_STRETCH
+    cH = Math.min(cH_strict * MAX_STRETCH, H)
+    cW = W
+  } else {
+    // Route is taller than canvas ratio → stretch X up to MAX_STRETCH
+    cW = Math.min(cW_strict * MAX_STRETCH, W)
+    cH = H
+  }
+
+  const offX = (W - cW) / 2
+  const offY = (H - cH) / 2
+
   const project = (lat: number, lng: number) => ({
-    x: (lng - bLMin) / (bLMax - bLMin) * W,
-    y: (1 - (mercLat(lat) - bMMin) / (bMMax - bMMin)) * H,
+    x: offX + (lng - bLMin) / (bLMax - bLMin) * cW,
+    y: offY + (1 - (mercLat(lat) - bMMin) / (bMMax - bMMin)) * cH,
   })
 
   // GPX track polylines (sample down to ~800 pts per track)
