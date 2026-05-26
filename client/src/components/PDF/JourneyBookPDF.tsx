@@ -119,42 +119,38 @@ function buildRouteCardSvg(entries: JourneyEntry[], tracks: PdfGpxTrack[]): stri
   const minLng = Math.min(...allPts.map(p => p.lng))
   const maxLng = Math.max(...allPts.map(p => p.lng))
 
-  // Mercator Y
+  // Mercator Y — used only to scale latitude axis (north stays up)
   const mercLat = (lat: number) => Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360))
   const mMin = mercLat(minLat), mMax = mercLat(maxLat)
 
-  // Padding (15%)
-  const lpPad = Math.max((mMax - mMin) * 0.15, 0.005)
-  const lgPad = Math.max((maxLng - minLng) * 0.15, 0.005)
-  const bMMin = mMin - lpPad, bMMax = mMax + lpPad
+  // Padding per axis (12%)
+  const mPad  = Math.max((mMax - mMin) * 0.12, 0.004)
+  const lgPad = Math.max((maxLng - minLng) * 0.12, 0.004)
+  const bMMin = mMin - mPad,  bMMax = mMax + mPad
   const bLMin = minLng - lgPad, bLMax = maxLng + lgPad
 
-  // Fit bbox into W×H preserving aspect ratio
-  const natW = bLMax - bLMin
-  const natH = bMMax - bMMin
-  let cW = W, cH = H, offX = 0, offY = 0
-  if (natW / natH > W / H) {
-    cH = W * natH / natW
-    offY = (H - cH) / 2
-  } else {
-    cW = H * natW / natH
-    offX = (W - cW) / 2
-  }
-
+  // Scale X and Y INDEPENDENTLY so the route always fills the canvas.
+  // This deliberately "distorts" geographic proportions for elongated routes
+  // (e.g. 850 km E-W) — it looks far better than a thin horizontal line.
   const project = (lat: number, lng: number) => ({
-    x: offX + (lng - bLMin) / (bLMax - bLMin) * cW,
-    y: offY + (1 - (mercLat(lat) - bMMin) / (bMMax - bMMin)) * cH,
+    x: (lng - bLMin) / (bLMax - bLMin) * W,
+    y: (1 - (mercLat(lat) - bMMin) / (bMMax - bMMin)) * H,
   })
 
-  // GPX track polylines (sample down)
+  // GPX track polylines (sample down to ~800 pts per track)
   const trackSvg = tracks.map(t => {
     if (t.points.length === 0) return ''
-    const step = Math.max(1, Math.floor(t.points.length / 600))
+    const step = Math.max(1, Math.floor(t.points.length / 800))
     const pts = t.points
       .filter((_, i) => i % step === 0 || i === t.points.length - 1)
       .map(p => { const { x, y } = project(p.lat, p.lng); return `${x.toFixed(1)},${y.toFixed(1)}` })
       .join(' ')
-    return `<polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`
+    return [
+      // glow layer
+      `<polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" opacity="0.15"/>`,
+      // main line
+      `<polyline points="${pts}" fill="none" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`,
+    ].join('')
   }).join('')
 
   // Entry connections (dashed, shown only when no GPX tracks available)
@@ -179,21 +175,13 @@ function buildRouteCardSvg(entries: JourneyEntry[], tracks: PdfGpxTrack[]): stri
     ].join('')
   }).join('')
 
-  // Subtle grid lines
+  // Subtle grid lines (5 horizontal + 5 vertical, evenly spaced in screen space)
   const gridLines: string[] = []
-  const latStep = Math.ceil((maxLat - minLat) / 4 * 10) / 10
-  const lngStep = Math.ceil((maxLng - minLng) / 4 * 10) / 10
-  if (latStep > 0) {
-    for (let lat = Math.floor(minLat); lat <= Math.ceil(maxLat); lat += latStep) {
-      const { y } = project(lat, minLng)
-      gridLines.push(`<line x1="0" y1="${y.toFixed(1)}" x2="${W}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`)
-    }
-  }
-  if (lngStep > 0) {
-    for (let lng = Math.floor(minLng); lng <= Math.ceil(maxLng); lng += lngStep) {
-      const { x } = project(minLat, lng)
-      gridLines.push(`<line x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${H}" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>`)
-    }
+  for (let i = 1; i <= 4; i++) {
+    const y = (H * i / 5).toFixed(1)
+    const x = (W * i / 5).toFixed(1)
+    gridLines.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`)
+    gridLines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>`)
   }
 
   // Start & end markers (if GPX tracks available, mark their endpoints)
