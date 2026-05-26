@@ -89,24 +89,37 @@ function buildProfile(track: GpxTrack): Profile | null {
   // Sample up to 1000 points to preserve detail
   const step    = Math.max(1, Math.floor(pts.length / 1000))
   const sampled = pts.filter((_: any, i: number) => i % step === 0)
-  // Very light smoothing (±1 point only) to remove GPS noise without flattening peaks
-  const smooth  = sampled.map((p: any, i: number) => {
-    const s = Math.max(0, i - 1), e = Math.min(sampled.length - 1, i + 1)
+
+  // Smoothing: ±5 point window (11-point moving average) to reduce GPS elevation noise
+  // without flattening genuine peaks/valleys
+  const smooth = sampled.map((p: any, i: number) => {
+    const s = Math.max(0, i - 5), e = Math.min(sampled.length - 1, i + 5)
     let sum = 0, cnt = 0
     for (let j = s; j <= e; j++) { sum += sampled[j].ele; cnt++ }
     return { ...p, ele: sum / cnt }
   })
 
-  let cumDist = 0
+  // Pre-compute cumulative distances in metres (needed for distance-based slope window)
+  const cumDistM: number[] = [0]
+  for (let i = 1; i < smooth.length; i++) {
+    cumDistM.push(cumDistM[i - 1] + haversineKm(smooth[i - 1].lat, smooth[i - 1].lng, smooth[i].lat, smooth[i].lng) * 1000)
+  }
+
+  // Slope: fixed 200 m lookback window (not point-count based).
+  // With dense GPS tracks, point-count windows can be only 10–25 m, making any 2 m
+  // GPS noise appear as 8–20% slope. 200 m smooths out noise while still showing real climbs.
+  const MIN_SLOPE_DIST_M = 200
   const data: ProfilePoint[] = smooth.map((p: any, i: number) => {
-    if (i > 0) cumDist += haversineKm(smooth[i - 1].lat, smooth[i - 1].lng, p.lat, p.lng)
-    const wi = Math.min(5, Math.floor(i / 2))
-    const pi = Math.max(0, i - wi)
-    const dD = haversineKm(smooth[pi].lat, smooth[pi].lng, p.lat, p.lng) * 1000
+    // Find the last index whose cumulative distance is ≥ MIN_SLOPE_DIST_M behind current
+    let pi = 0
+    for (let j = i - 1; j >= 0; j--) {
+      if (cumDistM[i] - cumDistM[j] >= MIN_SLOPE_DIST_M) { pi = j; break }
+    }
+    const dD = cumDistM[i] - cumDistM[pi]  // metres
     const dE = p.ele - smooth[pi].ele
-    const slope = dD > 50 ? (dE / dD) * 100 : 0
+    const slope = dD >= MIN_SLOPE_DIST_M ? (dE / dD) * 100 : 0
     return {
-      dist:  Math.round(cumDist * 100) / 100,
+      dist:  Math.round(cumDistM[i] / 10) / 100,  // km (2 decimal places)
       ele:   Math.round(p.ele),
       slope: Math.round(slope * 10) / 10,
       lat:   p.lat,
@@ -114,13 +127,25 @@ function buildProfile(track: GpxTrack): Profile | null {
     }
   })
 
-  const eles   = data.map(d => d.ele)
-  const slopes = data.map(d => Math.abs(d.slope)).filter(s => s < 35)
-  const maxSlope = slopes.length ? Math.max(...slopes) : 0
-  let gain = 0, loss = 0
-  for (let i = 1; i < data.length; i++) {
-    const dE = data[i].ele - data[i - 1].ele
-    if (dE > 0) gain += dE; else loss += Math.abs(dE)
+  const eles = data.map(d => d.ele)
+
+  // Max slope: use 95th-percentile of absolute slopes to exclude GPS outliers.
+  // Raw max always picks the single worst noisy reading; P95 gives a realistic worst climb.
+  const absSlopes = data.map(d => Math.abs(d.slope)).filter(s => s > 0).sort((a, b) => a - b)
+  const p95 = absSlopes.length > 0 ? absSlopes[Math.floor(absSlopes.length * 0.95)] : 0
+  const maxSlope = Math.round(p95)
+
+  // Gain / loss: use stored server values (computed with threshold-hysteresis + smoothing).
+  // Only fall back to local cumulative sum if track object lacks those fields.
+  let gain: number = track.total_elevation_gain ?? 0
+  let loss: number = track.total_elevation_loss ?? 0
+  if (track.total_elevation_gain == null || track.total_elevation_loss == null) {
+    gain = 0; loss = 0
+    for (let i = 1; i < data.length; i++) {
+      const dE = data[i].ele - data[i - 1].ele
+      if (dE > 0) gain += dE; else loss += Math.abs(dE)
+    }
+    gain = Math.round(gain); loss = Math.round(loss)
   }
 
   return {
@@ -128,9 +153,9 @@ function buildProfile(track: GpxTrack): Profile | null {
     minEle:    Math.min(...eles),
     maxEle:    Math.max(...eles),
     totalDist: data[data.length - 1]?.dist || 0,
-    gain:      Math.round(gain),
-    loss:      Math.round(loss),
-    maxSlope:  Math.round(maxSlope),
+    gain,
+    loss,
+    maxSlope,
   }
 }
 
