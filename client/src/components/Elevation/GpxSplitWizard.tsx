@@ -229,10 +229,7 @@ export default function GpxSplitWizard({ tripId, trackId, trackName, days, onClo
     setSaving(true); setError(null)
     try {
       const payload = {
-        cuts: [
-          { pointIndex: 0, dayId: stages[0]?.dayId ?? null },
-          ...cuts.map(c => ({ pointIndex: c.pointIndex, dayId: c.dayId })),
-        ],
+        cuts: cuts.map(c => ({ pointIndex: c.pointIndex, dayId: c.dayId })),
       }
       await apiFetch(`${API_BASE}/trips/${tripId}/gpx/${trackId}/split-manual`, {
         method: 'POST',
@@ -669,11 +666,10 @@ function buildStages(points: GpxPoint[], distances: number[], cuts: CutPoint[], 
     const { gain, loss } = computeGainLoss(slice)
     const distKm = (distances[to] ?? 0) - (distances[from] ?? 0)
 
-    // dayId: el corte en boundaries[i+1] (si no es el último) define el día del tramo siguiente.
-    // El primer tramo (i=0) usa el dayId del primer corte... pero queremos el día del tramo en sí.
-    // Convención: cuts[i] define el día que EMPIEZA en ese corte → el tramo [boundaries[i], boundaries[i+1]] tiene dayId = cuts[i-1]?.dayId
-    const cut = sorted[i - 1] // corte que inicia este tramo (ninguno para el primero)
-    const dayId = cut?.dayId ?? (cuts.length > 0 ? null : days[i]?.id ?? null)
+    // El dayId del corte en boundaries[i+1] define el día de ESTE segmento (el que llega a ese corte).
+    // Ej: corte en Olot con Day2 → el tramo inicio→Olot es Day2.
+    const cut = sorted[i] // corte que termina este segmento
+    const dayId = cut?.dayId ?? null
 
     const day = dayId ? days.find(d => d.id === dayId) : null
     stages.push({

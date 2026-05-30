@@ -562,7 +562,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
 // ── POST /api/trips/:id/gpx/:trackId/split-manual ────────────────────────────
 // Divide el GPX usando cortes manuales: array de { pointIndex, dayId }
-// El primer elemento debe ser { pointIndex: 0, dayId: <día del primer tramo> }
+// Convención: el dayId de un corte en X se asigna al segmento que LLEGA a X (antes del corte).
 router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const tripId  = authReq.params.id;
@@ -581,8 +581,8 @@ router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Req
     }
 
     const cuts: { pointIndex: number; dayId: number | null }[] = req.body.cuts || [];
-    if (!Array.isArray(cuts) || cuts.length === 0) {
-      return res.status(400).json({ error: 'cuts array is required' });
+    if (!Array.isArray(cuts)) {
+      return res.status(400).json({ error: 'cuts must be an array' });
     }
 
     // Validate & sort cuts
@@ -590,12 +590,9 @@ router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Req
       .map(c => ({ pointIndex: Math.max(0, Math.min(Math.round(c.pointIndex), allPoints.length - 1)), dayId: c.dayId ?? null }))
       .sort((a, b) => a.pointIndex - b.pointIndex);
 
-    // Build boundaries: cuts define start of each segment
-    // segments: sorted[i].pointIndex → sorted[i+1].pointIndex - 1 (last goes to end)
-    const boundaries: number[] = [...new Set(sorted.map(c => c.pointIndex))];
-    if (boundaries[boundaries.length - 1] !== allPoints.length - 1) {
-      boundaries.push(allPoints.length - 1);
-    }
+    // Build boundaries from cut positions
+    const cutPoints = sorted.filter(c => c.pointIndex > 0 && c.pointIndex < allPoints.length - 1);
+    const boundaries: number[] = [0, ...cutPoints.map(c => c.pointIndex), allPoints.length - 1];
 
     // Delete existing day-linked tracks for this trip
     db.prepare('DELETE FROM gpx_tracks WHERE trip_id = ? AND day_id IS NOT NULL').run(tripId);
@@ -608,7 +605,9 @@ router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Req
       const slice = allPoints.slice(from, to + 1);
       if (slice.length < 2) continue;
 
-      const cut = sorted.find(c => c.pointIndex === boundaries[i]);
+      // dayId del corte que TERMINA este segmento (en boundaries[i+1])
+      const cut = cutPoints.find(c => c.pointIndex === boundaries[i + 1]);
+      // Si no hay corte al final (último segmento), no tiene día asignado por defecto
       const dayId = cut?.dayId ?? null;
 
       // Name: use day title if linked to a day
