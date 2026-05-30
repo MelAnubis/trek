@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Calendar } from 'lucide-react'
 import type { GpxTrack } from './ElevationDetail'
+import GpxSplitWizard from './GpxSplitWizard'
 
 interface Day {
   id: number
@@ -43,6 +44,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
   const [splitting, setSplitting] = useState(false)
   const [error, setError]       = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [wizardTrack, setWizardTrack] = useState<any | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = async () => {
@@ -119,12 +121,13 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
     try {
       const result = await apiFetch(`${API_BASE}/trips/${tripId}/gpx/${trackId}/split-by-days`, { method: 'POST' })
       setError(null)
-      // Recargar todos los tracks
       await load()
       alert(result.message)
     } catch (e: any) { setError(e.message) }
     finally { setSplitting(false) }
   }
+
+  const openWizard = (track: any) => setWizardTrack(track)
 
   // Tracks sin día asignado (globales)
   const globalTracks = tracks.filter(t => !t.day_id)
@@ -139,6 +142,18 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
 
   return (
     <div style={{ padding: '4px 0' }}>
+      {/* Split wizard */}
+      {wizardTrack && (
+        <GpxSplitWizard
+          tripId={tripId}
+          trackId={wizardTrack.id}
+          trackName={wizardTrack.track_name}
+          days={days}
+          onClose={() => setWizardTrack(null)}
+          onDone={() => { setWizardTrack(null); load() }}
+        />
+      )}
+
       {/* Drop zone */}
       <div
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -213,6 +228,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
                     onSplit={days.length > 0 ? () => splitByDays(track.id) : undefined}
+                    onWizard={() => openWizard(track)}
                     splitting={splitting}
                   />
                 ))}
@@ -255,7 +271,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
 }
 
 // ── Track row component ───────────────────────────────────────────────────────
-function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDay, onSplit, splitting }: {
+function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDay, onSplit, onWizard, splitting }: {
   track: any
   color: string
   days: Day[]
@@ -264,6 +280,7 @@ function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDa
   onDelete: () => void
   onAssignDay: (dayId: number | null) => void
   onSplit?: () => void
+  onWizard?: () => void
   splitting?: boolean
 }) {
   const active  = track.is_active !== 0
@@ -311,14 +328,23 @@ function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDa
             <Calendar size={15} />
           </button>
 
-          {/* Split by days */}
-          {onSplit && (
-            <button title="Dividir por días automáticamente" onClick={onSplit} disabled={splitting}
-              style={{ background: 'none', border: 'none', cursor: splitting ? 'wait' : 'pointer',
+          {/* Manual split wizard */}
+          {onWizard && (
+            <button title="Dividir en etapas manualmente" onClick={onWizard}
+              style={{ background: 'none', border: 'none', cursor: 'pointer',
                        padding: 4, borderRadius: 6, color: '#f59e0b' }}>
+              <Scissors size={15} />
+            </button>
+          )}
+
+          {/* Split by days (automatic) */}
+          {onSplit && (
+            <button title="Dividir por días automáticamente (según lugares asignados)" onClick={onSplit} disabled={splitting}
+              style={{ background: 'none', border: 'none', cursor: splitting ? 'wait' : 'pointer',
+                       padding: 4, borderRadius: 6, color: '#64748b' }}>
               {splitting
                 ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
-                : <Scissors size={15} />}
+                : <Calendar size={15} />}
             </button>
           )}
 
