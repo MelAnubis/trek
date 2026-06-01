@@ -460,7 +460,10 @@ router.get('/bikepack-sso-url', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const token = signSsoToken(authReq.user.email);
   const bikepackUrl = (process.env.BIKEPACK_URL ?? '').replace(/\/$/, '');
-  res.json({ ssoUrl: `${bikepackUrl}/api/auth/sso-session?token=${encodeURIComponent(token)}` });
+  // BIKEPACK_SSO_PATH lets operators override the path when a reverse proxy
+  // strips the /api prefix before reaching the Bikepack Node process.
+  const ssoPath = (process.env.BIKEPACK_SSO_PATH ?? '/api/auth/sso-session').replace(/\/$/, '');
+  res.json({ ssoUrl: `${bikepackUrl}${ssoPath}?token=${encodeURIComponent(token)}` });
 });
 
 /**

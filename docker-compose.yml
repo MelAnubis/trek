@@ -43,6 +43,7 @@ services:
       - BIKEPACK_ADMIN_EMAIL=${BIKEPACK_ADMIN_EMAIL:-}
       - BIKEPACK_ADMIN_PASSWORD=${BIKEPACK_ADMIN_PASSWORD:-}
       # - BIKEPACK_INSECURE=true   # Uncomment if Bikepack uses a self-signed cert
+      # - BIKEPACK_SSO_PATH=/auth/sso-session  # Uncomment if the Bikepack reverse proxy strips /api
       # SSO: same secret on BOTH instances enables transparent cross-login.
       # Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
       - BIKEPACK_SHARED_SECRET=${BIKEPACK_SHARED_SECRET:-}
