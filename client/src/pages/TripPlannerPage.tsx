@@ -27,7 +27,7 @@ import BudgetPanel from '../components/Budget/BudgetPanel'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
-import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain } from 'lucide-react'
+import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
@@ -865,24 +865,48 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
       <div style={{
         position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 40,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '0 12px',
+        display: 'flex', alignItems: 'center',
+        padding: '0 8px 0 12px',
         background: 'var(--bg-elevated)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-faint)',
         height: 44,
+        gap: 8,
       }}>
-        <SlidingTabs
-          tabs={TRIP_TABS.map(tab => ({
-            id: tab.id,
-            label: <span className="hidden sm:inline">{tab.shortLabel || tab.label}</span>,
-            title: tab.label,
-            icon: tab.icon,
-          }))}
-          activeTab={activeTab}
-          onChange={handleTabChange}
-        />
+        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+          <SlidingTabs
+            tabs={TRIP_TABS.map(tab => ({
+              id: tab.id,
+              label: <span className="hidden sm:inline">{tab.shortLabel || tab.label}</span>,
+              title: tab.label,
+              icon: tab.icon,
+            }))}
+            activeTab={activeTab}
+            onChange={handleTabChange}
+          />
+        </div>
+        {/* Navigate button — compact, always visible in trip context */}
+        <button
+          onClick={() => navigate(`/navigate?tripId=${tripId}`)}
+          title="Abrir navegación GPS"
+          style={{
+            flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 5,
+            padding: '5px 10px',
+            borderRadius: 8,
+            border: '1px solid rgba(34,217,110,0.3)',
+            background: 'rgba(34,217,110,0.1)',
+            color: '#22d96e',
+            cursor: 'pointer',
+            fontSize: 12,
+            fontWeight: 700,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <Navigation size={14} />
+          <span className="hidden sm:inline">Navegar</span>
+        </button>
       </div>
 
       {/* Offset by navbar + tab bar (44px) */}

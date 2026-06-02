@@ -4,7 +4,7 @@ import { useAddonStore } from '../../store/addonStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { Plane, CalendarDays, Globe, Compass, User, Settings, Shield, LogOut, X } from 'lucide-react'
+import { Plane, CalendarDays, Globe, Compass, User, Settings, Shield, LogOut, X, Navigation } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
@@ -27,6 +27,7 @@ export default function BottomNav() {
       const nav = ADDON_NAV[addon.id]
       return nav ? [{ to: `/${addon.id}`, label: t(nav.labelKey), icon: nav.icon }] : []
     }),
+    { to: '/navigate', label: 'Navegar', icon: Navigation },
   ]
 
   return (

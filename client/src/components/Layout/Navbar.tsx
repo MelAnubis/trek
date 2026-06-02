@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass } from 'lucide-react'
+import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 
@@ -171,6 +171,20 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Navigate button — visible when inside a trip */}
+      {tripId && (
+        <Link
+          to={`/navigate?tripId=${tripId}`}
+          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
+          style={{ borderColor: 'rgba(34,217,110,0.35)', color: '#22d96e', background: 'rgba(34,217,110,0.08)' }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(34,217,110,0.16)'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(34,217,110,0.08)'}
+        >
+          <Navigation className="w-4 h-4" />
+          <span className="hidden sm:inline">Navegar</span>
+        </Link>
+      )}
 
       {/* Share button */}
       {onShare && (
