@@ -324,7 +324,7 @@ function BagList({ bags, onEdit, onNew }: { bags: Bag[]; onEdit: (b:Bag)=>void; 
         <div key={b.id} onClick={()=>onEdit({...b})} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'0.5px solid #D3D1C7', marginBottom:7, background:'#fff', cursor:'pointer' }}>
           <div style={{ width:12, height:12, borderRadius:3, background:b.color, flexShrink:0 }}/>
           <span style={{ fontSize:13, fontWeight:500, color:'#2C2C2A', flex:1 }}>{b.name}</span>
-          {b.has_pos ? <span style={{ fontSize:10, ...mono, color:'#B4B2A9' }}>{b.pos_x},{b.pos_y} {b.pos_w}x{b.pos_h}</span> : <span style={{ fontSize:10, ...mono, color:'#C2C0B6' }}>sin pos.</span>}
+          {b.has_pos ? <span style={{ fontSize:10, ...mono, color:'#B4B2A9' }}>{Math.round(b.pos_x!)},{Math.round(b.pos_y!)} {Math.round(b.pos_w!)}x{Math.round(b.pos_h!)}</span> : <span style={{ fontSize:10, ...mono, color:'#C2C0B6' }}>sin pos.</span>}
           <span style={{ fontSize:12, color:'#B4B2A9' }}>›</span>
         </div>
       ))}
