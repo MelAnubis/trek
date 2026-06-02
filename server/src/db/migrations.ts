@@ -2309,6 +2309,41 @@ function runMigrations(db: Database.Database): void {
         if (!err.message?.includes('no such table')) throw err;
       }
     },
+    // Bikepack — integrated per-user gear & packing list manager
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS bikepack_groups (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          color TEXT NOT NULL DEFAULT '#888780',
+          sort_order INTEGER NOT NULL DEFAULT 99
+        );
+        CREATE TABLE IF NOT EXISTS bikepack_items (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          peso REAL NOT NULL DEFAULT 0,
+          grupo TEXT NOT NULL DEFAULT 'Accesorios',
+          loc_c1 TEXT NOT NULL DEFAULT '',
+          loc_c2 TEXT NOT NULL DEFAULT '',
+          uds_c1 INTEGER NOT NULL DEFAULT 0,
+          uds_c2 INTEGER NOT NULL DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS bikepack_bags (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id TEXT NOT NULL,
+          config_idx INTEGER NOT NULL DEFAULT 0,
+          name TEXT NOT NULL,
+          color TEXT NOT NULL DEFAULT '#888780',
+          has_pos INTEGER NOT NULL DEFAULT 0,
+          pos_x REAL DEFAULT NULL,
+          pos_y REAL DEFAULT NULL,
+          pos_w REAL DEFAULT NULL,
+          pos_h REAL DEFAULT NULL
+        );
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

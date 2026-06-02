@@ -1,17 +1,7 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// FICHERO: client/src/components/Packing/BikepackImportModal.tsx
-//
-// Modal que Trek muestra al pulsar "Importar desde Bikepack".
-// El perfil de equipaje se obtiene a través del endpoint proxy de Trek
-// (/api/auth/bikepack-profile) para no exponer credenciales al cliente.
-// ─────────────────────────────────────────────────────────────────────────────
-
 import { useState, useEffect } from 'react'
-import { X, Loader2, Package, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react'
+import { X, Loader2, Package, CheckCircle2, AlertCircle } from 'lucide-react'
 import { packingApi } from '../../api/client'
 import { useToast } from '../shared/Toast'
-
-const BIKEPACK_URL = 'https://trekwanderer.info:448'
 
 interface BikepackGroup  { id: number; name: string; color: string }
 interface BikepackItem   { id: number; name: string; weight_grams: number; category: string; quantity: number; bag_names: string[] }
@@ -41,7 +31,7 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
     try {
       // Trek proxies the call to Bikepack — client never talks to Bikepack directly.
       // The server uses the admin token to find the user by email and fetch their profile.
-      const res = await fetch('/api/auth/bikepack-profile', {
+      const res = await fetch('/api/bikepack/profile', {
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
       })
@@ -143,13 +133,6 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
             <div className="flex-1 flex flex-col items-center justify-center gap-3">
               <AlertCircle size={28} className="text-red-400" />
               <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center">{error}</p>
-              <p className="text-xs text-zinc-400 text-center">
-                Si es la primera vez, configura tu perfil en{' '}
-                <a href={BIKEPACK_URL} target="_blank" rel="noreferrer" className="text-teal-500 underline inline-flex items-center gap-1">
-                  Bikepack <ExternalLink size={10} />
-                </a>
-                {' '}y vuelve a intentarlo.
-              </p>
               <button
                 onClick={fetchProfile}
                 className="mt-2 px-4 py-2 text-sm rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700"

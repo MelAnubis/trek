@@ -1,61 +1,22 @@
-// ─────────────────────────────────────────────────────────────────────────────
-// FICHERO: client/src/components/Packing/BikepackDrawer.tsx
-//
-// Drawer lateral que embebe Bikepack en un iframe con SSO automático.
-// El usuario Trek queda autenticado en Bikepack sin necesidad de volver
-// a introducir sus credenciales.
-// ─────────────────────────────────────────────────────────────────────────────
-
-import { useEffect, useRef, useState } from 'react'
-import { X, Download, ExternalLink, Loader2 } from 'lucide-react'
+import { useEffect } from 'react'
+import { X, Download } from 'lucide-react'
 import ReactDOM from 'react-dom'
-
-const BIKEPACK_URL = 'https://trekwanderer.info:448'
+import BikepackApp from '../Bikepack/BikepackApp'
 
 interface Props {
   onClose: () => void
-  onImport: () => void  // abre el modal de importación
+  onImport: () => void
 }
 
 export default function BikepackDrawer({ onClose, onImport }: Props) {
-  const [loaded, setLoaded] = useState(false)
-  const [iframeSrc, setIframeSrc] = useState<string | null>(null)
-  const iframeRef = useRef<HTMLIFrameElement>(null)
-
-  // Obtener SSO URL y usarla como src del iframe para auto-login
-  useEffect(() => {
-    fetch('/api/auth/bikepack-sso-url', { credentials: 'include' })
-      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-      .then((d: { ssoUrl: string }) => setIframeSrc(d.ssoUrl))
-      .catch(() => {
-        // Si SSO no está configurado, cargar Bikepack directamente (el usuario
-        // tendrá que autenticarse manualmente).
-        setIframeSrc(BIKEPACK_URL)
-      })
-  }, [])
-
-  // Cerrar con Escape
   useEffect(() => {
     const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
   }, [onClose])
 
-  // Escuchar mensajes de Bikepack (para futura comunicación postMessage)
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.origin !== BIKEPACK_URL) return
-      if (e.data?.type === 'bikepack:saved') {
-        // Bikepack avisa que se guardaron cambios — podríamos auto-importar aquí
-      }
-    }
-    window.addEventListener('message', handler)
-    return () => window.removeEventListener('message', handler)
-  }, [])
-
   const drawer = (
     <>
-      {/* Overlay */}
       <div
         onClick={onClose}
         style={{
@@ -64,7 +25,6 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
         }}
       />
 
-      {/* Panel */}
       <div style={{
         position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1101,
         width: 'min(820px, 90vw)',
@@ -74,7 +34,6 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
         animation: 'slideInRight 0.22s cubic-bezier(0.23,1,0.32,1)',
       }}>
 
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10,
           padding: '12px 16px',
@@ -86,7 +45,6 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
             Bikepack
           </span>
 
-          {/* Botón importar a este viaje */}
           <button
             onClick={() => { onClose(); setTimeout(onImport, 150) }}
             style={{
@@ -101,24 +59,6 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
             Importar a este viaje
           </button>
 
-          {/* Abrir en pestaña */}
-          <a
-            href={BIKEPACK_URL}
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              padding: '6px 10px', borderRadius: 8,
-              border: '1px solid var(--border-primary)',
-              color: 'var(--text-muted)', fontSize: 12,
-              textDecoration: 'none', fontWeight: 500,
-            }}
-          >
-            <ExternalLink size={12} />
-            <span className="hidden sm:inline">Abrir</span>
-          </a>
-
-          {/* Cerrar */}
           <button
             onClick={onClose}
             style={{
@@ -132,33 +72,8 @@ export default function BikepackDrawer({ onClose, onImport }: Props) {
           </button>
         </div>
 
-        {/* iframe */}
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
-          {(!loaded || !iframeSrc) && (
-            <div style={{
-              position: 'absolute', inset: 0,
-              display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              gap: 12, color: 'var(--text-muted)',
-            }}>
-              <Loader2 size={24} className="animate-spin" />
-              <span style={{ fontSize: 13 }}>Conectando con Bikepack…</span>
-            </div>
-          )}
-          {iframeSrc && (
-            <iframe
-              ref={iframeRef}
-              src={iframeSrc}
-              onLoad={() => setLoaded(true)}
-              style={{
-                width: '100%', height: '100%',
-                border: 'none',
-                opacity: loaded ? 1 : 0,
-                transition: 'opacity 0.2s',
-              }}
-              title="Bikepack"
-            />
-          )}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <BikepackApp />
         </div>
       </div>
 
