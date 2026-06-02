@@ -68,39 +68,72 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (v: string)
 }
 
 // ── BikeSVG ────────────────────────────────────────────────────────────────
-function BikeSVG({ bags, byBag }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]> }) {
+function BikeSVGContent({ bags, byBag, scale = 1 }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]>; scale?: number }) {
+  const fs = Math.max(4, 5.5 / scale)   // font size: smaller when zoomed so text fits better
+  return <>
+    <image href={bikeImg} x="0" y="0" width="308" height="203" preserveAspectRatio="xMidYMid meet"/>
+    {bags.filter(b => b.has_pos).map(b => {
+      const items = byBag[b.name] || []
+      const total = items.reduce((s, i) => s + i.peso, 0)
+      const active = items.length > 0
+      const ry = Math.min(5, (b.pos_h ?? 0) / 2)
+      const abbr = abbrevBag(b.name)
+      return (
+        <g key={b.id}>
+          <rect x={b.pos_x!} y={b.pos_y!} width={b.pos_w!} height={b.pos_h!} rx={ry}
+            fill={b.color} opacity={active ? 0.85 : 0.18}
+            stroke="white" strokeWidth={active ? 0.8 : 0.3} strokeOpacity={active ? 0.6 : 0.2}/>
+          <clipPath id={`clip-${b.id}-${scale}`}>
+            <rect x={b.pos_x!+1} y={b.pos_y!+1} width={b.pos_w!-2} height={b.pos_h!-2} rx={Math.min(4,(b.pos_h??0)/2)}/>
+          </clipPath>
+          <text x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*(active&&total>0?0.36:0.5)} textAnchor="middle" dominantBaseline="central"
+            fontSize={fs} fontFamily="DM Mono,monospace" fontWeight="700" fill="white" clipPath={`url(#clip-${b.id}-${scale})`}>
+            {abbr}
+          </text>
+          {active && total > 0 && (
+            <text x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*0.68} textAnchor="middle" dominantBaseline="central"
+              fontSize={fs} fontFamily="DM Mono,monospace" fontWeight="500" fill="white" opacity={0.9} clipPath={`url(#clip-${b.id}-${scale})`}>
+              {total.toFixed(2)}kg
+            </text>
+          )}
+        </g>
+      )
+    })}
+  </>
+}
+
+function BikeSVG({ bags, byBag, onClick }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]>; onClick?: () => void }) {
   return (
-    <svg width="100%" viewBox="0 0 308 203" style={{ display:'block' }}>
-      <image href={bikeImg} x="0" y="0" width="308" height="203" preserveAspectRatio="xMidYMid meet"/>
-      {bags.filter(b => b.has_pos).map(b => {
-        const items = byBag[b.name] || []
-        const total = items.reduce((s, i) => s + i.peso, 0)
-        const active = items.length > 0
-        const ry = Math.min(5, (b.pos_h ?? 0) / 2)
-        return (
-          <g key={b.id}>
-            <rect x={b.pos_x!} y={b.pos_y!} width={b.pos_w!} height={b.pos_h!} rx={ry}
-              fill={b.color} opacity={active ? 0.85 : 0.18}
-              stroke="white" strokeWidth={active ? 0.8 : 0.3} strokeOpacity={active ? 0.6 : 0.2}/>
-            {active && total > 0 && (
-              <g>
-                <clipPath id={`clip-${b.id}`}>
-                  <rect x={b.pos_x!+1} y={b.pos_y!+1} width={b.pos_w!-2} height={b.pos_h!-2} rx={Math.min(4,(b.pos_h??0)/2)}/>
-                </clipPath>
-                <text x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*0.36} textAnchor="middle" dominantBaseline="central"
-                  fontSize="5" fontFamily="DM Mono,monospace" fontWeight="700" fill="white" clipPath={`url(#clip-${b.id})`}>
-                  {abbrevBag(b.name)}
-                </text>
-                <text x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*0.68} textAnchor="middle" dominantBaseline="central"
-                  fontSize="5" fontFamily="DM Mono,monospace" fontWeight="500" fill="white" opacity={0.85} clipPath={`url(#clip-${b.id})`}>
-                  {total.toFixed(2)}
-                </text>
-              </g>
-            )}
-          </g>
-        )
-      })}
+    <svg width="100%" viewBox="0 0 308 203" style={{ display:'block', cursor: onClick ? 'zoom-in' : 'default' }} onClick={onClick}>
+      <BikeSVGContent bags={bags} byBag={byBag} scale={1}/>
     </svg>
+  )
+}
+
+function BikeSVGModal({ bags, byBag, onClose }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]>; onClose: () => void }) {
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:3000 }} onClick={onClose}>
+      <div style={{ position:'relative', width:'min(90vw, 820px)', padding:8 }} onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} style={{ position:'absolute', top:-12, right:-12, zIndex:1, background:'#fff', border:'none', borderRadius:'50%', width:28, height:28, fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>×</button>
+        <svg width="100%" viewBox="0 0 308 203" style={{ display:'block', borderRadius:10, boxShadow:'0 8px 40px rgba(0,0,0,0.5)' }}>
+          <BikeSVGContent bags={bags} byBag={byBag} scale={3}/>
+        </svg>
+        <div style={{ marginTop:10, display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center' }}>
+          {bags.filter(b=>b.has_pos).map(b=>{
+            const items = byBag[b.name]||[], total=items.reduce((s,i)=>s+i.peso,0)
+            if(!items.length) return null
+            return (
+              <div key={b.id} style={{ background:'rgba(255,255,255,0.12)', border:`1px solid ${b.color}66`, borderRadius:6, padding:'3px 10px', display:'flex', alignItems:'center', gap:6 }}>
+                <div style={{ width:8, height:8, borderRadius:2, background:b.color }}/>
+                <span style={{ ...mono, fontSize:11, color:'#fff', fontWeight:700 }}>{abbrevBag(b.name)}</span>
+                <span style={{ ...mono, fontSize:10, color:'rgba(255,255,255,0.7)' }}>{b.name}</span>
+                <span style={{ ...mono, fontSize:11, color:b.color, fontWeight:600 }}>{total.toFixed(3)} kg</span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -435,6 +468,7 @@ export default function BikepackApp() {
   const [editItem, setEditItem]   = useState<Partial<Item>|null>(null)
   const [showBags, setShowBags]   = useState(false)
   const [showBagEditor, setShowBagEditor] = useState(false)
+  const [showBikeZoom, setShowBikeZoom]   = useState(false)
   const [showGroups, setShowGroups] = useState(false)
   const [editBag, setEditBag]     = useState<Partial<Bag>|null>(null)
   const [editGroup, setEditGroup] = useState<Partial<Group>|null>(null)
@@ -635,7 +669,7 @@ export default function BikepackApp() {
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#B4B2A9', ...mono }}>distribucion visual</div>
               <button onClick={()=>setShowBagEditor(true)} style={{ ...mono, fontSize:10, color:'#E85D24', background:'#FFF0E8', border:'0.5px solid #E85D24', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}>Editar posiciones</button>
             </div>
-            <BikeSVG bags={configBags} byBag={byBag}/>
+            <BikeSVG bags={configBags} byBag={byBag} onClick={()=>setShowBikeZoom(true)}/>
           </div>
 
           <div style={{ padding:'10px 14px 0' }}>
@@ -701,6 +735,9 @@ export default function BikepackApp() {
             ? <GroupForm group={editGroup} onSave={saveGroup} onDelete={editGroup.id?deleteGroup:null} onCancel={()=>setEditGroup(null)}/>
             : <GroupList groups={groups} onEdit={setEditGroup} onNew={()=>setEditGroup({name:'',color:'#888780',sort_order:99})}/>}
         </Modal>
+      )}
+      {showBikeZoom && (
+        <BikeSVGModal bags={configBags} byBag={byBag} onClose={()=>setShowBikeZoom(false)}/>
       )}
       {showBagEditor && (
         <BagEditor bags={configBags} onSave={bag=>setBags(prev=>prev.map(b=>b.id===bag.id?{...b,...bag}:b))} onClose={()=>setShowBagEditor(false)}/>
