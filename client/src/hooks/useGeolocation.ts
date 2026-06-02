@@ -9,9 +9,10 @@ type DeviceOrientationEventIOS = typeof DeviceOrientationEvent & { requestPermis
 export interface GeoPosition {
   lat: number
   lng: number
-  accuracy: number    // meters
+  accuracy: number
   heading: number | null   // 0-360°, null when unavailable (stationary, indoor, no sensor)
   speed: number | null
+  altitude: number | null
   timestamp: number
 }
 
@@ -117,6 +118,7 @@ export function useGeolocation(): UseGeolocationReturn {
           // otherwise so the arrow still points correctly when stationary.
           heading: pos.coords.heading ?? headingRef.current,
           speed: pos.coords.speed ?? null,
+          altitude: pos.coords.altitude,
           timestamp: pos.timestamp,
         })
       },

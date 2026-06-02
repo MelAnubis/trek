@@ -4,7 +4,8 @@
  * Con soporte para asignar tracks a días y dividir GPX largo por etapas
  */
 import React, { useState, useEffect, useRef } from 'react'
-import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Calendar } from 'lucide-react'
+import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Calendar, Navigation } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import type { GpxTrack } from './ElevationDetail'
 import GpxSplitWizard from './GpxSplitWizard'
 
@@ -224,6 +225,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     track={track}
                     color={TRACK_COLORS[i % TRACK_COLORS.length]}
                     days={days}
+                    tripId={tripId}
                     onToggle={() => toggleActive(track)}
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
@@ -251,6 +253,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     color={TRACK_COLORS[i % TRACK_COLORS.length]}
                     days={days}
                     dayLabel={getDayLabel(track.day_id)}
+                    tripId={tripId}
                     onToggle={() => toggleActive(track)}
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
@@ -271,11 +274,12 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
 }
 
 // ── Track row component ───────────────────────────────────────────────────────
-function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDay, onSplit, onWizard, splitting }: {
+function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, onAssignDay, onSplit, onWizard, splitting }: {
   track: any
   color: string
   days: Day[]
   dayLabel?: string
+  tripId: number
   onToggle: () => void
   onDelete: () => void
   onAssignDay: (dayId: number | null) => void
@@ -288,6 +292,7 @@ function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDa
   const gain    = parseFloat(track.total_elevation_gain) || 0
   const loss    = parseFloat(track.total_elevation_loss) || 0
   const [showDayPicker, setShowDayPicker] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <div style={{
@@ -321,6 +326,15 @@ function TrackRow({ track, color, days, dayLabel, onToggle, onDelete, onAssignDa
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+          {/* Navigate */}
+          <button
+            title="Navegar siguiendo este track"
+            onClick={() => navigate(`/navigate?tripId=${tripId}&trackId=${track.id}`)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#22d96e' }}
+          >
+            <Navigation size={15} />
+          </button>
+
           {/* Assign day */}
           <button title="Asignar a un día" onClick={() => setShowDayPicker(p => !p)}
             style={{ background: showDayPicker ? color + '30' : 'none', border: 'none', cursor: 'pointer',

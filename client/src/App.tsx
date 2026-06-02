@@ -19,6 +19,7 @@ import JourneyPublicPage from './pages/JourneyPublicPage'
 import SharedTripPage from './pages/SharedTripPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
+import NavigationPage from './pages/NavigationPage'
 import { ToastContainer } from './components/shared/Toast'
 import BottomNav from './components/Layout/BottomNav'
 import { TranslationProvider, useTranslation } from './i18n'
@@ -35,9 +36,10 @@ interface ProtectedRouteProps {
   children: ReactNode
   adminRequired?: boolean
   addonId?: string
+  fullscreen?: boolean
 }
 
-function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedRouteProps) {
+function ProtectedRoute({ children, adminRequired = false, addonId, fullscreen = false }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated)
   const user = useAuthStore((s) => s.user)
   const isLoading = useAuthStore((s) => s.isLoading)
@@ -77,6 +79,10 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
 
   if (addonId && addonStore.loaded && !addonStore.isEnabled(addonId)) {
     return <Navigate to="/dashboard" replace />
+  }
+
+  if (fullscreen) {
+    return <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>{children}</div>
   }
 
   return (
@@ -296,6 +302,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <InAppNotificationsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/navigate"
+          element={
+            <ProtectedRoute fullscreen>
+              <NavigationPage />
             </ProtectedRoute>
           }
         />
