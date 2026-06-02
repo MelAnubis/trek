@@ -7,7 +7,6 @@ import { authenticate, optionalAuth, demoUploadBlock } from '../middleware/auth'
 import { AuthRequest, OptionalAuthRequest } from '../types';
 import { writeAudit, getClientIp } from '../services/auditLog';
 import { setAuthCookie, clearAuthCookie } from '../services/cookie';
-import { syncUserToBikepark, fetchUserBikepackProfile } from '../services/bikeparkSync';
 import {
   getAppConfig,
   demoLogin,
@@ -42,7 +41,6 @@ import {
   generateToken,
 } from '../services/authService';
 import { sendPasswordResetEmail, getAppUrl } from '../services/notifications';
-import { isSsoConfigured, signSsoToken, verifySsoToken } from '../services/bikeparkSso';
 import { db } from '../db/database';
 import type { User } from '../types';
 
@@ -150,13 +148,6 @@ router.post('/register', authLimiter, (req: Request, res: Response) => {
   if (result.error) return res.status(result.status!).json({ error: result.error });
   writeAudit({ userId: result.auditUserId!, action: 'user.register', ip: getClientIp(req), details: result.auditDetails });
   setAuthCookie(res, result.token!, req);
-  // Mirror new user to Bikepack instance (fire-and-forget)
-  syncUserToBikepark({
-    username: result.user!.username as string,
-    email: result.user!.email as string,
-    password: req.body.password,
-    role: result.user!.role as string,
-  }).catch(() => {});
   res.status(201).json({ token: result.token, user: result.user });
 });
 
@@ -417,67 +408,6 @@ router.post('/resource-token', authenticate, (req: Request, res: Response) => {
   const token = createResourceToken(authReq.user.id, req.body.purpose);
   if (!token) return res.status(503).json({ error: 'Service unavailable' });
   res.json(token);
-});
-
-// ---------------------------------------------------------------------------
-// Bikepack SSO
-// ---------------------------------------------------------------------------
-
-/**
- * BIKEPACK SIDE — validate a shared-secret token from Trek Wanderer, set a
- * session cookie, then redirect to the root of this instance.
- *
- * The token is a 2-minute JWT signed with BIKEPACK_SHARED_SECRET. If valid,
- * the user is looked up by email and auto-logged-in.
- *
- * GET /api/auth/sso-session?token=<jwt>
- */
-router.get('/sso-session', (req: Request, res: Response) => {
-  const { token } = req.query as { token?: string };
-  if (!token) return res.status(400).json({ error: 'Missing token' });
-  const payload = verifySsoToken(token);
-  if (!payload) return res.status(401).json({ error: 'Invalid or expired SSO token' });
-  const user = db
-    .prepare('SELECT * FROM users WHERE LOWER(email) = LOWER(?)')
-    .get(payload.email) as User | undefined;
-  if (!user) return res.status(404).json({ error: 'User not found on this instance' });
-  const jwtToken = generateToken(user);
-  setAuthCookie(res, jwtToken, req);
-  res.redirect('/');
-});
-
-/**
- * TREK SIDE — generate a one-time SSO URL the client can use to auto-login
- * into the Bikepack instance as the current Trek user.
- *
- * GET /api/auth/bikepack-sso-url   (requires auth)
- * → { ssoUrl: "https://trekwanderer.info:448/api/auth/sso-session?token=<jwt>" }
- */
-router.get('/bikepack-sso-url', authenticate, (req: Request, res: Response) => {
-  if (!isSsoConfigured()) {
-    return res.status(503).json({ error: 'Bikepack SSO not configured' });
-  }
-  const authReq = req as AuthRequest;
-  const token = signSsoToken(authReq.user.email);
-  const bikepackUrl = (process.env.BIKEPACK_URL ?? '').replace(/\/$/, '');
-  res.json({ ssoUrl: `${bikepackUrl}/api/auth/sso-session?token=${encodeURIComponent(token)}` });
-});
-
-/**
- * TREK SIDE — proxy the current user's Bikepack packing profile.
- * The client calls this instead of Bikepack directly, so no credentials
- * or Bikepack-specific IDs need to be stored on the frontend.
- *
- * GET /api/auth/bikepack-profile   (requires auth)
- * → BikepackProfile JSON or 503 if unreachable
- */
-router.get('/bikepack-profile', authenticate, async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const profile = await fetchUserBikepackProfile(authReq.user.email);
-  if (!profile) {
-    return res.status(503).json({ error: 'Could not fetch Bikepack profile. Make sure the user has been synced.' });
-  }
-  res.json(profile);
 });
 
 export default router;

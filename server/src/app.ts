@@ -12,6 +12,7 @@ import { authenticate, verifyJwtAndLoadUser } from './middleware/auth';
 import { db } from './db/database';
 
 import authRoutes from './routes/auth';
+import bikepackRoutes from './routes/bikepack';
 import tripsRoutes from './routes/trips';
 import daysRoutes, { accommodationsRouter as accommodationsRoutes } from './routes/days';
 import placesRoutes from './routes/places';
@@ -271,6 +272,7 @@ export function createApp(): express.Application {
 
   // API Routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/bikepack', bikepackRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
   app.use('/api/trips', tripsRoutes);
   app.use('/api/trips/:tripId/days', daysRoutes);

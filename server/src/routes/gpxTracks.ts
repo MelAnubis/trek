@@ -560,6 +560,79 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
   }
 });
 
+// ── POST /api/trips/:id/gpx/:trackId/split-manual ────────────────────────────
+// Divide el GPX usando cortes manuales: array de { pointIndex, dayId }
+// Convención: el dayId de un corte en X se asigna al segmento que LLEGA a X (antes del corte).
+router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const tripId  = authReq.params.id;
+  const trackId = req.params.trackId;
+
+  try {
+    const track = db.prepare(
+      'SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?'
+    ).get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const allPoints: { lat: number; lng: number; ele: number | null; time: string | null }[] =
+      JSON.parse(track.points_json || '[]');
+    if (allPoints.length < 2) {
+      return res.status(400).json({ error: 'Track has insufficient points' });
+    }
+
+    const cuts: { pointIndex: number; dayId: number | null }[] = req.body.cuts || [];
+    if (!Array.isArray(cuts)) {
+      return res.status(400).json({ error: 'cuts must be an array' });
+    }
+
+    // Validate & sort cuts
+    const sorted = [...cuts]
+      .map(c => ({ pointIndex: Math.max(0, Math.min(Math.round(c.pointIndex), allPoints.length - 1)), dayId: c.dayId ?? null }))
+      .sort((a, b) => a.pointIndex - b.pointIndex);
+
+    // Build boundaries from cut positions
+    const cutPoints = sorted.filter(c => c.pointIndex > 0 && c.pointIndex < allPoints.length - 1);
+    const boundaries: number[] = [0, ...cutPoints.map(c => c.pointIndex), allPoints.length - 1];
+
+    // Delete existing day-linked tracks for this trip
+    db.prepare('DELETE FROM gpx_tracks WHERE trip_id = ? AND day_id IS NOT NULL').run(tripId);
+
+    const created: any[] = [];
+
+    for (let i = 0; i < boundaries.length - 1; i++) {
+      const from = boundaries[i];
+      const to   = boundaries[i + 1];
+      const slice = allPoints.slice(from, to + 1);
+      if (slice.length < 2) continue;
+
+      // dayId del corte que TERMINA este segmento (en boundaries[i+1])
+      const cut = cutPoints.find(c => c.pointIndex === boundaries[i + 1]);
+      // Si no hay corte al final (último segmento), no tiene día asignado por defecto
+      const dayId = cut?.dayId ?? null;
+
+      // Name: use day title if linked to a day
+      let name = `Etapa ${i + 1}`;
+      if (dayId) {
+        const day = db.prepare('SELECT title, day_number FROM days WHERE id = ?').get(dayId) as any;
+        if (day) name = day.title || `Día ${day.day_number || dayId}`;
+      }
+
+      const newId = saveTrack(tripId, authReq.user.id, name, null, slice, [], i, dayId);
+      const saved = db.prepare('SELECT * FROM gpx_tracks WHERE id = ?').get(newId) as any;
+      created.push({ ...saved, points_json: undefined, waypoints_json: undefined });
+    }
+
+    res.json({
+      success: true,
+      message: `GPX dividido en ${created.length} etapas`,
+      tracks: created,
+    });
+  } catch (e: any) {
+    console.error('[gpx split-manual]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── PATCH /api/trips/:id/gpx/:trackId ─────────────────────────────────────────
 router.patch('/:trackId', authenticate, requireTripAccess, (req: Request, res: Response) => {
   const tripId  = (req as AuthRequest).params.id;
