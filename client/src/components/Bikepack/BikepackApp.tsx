@@ -366,6 +366,62 @@ function BagForm({ bag, config, onSave, onDelete, onCancel }: { bag: Partial<Bag
   )
 }
 
+// ── Print ─────────────────────────────────────────────────────────────────
+function printList(
+  items: Item[], groups: Group[], bags: Bag[],
+  byGroup: Record<string,number>, byBag: Record<string,{name:string;uds:number;peso:number}[]>,
+  total: number, config: number,
+  getQty: (i: Item) => number, getLoc: (i: Item) => string,
+  groupMap: Record<string,string>
+) {
+  const configName = config === 0 ? 'Config 1 — Alforjas' : 'Config 2 — Bikepacking'
+  const groupKeys = groups.map(g => g.name)
+
+  const groupRows = groupKeys.map(grp => {
+    const gi = items.filter(i => i.grupo === grp && getQty(i) > 0)
+    if (!gi.length) return ''
+    const color = groupMap[grp] || '#888780'
+    const rows = gi.map(it => {
+      const qty = getQty(it), loc = getLoc(it)
+      return `<tr><td>${it.name}</td><td style="text-align:center">${qty}</td><td>${loc}</td><td style="text-align:right">${(it.peso*qty).toFixed(3)} kg</td></tr>`
+    }).join('')
+    return `<tr><td colspan="4" style="background:${color}22;color:${color};font-weight:700;padding:5px 8px;border-top:1px solid ${color}44">${grp} — ${byGroup[grp]?.toFixed(3)} kg</td></tr>${rows}`
+  }).join('')
+
+  const bagRows = Object.entries(byBag)
+    .sort((a,b) => b[1].reduce((s,i)=>s+i.peso,0) - a[1].reduce((s,i)=>s+i.peso,0))
+    .map(([name, bi]) => {
+      const t = bi.reduce((s,i)=>s+i.peso,0)
+      const color = bags.find(b=>b.name===name)?.color || '#888780'
+      const rows = bi.map(i => `<tr><td>${i.uds>1?`${i.uds}× `:''} ${i.name}</td><td style="text-align:right">${i.peso.toFixed(3)} kg</td></tr>`).join('')
+      return `<tr><td colspan="2" style="background:${color}22;color:${color};font-weight:700;padding:5px 8px;border-top:1px solid ${color}44">${name} — ${t.toFixed(3)} kg</td></tr>${rows}`
+    }).join('')
+
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Bikepack — ${configName}</title>
+  <style>
+    body{font-family:'DM Mono',monospace;font-size:11px;color:#2C2C2A;margin:0;padding:20px}
+    h1{font-size:15px;margin:0 0 4px}
+    .sub{color:#888780;font-size:10px;margin-bottom:20px}
+    h2{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#B4B2A9;margin:20px 0 6px;border-bottom:0.5px solid #D3D1C7;padding-bottom:4px}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px}
+    td{padding:3px 8px;border-bottom:0.5px solid #F1EFE8;vertical-align:top}
+    .total{border-top:1px solid #D3D1C7;padding-top:8px;margin-top:8px;text-align:right;font-weight:700;color:#E85D24;font-size:13px}
+    @media print{body{padding:10px}}
+  </style></head><body>
+  <h1>🚴 Bikepack — ${configName}</h1>
+  <div class="sub">Total: ${total.toFixed(3)} kg · ${items.filter(i=>getQty(i)>0).length} elementos activos</div>
+  <h2>Lista por categoría</h2>
+  <table><thead><tr style="color:#B4B2A9"><th style="text-align:left">Elemento</th><th style="text-align:center">Uds</th><th style="text-align:left">Bolsa</th><th style="text-align:right">Peso</th></tr></thead><tbody>${groupRows}</tbody></table>
+  <div class="total">TOTAL ${total.toFixed(3)} kg</div>
+  <h2>Por bolsa</h2>
+  <table><tbody>${bagRows}</tbody></table>
+  <script>window.onload=()=>{window.print()}</script>
+  </body></html>`
+
+  const w = window.open('', '_blank')
+  if (w) { w.document.write(html); w.document.close() }
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────
 export default function BikepackApp() {
   const [items, setItems]     = useState<Item[]>([])
@@ -534,6 +590,7 @@ export default function BikepackApp() {
         <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, padding:'0 12px' }}>
           <button onClick={()=>setShowGroups(true)} style={{ ...mono, fontSize:11, color:'#3B6D11', background:'#EAF3DE', border:'0.5px solid #97C459', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>Categorias</button>
           <button onClick={()=>setShowBags(true)} style={{ ...mono, fontSize:11, color:'#534AB7', background:'#EEEDFE', border:'0.5px solid #AFA9EC', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>Bolsas</button>
+          <button onClick={()=>printList(items,groups,configBags,byGroup,byBag,total,config,getQty,getLoc,groupMap)} style={{ ...mono, fontSize:11, color:'#888780', background:'#F1EFE8', border:'0.5px solid #C2C0B6', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>🖨️</button>
           <span style={{ background:'#E85D24', color:'#fff', ...mono, fontSize:12, fontWeight:600, padding:'4px 12px', borderRadius:20 }}>{total.toFixed(3)} kg</span>
         </div>
       </div>
