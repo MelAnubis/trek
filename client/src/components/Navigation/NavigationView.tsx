@@ -86,8 +86,18 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
   const handlePhotoCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !tripId) return
-    await nav.captureNavPhoto(file, tripId)
+    if (!file) return
+    if (tripId) {
+      await nav.captureNavPhoto(file, tripId)
+    } else {
+      // No trip — download the photo directly
+      const url = URL.createObjectURL(file)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `foto-nav-${Date.now()}.jpg`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
     e.target.value = ''
   }, [nav, tripId])
 
@@ -306,14 +316,12 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
                   )}
                 </div>
               </div>
-              {tripId && (
-                <CtrlButton
-                  icon={<Camera size={18} color="#22d96e" />}
-                  label="Foto"
-                  onClick={handleCameraClick}
-                  accent="#22d96e"
-                />
-              )}
+              <CtrlButton
+                icon={<Camera size={18} color="#22d96e" />}
+                label="Foto"
+                onClick={handleCameraClick}
+                accent="#22d96e"
+              />
               <CtrlButton
                 icon={<Square size={18} color="#ef4444" />}
                 label="Detener"
@@ -332,6 +340,12 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
                 </div>
                 <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{nav.progressPct.toFixed(0)}%</div>
               </div>
+              <CtrlButton
+                icon={<Camera size={18} color="#22d96e" />}
+                label="Foto"
+                onClick={handleCameraClick}
+                accent="#22d96e"
+              />
               <CtrlButton
                 icon={<Square size={18} color="#94a3b8" />}
                 label="Salir"
