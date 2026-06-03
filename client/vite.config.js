@@ -91,6 +91,12 @@ export default defineConfig({
   build: {
     sourcemap: false,
     modulePreload: { polyfill: true },
+    rollupOptions: {
+      // Capacitor native plugins can't be bundled for web — they're loaded by
+      // the native runtime. The dynamic imports in nativeGeoService.ts are
+      // guarded by isNative(), so they never execute in the browser.
+      external: ['@capacitor-community/background-geolocation'],
+    },
   },
   server: {
     port: 5173,
