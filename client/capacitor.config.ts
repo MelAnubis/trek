@@ -1,18 +1,24 @@
 import type { CapacitorConfig } from '@capacitor/cli'
 
+// ── CONFIGURE THIS ─────────────────────────────────────────────────────────
+// Set TREK_SERVER_URL to the public URL of your Trek server (with https://).
+// The Android WebView will load the app directly from this URL, so you never
+// need to rebuild the APK when you deploy a new version to the server.
+const TREK_SERVER_URL = process.env.TREK_SERVER_URL ?? ''
+// ───────────────────────────────────────────────────────────────────────────
+
 const config: CapacitorConfig = {
   appId: 'com.trek.wanderer',
   appName: 'Trek Wanderer',
   webDir: 'dist',
-  // During development: point to your local server so you don't need to rebuild on every change.
-  // Comment this out for production builds.
-  // server: {
-  //   url: 'http://YOUR_LOCAL_IP:5173',
-  //   cleartext: true,
-  // },
+  ...(TREK_SERVER_URL ? {
+    server: {
+      url: TREK_SERVER_URL,
+      cleartext: false,   // require HTTPS
+    },
+  } : {}),
   plugins: {
     BackgroundGeolocation: {
-      // Android foreground service notification
       notificationTitle: 'Trek Wanderer — Navegando',
       notificationText: 'Grabando ubicación en segundo plano',
       notificationIconColor: '#6366f1',
