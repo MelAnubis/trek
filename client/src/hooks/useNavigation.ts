@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useGeolocation } from './useGeolocation'
 import { GpxRecorderService, type RecordedPoint } from '../services/gpxRecorderService'
-import { fetchTurnByTurn, advanceInstructions, type TurnInstruction } from '../services/turnByTurnService'
+import {
+  advanceInstructions,
+  generateTrackInstructions,
+  fetchApproachRoute,
+  type TurnInstruction,
+} from '../services/turnByTurnService'
 
 export type NavMode = 'idle' | 'recording' | 'following'
 
@@ -53,11 +58,10 @@ function totalTrackM(pts: TrackPoint[]): number {
   return distAlongTrack(pts, 0, pts.length - 1)
 }
 
-/** Find the index of the nearest point in `pts`, searching a window around `hint`. */
 function nearestPointIdx(pts: TrackPoint[], lat: number, lng: number, hint: number): number {
-  const window = 80
+  const win = 80
   const start = Math.max(0, hint - 10)
-  const end = Math.min(pts.length - 1, hint + window)
+  const end = Math.min(pts.length - 1, hint + win)
   let best = hint
   let bestD = Infinity
   for (let i = start; i <= end; i++) {
@@ -68,15 +72,25 @@ function nearestPointIdx(pts: TrackPoint[], lat: number, lng: number, hint: numb
 }
 
 function minDistToTrackWindow(pts: TrackPoint[], lat: number, lng: number, idx: number): number {
-  const window = 30
-  const start = Math.max(0, idx - window)
-  const end = Math.min(pts.length - 1, idx + window)
+  const win = 30
+  const start = Math.max(0, idx - win)
+  const end = Math.min(pts.length - 1, idx + win)
   let min = Infinity
   for (let i = start; i <= end; i++) {
     const d = haversineM(lat, lng, pts[i].lat, pts[i].lng)
     if (d < min) min = d
   }
   return min
+}
+
+function globalNearestPointIdx(pts: TrackPoint[], lat: number, lng: number): number {
+  let best = 0
+  let bestD = Infinity
+  for (let i = 0; i < pts.length; i++) {
+    const d = haversineM(lat, lng, pts[i].lat, pts[i].lng)
+    if (d < bestD) { bestD = d; best = i }
+  }
+  return best
 }
 
 export function useNavigation() {
@@ -91,6 +105,11 @@ export function useNavigation() {
   const [stats, setStats] = useState<NavStats>(INITIAL_STATS)
   const [instructions, setInstructions] = useState<TurnInstruction[]>([])
   const [instrIdx, setInstrIdx] = useState(0)
+  const [distanceToTrackM, setDistanceToTrackM] = useState<number | null>(null)
+  const [approachRoute, setApproachRoute] = useState<[number, number][] | null>(null)
+  const [approachInstructions, setApproachInstructions] = useState<TurnInstruction[]>([])
+  const [approachInstrIdx, setApproachInstrIdx] = useState(0)
+  const [isApproaching, setIsApproaching] = useState(false)
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -99,12 +118,20 @@ export function useNavigation() {
   const elevLossRef = useRef(0)
   const navModeRef = useRef<NavMode>('idle')
   navModeRef.current = navMode
+  const trackPointsRef = useRef<TrackPoint[]>([])
+  trackPointsRef.current = trackPoints
+  const instructionsRef = useRef<TurnInstruction[]>([])
+  instructionsRef.current = instructions
+  const approachInstructionsRef = useRef<TurnInstruction[]>([])
+  approachInstructionsRef.current = approachInstructions
+  const isApproachingRef = useRef(false)
+  isApproachingRef.current = isApproaching
+  const recordWatchRef = useRef<number | null>(null)
 
   const clearTimer = () => {
     if (timerRef.current !== null) { clearInterval(timerRef.current); timerRef.current = null }
   }
 
-  // Timer for elapsed time
   const startTimer = () => {
     clearTimer()
     timerRef.current = setInterval(() => {
@@ -113,68 +140,59 @@ export function useNavigation() {
     }, 1000)
   }
 
-  // React to GPS position updates
+  const stopRecordWatch = () => {
+    if (recordWatchRef.current !== null) {
+      navigator.geolocation.clearWatch(recordWatchRef.current)
+      recordWatchRef.current = null
+    }
+  }
+
+  // React to position updates in following mode only
+  // (recording uses its own dedicated high-frequency watchPosition below)
   useEffect(() => {
     if (!geo.position) return
-    const { lat, lng, speed, altitude, timestamp } = geo.position
+    const { lat, lng, speed } = geo.position
 
-    if (navModeRef.current === 'recording') {
-      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
-      const pts = [...recorder.current.points]
-      setRecordedPoints(pts)
+    if (navModeRef.current !== 'following') return
+    const pts = trackPointsRef.current
+    if (pts.length === 0) return
 
-      // Elevation tracking with 2m hysteresis
-      const alt = altitude ?? null
-      if (alt !== null) {
-        if (lastAltRef.current !== null) {
-          const diff = alt - lastAltRef.current
-          if (diff > 2) elevGainRef.current += diff
-          else if (diff < -2) elevLossRef.current += Math.abs(diff)
-        }
-        lastAltRef.current = alt
-      }
+    setProgressIdx(prev => {
+      const newIdx = nearestPointIdx(pts, lat, lng, prev)
+      const minDist = minDistToTrackWindow(pts, lat, lng, newIdx)
+      setIsDeviated(minDist > 50)
+      setDistanceToTrackM(minDist)
 
-      const distM = recorder.current.totalDistanceM()
+      const distTraveled = distAlongTrack(pts, 0, newIdx)
+      const total = totalTrackM(pts)
       const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
-      const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
+      const avgKmh = elapsed > 60 ? (distTraveled / 1000) / (elapsed / 3600) : 0
       setStats(s => ({
         ...s,
-        distanceTraveledM: distM,
+        distanceTraveledM: distTraveled,
+        distanceRemainingM: total - distTraveled,
         currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
         avgSpeedKmh: avgKmh,
-        elevationGainM: elevGainRef.current,
-        elevationLossM: elevLossRef.current,
       }))
-    } else if (navModeRef.current === 'following') {
-      setProgressIdx(prev => {
-        const newIdx = nearestPointIdx(trackPoints, lat, lng, prev)
-        // Deviation detection
-        const minDist = minDistToTrackWindow(trackPoints, lat, lng, newIdx)
-        setIsDeviated(minDist > 50)
+      return newIdx
+    })
 
-        const distTraveled = distAlongTrack(trackPoints, 0, newIdx)
-        const total = totalTrackM(trackPoints)
-        const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
-        const avgKmh = elapsed > 60 ? (distTraveled / 1000) / (elapsed / 3600) : 0
-        setStats(s => ({
-          ...s,
-          distanceTraveledM: distTraveled,
-          distanceRemainingM: total - distTraveled,
-          currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
-          avgSpeedKmh: avgKmh,
-        }))
-
-        return newIdx
-      })
-
-      // Advance turn instructions
-      if (instructions.length > 0) {
-        setInstrIdx(prev => advanceInstructions(instructions, prev, lat, lng))
+    // Advance approach or track instructions
+    if (isApproachingRef.current && approachInstructionsRef.current.length > 0) {
+      setApproachInstrIdx(prev => advanceInstructions(approachInstructionsRef.current, prev, lat, lng))
+      // Auto-dismiss approach when within 30 m of track
+      const nearIdx = globalNearestPointIdx(pts, lat, lng)
+      if (haversineM(lat, lng, pts[nearIdx].lat, pts[nearIdx].lng) < 30) {
+        setIsApproaching(false)
+        setApproachRoute(null)
+        setApproachInstructions([])
       }
+    } else if (instructionsRef.current.length > 0) {
+      setInstrIdx(prev => advanceInstructions(instructionsRef.current, prev, lat, lng))
     }
   }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(() => {
     recorder.current.start()
     elevGainRef.current = 0
     elevLossRef.current = 0
@@ -185,9 +203,45 @@ export function useNavigation() {
     startTimer()
     setNavMode('recording')
     geo.setMode('follow')
+
+    // Dedicated high-frequency watcher — maximumAge:0 bypasses the shared 2 s cache
+    stopRecordWatch()
+    recordWatchRef.current = navigator.geolocation.watchPosition(
+      pos => {
+        if (navModeRef.current !== 'recording') return
+        const { latitude: lat, longitude: lng, altitude, speed } = pos.coords
+        recorder.current.addPoint(lat, lng, altitude ?? null, speed, pos.timestamp)
+        setRecordedPoints([...recorder.current.points])
+
+        const alt = altitude ?? null
+        if (alt !== null) {
+          if (lastAltRef.current !== null) {
+            const diff = alt - lastAltRef.current
+            if (diff > 2) elevGainRef.current += diff
+            else if (diff < -2) elevLossRef.current += Math.abs(diff)
+          }
+          lastAltRef.current = alt
+        }
+
+        const distM = recorder.current.totalDistanceM()
+        const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
+        const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
+        setStats(s => ({
+          ...s,
+          distanceTraveledM: distM,
+          currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
+          avgSpeedKmh: avgKmh,
+          elevationGainM: elevGainRef.current,
+          elevationLossM: elevLossRef.current,
+        }))
+      },
+      () => { /* errors handled by useGeolocation */ },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    )
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
+    stopRecordWatch()
     recorder.current.stop()
     clearTimer()
     setNavMode('idle')
@@ -195,31 +249,47 @@ export function useNavigation() {
     return recorder.current
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadTrackAndFollow = useCallback(async (
-    pts: TrackPoint[],
-    waypoints?: Array<{ lat: number; lng: number }>,
-    profile?: 'cycling' | 'walking' | 'driving'
-  ) => {
+  const loadTrackAndFollow = useCallback((pts: TrackPoint[]) => {
     setTrackPoints(pts)
     setProgressIdx(0)
     setIsDeviated(false)
+    setApproachRoute(null)
+    setApproachInstructions([])
+    setIsApproaching(false)
     setStats({ ...INITIAL_STATS, distanceRemainingM: totalTrackM(pts) })
     startTimeRef.current = Date.now()
     startTimer()
     setNavMode('following')
     geo.setMode('follow')
 
-    // Optionally fetch turn-by-turn if waypoints provided
-    if (waypoints && waypoints.length >= 2) {
-      try {
-        const instrs = await fetchTurnByTurn(waypoints, profile ?? 'cycling')
-        setInstructions(instrs)
-        setInstrIdx(0)
-      } catch {
-        // instructions are optional, fail silently
-      }
-    }
+    // Generate turn instructions from GPX geometry (no OSRM required)
+    const instrs = generateTrackInstructions(pts)
+    setInstructions(instrs)
+    setInstrIdx(0)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const navigateToTrack = useCallback(async (profile: 'cycling' | 'walking' | 'driving' = 'cycling') => {
+    const pos = geo.position
+    const pts = trackPointsRef.current
+    if (!pos || pts.length === 0) return
+
+    const nearestIdx = globalNearestPointIdx(pts, pos.lat, pos.lng)
+    const nearest = pts[nearestIdx]
+
+    try {
+      const { coords, instructions: instrs } = await fetchApproachRoute(
+        { lat: pos.lat, lng: pos.lng },
+        { lat: nearest.lat, lng: nearest.lng },
+        profile
+      )
+      setApproachRoute(coords)
+      setApproachInstructions(instrs)
+      setApproachInstrIdx(0)
+      setIsApproaching(true)
+    } catch {
+      // approach is optional — user can still follow the track without it
+    }
+  }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopFollowing = useCallback(() => {
     clearTimer()
@@ -227,11 +297,16 @@ export function useNavigation() {
     geo.setMode('off')
     setInstructions([])
     setInstrIdx(0)
+    setApproachRoute(null)
+    setApproachInstructions([])
+    setIsApproaching(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => () => clearTimer(), [])
+  useEffect(() => () => { clearTimer(); stopRecordWatch() }, [])
 
-  const currentInstruction = instructions[instrIdx] ?? null
+  const currentInstruction = isApproaching
+    ? (approachInstructions[approachInstrIdx] ?? null)
+    : (instructions[instrIdx] ?? null)
 
   return {
     navMode,
@@ -239,11 +314,9 @@ export function useNavigation() {
     geoError: geo.error,
     geoMode: geo.mode,
 
-    // Recording
     recordedPoints,
     recorder: recorder.current,
 
-    // Following
     trackPoints,
     progressIdx,
     isDeviated,
@@ -251,10 +324,12 @@ export function useNavigation() {
       ? (distAlongTrack(trackPoints, 0, progressIdx) / totalTrackM(trackPoints)) * 100
       : 0,
 
-    // Instructions
     instructions,
     currentInstruction,
     instrIdx,
+    distanceToTrackM,
+    approachRoute,
+    isApproaching,
 
     stats,
 
@@ -262,5 +337,6 @@ export function useNavigation() {
     stopRecording,
     loadTrackAndFollow,
     stopFollowing,
+    navigateToTrack,
   }
 }

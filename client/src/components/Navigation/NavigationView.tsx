@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react'
-import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Save, Download } from 'lucide-react'
+import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Save, Download, MapPin } from 'lucide-react'
 import { useNavigation } from '../../hooks/useNavigation'
 import type { TrackPoint } from '../../hooks/useNavigation'
 import NavigationMap from './NavigationMap'
@@ -79,6 +79,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
           position={nav.position}
           trackPoints={nav.trackPoints}
           recordedPoints={nav.recordedPoints}
+          approachRoute={nav.approachRoute}
           follow={autoFollow}
           onMapTouch={() => setAutoFollow(false)}
         />
@@ -128,6 +129,60 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
               <Mountain size={14} />
               {showElevation ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
             </button>
+          </div>
+        )}
+
+        {/* Approach banner — shown when user is >150 m from track and not yet navigating to it */}
+        {nav.navMode === 'following' && nav.position &&
+          nav.distanceToTrackM !== null && nav.distanceToTrackM > 150 && !nav.isApproaching && (
+          <div style={{
+            background: 'rgba(251,191,36,0.15)',
+            borderTop: '1px solid rgba(251,191,36,0.35)',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}>
+            <MapPin size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>
+                Estás a {nav.distanceToTrackM < 1000
+                  ? `${Math.round(nav.distanceToTrackM / 10) * 10} m`
+                  : `${(nav.distanceToTrackM / 1000).toFixed(1)} km`} del track
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>Navega hasta el punto más cercano</div>
+            </div>
+            <button
+              onClick={() => nav.navigateToTrack()}
+              style={{
+                background: 'rgba(251,191,36,0.2)',
+                border: '1px solid rgba(251,191,36,0.4)',
+                borderRadius: 8,
+                padding: '6px 12px',
+                color: '#fbbf24',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Ir al track
+            </button>
+          </div>
+        )}
+
+        {/* Approach in-progress indicator */}
+        {nav.navMode === 'following' && nav.isApproaching && (
+          <div style={{
+            background: 'rgba(56,189,248,0.12)',
+            borderTop: '1px solid rgba(56,189,248,0.3)',
+            padding: '8px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            <Navigation size={14} color="#38bdf8" />
+            <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600 }}>Aproximándose al track…</span>
           </div>
         )}
 
