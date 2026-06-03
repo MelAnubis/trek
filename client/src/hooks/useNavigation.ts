@@ -7,6 +7,7 @@ import {
   fetchApproachRoute,
   type TurnInstruction,
 } from '../services/turnByTurnService'
+import { nativeGeoService } from '../services/nativeGeoService'
 
 export type NavMode = 'idle' | 'recording' | 'following'
 
@@ -141,6 +142,7 @@ export function useNavigation() {
   }
 
   const stopRecordWatch = () => {
+    nativeGeoService.stop()
     if (recordWatchRef.current !== null) {
       navigator.geolocation.clearWatch(recordWatchRef.current)
       recordWatchRef.current = null
@@ -204,40 +206,55 @@ export function useNavigation() {
     setNavMode('recording')
     geo.setMode('follow')
 
-    // Dedicated high-frequency watcher — maximumAge:0 bypasses the shared 2 s cache
+    // Use native background GPS (Capacitor) or high-frequency web watchPosition
     stopRecordWatch()
-    recordWatchRef.current = navigator.geolocation.watchPosition(
-      pos => {
-        if (navModeRef.current !== 'recording') return
-        const { latitude: lat, longitude: lng, altitude, speed } = pos.coords
-        recorder.current.addPoint(lat, lng, altitude ?? null, speed, pos.timestamp)
-        setRecordedPoints([...recorder.current.points])
+    const handlePos = (gpos: import('../services/nativeGeoService').NativeGeoPosition) => {
+      if (navModeRef.current !== 'recording') return
+      const { lat, lng, altitude, speed, timestamp } = gpos
+      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
+      setRecordedPoints([...recorder.current.points])
 
-        const alt = altitude ?? null
-        if (alt !== null) {
-          if (lastAltRef.current !== null) {
-            const diff = alt - lastAltRef.current
-            if (diff > 2) elevGainRef.current += diff
-            else if (diff < -2) elevLossRef.current += Math.abs(diff)
-          }
-          lastAltRef.current = alt
+      const alt = altitude ?? null
+      if (alt !== null) {
+        if (lastAltRef.current !== null) {
+          const diff = alt - lastAltRef.current
+          if (diff > 2) elevGainRef.current += diff
+          else if (diff < -2) elevLossRef.current += Math.abs(diff)
         }
+        lastAltRef.current = alt
+      }
 
-        const distM = recorder.current.totalDistanceM()
-        const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
-        const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
-        setStats(s => ({
-          ...s,
-          distanceTraveledM: distM,
-          currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
-          avgSpeedKmh: avgKmh,
-          elevationGainM: elevGainRef.current,
-          elevationLossM: elevLossRef.current,
-        }))
-      },
-      () => { /* errors handled by useGeolocation */ },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    )
+      const distM = recorder.current.totalDistanceM()
+      const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
+      const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
+      setStats(s => ({
+        ...s,
+        distanceTraveledM: distM,
+        currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
+        avgSpeedKmh: avgKmh,
+        elevationGainM: elevGainRef.current,
+        elevationLossM: elevLossRef.current,
+      }))
+    }
+
+    if (nativeGeoService.isNative()) {
+      // Capacitor: background GPS via Android ForegroundService / iOS background location
+      nativeGeoService.start(handlePos, () => { /* error shown by OS permission flow */ })
+    } else {
+      // Browser PWA: maximumAge:0 high-frequency watcher
+      recordWatchRef.current = navigator.geolocation.watchPosition(
+        pos => handlePos({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          altitude: pos.coords.altitude,
+          speed: pos.coords.speed,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        }),
+        () => { /* errors handled by useGeolocation */ },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      )
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {

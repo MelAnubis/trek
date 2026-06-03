@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useRef } from 'react'
-import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Save, Download, MapPin } from 'lucide-react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
+import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Save, Download, MapPin, Sun } from 'lucide-react'
 import { useNavigation } from '../../hooks/useNavigation'
 import type { TrackPoint } from '../../hooks/useNavigation'
 import NavigationMap from './NavigationMap'
@@ -16,17 +16,51 @@ interface Props {
 
 type SaveState = 'idle' | 'saving' | 'saved' | 'error'
 
+// ── Wake Lock hook ────────────────────────────────────────────────────────────
+function useWakeLock(enabled: boolean) {
+  const lockRef = useRef<WakeLockSentinel | null>(null)
+
+  useEffect(() => {
+    if (!enabled) {
+      lockRef.current?.release().catch(() => {})
+      lockRef.current = null
+      return
+    }
+    const acquire = async () => {
+      try {
+        if ('wakeLock' in navigator) {
+          lockRef.current = await (navigator as Navigator & { wakeLock: { request(t: string): Promise<WakeLockSentinel> } })
+            .wakeLock.request('screen')
+        }
+      } catch { /* user denied or feature unsupported */ }
+    }
+    acquire()
+    // Re-acquire after the page becomes visible again (screen unlock)
+    const onVisible = () => { if (document.visibilityState === 'visible') acquire() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible)
+      lockRef.current?.release().catch(() => {})
+      lockRef.current = null
+    }
+  }, [enabled])
+}
+
 export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId, onExit }: Props) {
   const nav = useNavigation()
   const [autoFollow, setAutoFollow] = useState(true)
   const [showElevation, setShowElevation] = useState(!!trackPoints?.length)
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [wakeLock, setWakeLock] = useState(false)
   const [saveName, setSaveName] = useState(() => {
     const d = new Date()
     return `Ruta ${d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
   })
   const startedFollowing = useRef(false)
+
+  // Activate wake lock only while actively recording or following
+  useWakeLock(wakeLock && nav.navMode !== 'idle')
 
   // Auto-start following when track points provided
   React.useEffect(() => {
@@ -277,6 +311,26 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
                 onClick={handleStopFollowing}
               />
             </>
+          )}
+
+          {/* Wake lock toggle — keep screen on */}
+          {'wakeLock' in navigator && (
+            <button
+              onClick={() => setWakeLock(s => !s)}
+              title={wakeLock ? 'Pantalla encendida (activo)' : 'Mantener pantalla encendida'}
+              style={{
+                background: wakeLock ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.08)',
+                border: `1px solid ${wakeLock ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: 10,
+                padding: '8px 10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Sun size={18} color={wakeLock ? '#fbbf24' : '#64748b'} />
+            </button>
           )}
 
           {/* Re-center button */}

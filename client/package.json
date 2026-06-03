@@ -12,9 +12,15 @@
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration src/**/*.test.{ts,tsx}",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "cap:sync": "vite build && npx cap sync android",
+    "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@capacitor-community/background-geolocation": "^1.2.26",
+    "@capacitor/android": "^8.4.0",
+    "@capacitor/cli": "^8.4.0",
+    "@capacitor/core": "^8.4.0",
     "@react-pdf/renderer": "^4.3.2",
     "axios": "^1.6.7",
     "dexie": "^4.4.2",
