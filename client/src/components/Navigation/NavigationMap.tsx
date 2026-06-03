@@ -90,13 +90,14 @@ function EndpointMarker({ point, label, color }: { point: [number, number]; labe
 
 interface Props {
   position: GeoPosition | null
-  trackPoints: TrackPoint[]       // GPX track to follow (orange)
-  recordedPoints: RecordedPoint[] // Live-recorded track (green)
+  trackPoints: TrackPoint[]           // GPX track to follow (orange)
+  recordedPoints: RecordedPoint[]     // Live-recorded track (green)
+  approachRoute?: [number, number][] | null  // Approach route (blue dashed)
   follow: boolean
   onMapTouch?: () => void
 }
 
-export default function NavigationMap({ position, trackPoints, recordedPoints, follow, onMapTouch }: Props) {
+export default function NavigationMap({ position, trackPoints, recordedPoints, approachRoute, follow, onMapTouch }: Props) {
   const defaultCenter: [number, number] = position
     ? [position.lat, position.lng]
     : trackPoints.length > 0
@@ -143,6 +144,15 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, f
           {/* End marker */}
           <EndpointMarker point={trackLatLngs[trackLatLngs.length - 1]} label="F" color="#ef4444" />
         </>
+      )}
+
+      {/* Approach route (blue dashed) */}
+      {approachRoute && approachRoute.length > 1 && (
+        <Polyline
+          positions={approachRoute}
+          pathOptions={{ color: '#38bdf8', weight: 3, opacity: 0.85, dashArray: '8 6' }}
+          interactive={false}
+        />
       )}
 
       {/* Live recording track */}
