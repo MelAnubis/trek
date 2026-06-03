@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react'
-import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Save, Download, MapPin, Sun } from 'lucide-react'
+import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Sun, Camera } from 'lucide-react'
 import { useNavigation } from '../../hooks/useNavigation'
 import type { TrackPoint } from '../../hooks/useNavigation'
 import NavigationMap from './NavigationMap'
 import NavigationHUD from './NavigationHUD'
 import TurnInstruction from './TurnInstruction'
 import ElevationProfileLive from './ElevationProfileLive'
+import NavSummary from './NavSummary'
 
 interface Props {
   trackName?: string
@@ -14,7 +15,11 @@ interface Props {
   onExit: () => void
 }
 
-type SaveState = 'idle' | 'saving' | 'saved' | 'error'
+
+const DEFAULT_ROUTE_NAME = () => {
+  const d = new Date()
+  return `Ruta ${d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
+}
 
 // ── Wake Lock hook ────────────────────────────────────────────────────────────
 function useWakeLock(enabled: boolean) {
@@ -50,13 +55,9 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const nav = useNavigation()
   const [autoFollow, setAutoFollow] = useState(true)
   const [showElevation, setShowElevation] = useState(!!trackPoints?.length)
-  const [showSaveDialog, setShowSaveDialog] = useState(false)
-  const [saveState, setSaveState] = useState<SaveState>('idle')
+  const [showSummary, setShowSummary] = useState(false)
   const [wakeLock, setWakeLock] = useState(false)
-  const [saveName, setSaveName] = useState(() => {
-    const d = new Date()
-    return `Ruta ${d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
-  })
+  const cameraInputRef = useRef<HTMLInputElement>(null)
   const startedFollowing = useRef(false)
 
   // Activate wake lock only while actively recording or following
@@ -73,31 +74,36 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const handleStopRecording = useCallback(() => {
     nav.stopRecording()
     if (nav.recordedPoints.length > 2) {
-      setShowSaveDialog(true)
+      setShowSummary(true)
     } else {
       onExit()
     }
   }, [nav, onExit])
+
+  const handleCameraClick = useCallback(() => {
+    cameraInputRef.current?.click()
+  }, [])
+
+  const handlePhotoCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !tripId) return
+    await nav.captureNavPhoto(file, tripId)
+    e.target.value = ''
+  }, [nav, tripId])
 
   const handleStopFollowing = useCallback(() => {
     nav.stopFollowing()
     onExit()
   }, [nav, onExit])
 
-  const handleSaveToTrip = async () => {
+  const handleSaveToTrip = async (name: string) => {
     if (!tripId) return
-    setSaveState('saving')
-    try {
-      await nav.recorder.saveToTrip(tripId, saveName)
-      setSaveState('saved')
-      setTimeout(onExit, 1200)
-    } catch {
-      setSaveState('error')
-    }
+    await nav.recorder.saveToTrip(tripId, name)
+    setTimeout(onExit, 1200)
   }
 
-  const handleDownload = () => {
-    nav.recorder.downloadGpx(saveName)
+  const handleDownload = (name: string) => {
+    nav.recorder.downloadGpx(name)
     onExit()
   }
 
@@ -114,8 +120,18 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
           trackPoints={nav.trackPoints}
           recordedPoints={nav.recordedPoints}
           approachRoute={nav.approachRoute}
+          navPhotos={nav.navPhotos}
           follow={autoFollow}
           onMapTouch={() => setAutoFollow(false)}
+        />
+        {/* Hidden camera input */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          style={{ display: 'none' }}
+          onChange={handlePhotoCapture}
         />
       </div>
 
@@ -283,10 +299,21 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
             <>
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
-                <span style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>
-                  {nav.recordedPoints.length} puntos GPS
-                </span>
+                <div>
+                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
+                  {nav.navPhotos.length > 0 && (
+                    <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                  )}
+                </div>
               </div>
+              {tripId && (
+                <CtrlButton
+                  icon={<Camera size={18} color="#22d96e" />}
+                  label="Foto"
+                  onClick={handleCameraClick}
+                  accent="#22d96e"
+                />
+              )}
               <CtrlButton
                 icon={<Square size={18} color="#ef4444" />}
                 label="Detener"
@@ -352,13 +379,14 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
         </div>
       </div>
 
-      {/* ── Save dialog (after stop recording) ── */}
-      {showSaveDialog && (
-        <SaveDialog
+      {/* ── Route summary (after stop recording) ── */}
+      {showSummary && (
+        <NavSummary
+          trackName={DEFAULT_ROUTE_NAME()}
+          recordedPoints={nav.recordedPoints}
+          stats={nav.stats}
+          navPhotos={nav.navPhotos}
           tripId={tripId}
-          name={saveName}
-          onNameChange={setSaveName}
-          saveState={saveState}
           onSaveToTrip={handleSaveToTrip}
           onDownload={handleDownload}
           onDiscard={onExit}
@@ -401,105 +429,3 @@ function CtrlButton({ icon, label, onClick, accent }: {
   )
 }
 
-// ── Save dialog ───────────────────────────────────────────────────────────────
-function SaveDialog({ tripId, name, onNameChange, saveState, onSaveToTrip, onDownload, onDiscard }: {
-  tripId?: number
-  name: string
-  onNameChange: (n: string) => void
-  saveState: SaveState
-  onSaveToTrip: () => void
-  onDownload: () => void
-  onDiscard: () => void
-}) {
-  return (
-    <div style={{
-      position: 'absolute', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.75)',
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      display: 'flex',
-      alignItems: 'flex-end',
-    }}>
-      <div style={{
-        background: 'rgba(15,15,30,0.98)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: '20px 20px 0 0',
-        padding: '24px 20px',
-        width: '100%',
-        paddingBottom: `max(24px, env(safe-area-inset-bottom, 24px))`,
-      }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>Guardar ruta</div>
-        <div style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
-          Ruta grabada con éxito.
-        </div>
-
-        <input
-          value={name}
-          onChange={e => onNameChange(e.target.value)}
-          placeholder="Nombre de la ruta"
-          style={{
-            width: '100%', boxSizing: 'border-box',
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 10,
-            padding: '10px 14px',
-            fontSize: 14,
-            color: '#f1f5f9',
-            outline: 'none',
-            marginBottom: 16,
-          }}
-        />
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {tripId && (
-            <button
-              onClick={onSaveToTrip}
-              disabled={saveState === 'saving'}
-              style={{
-                background: saveState === 'saved' ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)',
-                border: `1px solid ${saveState === 'saved' ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`,
-                borderRadius: 12,
-                padding: '13px 16px',
-                color: saveState === 'saved' ? '#22d96e' : '#3b82f6',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: saveState === 'saving' ? 'wait' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}
-            >
-              <Save size={18} />
-              {saveState === 'idle' ? 'Guardar en el viaje' : saveState === 'saving' ? 'Guardando…' : saveState === 'saved' ? '¡Guardado!' : 'Error al guardar'}
-            </button>
-          )}
-          <button
-            onClick={onDownload}
-            style={{
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 12,
-              padding: '13px 16px',
-              color: '#94a3b8',
-              fontWeight: 600,
-              fontSize: 14,
-              cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}
-          >
-            <Download size={18} />
-            Descargar GPX
-          </button>
-          <button
-            onClick={onDiscard}
-            style={{
-              background: 'none', border: 'none',
-              color: '#64748b', fontSize: 13,
-              cursor: 'pointer', padding: '8px',
-            }}
-          >
-            Descartar y salir
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}

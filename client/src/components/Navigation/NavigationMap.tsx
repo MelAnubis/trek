@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Polyline, Circle, CircleMarker, Marker, useMap
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { GeoPosition } from '../../hooks/useGeolocation'
-import type { TrackPoint } from '../../hooks/useNavigation'
+import type { TrackPoint, NavPhoto } from '../../hooks/useNavigation'
 import type { RecordedPoint } from '../../services/gpxRecorderService'
 
 // ── Auto-center controller ────────────────────────────────────────────────────
@@ -88,16 +88,36 @@ function EndpointMarker({ point, label, color }: { point: [number, number]; labe
   return <Marker position={point} icon={icon} interactive={false} />
 }
 
+// ── Photo pin marker ──────────────────────────────────────────────────────────
+function PhotoMarker({ photo }: { photo: NavPhoto }) {
+  const icon = L.divIcon({
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    html: `<div style="
+      width:32px;height:32px;border-radius:8px;
+      background:#0f172a;border:2.5px solid #22d96e;
+      box-shadow:0 2px 8px rgba(0,0,0,0.5);
+      display:flex;align-items:center;justify-content:center;
+      overflow:hidden;
+    ">
+      <img src="${photo.url}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;" />
+    </div>`,
+  })
+  return <Marker position={[photo.lat, photo.lng]} icon={icon} interactive={false} />
+}
+
 interface Props {
   position: GeoPosition | null
   trackPoints: TrackPoint[]           // GPX track to follow (orange)
   recordedPoints: RecordedPoint[]     // Live-recorded track (green)
   approachRoute?: [number, number][] | null  // Approach route (blue dashed)
+  navPhotos?: NavPhoto[]              // Geotagged photos taken during navigation
   follow: boolean
   onMapTouch?: () => void
 }
 
-export default function NavigationMap({ position, trackPoints, recordedPoints, approachRoute, follow, onMapTouch }: Props) {
+export default function NavigationMap({ position, trackPoints, recordedPoints, approachRoute, navPhotos, follow, onMapTouch }: Props) {
   const defaultCenter: [number, number] = position
     ? [position.lat, position.lng]
     : trackPoints.length > 0
@@ -163,6 +183,9 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
           interactive={false}
         />
       )}
+
+      {/* Nav photo pins */}
+      {navPhotos?.map(p => <PhotoMarker key={p.id} photo={p} />)}
 
       {/* User position */}
       {position && <UserMarker position={position} />}

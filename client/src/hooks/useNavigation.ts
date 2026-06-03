@@ -11,6 +11,17 @@ import { nativeGeoService } from '../services/nativeGeoService'
 
 export type NavMode = 'idle' | 'recording' | 'following'
 
+export interface NavPhoto {
+  id: number
+  lat: number
+  lng: number
+  altitude?: number | null
+  taken_at: string
+  caption?: string | null
+  url: string
+  filename: string
+}
+
 export interface TrackPoint {
   lat: number
   lng: number
@@ -111,6 +122,7 @@ export function useNavigation() {
   const [approachInstructions, setApproachInstructions] = useState<TurnInstruction[]>([])
   const [approachInstrIdx, setApproachInstrIdx] = useState(0)
   const [isApproaching, setIsApproaching] = useState(false)
+  const [navPhotos, setNavPhotos] = useState<NavPhoto[]>([])
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -319,6 +331,28 @@ export function useNavigation() {
     setIsApproaching(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const captureNavPhoto = useCallback(async (file: File, tripId: number): Promise<NavPhoto | null> => {
+    const pos = geo.position
+    if (!pos) return null
+    const form = new FormData()
+    form.append('photo', file)
+    form.append('lat', String(pos.lat))
+    form.append('lng', String(pos.lng))
+    if (pos.altitude != null) form.append('altitude', String(pos.altitude))
+    form.append('taken_at', new Date().toISOString())
+    try {
+      const r = await fetch(`/api/trips/${tripId}/gpx/nav-photos`, { method: 'POST', body: form })
+      if (!r.ok) return null
+      const photo: NavPhoto = await r.json()
+      setNavPhotos(prev => [...prev, photo])
+      return photo
+    } catch {
+      return null
+    }
+  }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearNavPhotos = useCallback(() => setNavPhotos([]), [])
+
   useEffect(() => () => { clearTimer(); stopRecordWatch() }, [])
 
   const currentInstruction = isApproaching
@@ -349,11 +383,14 @@ export function useNavigation() {
     isApproaching,
 
     stats,
+    navPhotos,
 
     startRecording,
     stopRecording,
     loadTrackAndFollow,
     stopFollowing,
     navigateToTrack,
+    captureNavPhoto,
+    clearNavPhotos,
   }
 }

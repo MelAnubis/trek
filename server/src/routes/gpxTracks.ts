@@ -679,3 +679,97 @@ router.delete('/:trackId', authenticate, requireTripAccess, (req: Request, res: 
 });
 
 export default router;
+
+// ── Nav photo upload directory ────────────────────────────────────────────────
+const navPhotoDir = path.join(__dirname, '../../uploads/nav-photos');
+if (!fs.existsSync(navPhotoDir)) fs.mkdirSync(navPhotoDir, { recursive: true });
+
+const navPhotoStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, navPhotoDir),
+  filename:    (_req, _file, cb) => cb(null, `${Date.now()}-${crypto.randomUUID()}.jpg`),
+});
+
+const uploadNavPhoto = multer({
+  storage: navPhotoStorage,
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      return cb(new Error('Solo se aceptan imágenes'));
+    }
+    cb(null, true);
+  },
+});
+
+// ── POST /api/trips/:id/gpx/nav-photos ───────────────────────────────────────
+// Upload a geotagged photo taken during live navigation.
+// Body (multipart): photo (file), lat, lng, altitude?, taken_at?, caption?
+router.post('/nav-photos', authenticate, requireTripAccess, uploadNavPhoto.single('photo'), (req: Request, res: Response) => {
+  const tripId = Number((req as AuthRequest).params.id);
+  const userId = (req as AuthRequest).user!.userId;
+  const file   = (req as any).file;
+  if (!file) return res.status(400).json({ error: 'No photo uploaded' });
+
+  const lat      = parseFloat(req.body.lat);
+  const lng      = parseFloat(req.body.lng);
+  const altitude = req.body.altitude ? parseFloat(req.body.altitude) : null;
+  const takenAt  = req.body.taken_at ?? new Date().toISOString();
+  const caption  = req.body.caption ?? null;
+
+  if (isNaN(lat) || isNaN(lng)) {
+    fs.unlinkSync(file.path);
+    return res.status(400).json({ error: 'lat/lng requeridos' });
+  }
+
+  try {
+    const result = db.prepare(`
+      INSERT INTO nav_photos (trip_id, user_id, filename, original_name, file_size, mime_type, lat, lng, altitude, taken_at, caption)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(tripId, userId, file.filename, file.originalname, file.size, file.mimetype, lat, lng, altitude, takenAt, caption);
+
+    res.json({
+      id: result.lastInsertRowid,
+      trip_id: tripId,
+      filename: file.filename,
+      lat, lng, altitude,
+      taken_at: takenAt,
+      caption,
+      url: `/uploads/nav-photos/${file.filename}`,
+    });
+  } catch (e: any) {
+    try { fs.unlinkSync(file.path); } catch { /* ignore */ }
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/trips/:id/gpx/nav-photos ────────────────────────────────────────
+router.get('/nav-photos', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const tripId = Number((req as AuthRequest).params.id);
+  try {
+    const photos = db.prepare(`
+      SELECT id, filename, original_name, lat, lng, altitude, taken_at, caption,
+             '/uploads/nav-photos/' || filename AS url
+      FROM nav_photos
+      WHERE trip_id = ?
+      ORDER BY taken_at ASC
+    `).all(tripId);
+    res.json(photos);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── DELETE /api/trips/:id/gpx/nav-photos/:photoId ────────────────────────────
+router.delete('/nav-photos/:photoId', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const tripId  = Number((req as AuthRequest).params.id);
+  const photoId = Number(req.params.photoId);
+  try {
+    const photo = db.prepare('SELECT * FROM nav_photos WHERE id = ? AND trip_id = ?').get(photoId, tripId) as any;
+    if (!photo) return res.status(404).json({ error: 'Photo not found' });
+    const fp = path.join(navPhotoDir, photo.filename);
+    if (fs.existsSync(fp)) try { fs.unlinkSync(fp); } catch { /* ignore */ }
+    db.prepare('DELETE FROM nav_photos WHERE id = ?').run(photoId);
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
