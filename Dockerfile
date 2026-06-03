@@ -2,7 +2,7 @@
 FROM node:24-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install --legacy-peer-deps
 COPY client/ ./
 RUN npm run build
 
@@ -25,7 +25,7 @@ COPY --from=client-builder /app/client/dist ./public
 COPY --from=client-builder /app/client/public/fonts ./public/fonts
 
 RUN rm -f package-lock.json && \
-    mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos && \
+    mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos /app/uploads/nav-photos && \
     mkdir -p /app/server && ln -s /app/uploads /app/server/uploads && ln -s /app/data /app/server/data && \
     chown -R node:node /app
 
