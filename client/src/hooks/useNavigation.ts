@@ -334,13 +334,19 @@ export function useNavigation() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const captureNavPhoto = useCallback(async (file: File, tripId: number): Promise<NavPhoto | null> => {
+    // Use current GPS position; if not yet fixed, fall back to last recorded point
     const pos = geo.position
-    if (!pos) return null
+    const pts = recorder.current.points
+    const lastPt = pts.length > 0 ? pts[pts.length - 1] : undefined
+    const lat = pos?.lat ?? lastPt?.lat
+    const lng = pos?.lng ?? lastPt?.lng
+    const altitude = pos?.altitude ?? lastPt?.alt ?? null
+    if (lat == null || lng == null) return null
     const form = new FormData()
     form.append('photo', file)
-    form.append('lat', String(pos.lat))
-    form.append('lng', String(pos.lng))
-    if (pos.altitude != null) form.append('altitude', String(pos.altitude))
+    form.append('lat', String(lat))
+    form.append('lng', String(lng))
+    if (altitude != null) form.append('altitude', String(altitude))
     form.append('taken_at', new Date().toISOString())
     try {
       const r = await fetch(`/api/trips/${tripId}/gpx/nav-photos`, { method: 'POST', body: form })
