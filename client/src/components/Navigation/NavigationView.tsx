@@ -81,24 +81,11 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   }, [nav])
 
   const handleCameraClick = useCallback(async () => {
-    // Chrome Android fires a spurious popstate when any external Activity
-    // (Capacitor camera or file-picker intent) closes and returns to the WebView.
-    // Install the capture-phase blocker BEFORE anything so it covers both paths.
-    const blockPop = (e: PopStateEvent) => e.stopImmediatePropagation()
-    window.addEventListener('popstate', blockPop, { capture: true })
-    let safetyTimer: ReturnType<typeof setTimeout>
-    const stopBlocking = () => {
-      clearTimeout(safetyTimer)
-      window.removeEventListener('popstate', blockPop, { capture: true })
-    }
-    safetyTimer = setTimeout(stopBlocking, 120_000)
-
     const savePhoto = async (file: File) => {
       if (tripId) {
         const saved = await nav.captureNavPhoto(file, tripId)
         if (saved) { setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600) }
       } else {
-        // No trip context — download directly
         const url = URL.createObjectURL(file)
         const a = document.createElement('a'); a.href = url; a.download = file.name; a.click()
         URL.revokeObjectURL(url)
@@ -106,29 +93,54 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       }
     }
 
-    // Try Capacitor native camera first (avoids file-input popstate on some devices)
+    // Push a barrier entry with the SAME URL before opening the camera.
+    // Chrome Android fires a spurious popstate when any camera/file-picker
+    // Activity closes. Because popstate pops our barrier (not the real nav
+    // entry), the URL stays the same → React Router sees no route change.
+    //
+    // stopImmediatePropagation in capture phase does NOT work: popstate fires
+    // on window itself, so all listeners (capture+bubble) run in registration
+    // order. React Router registered before us → it always wins that race.
+    const prevState = window.history.state
+    window.history.pushState({ _navCam: true }, '')
+    // replaceState restores the entry without firing popstate.
+    const cleanupBarrier = () => window.history.replaceState(prevState, '')
+
     if (isNativeCapacitor()) {
       try {
         const captured = await capturePhotoNative()
         if (captured) {
           const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
           await savePhoto(file)
-          stopBlocking()
-          return
         }
-        // captured === null: plugin unavailable, permission denied, or user cancelled.
-        // Fall through to file input so the button is never a dead end.
-      } catch { /* fall through */ }
+      } finally {
+        cleanupBarrier()
+      }
+      return
     }
 
-    // Browser + Capacitor fallback: hidden file input
-    let finished = false
-    const finish = () => { if (!finished) { finished = true; stopBlocking() } }
-    // Mobile: window blurs when camera opens, regains focus when it closes.
-    // 200 ms delay lets the 'change' event fire first if a file was picked.
-    const onBlur = () => window.addEventListener('focus', () => setTimeout(finish, 200), { once: true })
+    // File input path (browser + Capacitor fallback)
+    let done = false
+    let safetyTimer: ReturnType<typeof setTimeout>
+    let onBlur: (() => void) | null = null
+
+    const finish = () => {
+      if (done) return
+      done = true
+      clearTimeout(safetyTimer)
+      cleanupBarrier()
+      if (onBlur) window.removeEventListener('blur', onBlur)
+      cameraInputRef.current?.removeEventListener('change', onFilePick)
+    }
+    const onFilePick = () => finish()
+    onBlur = () => {
+      // Window blurs when camera intent opens; regains focus when it closes.
+      // 200 ms grace period so 'change' can fire first if a file was picked.
+      window.addEventListener('focus', () => setTimeout(finish, 200), { once: true })
+    }
+    safetyTimer = setTimeout(finish, 120_000)
     window.addEventListener('blur', onBlur, { once: true })
-    cameraInputRef.current?.addEventListener('change', finish, { once: true })
+    cameraInputRef.current?.addEventListener('change', onFilePick, { once: true })
     cameraInputRef.current?.click()
   }, [nav, tripId])
 
