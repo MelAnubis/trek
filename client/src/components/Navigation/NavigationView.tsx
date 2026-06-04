@@ -75,16 +75,9 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   }, [trackPoints]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleStopRecording = useCallback(() => {
-    // Read the live recorder BEFORE stopping — React state (nav.recordedPoints)
-    // may lag behind if the last GPS setState is still pending.
-    const pointCount = nav.recorder.points.length
     nav.stopRecording()
-    if (pointCount > 0) {
-      setShowSummary(true)
-    } else {
-      onExit()
-    }
-  }, [nav, onExit])
+    setShowSummary(true)
+  }, [nav])
 
   const handleCameraClick = useCallback(async () => {
     // Capacitor native: Camera plugin preserves WebView state on Android.
@@ -106,18 +99,38 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       // captured === null → fall through to file input
     }
 
-    // Browser / Capacitor fallback: hidden file input.
-    // Push a history barrier so Chrome Android's synthetic popstate on
-    // camera-close doesn't trigger React Router back-navigation.
-    window.history.pushState({ _navCam: true }, '')
+    // Chrome Android fires a spurious popstate when the camera intent closes.
+    // A capture-phase listener with stopImmediatePropagation() intercepts it
+    // before React Router's bubble-phase listener ever sees it.
+    // No history.pushState manipulation needed — we just block the event entirely.
+    let cleanedUp = false
+    let maxTimer: ReturnType<typeof setTimeout>
 
-    const absorb = (e: PopStateEvent) => {
-      // Re-push the barrier if Chrome pops it during camera activity
-      if (!(e.state as { _navCam?: boolean } | null)?._navCam) {
-        window.history.pushState({ _navCam: true }, '')
-      }
+    const blockPop = (e: PopStateEvent) => { e.stopImmediatePropagation() }
+    window.addEventListener('popstate', blockPop, { capture: true })
+
+    const cleanup = () => {
+      if (cleanedUp) return
+      cleanedUp = true
+      clearTimeout(maxTimer)
+      window.removeEventListener('popstate', blockPop, { capture: true })
+      window.removeEventListener('blur', onBlur)
+      cameraInputRef.current?.removeEventListener('change', onFileChange)
     }
-    window.addEventListener('popstate', absorb)
+
+    const onFileChange = () => cleanup()
+
+    // Mobile: window blurs when camera intent opens, regains focus when it closes.
+    // Wait 200 ms after focus so the 'change' event (file picked) can fire first.
+    const onBlur = () => {
+      window.addEventListener('focus', () => setTimeout(cleanup, 200), { once: true })
+    }
+
+    // Safety valve: stop intercepting after 2 minutes
+    maxTimer = setTimeout(cleanup, 120_000)
+
+    window.addEventListener('blur', onBlur, { once: true })
+    cameraInputRef.current?.addEventListener('change', onFileChange, { once: true })
 
     const cleanup = (fileWasPicked: boolean) => {
       window.removeEventListener('popstate', absorb)
@@ -151,6 +164,39 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     }
     window.addEventListener('blur', onBlur, { once: true })
     cameraInputRef.current?.addEventListener('change', onFilePicked, { once: true })
+=======
+    // Chrome Android fires a spurious popstate when the camera intent closes.
+    // A capture-phase listener with stopImmediatePropagation() intercepts it
+    // before React Router's bubble-phase listener ever sees it.
+    // No history.pushState manipulation needed — we just block the event entirely.
+    let cleanedUp = false
+    let maxTimer: ReturnType<typeof setTimeout>
+
+    const blockPop = (e: PopStateEvent) => { e.stopImmediatePropagation() }
+    window.addEventListener('popstate', blockPop, { capture: true })
+
+    const cleanup = () => {
+      if (cleanedUp) return
+      cleanedUp = true
+      clearTimeout(maxTimer)
+      window.removeEventListener('popstate', blockPop, { capture: true })
+      window.removeEventListener('blur', onBlur)
+      cameraInputRef.current?.removeEventListener('change', onFileChange)
+    }
+
+    const onFileChange = () => cleanup()
+
+    // Mobile: window blurs when camera intent opens, regains focus when it closes.
+    // Wait 200 ms after focus so the 'change' event (file picked) can fire first.
+    const onBlur = () => {
+      window.addEventListener('focus', () => setTimeout(cleanup, 200), { once: true })
+    }
+
+    // Safety valve: stop intercepting after 2 minutes
+    maxTimer = setTimeout(cleanup, 120_000)
+
+    window.addEventListener('blur', onBlur, { once: true })
+    cameraInputRef.current?.addEventListener('change', onFileChange, { once: true })
 
     cameraInputRef.current?.click()
   }, [nav, tripId])
