@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Trek Wanderer</string>
+    <string name="title_activity_main">Trek Wanderer</string>
+    <string name="package_name">com.trek.wanderer</string>
+    <string name="custom_url_scheme">com.trek.wanderer</string>
+</resources>

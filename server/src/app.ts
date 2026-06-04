@@ -226,6 +226,7 @@ export function createApp(): express.Application {
   app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
   app.use('/uploads/covers', express.static(path.join(__dirname, '../uploads/covers')));
   app.use('/uploads/journey', express.static(path.join(__dirname, '../uploads/journey')));
+  app.use('/uploads/nav-photos', express.static(path.join(__dirname, '../uploads/nav-photos')));
 
   // Photos require either a valid logged-in session (via JWT with the
   // password_version gate) OR a share token that covers the SPECIFIC

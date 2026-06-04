@@ -2344,6 +2344,27 @@ function runMigrations(db: Database.Database): void {
         );
       `);
     },
+    // Navigation photos — geotagged photos taken during live navigation/recording
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS nav_photos (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          filename TEXT NOT NULL,
+          original_name TEXT NOT NULL,
+          file_size INTEGER,
+          mime_type TEXT,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          altitude REAL,
+          taken_at DATETIME NOT NULL,
+          caption TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_nav_photos_trip ON nav_photos(trip_id);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {
