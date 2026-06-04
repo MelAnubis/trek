@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react'
+import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react'
 import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Sun, Camera } from 'lucide-react'
 import { useNavigation } from '../../hooks/useNavigation'
 import type { TrackPoint } from '../../hooks/useNavigation'
@@ -6,8 +6,10 @@ import NavigationMap from './NavigationMap'
 import NavigationHUD from './NavigationHUD'
 import TurnInstruction from './TurnInstruction'
 import ElevationProfileLive from './ElevationProfileLive'
-import NavSummary from './NavSummary'
 import { capturePhotoNative, isNativeCapacitor } from '../../services/navCameraService'
+
+// Lazy-load NavSummary so its Leaflet/map imports don't affect NavigationView startup
+const NavSummary = React.lazy(() => import('./NavSummary'))
 
 interface Props {
   trackName?: string
@@ -82,7 +84,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   }, [nav, onExit])
 
   const handleCameraClick = useCallback(async () => {
-    // In Capacitor native: use Camera plugin (preserves WebView state)
+    // In Capacitor native: use Camera plugin (preserves WebView state on Android)
     if (isNativeCapacitor()) {
       const captured = await capturePhotoNative()
       if (!captured) return
@@ -96,8 +98,23 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       }
       return
     }
-    // In browser PWA: trigger the hidden file input
+    // In browser PWA: push a history barrier so Chrome Android's popstate on
+    // camera-close doesn't trigger React Router back-navigation
+    window.history.pushState({ _navCam: true }, '')
+    const onPop = (e: PopStateEvent) => {
+      if ((e.state as { _navCam?: boolean } | null)?._navCam) return
+      // Absorb the extra popstate and stay on /navigate
+      window.history.pushState({ _navCam: true }, '')
+    }
+    window.addEventListener('popstate', onPop)
     cameraInputRef.current?.click()
+    // Clean up listener after file is picked (or dialog dismissed)
+    const cleanup = () => {
+      window.removeEventListener('popstate', onPop)
+      if (window.history.state?._navCam) window.history.back()
+      window.removeEventListener('focus', cleanup)
+    }
+    window.addEventListener('focus', cleanup, { once: true })
   }, [nav, tripId])
 
   const handlePhotoCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,16 +428,18 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
       {/* ── Route summary (after stop recording) ── */}
       {showSummary && (
-        <NavSummary
-          trackName={DEFAULT_ROUTE_NAME()}
-          recordedPoints={nav.recordedPoints}
-          stats={nav.stats}
-          navPhotos={nav.navPhotos}
-          tripId={tripId}
-          onSaveToTrip={handleSaveToTrip}
-          onDownload={handleDownload}
-          onDiscard={onExit}
-        />
+        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 200 }} />}>
+          <NavSummary
+            trackName={DEFAULT_ROUTE_NAME()}
+            recordedPoints={nav.recordedPoints}
+            stats={nav.stats}
+            navPhotos={nav.navPhotos}
+            tripId={tripId}
+            onSaveToTrip={handleSaveToTrip}
+            onDownload={handleDownload}
+            onDiscard={onExit}
+          />
+        </Suspense>
       )}
 
       <style>{`
