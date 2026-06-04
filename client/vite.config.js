@@ -95,7 +95,10 @@ export default defineConfig({
       // Capacitor native plugins can't be bundled for web — they're loaded by
       // the native runtime. The dynamic imports in nativeGeoService.ts are
       // guarded by isNative(), so they never execute in the browser.
-      external: ['@capacitor-community/background-geolocation'],
+      external: [
+        '@capacitor-community/background-geolocation',
+        '@capacitor/camera',
+      ],
     },
   },
   server: {

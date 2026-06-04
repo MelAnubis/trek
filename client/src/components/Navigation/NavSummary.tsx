@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react'
-import { MapContainer, TileLayer, Polyline } from 'react-leaflet'
+import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
+import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { Clock, Route, Zap, TrendingUp, Camera, Download, Save, X } from 'lucide-react'
 import type { NavStats, NavPhoto } from '../../hooks/useNavigation'
@@ -26,6 +27,27 @@ function fmtTime(s: number) {
   const sec = Math.floor(s % 60)
   if (h > 0) return `${h}h ${m.toString().padStart(2, '0')}m`
   return `${m}m ${sec.toString().padStart(2, '0')}s`
+}
+
+// ── Auto-fit map to track bounds ──────────────────────────────────────────────
+function AutoFit({ points }: { points: [number, number][] }) {
+  const map = useMap()
+  useEffect(() => {
+    if (points.length < 2) return
+    try { map.fitBounds(L.latLngBounds(points), { padding: [20, 20] }) } catch { /* noop */ }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return null
+}
+
+// ── Photo thumbnail pin on summary map ────────────────────────────────────────
+function PhotoPin({ photo }: { photo: NavPhoto }) {
+  const icon = L.divIcon({
+    className: '',
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+    html: `<div style="width:24px;height:24px;border-radius:6px;border:2px solid #22d96e;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.5)"><img src="${photo.url}" style="width:100%;height:100%;object-fit:cover"/></div>`,
+  })
+  return <Marker position={[photo.lat, photo.lng]} icon={icon} interactive={false} />
 }
 
 export default function NavSummary({ trackName, recordedPoints, stats, navPhotos, tripId, onSaveToTrip, onDownload, onDiscard }: Props) {
@@ -67,10 +89,7 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
           >
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
             <Polyline positions={latlngs} pathOptions={{ color: '#22d96e', weight: 3, opacity: 0.9 }} />
-            {/* Photo pins on summary map */}
-            {navPhotos.map(p => (
-              <PhotoPin key={p.id} lat={p.lat} lng={p.lng} url={p.url} />
-            ))}
+            {navPhotos.map(p => <PhotoPin key={p.id} photo={p} />)}
             <AutoFit points={latlngs} />
           </MapContainer>
         ) : (
@@ -85,15 +104,10 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
             value={name}
             onChange={e => setName(e.target.value)}
             style={{
-              background: 'transparent',
-              border: 'none',
+              background: 'transparent', border: 'none',
               borderBottom: '1px solid rgba(255,255,255,0.2)',
-              color: '#f1f5f9',
-              fontSize: 18,
-              fontWeight: 700,
-              width: '100%',
-              outline: 'none',
-              padding: '4px 0',
+              color: '#f1f5f9', fontSize: 18, fontWeight: 700,
+              width: '100%', outline: 'none', padding: '4px 0',
             }}
           />
         </div>
@@ -118,10 +132,7 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
             </div>
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
               {navPhotos.map(p => (
-                <img
-                  key={p.id}
-                  src={p.url}
-                  alt=""
+                <img key={p.id} src={p.url} alt=""
                   style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }}
                 />
               ))}
@@ -132,38 +143,31 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {tripId && (
-            <button
-              onClick={handleSave}
-              disabled={saving || saved}
-              style={{
-                background: saved ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)',
-                border: `1px solid ${saved ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`,
-                borderRadius: 12, padding: '14px 16px',
-                color: saved ? '#22d96e' : '#3b82f6',
-                fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
-                display: 'flex', alignItems: 'center', gap: 10,
-              }}
-            >
+            <button onClick={handleSave} disabled={saving || saved} style={{
+              background: saved ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)',
+              border: `1px solid ${saved ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`,
+              borderRadius: 12, padding: '14px 16px',
+              color: saved ? '#22d96e' : '#3b82f6',
+              fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 10,
+            }}>
               <Save size={18} />
               {saved ? '¡Guardado en el viaje!' : saving ? 'Guardando…' : 'Guardar en el viaje'}
             </button>
           )}
-          <button
-            onClick={() => onDownload(name)}
-            style={{
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-              borderRadius: 12, padding: '14px 16px', color: '#94a3b8',
-              fontWeight: 600, fontSize: 15, cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}
-          >
+          <button onClick={() => onDownload(name)} style={{
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+            borderRadius: 12, padding: '14px 16px', color: '#94a3b8',
+            fontWeight: 600, fontSize: 15, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
             <Download size={18} />
             Descargar GPX
           </button>
-          <button
-            onClick={onDiscard}
-            style={{ background: 'none', border: 'none', color: '#475569', fontSize: 13, cursor: 'pointer', padding: '8px' }}
-          >
+          <button onClick={onDiscard} style={{
+            background: 'none', border: 'none', color: '#475569',
+            fontSize: 13, cursor: 'pointer', padding: '8px',
+          }}>
             <X size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Descartar y salir
           </button>
@@ -176,8 +180,7 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.08)',
+      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
       borderRadius: 12, padding: '12px 14px',
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -187,29 +190,4 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
       <div style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9' }}>{value}</div>
     </div>
   )
-}
-
-// Auto-fit bounds helper
-function AutoFit({ points }: { points: [number, number][] }) {
-  const { useMap } = require('react-leaflet')
-  const L = require('leaflet')
-  const map = useMap()
-  useEffect(() => {
-    if (points.length < 2) return
-    try { map.fitBounds(L.latLngBounds(points), { padding: [20, 20] }) } catch { /* noop */ }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-  return null
-}
-
-// Small photo pin for summary map
-function PhotoPin({ lat, lng, url }: { lat: number; lng: number; url: string }) {
-  const { Marker } = require('react-leaflet')
-  const L = require('leaflet')
-  const icon = L.divIcon({
-    className: '',
-    iconSize: [24, 24],
-    iconAnchor: [12, 12],
-    html: `<div style="width:24px;height:24px;border-radius:6px;border:2px solid #22d96e;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.5)"><img src="${url}" style="width:100%;height:100%;object-fit:cover"/></div>`,
-  })
-  return <Marker position={[lat, lng]} icon={icon} interactive={false} />
 }

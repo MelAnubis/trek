@@ -7,6 +7,7 @@ import NavigationHUD from './NavigationHUD'
 import TurnInstruction from './TurnInstruction'
 import ElevationProfileLive from './ElevationProfileLive'
 import NavSummary from './NavSummary'
+import { capturePhotoNative, isNativeCapacitor } from '../../services/navCameraService'
 
 interface Props {
   trackName?: string
@@ -80,9 +81,24 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     }
   }, [nav, onExit])
 
-  const handleCameraClick = useCallback(() => {
+  const handleCameraClick = useCallback(async () => {
+    // In Capacitor native: use Camera plugin (preserves WebView state)
+    if (isNativeCapacitor()) {
+      const captured = await capturePhotoNative()
+      if (!captured) return
+      const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
+      if (tripId) {
+        await nav.captureNavPhoto(file, tripId)
+      } else {
+        const url = URL.createObjectURL(captured.blob)
+        const a = document.createElement('a'); a.href = url; a.download = captured.filename; a.click()
+        URL.revokeObjectURL(url)
+      }
+      return
+    }
+    // In browser PWA: trigger the hidden file input
     cameraInputRef.current?.click()
-  }, [])
+  }, [nav, tripId])
 
   const handlePhotoCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
