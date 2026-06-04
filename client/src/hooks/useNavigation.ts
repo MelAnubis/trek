@@ -7,8 +7,20 @@ import {
   fetchApproachRoute,
   type TurnInstruction,
 } from '../services/turnByTurnService'
+import { nativeGeoService } from '../services/nativeGeoService'
 
 export type NavMode = 'idle' | 'recording' | 'following'
+
+export interface NavPhoto {
+  id: number
+  lat: number
+  lng: number
+  altitude?: number | null
+  taken_at: string
+  caption?: string | null
+  url: string
+  filename: string
+}
 
 export interface TrackPoint {
   lat: number
@@ -110,6 +122,7 @@ export function useNavigation() {
   const [approachInstructions, setApproachInstructions] = useState<TurnInstruction[]>([])
   const [approachInstrIdx, setApproachInstrIdx] = useState(0)
   const [isApproaching, setIsApproaching] = useState(false)
+  const [navPhotos, setNavPhotos] = useState<NavPhoto[]>([])
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -143,6 +156,7 @@ export function useNavigation() {
   }
 
   const stopRecordWatch = () => {
+    nativeGeoService.stop()
     if (recordWatchRef.current !== null) {
       navigator.geolocation.clearWatch(recordWatchRef.current)
       recordWatchRef.current = null
@@ -159,8 +173,8 @@ export function useNavigation() {
     const pts = trackPointsRef.current
     if (pts.length === 0) return
 
-    // Compute all values before any setState — calling setState inside a
-    // setState updater violates React 18 and causes dropped renders.
+    // Compute all values first — calling setState inside a setState updater
+    // violates React 18 and causes dropped renders (black screen).
     const newIdx = nearestPointIdx(pts, lat, lng, progressIdxRef.current)
     const minDist = minDistToTrackWindow(pts, lat, lng, newIdx)
     const distTraveled = distAlongTrack(pts, 0, newIdx)
@@ -206,40 +220,55 @@ export function useNavigation() {
     setNavMode('recording')
     geo.setMode('follow')
 
-    // Dedicated high-frequency watcher — maximumAge:0 bypasses the shared 2 s cache
+    // Use native background GPS (Capacitor) or high-frequency web watchPosition
     stopRecordWatch()
-    recordWatchRef.current = navigator.geolocation.watchPosition(
-      pos => {
-        if (navModeRef.current !== 'recording') return
-        const { latitude: lat, longitude: lng, altitude, speed } = pos.coords
-        recorder.current.addPoint(lat, lng, altitude ?? null, speed, pos.timestamp)
-        setRecordedPoints([...recorder.current.points])
+    const handlePos = (gpos: import('../services/nativeGeoService').NativeGeoPosition) => {
+      if (navModeRef.current !== 'recording') return
+      const { lat, lng, altitude, speed, timestamp } = gpos
+      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
+      setRecordedPoints([...recorder.current.points])
 
-        const alt = altitude ?? null
-        if (alt !== null) {
-          if (lastAltRef.current !== null) {
-            const diff = alt - lastAltRef.current
-            if (diff > 2) elevGainRef.current += diff
-            else if (diff < -2) elevLossRef.current += Math.abs(diff)
-          }
-          lastAltRef.current = alt
+      const alt = altitude ?? null
+      if (alt !== null) {
+        if (lastAltRef.current !== null) {
+          const diff = alt - lastAltRef.current
+          if (diff > 2) elevGainRef.current += diff
+          else if (diff < -2) elevLossRef.current += Math.abs(diff)
         }
+        lastAltRef.current = alt
+      }
 
-        const distM = recorder.current.totalDistanceM()
-        const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
-        const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
-        setStats(s => ({
-          ...s,
-          distanceTraveledM: distM,
-          currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
-          avgSpeedKmh: avgKmh,
-          elevationGainM: elevGainRef.current,
-          elevationLossM: elevLossRef.current,
-        }))
-      },
-      () => { /* errors handled by useGeolocation */ },
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    )
+      const distM = recorder.current.totalDistanceM()
+      const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
+      const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
+      setStats(s => ({
+        ...s,
+        distanceTraveledM: distM,
+        currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
+        avgSpeedKmh: avgKmh,
+        elevationGainM: elevGainRef.current,
+        elevationLossM: elevLossRef.current,
+      }))
+    }
+
+    if (nativeGeoService.isNative()) {
+      // Capacitor: background GPS via Android ForegroundService / iOS background location
+      nativeGeoService.start(handlePos, () => { /* error shown by OS permission flow */ })
+    } else {
+      // Browser PWA: maximumAge:0 high-frequency watcher
+      recordWatchRef.current = navigator.geolocation.watchPosition(
+        pos => handlePos({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          altitude: pos.coords.altitude,
+          speed: pos.coords.speed,
+          accuracy: pos.coords.accuracy,
+          timestamp: pos.timestamp,
+        }),
+        () => { /* errors handled by useGeolocation */ },
+        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      )
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
@@ -304,6 +333,28 @@ export function useNavigation() {
     setIsApproaching(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  const captureNavPhoto = useCallback(async (file: File, tripId: number): Promise<NavPhoto | null> => {
+    const pos = geo.position
+    if (!pos) return null
+    const form = new FormData()
+    form.append('photo', file)
+    form.append('lat', String(pos.lat))
+    form.append('lng', String(pos.lng))
+    if (pos.altitude != null) form.append('altitude', String(pos.altitude))
+    form.append('taken_at', new Date().toISOString())
+    try {
+      const r = await fetch(`/api/trips/${tripId}/gpx/nav-photos`, { method: 'POST', body: form })
+      if (!r.ok) return null
+      const photo: NavPhoto = await r.json()
+      setNavPhotos(prev => [...prev, photo])
+      return photo
+    } catch {
+      return null
+    }
+  }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const clearNavPhotos = useCallback(() => setNavPhotos([]), [])
+
   useEffect(() => () => { clearTimer(); stopRecordWatch() }, [])
 
   const currentInstruction = isApproaching
@@ -334,11 +385,14 @@ export function useNavigation() {
     isApproaching,
 
     stats,
+    navPhotos,
 
     startRecording,
     stopRecording,
     loadTrackAndFollow,
     stopFollowing,
     navigateToTrack,
+    captureNavPhoto,
+    clearNavPhotos,
   }
 }
