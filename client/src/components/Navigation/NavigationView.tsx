@@ -60,6 +60,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const [showElevation, setShowElevation] = useState(!!trackPoints?.length)
   const [showSummary, setShowSummary] = useState(false)
   const [wakeLock, setWakeLock] = useState(false)
+  const [photoFlash, setPhotoFlash] = useState(false)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const startedFollowing = useRef(false)
 
@@ -82,8 +83,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const handleCameraClick = useCallback(async () => {
     // Chrome Android fires a spurious popstate when any external Activity
     // (Capacitor camera or file-picker intent) closes and returns to the WebView.
-    // Install the capture-phase blocker BEFORE opening the camera so it covers
-    // both paths — the Capacitor-native path and the file-input fallback.
+    // Install the capture-phase blocker BEFORE anything so it covers both paths.
     const blockPop = (e: PopStateEvent) => e.stopImmediatePropagation()
     window.addEventListener('popstate', blockPop, { capture: true })
     let safetyTimer: ReturnType<typeof setTimeout>
@@ -93,30 +93,39 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     }
     safetyTimer = setTimeout(stopBlocking, 120_000)
 
+    const savePhoto = async (file: File) => {
+      if (tripId) {
+        const saved = await nav.captureNavPhoto(file, tripId)
+        if (saved) { setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600) }
+      } else {
+        // No trip context — download directly
+        const url = URL.createObjectURL(file)
+        const a = document.createElement('a'); a.href = url; a.download = file.name; a.click()
+        URL.revokeObjectURL(url)
+        setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600)
+      }
+    }
+
+    // Try Capacitor native camera first (avoids file-input popstate on some devices)
     if (isNativeCapacitor()) {
       try {
         const captured = await capturePhotoNative()
         if (captured) {
           const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
-          if (tripId) {
-            await nav.captureNavPhoto(file, tripId)
-          } else {
-            const url = URL.createObjectURL(captured.blob)
-            const a = document.createElement('a'); a.href = url; a.download = captured.filename; a.click()
-            URL.revokeObjectURL(url)
-          }
+          await savePhoto(file)
+          stopBlocking()
+          return
         }
-      } finally {
-        stopBlocking()
-      }
-      return
+        // captured === null: plugin unavailable, permission denied, or user cancelled.
+        // Fall through to file input so the button is never a dead end.
+      } catch { /* fall through */ }
     }
 
-    // Browser / Capacitor-fallback: open hidden file input
+    // Browser + Capacitor fallback: hidden file input
     let finished = false
     const finish = () => { if (!finished) { finished = true; stopBlocking() } }
-    // Mobile: window blurs when camera intent opens, regains focus when it closes.
-    // Wait 200 ms so the 'change' event (file picked) fires before we unblock.
+    // Mobile: window blurs when camera opens, regains focus when it closes.
+    // 200 ms delay lets the 'change' event fire first if a file was picked.
     const onBlur = () => window.addEventListener('focus', () => setTimeout(finish, 200), { once: true })
     window.addEventListener('blur', onBlur, { once: true })
     cameraInputRef.current?.addEventListener('change', finish, { once: true })
@@ -127,7 +136,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     const file = e.target.files?.[0]
     if (!file) return
     if (tripId) {
-      await nav.captureNavPhoto(file, tripId)
+      const saved = await nav.captureNavPhoto(file, tripId)
+      if (saved) { setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600) }
     } else {
       // No trip — download the photo directly
       const url = URL.createObjectURL(file)
@@ -182,6 +192,12 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
           style={{ display: 'none' }}
           onChange={handlePhotoCapture}
         />
+        {/* Photo captured flash */}
+        {photoFlash && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,217,110,0.25)', zIndex: 50, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'rgba(34,217,110,0.9)', borderRadius: 12, padding: '10px 20px', color: '#0a0a14', fontWeight: 800, fontSize: 14 }}>📷 Foto guardada</div>
+          </div>
+        )}
       </div>
 
       {/* ── Top HUD ── */}
