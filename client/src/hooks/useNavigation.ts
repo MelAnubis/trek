@@ -139,6 +139,8 @@ export function useNavigation() {
   approachInstructionsRef.current = approachInstructions
   const isApproachingRef = useRef(false)
   isApproachingRef.current = isApproaching
+  const progressIdxRef = useRef(0)
+  progressIdxRef.current = progressIdx
   const recordWatchRef = useRef<number | null>(null)
 
   const clearTimer = () => {
@@ -171,25 +173,25 @@ export function useNavigation() {
     const pts = trackPointsRef.current
     if (pts.length === 0) return
 
-    setProgressIdx(prev => {
-      const newIdx = nearestPointIdx(pts, lat, lng, prev)
-      const minDist = minDistToTrackWindow(pts, lat, lng, newIdx)
-      setIsDeviated(minDist > 50)
-      setDistanceToTrackM(minDist)
+    // Compute all values first — calling setState inside a setState updater
+    // violates React 18 and causes dropped renders (black screen).
+    const newIdx = nearestPointIdx(pts, lat, lng, progressIdxRef.current)
+    const minDist = minDistToTrackWindow(pts, lat, lng, newIdx)
+    const distTraveled = distAlongTrack(pts, 0, newIdx)
+    const total = totalTrackM(pts)
+    const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
+    const avgKmh = elapsed > 60 ? (distTraveled / 1000) / (elapsed / 3600) : 0
 
-      const distTraveled = distAlongTrack(pts, 0, newIdx)
-      const total = totalTrackM(pts)
-      const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
-      const avgKmh = elapsed > 60 ? (distTraveled / 1000) / (elapsed / 3600) : 0
-      setStats(s => ({
-        ...s,
-        distanceTraveledM: distTraveled,
-        distanceRemainingM: total - distTraveled,
-        currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
-        avgSpeedKmh: avgKmh,
-      }))
-      return newIdx
-    })
+    setProgressIdx(newIdx)
+    setIsDeviated(minDist > 50)
+    setDistanceToTrackM(minDist)
+    setStats(s => ({
+      ...s,
+      distanceTraveledM: distTraveled,
+      distanceRemainingM: total - distTraveled,
+      currentSpeedKmh: speed !== null ? (speed ?? 0) * 3.6 : 0,
+      avgSpeedKmh: avgKmh,
+    }))
 
     // Advance approach or track instructions
     if (isApproachingRef.current && approachInstructionsRef.current.length > 0) {

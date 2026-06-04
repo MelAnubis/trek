@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect, Suspense } from 'react'
-import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Sun, Camera } from 'lucide-react'
+import { Navigation, Radio, Square, Crosshair, Mountain, ChevronDown, ChevronUp, Sun, Camera, MapPin } from 'lucide-react'
 import { useNavigation } from '../../hooks/useNavigation'
 import type { TrackPoint } from '../../hooks/useNavigation'
 import NavigationMap from './NavigationMap'
@@ -63,8 +63,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const startedFollowing = useRef(false)
 
-  // Activate wake lock only while actively recording or following
-  useWakeLock(wakeLock && nav.navMode !== 'idle')
+  // Keep screen on whenever the toggle is active, regardless of nav mode
+  useWakeLock(wakeLock)
 
   // Auto-start following when track points provided
   React.useEffect(() => {
@@ -84,7 +84,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   }, [nav, onExit])
 
   const handleCameraClick = useCallback(async () => {
-    // In Capacitor native: use Camera plugin (preserves WebView state on Android)
+    // Capacitor native: Camera plugin preserves WebView state on Android
     if (isNativeCapacitor()) {
       const captured = await capturePhotoNative()
       if (!captured) return
@@ -98,23 +98,46 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       }
       return
     }
-    // In browser PWA: push a history barrier so Chrome Android's popstate on
-    // camera-close doesn't trigger React Router back-navigation
+
+    // Browser PWA: push a history barrier BEFORE opening the file picker so
+    // Chrome Android's synthetic popstate on camera-close is absorbed here
+    // rather than triggering React Router navigation.
     window.history.pushState({ _navCam: true }, '')
-    const onPop = (e: PopStateEvent) => {
-      if ((e.state as { _navCam?: boolean } | null)?._navCam) return
-      // Absorb the extra popstate and stay on /navigate
+
+    const absorb = (e: PopStateEvent) => {
+      // Any popstate while the picker is open → stay on the navigate screen
+      e.stopImmediatePropagation()
       window.history.pushState({ _navCam: true }, '')
     }
-    window.addEventListener('popstate', onPop)
-    cameraInputRef.current?.click()
-    // Clean up listener after file is picked (or dialog dismissed)
-    const cleanup = () => {
-      window.removeEventListener('popstate', onPop)
-      if (window.history.state?._navCam) window.history.back()
-      window.removeEventListener('focus', cleanup)
+    window.addEventListener('popstate', absorb)
+
+    const done = () => {
+      window.removeEventListener('popstate', absorb)
+      window.removeEventListener('blur', onBlur)
+      // Remove the barrier entry we pushed
+      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
+        window.history.back()
+      }
     }
-    window.addEventListener('focus', cleanup, { once: true })
+
+    // Wait for window blur (camera opens) then focus (camera closes)
+    const onBlur = () => {
+      window.addEventListener('focus', done, { once: true })
+    }
+    window.addEventListener('blur', onBlur, { once: true })
+
+    // Fallback: if window never blurs (desktop / some PWAs), clean up on change
+    const onEarlyChange = () => {
+      window.removeEventListener('blur', onBlur)
+      window.removeEventListener('focus', done)
+      window.removeEventListener('popstate', absorb)
+      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
+        window.history.back()
+      }
+    }
+    cameraInputRef.current?.addEventListener('change', onEarlyChange, { once: true })
+
+    cameraInputRef.current?.click()
   }, [nav, tripId])
 
   const handlePhotoCapture = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

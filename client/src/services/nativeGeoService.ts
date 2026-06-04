@@ -39,7 +39,8 @@ let _nativeCallbackId: string | null = null
 async function startNative(onLocation: LocationCallback, onError: ErrorCallback): Promise<void> {
   if (_bgGeoStarted) return
   try {
-    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation') as any
 
     // Request permissions — prompts the user if needed
     const perm = await BackgroundGeolocation.checkPermissions()
@@ -82,7 +83,8 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
 async function stopNative(): Promise<void> {
   if (!_bgGeoStarted) return
   try {
-    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation') as any
     if (_nativeCallbackId) {
       await BackgroundGeolocation.removeWatcher({ id: _nativeCallbackId })
       _nativeCallbackId = null
