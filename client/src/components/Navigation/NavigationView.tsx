@@ -76,66 +76,61 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
   const handleStopRecording = useCallback(() => {
     nav.stopRecording()
-    if (nav.recordedPoints.length > 2) {
-      setShowSummary(true)
-    } else {
-      onExit()
-    }
-  }, [nav, onExit])
+    setShowSummary(true)
+  }, [nav])
 
   const handleCameraClick = useCallback(async () => {
-    // Capacitor native: Camera plugin preserves WebView state on Android
+    // Capacitor native: Camera plugin preserves WebView state on Android.
+    // If it fails (permission denied, user cancelled, plugin error) fall through
+    // to the file-input path so the button is never a dead end.
     if (isNativeCapacitor()) {
       const captured = await capturePhotoNative()
-      if (!captured) return
-      const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
-      if (tripId) {
-        await nav.captureNavPhoto(file, tripId)
-      } else {
-        const url = URL.createObjectURL(captured.blob)
-        const a = document.createElement('a'); a.href = url; a.download = captured.filename; a.click()
-        URL.revokeObjectURL(url)
+      if (captured) {
+        const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
+        if (tripId) {
+          await nav.captureNavPhoto(file, tripId)
+        } else {
+          const url = URL.createObjectURL(captured.blob)
+          const a = document.createElement('a'); a.href = url; a.download = captured.filename; a.click()
+          URL.revokeObjectURL(url)
+        }
+        return
       }
-      return
+      // captured === null → fall through to file input
     }
 
-    // Browser PWA: push a history barrier BEFORE opening the file picker so
-    // Chrome Android's synthetic popstate on camera-close is absorbed here
-    // rather than triggering React Router navigation.
-    window.history.pushState({ _navCam: true }, '')
+    // Chrome Android fires a spurious popstate when the camera intent closes.
+    // A capture-phase listener with stopImmediatePropagation() intercepts it
+    // before React Router's bubble-phase listener ever sees it.
+    // No history.pushState manipulation needed — we just block the event entirely.
+    let cleanedUp = false
+    let maxTimer: ReturnType<typeof setTimeout>
 
-    const absorb = (e: PopStateEvent) => {
-      // Any popstate while the picker is open → stay on the navigate screen
-      e.stopImmediatePropagation()
-      window.history.pushState({ _navCam: true }, '')
-    }
-    window.addEventListener('popstate', absorb)
+    const blockPop = (e: PopStateEvent) => { e.stopImmediatePropagation() }
+    window.addEventListener('popstate', blockPop, { capture: true })
 
-    const done = () => {
-      window.removeEventListener('popstate', absorb)
+    const cleanup = () => {
+      if (cleanedUp) return
+      cleanedUp = true
+      clearTimeout(maxTimer)
+      window.removeEventListener('popstate', blockPop, { capture: true })
       window.removeEventListener('blur', onBlur)
-      // Remove the barrier entry we pushed
-      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
-        window.history.back()
-      }
+      cameraInputRef.current?.removeEventListener('change', onFileChange)
     }
 
-    // Wait for window blur (camera opens) then focus (camera closes)
+    const onFileChange = () => cleanup()
+
+    // Mobile: window blurs when camera intent opens, regains focus when it closes.
+    // Wait 200 ms after focus so the 'change' event (file picked) can fire first.
     const onBlur = () => {
-      window.addEventListener('focus', done, { once: true })
+      window.addEventListener('focus', () => setTimeout(cleanup, 200), { once: true })
     }
-    window.addEventListener('blur', onBlur, { once: true })
 
-    // Fallback: if window never blurs (desktop / some PWAs), clean up on change
-    const onEarlyChange = () => {
-      window.removeEventListener('blur', onBlur)
-      window.removeEventListener('focus', done)
-      window.removeEventListener('popstate', absorb)
-      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
-        window.history.back()
-      }
-    }
-    cameraInputRef.current?.addEventListener('change', onEarlyChange, { once: true })
+    // Safety valve: stop intercepting after 2 minutes
+    maxTimer = setTimeout(cleanup, 120_000)
+
+    window.addEventListener('blur', onBlur, { once: true })
+    cameraInputRef.current?.addEventListener('change', onFileChange, { once: true })
 
     cameraInputRef.current?.click()
   }, [nav, tripId])
