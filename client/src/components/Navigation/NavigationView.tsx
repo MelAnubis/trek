@@ -107,16 +107,17 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     const cleanupBarrier = () => window.history.replaceState(prevState, '')
 
     if (isNativeCapacitor()) {
-      try {
-        const captured = await capturePhotoNative()
-        if (captured) {
-          const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
-          await savePhoto(file)
-        }
-      } finally {
+      const captured = await capturePhotoNative()
+      if (captured) {
+        const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
+        await savePhoto(file)
         cleanupBarrier()
+        return
       }
-      return
+      // null: barrier popped by Chrome (user cancelled) → return; barrier still there → plugin failed → fall through to file input
+      const barrierStillThere = (window.history.state as { _navCam?: boolean } | null)?._navCam === true
+      if (!barrierStillThere) return
+      // Barrier intact → Capacitor plugin unavailable → fall through to file input
     }
 
     // File input path (browser + Capacitor fallback)
