@@ -136,11 +136,11 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       attributionControl={false}
       tap={false}
     >
-      {/* Dark tile layer — better for navigation */}
+      {/* CyclOSM — cycling/outdoor map with contour lines and cycle routes */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution="&copy; OpenStreetMap &copy; CARTO"
-        maxZoom={19}
+        url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.cyclosm.org">CyclOSM</a>'
+        maxZoom={20}
       />
 
       <FollowController position={position} follow={follow} />

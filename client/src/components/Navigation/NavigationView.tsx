@@ -102,7 +102,14 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     // on window itself, so all listeners (capture+bubble) run in registration
     // order. React Router registered before us → it always wins that race.
     const prevState = window.history.state
-    window.history.pushState({ _navCam: true }, '')
+    // React Router (history v5) compares window.history.state.idx to its
+    // internal index on every popstate. If idx is unchanged, delta=0 and
+    // React Router skips navigation entirely. We must preserve idx (and key)
+    // in the barrier so the spurious Chrome popstate looks like a no-op.
+    const barrierState = (prevState && typeof prevState === 'object')
+      ? { ...prevState, _navCam: true }
+      : { _navCam: true }
+    window.history.pushState(barrierState, '')
     // replaceState restores the entry without firing popstate.
     const cleanupBarrier = () => window.history.replaceState(prevState, '')
 
