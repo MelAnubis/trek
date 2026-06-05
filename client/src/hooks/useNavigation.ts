@@ -255,13 +255,11 @@ export function useNavigation() {
       }))
     }
 
-    if (nativeGeoService.isNative()) {
-      // Capacitor: background GPS via Android ForegroundService / iOS background location
-      nativeGeoService.start(handlePos, () => { /* error shown by OS permission flow */ })
-    } else {
-      // Browser PWA: allow cached positions up to 5 s old so recording works even
-      // when the device GPS is slow to produce a fresh fix (e.g. indoors, urban).
-      // The deduplication in GpxRecorderService filters duplicate/stale coordinates.
+    // Always use navigator.geolocation.watchPosition — it works in both the
+    // browser PWA and the Capacitor WebView (Chrome WebView supports it natively).
+    // The BackgroundGeolocation plugin is tried in parallel for background tracking
+    // on Android, but recording never depends on it succeeding.
+    const startBrowserWatch = () => {
       recordWatchRef.current = navigator.geolocation.watchPosition(
         pos => handlePos({
           lat: pos.coords.latitude,
@@ -272,7 +270,6 @@ export function useNavigation() {
           timestamp: pos.timestamp,
         }),
         (err) => {
-          // Surface GPS errors so the user knows why no points are being recorded
           if (err.code === err.PERMISSION_DENIED) {
             setGeoRecordingError('Permiso de ubicación denegado. Activa el GPS en ajustes.')
           } else if (err.code === err.POSITION_UNAVAILABLE) {
@@ -281,6 +278,15 @@ export function useNavigation() {
         },
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       )
+    }
+
+    startBrowserWatch()
+
+    // On native Capacitor also start the background plugin so GPS keeps running
+    // when the screen turns off. Failures are intentionally ignored — the
+    // browser watchPosition above is the source of truth.
+    if (nativeGeoService.isNative()) {
+      nativeGeoService.start(handlePos, () => { /* background plugin optional */ })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
