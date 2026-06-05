@@ -136,11 +136,11 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       attributionControl={false}
       tap={false}
     >
-      {/* CyclOSM — cycling/outdoor map with contour lines and cycle routes */}
+      {/* OpenTopoMap — outdoor/cycling map with contour lines and mountain paths */}
       <TileLayer
-        url="https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://www.cyclosm.org">CyclOSM</a>'
-        maxZoom={20}
+        url="https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png"
+        attribution='Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)'
+        maxZoom={17}
       />
 
       <FollowController position={position} follow={follow} />
