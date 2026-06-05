@@ -385,9 +385,15 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
                 <div>
-                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
-                  {nav.navPhotos.length > 0 && (
-                    <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                  {nav.geoRecordingError ? (
+                    <div style={{ fontSize: 10, color: '#f97316', fontWeight: 600, maxWidth: 140, lineHeight: 1.3 }}>{nav.geoRecordingError}</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
+                      {nav.navPhotos.length > 0 && (
+                        <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
