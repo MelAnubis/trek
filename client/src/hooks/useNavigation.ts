@@ -123,6 +123,7 @@ export function useNavigation() {
   const [approachInstrIdx, setApproachInstrIdx] = useState(0)
   const [isApproaching, setIsApproaching] = useState(false)
   const [navPhotos, setNavPhotos] = useState<NavPhoto[]>([])
+  const [geoRecordingError, setGeoRecordingError] = useState<string | null>(null)
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -215,6 +216,7 @@ export function useNavigation() {
     lastAltRef.current = null
     setRecordedPoints([])
     setStats(INITIAL_STATS)
+    setGeoRecordingError(null)
     startTimeRef.current = Date.now()
     startTimer()
     setNavMode('recording')
@@ -223,7 +225,9 @@ export function useNavigation() {
     // Use native background GPS (Capacitor) or high-frequency web watchPosition
     stopRecordWatch()
     const handlePos = (gpos: import('../services/nativeGeoService').NativeGeoPosition) => {
-      if (navModeRef.current !== 'recording') return
+      // No navModeRef guard here — the watch is only active during recording and
+      // recorder.current.running is false once stopRecording() is called, so
+      // addPoint() will silently no-op any late-arriving callbacks.
       const { lat, lng, altitude, speed, timestamp } = gpos
       recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
       setRecordedPoints([...recorder.current.points])
@@ -255,7 +259,9 @@ export function useNavigation() {
       // Capacitor: background GPS via Android ForegroundService / iOS background location
       nativeGeoService.start(handlePos, () => { /* error shown by OS permission flow */ })
     } else {
-      // Browser PWA: maximumAge:0 high-frequency watcher
+      // Browser PWA: allow cached positions up to 5 s old so recording works even
+      // when the device GPS is slow to produce a fresh fix (e.g. indoors, urban).
+      // The deduplication in GpxRecorderService filters duplicate/stale coordinates.
       recordWatchRef.current = navigator.geolocation.watchPosition(
         pos => handlePos({
           lat: pos.coords.latitude,
@@ -265,8 +271,15 @@ export function useNavigation() {
           accuracy: pos.coords.accuracy,
           timestamp: pos.timestamp,
         }),
-        () => { /* errors handled by useGeolocation */ },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        (err) => {
+          // Surface GPS errors so the user knows why no points are being recorded
+          if (err.code === err.PERMISSION_DENIED) {
+            setGeoRecordingError('Permiso de ubicación denegado. Activa el GPS en ajustes.')
+          } else if (err.code === err.POSITION_UNAVAILABLE) {
+            setGeoRecordingError('GPS no disponible. Sal al exterior para obtener señal.')
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       )
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -392,6 +405,7 @@ export function useNavigation() {
 
     stats,
     navPhotos,
+    geoRecordingError,
 
     startRecording,
     stopRecording,
