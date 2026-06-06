@@ -184,7 +184,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
   const handleDownload = async (name: string) => {
     await nav.recorder.downloadGpx(name)
-    onExit()
+    // Don't exit — let user decide after downloading (they may also want to save to trip)
   }
 
   const hasTrack = nav.navMode === 'following' && nav.trackPoints.length > 0
