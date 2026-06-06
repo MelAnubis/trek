@@ -448,7 +448,63 @@ router.post('/:trackId/recalculate', authenticate, requireTripAccess, (req: Requ
   }
 });
 
-// ── POST /api/trips/:id/gpx/:trackId/split-by-days ───────────────────────────
+// ── POST /api/trips/:id/gpx/:trackId/recalculate-ibp ─────────────────────────
+// Re-sends stored track points to IBPIndex API and updates the ibp column.
+router.post('/:trackId/recalculate-ibp', authenticate, requireTripAccess, async (req: Request, res: Response) => {
+  const tripId  = (req as AuthRequest).params.id;
+  const trackId = req.params.trackId;
+
+  if (!process.env.IBP_API_KEY) return res.status(400).json({ error: 'IBP_API_KEY not configured' });
+
+  try {
+    const track = db.prepare('SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const points: { lat: number; lng: number; ele: number | null }[] = JSON.parse(track.points_json || '[]');
+    if (points.length < 2) return res.status(400).json({ error: 'Track has insufficient points' });
+
+    // Rebuild minimal GPX from stored points
+    const ptLines = points.map(p =>
+      `    <trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}</trkpt>`
+    );
+    const gpxXml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">',
+      `  <trk><name>${track.track_name}</name><trkseg>`,
+      ...ptLines,
+      '  </trkseg></trk>',
+      '</gpx>',
+    ].join('\n');
+
+    const trip = db.prepare('SELECT trip_type FROM trips WHERE id = ?').get(tripId) as { trip_type: string } | undefined;
+    const isTrekking = trip?.trip_type === 'trekking';
+
+    const form = new FormData();
+    form.append('key', process.env.IBP_API_KEY);
+    form.append('file', new Blob([gpxXml], { type: 'application/gpx+xml' }), `${track.track_name}.gpx`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let r: Response;
+    try {
+      r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    const data = await r.json() as any;
+    const ibpRaw = isTrekking ? (data?.hiking?.ibp ?? data?.hkg?.ibp) : data?.bicycle?.ibp;
+    if (ibpRaw == null) return res.status(502).json({ error: 'IBP not returned by API' });
+
+    const ibp = Math.round(Number(ibpRaw));
+    db.prepare('UPDATE gpx_tracks SET ibp = ? WHERE id = ?').run(ibp, trackId);
+    res.json({ ibp });
+  } catch (e: any) {
+    console.error('[gpx recalculate-ibp]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
 // Divide un GPX largo en etapas usando los lugares de inicio/fin de cada día
 router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;

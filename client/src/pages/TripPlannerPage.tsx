@@ -1368,7 +1368,13 @@ export default function TripPlannerPage(): React.ReactElement | null {
               </div>
             </div>
             <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
-              <ElevationDetail tracks={gpxTracksWithPoints} />
+              <ElevationDetail
+                tracks={gpxTracksWithPoints}
+                tripId={tripId ? Number(tripId) : undefined}
+                onIbpUpdated={(trackId, ibp) =>
+                  setGpxTracksWithPoints(prev => prev.map(t => t.id === trackId ? { ...t, ibp } : t))
+                }
+              />
             </div>
           </div>
         )}
