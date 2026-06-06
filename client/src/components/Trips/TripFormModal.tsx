@@ -303,6 +303,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             {[
               { value: 'general', label: '🌍 General', desc: 'Viaje estándar' },
               { value: 'cycling', label: '🚴 Bicicleta', desc: 'GPX + Elevación + IBP' },
+              { value: 'trekking', label: '🥾 Trekking', desc: 'GPX + Elevación + IBP' },
             ].map(opt => (
               <button key={opt.value} type="button"
                 onClick={() => canEditTrip && update('trip_type', opt.value)}
