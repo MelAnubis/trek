@@ -13,7 +13,7 @@ interface Props {
   navPhotos: NavPhoto[]
   tripId?: number
   onSaveToTrip: (name: string) => Promise<void>
-  onDownload: (name: string) => void
+  onDownload: (name: string) => Promise<void>
   onDiscard: () => void
 }
 
