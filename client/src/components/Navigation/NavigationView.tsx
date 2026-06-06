@@ -181,8 +181,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     setTimeout(onExit, 1200)
   }
 
-  const handleDownload = (name: string) => {
-    nav.recorder.downloadGpx(name)
+  const handleDownload = async (name: string) => {
+    await nav.recorder.downloadGpx(name)
     onExit()
   }
 

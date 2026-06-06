@@ -77,15 +77,34 @@ export class GpxRecorderService {
     return [...head, ...pts, ...tail].join('\n')
   }
 
-  downloadGpx(name = 'Trek Recording') {
+  async downloadGpx(name = 'Trek Recording'): Promise<void> {
     const xml = this.exportGpx(name)
+    const filename = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`
     const blob = new Blob([xml], { type: 'application/gpx+xml' })
+
+    // Android WebView silently ignores <a download> — use Web Share API when available
+    // (Chrome WebView 88+, Android 10+). Falls back to <a download> for browser PWA.
+    if (typeof navigator.share === 'function') {
+      const file = new File([blob], filename, { type: 'application/gpx+xml' })
+      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title: name })
+          return
+        } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') return // user cancelled
+          // Fall through to <a> download if share fails
+        }
+      }
+    }
+
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`
+    a.download = filename
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   async saveToTrip(tripId: number, name = 'Trek Recording'): Promise<void> {
