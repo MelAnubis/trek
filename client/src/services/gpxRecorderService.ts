@@ -82,23 +82,25 @@ export class GpxRecorderService {
     const filename = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`
     const blob = new Blob([xml], { type: 'application/gpx+xml' })
 
-    // Android WebView silently ignores <a download> — use Web Share API when available
-    // (Chrome WebView 88+, Android 10+). Falls back to <a download> for browser PWA.
-    // Use application/octet-stream for the shared File: custom MIME types like
-    // application/gpx+xml cause canShare() to return false on many Android versions.
+    // Android WebView silently ignores <a download> — use Web Share API when available.
+    // Try sharing with files first (octet-stream for broadest Android compatibility),
+    // then fall back to text-only share so the user can at least send the GPX via
+    // email / Drive / etc. from the native share sheet.
     if (typeof navigator.share === 'function') {
       const shareFile = new File([blob], filename, { type: 'application/octet-stream' })
-      const canShare = typeof navigator.canShare === 'function'
-        ? navigator.canShare({ files: [shareFile] })
-        : false
-      if (canShare) {
-        try {
-          await navigator.share({ files: [shareFile], title: name })
-          return
-        } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') return // user cancelled
-          // Fall through to <a> download if share fails
-        }
+      try {
+        await navigator.share({ files: [shareFile], title: name })
+        return
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return // user cancelled
+        // Files not supported — try sharing the raw XML as text
+      }
+      try {
+        await navigator.share({ title: filename, text: xml })
+        return
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return
+        // Fall through to <a download> for desktop PWA
       }
     }
 
