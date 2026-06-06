@@ -387,13 +387,10 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
           clearTimeout(timeoutId);
         }
         const data = await r.json();
-        console.log('[gpx] IBP API raw response:', JSON.stringify(data));
-        // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (HKG)
-        const ibp = isTrekking ? (data?.hkg?.ibp ?? data?.hiking?.ibp) : data?.bicycle?.ibp;
+        // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (clave "hiking", acrónimo HKG)
+        const ibp = isTrekking ? (data?.hiking?.ibp ?? data?.hkg?.ibp) : data?.bicycle?.ibp;
         if (ibp != null) {
           db.prepare('UPDATE gpx_tracks SET ibp = ? WHERE id = ?').run(Math.round(ibp), newId);
-        } else {
-          console.warn('[gpx] IBP not found in response for activity:', isTrekking ? 'trekking' : 'cycling', '— keys available:', Object.keys(data || {}));
         }
       } catch (ibpErr: any) {
         console.warn('[gpx] IBP API error:', ibpErr.message);
