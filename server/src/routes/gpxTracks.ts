@@ -373,15 +373,20 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
       try {
         const trip = db.prepare('SELECT trip_type FROM trips WHERE id = ?').get(tripId) as { trip_type: string } | undefined;
         const isTrekking = trip?.trip_type === 'trekking';
-        const fetch = (await import('node-fetch')).default;
-        const FormData = (await import('form-data')).default;
         const form = new FormData();
         form.append('key', process.env.IBP_API_KEY);
-        form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
-        const r = await (fetch as any)('https://www.ibpindex.com/api/', {
-          method: 'POST', body: form, headers: (form as any).getHeaders(), timeout: 30000,
-        });
-        const data = await (r as any).json();
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const fileBlob = new Blob([fileBuffer], { type: 'application/gpx+xml' });
+        form.append('file', fileBlob, req.file.originalname);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        let r: Response;
+        try {
+          r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        const data = await r.json();
         console.log('[gpx] IBP API raw response:', JSON.stringify(data));
         // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (HKG)
         const ibp = isTrekking ? (data?.hkg?.ibp ?? data?.hiking?.ibp) : data?.bicycle?.ibp;
