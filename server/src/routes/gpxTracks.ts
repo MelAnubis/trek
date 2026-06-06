@@ -371,6 +371,8 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
     // Intentar obtener IBP via API si hay clave configurada
     if (process.env.IBP_API_KEY) {
       try {
+        const trip = db.prepare('SELECT trip_type FROM trips WHERE id = ?').get(tripId) as { trip_type: string } | undefined;
+        const isTrekking = trip?.trip_type === 'trekking';
         const fetch = (await import('node-fetch')).default;
         const FormData = (await import('form-data')).default;
         const form = new FormData();
@@ -380,7 +382,8 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
           method: 'POST', body: form, headers: (form as any).getHeaders(), timeout: 30000,
         });
         const data = await (r as any).json();
-        const ibp = data?.bicycle?.ibp;
+        // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (HKG)
+        const ibp = isTrekking ? (data?.hkg?.ibp ?? data?.hiking?.ibp) : data?.bicycle?.ibp;
         if (ibp != null) {
           db.prepare('UPDATE gpx_tracks SET ibp = ? WHERE id = ?').run(Math.round(ibp), newId);
         }

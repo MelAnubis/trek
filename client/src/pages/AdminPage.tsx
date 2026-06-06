@@ -204,6 +204,7 @@ export default function AdminPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
   const [editForm, setEditForm] = useState<{ username: string; email: string; role: string; password: string }>({ username: '', email: '', role: 'user', password: '' })
+  const [savingUser, setSavingUser] = useState(false)
   const [showCreateUser, setShowCreateUser] = useState<boolean>(false)
   const [createForm, setCreateForm] = useState<{ username: string; email: string; password: string; role: string }>({ username: '', email: '', password: '', role: 'user' })
 
@@ -459,6 +460,8 @@ export default function AdminPage(): React.ReactElement {
   }
 
   const handleSaveUser = async () => {
+    if (!editingUser) return
+    setSavingUser(true)
     try {
       const payload: { username?: string; email?: string; role: string; password?: string } = {
         username: editForm.username.trim() || undefined,
@@ -468,6 +471,7 @@ export default function AdminPage(): React.ReactElement {
       if (editForm.password.trim()) {
         if (editForm.password.trim().length < 8) {
           toast.error(t('settings.passwordTooShort'))
+          setSavingUser(false)
           return
         }
         payload.password = editForm.password.trim()
@@ -478,6 +482,8 @@ export default function AdminPage(): React.ReactElement {
       toast.success(t('admin.toast.userUpdated'))
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('admin.toast.updateError')))
+    } finally {
+      setSavingUser(false)
     }
   }
 
@@ -1698,7 +1704,8 @@ export default function AdminPage(): React.ReactElement {
             </button>
             <button
               onClick={handleSaveUser}
-              className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 text-white rounded-lg"
+              disabled={savingUser}
+              className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.save')}
             </button>

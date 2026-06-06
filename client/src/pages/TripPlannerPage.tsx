@@ -215,7 +215,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   // GPX tracks for cycling trips
   const [gpxTracks, setGpxTracks] = React.useState<GpxTrack[]>([])
   const [gpxTracksWithPoints, setGpxTracksWithPoints] = React.useState<GpxTrack[]>([])
-  const isCycling = (trip as any)?.trip_type === 'cycling'
+  const isCycling = (trip as any)?.trip_type === 'cycling' || (trip as any)?.trip_type === 'trekking'
   // Actions — stable references, don't cause re-renders
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
