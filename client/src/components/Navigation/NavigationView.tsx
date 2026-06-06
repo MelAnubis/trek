@@ -175,9 +175,10 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     onExit()
   }, [nav, onExit])
 
-  const handleSaveToTrip = async (name: string) => {
-    if (!tripId) return
-    await nav.recorder.saveToTrip(tripId, name)
+  const handleSaveToTrip = async (name: string, targetTripId?: number) => {
+    const id = targetTripId ?? tripId
+    if (!id) return
+    await nav.recorder.saveToTrip(id, name)
     setTimeout(onExit, 1200)
   }
 

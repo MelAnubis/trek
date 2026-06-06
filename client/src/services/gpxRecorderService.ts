@@ -84,11 +84,16 @@ export class GpxRecorderService {
 
     // Android WebView silently ignores <a download> — use Web Share API when available
     // (Chrome WebView 88+, Android 10+). Falls back to <a download> for browser PWA.
+    // Use application/octet-stream for the shared File: custom MIME types like
+    // application/gpx+xml cause canShare() to return false on many Android versions.
     if (typeof navigator.share === 'function') {
-      const file = new File([blob], filename, { type: 'application/gpx+xml' })
-      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+      const shareFile = new File([blob], filename, { type: 'application/octet-stream' })
+      const canShare = typeof navigator.canShare === 'function'
+        ? navigator.canShare({ files: [shareFile] })
+        : false
+      if (canShare) {
         try {
-          await navigator.share({ files: [file], title: name })
+          await navigator.share({ files: [shareFile], title: name })
           return
         } catch (e) {
           if (e instanceof Error && e.name === 'AbortError') return // user cancelled
