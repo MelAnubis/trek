@@ -8,10 +8,10 @@ router.use(authenticate, adminOnly);
 
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
-const COUNTRY_AREAS: Record<string, string> = {
-  ES: '"ISO3166-1"="ES"',
-  PT: '"ISO3166-1"="PT"',
-  FR: '"ISO3166-1"="FR"',
+const COUNTRY_BBOXES: Record<string, string> = {
+  ES: '27.6,-18.2,43.9,4.5',
+  PT: '30.0,-9.6,42.2,-6.2',
+  FR: '42.3,-5.1,51.2,8.3',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -55,22 +55,15 @@ async function overpassQuery(query: string): Promise<any> {
 router.post('/search', async (req: Request, res: Response) => {
   const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'] } = req.body;
 
-  const validCountries = (countries as string[]).filter(c => c in COUNTRY_AREAS);
+  const validCountries = (countries as string[]).filter(c => c in COUNTRY_BBOXES);
   if (validCountries.length === 0) return res.status(400).json({ error: 'Invalid countries' });
 
-  // Area definitions
-  const areaLines = validCountries.map(c => `area[${COUNTRY_AREAS[c]}]->.a${c};`);
+  const networkRegex = (networks as string[]).join('|');
+  const unionLines = validCountries.map(c =>
+    `  relation["route"="bicycle"]["network"~"^(${networkRegex})$"](${COUNTRY_BBOXES[c]});`
+  );
 
-  // Each (country × network) pair as a union member — proper OR logic
-  const unionLines: string[] = [];
-  for (const c of validCountries) {
-    for (const n of networks as string[]) {
-      unionLines.push(`  relation["route"="bicycle"]["network"="${n}"](area.a${c});`);
-    }
-  }
-
-  const query = `[out:json][timeout:60];
-${areaLines.join('\n')}
+  const query = `[out:json][timeout:120];
 (
 ${unionLines.join('\n')}
 );
