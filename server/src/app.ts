@@ -298,7 +298,7 @@ export function createApp(): express.Application {
   app.use('/api/tags', tagsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/admin', adminRoutes);
-  app.use('/api/admin/route-discovery', routeDiscoveryRoutes);
+  app.use('/api/admin/route-discovery', express.json({ limit: '10mb' }), routeDiscoveryRoutes);
 
   // Addons list endpoint
   app.get('/api/addons', authenticate, (_req: Request, res: Response) => {
