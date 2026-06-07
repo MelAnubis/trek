@@ -6,7 +6,11 @@ import type { AuthRequest } from '../middleware/auth';
 const router = express.Router();
 router.use(authenticate, adminOnly);
 
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+];
 
 const COUNTRY_BBOXES: Record<string, string> = {
   ES: '27.6,-18.2,43.9,4.5',
@@ -34,20 +38,31 @@ function calcDistanceKm(points: { lat: number; lng: number }[]): number {
 }
 
 async function overpassQuery(query: string): Promise<any> {
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 60000);
-  try {
-    const r = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `data=${encodeURIComponent(query)}`,
-      signal: controller.signal,
-    });
-    if (!r.ok) throw new Error(`Overpass error ${r.status}`);
-    return await r.json();
-  } finally {
-    clearTimeout(tid);
+  let lastError = '';
+  for (const url of OVERPASS_MIRRORS) {
+    const controller = new AbortController();
+    const tid = setTimeout(() => controller.abort(), 90000);
+    try {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': 'TrekWanderer/1.0 (trip planner; admin route import)',
+        },
+        body: `data=${encodeURIComponent(query)}`,
+        signal: controller.signal,
+      });
+      if (r.ok) return await r.json();
+      lastError = `Overpass error ${r.status} from ${url}`;
+      console.warn(`[route-discovery] ${lastError}`);
+    } catch (e: any) {
+      lastError = e.message;
+      console.warn(`[route-discovery] ${url} failed: ${e.message}`);
+    } finally {
+      clearTimeout(tid);
+    }
   }
+  throw new Error(lastError || 'All Overpass mirrors failed');
 }
 
 // ── POST /api/admin/route-discovery/search ────────────────────────────────────
