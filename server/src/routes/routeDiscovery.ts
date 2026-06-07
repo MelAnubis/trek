@@ -37,11 +37,54 @@ function calcDistanceKm(points: { lat: number; lng: number }[]): number {
   return Math.round(d * 10) / 10;
 }
 
+// Iterative Ramer-Douglas-Peucker simplification (avoids stack overflow on large routes)
+function simplifyPoints(pts: { lat: number; lng: number }[], epsilon: number): { lat: number; lng: number }[] {
+  if (pts.length <= 2) return pts;
+  const keep = new Uint8Array(pts.length);
+  keep[0] = 1;
+  keep[pts.length - 1] = 1;
+  const stack: [number, number][] = [[0, pts.length - 1]];
+  while (stack.length > 0) {
+    const [s, e] = stack.pop()!;
+    if (e - s <= 1) continue;
+    const p1 = pts[s], p2 = pts[e];
+    const dx = p2.lng - p1.lng, dy = p2.lat - p1.lat;
+    const mag = Math.sqrt(dx * dx + dy * dy);
+    let maxD = 0, maxI = s;
+    for (let i = s + 1; i < e; i++) {
+      const d = mag === 0
+        ? Math.sqrt((pts[i].lng - p1.lng) ** 2 + (pts[i].lat - p1.lat) ** 2)
+        : Math.abs(dy * pts[i].lng - dx * pts[i].lat + p2.lng * p1.lat - p2.lat * p1.lng) / mag;
+      if (d > maxD) { maxD = d; maxI = i; }
+    }
+    if (maxD > epsilon) {
+      keep[maxI] = 1;
+      stack.push([s, maxI], [maxI, e]);
+    }
+  }
+  return pts.filter((_, i) => keep[i]);
+}
+
+// Collect all way IDs from a relation, recursing into nested sub-relations (e.g. EuroVelo)
+function collectWayIds(relation: any, elementMap: Map<number, any>, visited = new Set<number>()): number[] {
+  if (visited.has(relation.id)) return [];
+  visited.add(relation.id);
+  const ids: number[] = [];
+  for (const m of (relation.members || [])) {
+    if (m.type === 'way') ids.push(m.ref);
+    else if (m.type === 'relation') {
+      const sub = elementMap.get(m.ref);
+      if (sub) ids.push(...collectWayIds(sub, elementMap, visited));
+    }
+  }
+  return ids;
+}
+
 async function overpassQuery(query: string): Promise<any> {
   let lastError = '';
   for (const url of OVERPASS_MIRRORS) {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 90000);
+    const tid = setTimeout(() => controller.abort(), 330000); // 5.5 min — covers 300s Overpass timeout
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -119,34 +162,34 @@ out tags;`;
 
 // ── POST /api/admin/route-discovery/fetch-gpx ─────────────────────────────────
 // Fetches full geometry for a single OSM relation. Slow — call on demand.
+// Handles nested sub-relations (EuroVelo-style) and simplifies large routes.
 router.post('/fetch-gpx', async (req: Request, res: Response) => {
   const { osmId } = req.body;
   if (!osmId) return res.status(400).json({ error: 'osmId required' });
 
-  const query = `
-[out:json][timeout:120];
+  // ">>" deep-recurses into nested sub-relations (needed for EuroVelo etc.)
+  const query = `[out:json][timeout:300];
 relation(${osmId});
-(._; >;);
-out body qt;
-  `.trim();
+(._; >>;);
+out body qt;`;
 
   try {
     const data = await overpassQuery(query);
     const elements: any[] = data.elements || [];
 
-    // Build node map
+    // Build lookup maps
     const nodeMap = new Map<number, { lat: number; lng: number }>();
+    const elementMap = new Map<number, any>();
     for (const e of elements) {
+      elementMap.set(e.id, e);
       if (e.type === 'node') nodeMap.set(e.id, { lat: e.lat, lng: e.lon });
     }
 
-    // Get ordered way IDs from relation
-    const relation = elements.find(e => e.type === 'relation');
-    if (!relation) return res.status(404).json({ error: 'Relation not found' });
+    const topRelation = elements.find(e => e.type === 'relation' && e.id === Number(osmId));
+    if (!topRelation) return res.status(404).json({ error: 'Relation not found' });
 
-    const wayIds = (relation.members || [])
-      .filter((m: any) => m.type === 'way')
-      .map((m: any) => m.ref as number);
+    // Collect way IDs recursing into nested sub-relations
+    const wayIds = collectWayIds(topRelation, elementMap);
 
     // Build way segments
     const wayMap = new Map<number, { lat: number; lng: number }[]>();
@@ -160,30 +203,31 @@ out body qt;
     }
 
     // Chain ways into a continuous track
-    const points: { lat: number; lng: number }[] = [];
+    const raw: { lat: number; lng: number }[] = [];
     for (const wid of wayIds) {
       const seg = wayMap.get(wid);
       if (!seg || seg.length === 0) continue;
-      if (points.length === 0) {
-        points.push(...seg);
+      if (raw.length === 0) {
+        raw.push(...seg);
       } else {
-        const last = points[points.length - 1];
-        const first = seg[0];
-        const firstDist = haversineKm(last.lat, last.lng, first.lat, first.lng);
-        const lastNode = seg[seg.length - 1];
-        const lastDist = haversineKm(last.lat, last.lng, lastNode.lat, lastNode.lng);
-        if (lastDist < firstDist) {
-          points.push(...[...seg].reverse());
-        } else {
-          points.push(...seg);
-        }
+        const last = raw[raw.length - 1];
+        const firstDist = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
+        const lastDist = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
+        raw.push(...(lastDist < firstDist ? [...seg].reverse() : seg));
       }
     }
 
-    if (points.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
+    if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
+    const rawDistanceKm = calcDistanceKm(raw);
+
+    // Adaptive D-P simplification: target ≤ 5000 points regardless of route length
+    const epsilon = Math.max(0.0001, rawDistanceKm / (5000 * 111));
+    const points = raw.length > 5000 ? simplifyPoints(raw, epsilon) : raw;
     const distanceKm = calcDistanceKm(points);
-    res.json({ points, distanceKm, pointCount: points.length });
+
+    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${points.length}pts dist=${distanceKm}km`);
+    res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
   } catch (e: any) {
     console.error('[route-discovery fetch-gpx]', e.message);
     res.status(502).json({ error: e.message });
