@@ -191,6 +191,29 @@ function BoundsController({ places, fitKey, paddingOpts, hasDayDetail }: BoundsC
   return null
 }
 
+// Fit to GPX route when it first appears (no day selected, no day places)
+function RouteBoundsController({ route, dayPlacesCount, paddingOpts }: { route: [number, number][][] | null; dayPlacesCount: number; paddingOpts: Record<string, number> }) {
+  const map = useMap()
+  const prevRouteRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!route || route.length === 0 || dayPlacesCount > 0) return
+    const sig = route[0]?.length > 0 ? `${route[0][0]},${route[0][route[0].length - 1]}` : null
+    if (!sig || sig === prevRouteRef.current) return
+    prevRouteRef.current = sig
+    try {
+      const allCoords = route.flat()
+      if (allCoords.length < 2) return
+      const bounds = L.latLngBounds(allCoords)
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { ...paddingOpts, maxZoom: 14, animate: true })
+      }
+    } catch {}
+  }, [route, dayPlacesCount]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  return null
+}
+
 interface MapClickHandlerProps {
   onClick: ((e: L.LeafletMouseEvent) => void) | null
 }
@@ -566,6 +589,7 @@ export const MapView = memo(function MapView({
 
       <MapController center={center} zoom={zoom} />
       <BoundsController places={dayPlaces.length > 0 ? dayPlaces : places} fitKey={fitKey} paddingOpts={paddingOpts} hasDayDetail={hasDayDetail} />
+      <RouteBoundsController route={route} dayPlacesCount={dayPlaces.length} paddingOpts={paddingOpts} />
       <SelectionController places={places} selectedPlaceId={selectedPlaceId} dayPlaces={dayPlaces} paddingOpts={paddingOpts} />
       <MapClickHandler onClick={onMapClick} />
       <MapContextMenuHandler onContextMenu={onMapContextMenu} />
