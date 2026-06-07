@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { authenticate, adminOnly } from '../middleware/auth';
-import { getDb } from '../db';
+import { db } from '../db/database';
 import type { AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
@@ -188,8 +188,6 @@ router.post('/import', async (req: Request, res: Response) => {
   if (!route?.name || !points || points.length < 10) {
     return res.status(400).json({ error: 'Missing route name or insufficient points' });
   }
-
-  const db = getDb();
 
   try {
     // Build GPX XML from points
