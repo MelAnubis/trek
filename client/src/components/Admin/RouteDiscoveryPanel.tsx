@@ -131,7 +131,7 @@ export default function RouteDiscoveryPanel() {
 
   const loadGpx = (route: OsmRoute) => ensureGpx(route)
 
-  const callImport = async (groupName: string, groupRoutes: OsmRoute[]) => {
+  const callImport = async (groupName: string, groupRoutes: OsmRoute[], _retried = false) => {
     const osmIds = groupRoutes.map(r => r.osmId)
     osmIds.forEach(id => setImporting(prev => new Set(prev).add(id)))
     try {
@@ -145,7 +145,22 @@ export default function RouteDiscoveryPanel() {
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error importing')
+      if (!res.ok) {
+        // Server cache expired — re-fetch GPX to re-warm cache, then retry once
+        if (!_retried && (data.error || '').includes('GPX not loaded')) {
+          osmIds.forEach(id => setImporting(prev => { const s = new Set(prev); s.delete(id); return s }))
+          const reloaded: OsmRoute[] = []
+          for (const route of groupRoutes) {
+            const r = await ensureGpx(route, true)
+            if (r) reloaded.push(r)
+          }
+          if (reloaded.length === groupRoutes.length) {
+            await callImport(groupName, reloaded, true)
+            return
+          }
+        }
+        throw new Error(data.error || 'Error importing')
+      }
       setImportedIds(prev => { const s = new Set(prev); osmIds.forEach(id => s.add(id)); return s })
     } catch (e: any) {
       osmIds.forEach(id => setImportErrors(prev => ({ ...prev, [id]: e.message })))
@@ -153,8 +168,8 @@ export default function RouteDiscoveryPanel() {
     osmIds.forEach(id => setImporting(prev => { const s = new Set(prev); s.delete(id); return s }))
   }
 
-  const ensureGpx = async (route: OsmRoute): Promise<OsmRoute | null> => {
-    if (route.points && route.points.length >= 10) return route
+  const ensureGpx = async (route: OsmRoute, force = false): Promise<OsmRoute | null> => {
+    if (!force && route.points && route.points.length >= 10) return route
     setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: true, gpxError: undefined } : r))
     try {
       const res = await fetch('/api/admin/route-discovery/fetch-gpx', {
@@ -333,9 +348,9 @@ export default function RouteDiscoveryPanel() {
 
               return (
                 <div key={route.osmId} style={{
-                  border: `1px solid ${isImported ? '#22c55e' : isSelected ? '#6366f1' : '#e2e8f0'}`,
+                  border: `1px solid ${isImported ? '#22c55e' : isSelected ? '#6366f1' : 'var(--border-primary)'}`,
                   borderRadius: 10,
-                  background: isImported ? '#f0fdf4' : isSelected ? '#eef2ff' : '#fff',
+                  background: isImported ? 'rgba(34,197,94,0.12)' : isSelected ? 'rgba(99,102,241,0.12)' : 'var(--bg-card)',
                   overflow: 'hidden',
                 }}>
                   {/* Row */}
