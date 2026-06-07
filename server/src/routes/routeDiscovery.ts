@@ -18,6 +18,17 @@ const COUNTRY_BBOXES: Record<string, string> = {
   FR: '42.3,-5.1,51.2,8.3',
 };
 
+// Server-side cache for fetched GPX points. Avoids sending large bodies from client→server.
+// Keyed by osmId. Entries expire after 60 minutes.
+type CacheEntry = { points: { lat: number; lng: number }[]; distanceKm: number; cachedAt: number };
+const gpxCache = new Map<number, CacheEntry>();
+const CACHE_TTL = 60 * 60 * 1000;
+
+function prunCache() {
+  const now = Date.now();
+  for (const [k, v] of gpxCache) if (now - v.cachedAt > CACHE_TTL) gpxCache.delete(k);
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -84,7 +95,7 @@ async function overpassQuery(query: string): Promise<any> {
   let lastError = '';
   for (const url of OVERPASS_MIRRORS) {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 330000); // 5.5 min — covers 300s Overpass timeout
+    const tid = setTimeout(() => controller.abort(), 330000);
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -108,8 +119,29 @@ async function overpassQuery(query: string): Promise<any> {
   throw new Error(lastError || 'All Overpass mirrors failed');
 }
 
+function insertTrack(tripId: number, userId: number, trackName: string, points: { lat: number; lng: number }[]) {
+  const pts = points.map(p => ({ lat: p.lat, lng: p.lng, ele: null as null }));
+  const stats = calcStats(pts);
+  const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(tripId) as { n: number };
+  db.prepare(`
+    INSERT INTO gpx_tracks
+      (trip_id, user_id, track_name, orig_name, total_distance, total_elevation_gain,
+       total_elevation_loss, max_elevation, min_elevation, point_count,
+       start_lat, start_lng, end_lat, end_lng, points_json, waypoints_json, sort_order)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `).run(
+    tripId, userId,
+    trackName, `${trackName}.gpx`,
+    stats.totalDistance, stats.totalElevationGain, stats.totalElevationLoss,
+    stats.maxElevation, stats.minElevation, pts.length,
+    pts[0]?.lat, pts[0]?.lng,
+    pts[pts.length - 1]?.lat, pts[pts.length - 1]?.lng,
+    JSON.stringify(pts),
+    '[]', sortRow.n,
+  );
+}
+
 // ── POST /api/admin/route-discovery/search ────────────────────────────────────
-// Searches OSM for cycling routes matching filters. Returns metadata only (fast).
 router.post('/search', async (req: Request, res: Response) => {
   const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'] } = req.body;
 
@@ -161,13 +193,14 @@ out tags;`;
 });
 
 // ── POST /api/admin/route-discovery/fetch-gpx ─────────────────────────────────
-// Fetches full geometry for a single OSM relation. Slow — call on demand.
-// Handles nested sub-relations (EuroVelo-style) and simplifies large routes.
+// Fetches full geometry for a single OSM relation and caches it server-side.
+// The import endpoint reads from this cache — the client never sends points back.
 router.post('/fetch-gpx', async (req: Request, res: Response) => {
   const { osmId } = req.body;
   if (!osmId) return res.status(400).json({ error: 'osmId required' });
 
-  // ">>" deep-recurses into nested sub-relations (needed for EuroVelo etc.)
+  prunCache();
+
   const query = `[out:json][timeout:300];
 relation(${osmId});
 (._; >>;);
@@ -177,7 +210,6 @@ out body qt;`;
     const data = await overpassQuery(query);
     const elements: any[] = data.elements || [];
 
-    // Build lookup maps
     const nodeMap = new Map<number, { lat: number; lng: number }>();
     const elementMap = new Map<number, any>();
     for (const e of elements) {
@@ -188,10 +220,8 @@ out body qt;`;
     const topRelation = elements.find(e => e.type === 'relation' && e.id === Number(osmId));
     if (!topRelation) return res.status(404).json({ error: 'Relation not found' });
 
-    // Collect way IDs recursing into nested sub-relations
     const wayIds = collectWayIds(topRelation, elementMap);
 
-    // Build way segments
     const wayMap = new Map<number, { lat: number; lng: number }[]>();
     for (const e of elements) {
       if (e.type === 'way') {
@@ -202,7 +232,6 @@ out body qt;`;
       }
     }
 
-    // Chain ways into a continuous track
     const raw: { lat: number; lng: number }[] = [];
     for (const wid of wayIds) {
       const seg = wayMap.get(wid);
@@ -220,11 +249,12 @@ out body qt;`;
     if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
     const rawDistanceKm = calcDistanceKm(raw);
-
-    // Adaptive D-P simplification: target ≤ 5000 points regardless of route length
     const epsilon = Math.max(0.0001, rawDistanceKm / (5000 * 111));
     const points = raw.length > 5000 ? simplifyPoints(raw, epsilon) : raw;
     const distanceKm = calcDistanceKm(points);
+
+    // Cache server-side so import doesn't need a large request body
+    gpxCache.set(Number(osmId), { points, distanceKm, cachedAt: Date.now() });
 
     console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${points.length}pts dist=${distanceKm}km`);
     res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
@@ -235,76 +265,55 @@ out body qt;`;
 });
 
 // ── POST /api/admin/route-discovery/import ────────────────────────────────────
-// Creates a Trip + uploads the GPX from provided points.
+// Creates ONE trip with ONE track per route segment (grouped by caller).
+// Body: { groupName, routes: RouteInfo[], tripType }
+// Points come from the server-side cache populated by fetch-gpx — no large body.
 router.post('/import', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { route, points, tripType = 'cycling' } = req.body;
+  const { groupName, routes, tripType = 'cycling' } = req.body;
 
-  if (!route?.name || !points || points.length < 10) {
-    return res.status(400).json({ error: 'Missing route name or insufficient points' });
+  if (!groupName || !Array.isArray(routes) || routes.length === 0) {
+    return res.status(400).json({ error: 'groupName and routes[] required' });
   }
 
-  try {
-    // Build GPX XML from points
-    const ptLines = (points as { lat: number; lng: number; ele?: number }[]).map(p =>
-      `    <trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}</trkpt>`
-    );
-    const gpxXml = [
-      '<?xml version="1.0" encoding="UTF-8"?>',
-      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">',
-      `  <trk><name>${route.name.replace(/[<>&"]/g, '')}</name><trkseg>`,
-      ...ptLines,
-      '  </trkseg></trk>',
-      '</gpx>',
-    ].join('\n');
-
-    // Calculate distance
-    let distKm = 0;
-    for (let i = 1; i < points.length; i++) {
-      distKm += haversineKm(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+  // Resolve all segments from cache
+  const segments: { route: any; cached: CacheEntry }[] = [];
+  for (const route of routes) {
+    const cached = gpxCache.get(Number(route.osmId));
+    if (!cached) {
+      return res.status(400).json({
+        error: `GPX not loaded for "${route.name}" (OSM ${route.osmId}) — click "Cargar GPX" first`,
+      });
     }
-    distKm = Math.round(distKm * 10) / 10;
+    segments.push({ route, cached });
+  }
 
-    const description = [
-      route.description || '',
-      route.website ? `\n\nMás información: ${route.website}` : '',
-      route.ref ? `\n\nReferencia: ${route.ref}` : '',
-      `\n\nDistancia estimada: ${distKm} km`,
-      `\nFuente: OpenStreetMap (ID: ${route.osmId})`,
-    ].join('').trim();
+  const totalDist = Math.round(segments.reduce((s, seg) => s + seg.cached.distanceKm, 0) * 10) / 10;
+  const osmIds = routes.map((r: any) => r.osmId).join(', ');
+  const firstRoute = routes[0];
 
-    // Create the trip
+  const description = [
+    routes.map((r: any) => r.description).filter(Boolean).join('\n\n'),
+    firstRoute.website ? `\nMás información: ${firstRoute.website}` : '',
+    firstRoute.ref ? `\nReferencia: ${firstRoute.ref}` : '',
+    `\n\nDistancia total estimada: ${totalDist} km`,
+    `\nFuente: OpenStreetMap (IDs: ${osmIds})`,
+  ].join('').trim();
+
+  try {
     const tripResult = db.prepare(`
       INSERT INTO trips (user_id, title, description, trip_type, currency, created_at, updated_at)
       VALUES (?, ?, ?, ?, 'EUR', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-    `).run(authReq.user.id, route.name, description, tripType);
+    `).run(authReq.user.id, groupName, description, tripType);
 
     const tripId = Number(tripResult.lastInsertRowid);
 
-    // Save GPX track directly from provided points
-    const pts = points as { lat: number; lng: number; ele?: number | null }[];
-    const stats = calcStats(pts.map(p => ({ ...p, ele: p.ele ?? null })));
-    const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(tripId) as { n: number };
-    const trackResult = db.prepare(`
-      INSERT INTO gpx_tracks
-        (trip_id, user_id, track_name, orig_name, total_distance, total_elevation_gain,
-         total_elevation_loss, max_elevation, min_elevation, point_count,
-         start_lat, start_lng, end_lat, end_lng, points_json, waypoints_json, sort_order)
-      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    `).run(
-      tripId, authReq.user.id,
-      route.name, `${route.name}.gpx`,
-      stats.totalDistance, stats.totalElevationGain, stats.totalElevationLoss,
-      stats.maxElevation, stats.minElevation, pts.length,
-      pts[0]?.lat, pts[0]?.lng,
-      pts[pts.length - 1]?.lat, pts[pts.length - 1]?.lng,
-      JSON.stringify(pts.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele ?? null }))),
-      '[]', sortRow.n,
-    );
-    const trackId = Number(trackResult.lastInsertRowid);
+    for (const { route, cached } of segments) {
+      insertTrack(tripId, authReq.user.id, route.name, cached.points);
+    }
 
     const trip = db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId);
-    res.status(201).json({ trip, tripId });
+    res.status(201).json({ trip, tripId, trackCount: segments.length });
   } catch (e: any) {
     console.error('[route-discovery import]', e.message);
     res.status(500).json({ error: e.message });
