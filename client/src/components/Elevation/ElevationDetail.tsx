@@ -347,10 +347,37 @@ function TrackDetail({
   if (!profile) {
     const hasPoints = (track.points?.length || 0) > 0
     return (
-      <div style={{ padding: 16, color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
-        {hasPoints
-          ? 'Sin datos de altitud — este track fue importado desde OpenStreetMap, que no incluye perfil de elevación.'
-          : 'Sin datos de elevación — carga el track con puntos'}
+      <div style={{
+        border: '1px solid var(--border-primary, #2d3f55)',
+        borderRadius: 10, marginBottom: 10, overflow: 'hidden',
+        background: 'var(--bg-primary, #1e2a3a)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+          <div style={{ width: 14, height: 14, borderRadius: 4, background: color, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary, #e2e8f0)', marginBottom: 2 }}>
+              {track.track_name}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)' }}>
+              {track.total_distance ? `${Math.round(track.total_distance * 10) / 10} km` : ''}
+              {hasPoints
+                ? ' · Sin datos de altitud (importado desde OpenStreetMap)'
+                : ' · Sin puntos GPS cargados'}
+            </div>
+          </div>
+          {hasPoints && (
+            <button
+              onClick={handleDownload}
+              title="Descargar GPX"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
+              }}
+            >
+              <Download size={14} />
+            </button>
+          )}
+        </div>
       </div>
     )
   }
