@@ -58,20 +58,23 @@ router.post('/search', async (req: Request, res: Response) => {
   const validCountries = (countries as string[]).filter(c => c in COUNTRY_AREAS);
   if (validCountries.length === 0) return res.status(400).json({ error: 'Invalid countries' });
 
-  const networkFilter = networks.map((n: string) => `["network"="${n}"]`).join('');
+  // Area definitions
+  const areaLines = validCountries.map(c => `area[${COUNTRY_AREAS[c]}]->.a${c};`);
 
-  // Build union of queries per country
-  const parts = validCountries.map(c => {
-    const area = COUNTRY_AREAS[c];
-    return `area[${area}]->.a${c};\n  relation["route"="bicycle"]${networkFilter}(area.a${c});`;
-  });
+  // Each (country × network) pair as a union member — proper OR logic
+  const unionLines: string[] = [];
+  for (const c of validCountries) {
+    for (const n of networks as string[]) {
+      unionLines.push(`  relation["route"="bicycle"]["network"="${n}"](area.a${c});`);
+    }
+  }
 
-  const query = `
-[out:json][timeout:60];
-${parts.join('\n')}
-(${validCountries.map(c => `relation["route"="bicycle"]${networkFilter}(area.a${c});`).join('\n  ')});
-out tags;
-  `.trim();
+  const query = `[out:json][timeout:60];
+${areaLines.join('\n')}
+(
+${unionLines.join('\n')}
+);
+out tags;`;
 
   try {
     const data = await overpassQuery(query);
