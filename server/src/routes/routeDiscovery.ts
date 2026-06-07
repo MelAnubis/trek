@@ -84,14 +84,16 @@ function simplifyPoints(pts: { lat: number; lng: number }[], epsilon: number): {
 }
 
 // Collect all way IDs from a relation, recursing into nested sub-relations (e.g. EuroVelo)
-function collectWayIds(relation: any, elementMap: Map<number, any>, visited = new Set<number>()): number[] {
+// elementMap must be keyed as "type:id" to avoid collisions between ways and relations
+// (OSM numeric IDs overlap across element types — a way and a relation can share the same number)
+function collectWayIds(relation: any, elementMap: Map<string, any>, visited = new Set<number>()): number[] {
   if (visited.has(relation.id)) return [];
   visited.add(relation.id);
   const ids: number[] = [];
   for (const m of (relation.members || [])) {
     if (m.type === 'way') ids.push(m.ref);
     else if (m.type === 'relation') {
-      const sub = elementMap.get(m.ref);
+      const sub = elementMap.get(`relation:${m.ref}`);
       if (sub) ids.push(...collectWayIds(sub, elementMap, visited));
     }
   }
@@ -248,9 +250,10 @@ out body qt;`;
     const elements: any[] = data.elements || [];
 
     const nodeMap = new Map<number, { lat: number; lng: number }>();
-    const elementMap = new Map<number, any>();
+    // Key: "type:id" — prevents way IDs from overwriting relation IDs when they share the same number
+    const elementMap = new Map<string, any>();
     for (const e of elements) {
-      elementMap.set(e.id, e);
+      elementMap.set(`${e.type}:${e.id}`, e);
       if (e.type === 'node') nodeMap.set(e.id, { lat: e.lat, lng: e.lon });
     }
 
