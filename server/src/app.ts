@@ -43,6 +43,7 @@ import shareRoutes from './routes/share';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import gpxTracksRoutes from './routes/gpxTracks';
+import routeDiscoveryRoutes from './routes/routeDiscovery';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
@@ -297,6 +298,7 @@ export function createApp(): express.Application {
   app.use('/api/tags', tagsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/admin/route-discovery', routeDiscoveryRoutes);
 
   // Addons list endpoint
   app.get('/api/addons', authenticate, (_req: Request, res: Response) => {

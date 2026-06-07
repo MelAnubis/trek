@@ -20,6 +20,7 @@ import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import PermissionsPanel from '../components/Admin/PermissionsPanel'
+import RouteDiscoveryPanel from '../components/Admin/RouteDiscoveryPanel'
 import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, ArrowUpCircle, ExternalLink, Download, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
 import CustomSelect from '../components/shared/CustomSelect'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
@@ -195,6 +196,7 @@ export default function AdminPage(): React.ReactElement {
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound }] : []),
     { id: 'github', label: t('admin.tabs.github'), icon: GitBranch },
+    { id: 'route-discovery', label: '🗺️ Rutas OSM', icon: Map },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
   ]
 
@@ -1614,6 +1616,8 @@ export default function AdminPage(): React.ReactElement {
           {activeTab === 'github' && <GitHubPanel isPrerelease={updateInfo?.is_prerelease ?? false} />}
 
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
+
+          {activeTab === 'route-discovery' && <RouteDiscoveryPanel />}
 
           {activeTab === 'dev-notifications' && <DevNotificationsPanel />}
           </PageSidebar>
