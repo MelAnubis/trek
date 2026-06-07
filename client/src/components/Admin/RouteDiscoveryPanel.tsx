@@ -103,62 +103,33 @@ export default function RouteDiscoveryPanel() {
     setSearching(false)
   }
 
-  const loadGpx = async (route: OsmRoute) => {
-    setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: true, gpxError: undefined } : r))
-    try {
-      const res = await fetch('/api/admin/route-discovery/fetch-gpx', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ osmId: route.osmId }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error loading GPX')
-      setRoutes(prev => prev.map(r =>
-        r.osmId === route.osmId
-          ? { ...r, points: data.points, distanceKm: data.distanceKm, loadingGpx: false }
-          : r
-      ))
-    } catch (e: any) {
-      setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: false, gpxError: e.message } : r))
-    }
-  }
+  const loadGpx = (route: OsmRoute) => ensureGpx(route)
 
-  const importRoute = async (route: OsmRoute) => {
-    if (!route.points || route.points.length < 10) {
-      await loadGpx(route)
-      return
-    }
-    setImporting(prev => new Set(prev).add(route.osmId))
+  const callImport = async (groupName: string, groupRoutes: OsmRoute[]) => {
+    const osmIds = groupRoutes.map(r => r.osmId)
+    osmIds.forEach(id => setImporting(prev => new Set(prev).add(id)))
     try {
       const res = await fetch('/api/admin/route-discovery/import', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ route, points: route.points, tripType }),
+        body: JSON.stringify({
+          groupName,
+          routes: groupRoutes.map(r => ({ osmId: r.osmId, name: r.name, ref: r.ref, website: r.website, description: r.description })),
+          tripType,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error importing')
-      setImportedIds(prev => new Set(prev).add(route.osmId))
+      setImportedIds(prev => { const s = new Set(prev); osmIds.forEach(id => s.add(id)); return s })
     } catch (e: any) {
-      setImportErrors(prev => ({ ...prev, [route.osmId]: e.message }))
+      osmIds.forEach(id => setImportErrors(prev => ({ ...prev, [id]: e.message })))
     }
-    setImporting(prev => { const s = new Set(prev); s.delete(route.osmId); return s; })
+    osmIds.forEach(id => setImporting(prev => { const s = new Set(prev); s.delete(id); return s }))
   }
 
-  const importSelected = async () => {
-    for (const osmId of selected) {
-      const route = routes.find(r => r.osmId === osmId)
-      if (!route || importedIds.has(osmId)) continue
-      if (!route.points) {
-        // load GPX first then import
-        await loadGpxAndImport(route)
-      } else {
-        await importRoute(route)
-      }
-    }
-  }
-
-  const loadGpxAndImport = async (route: OsmRoute) => {
-    setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: true } : r))
+  const ensureGpx = async (route: OsmRoute): Promise<OsmRoute | null> => {
+    if (route.points && route.points.length >= 10) return route
+    setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: true, gpxError: undefined } : r))
     try {
       const res = await fetch('/api/admin/route-discovery/fetch-gpx', {
         method: 'POST', credentials: 'include',
@@ -169,10 +140,46 @@ export default function RouteDiscoveryPanel() {
       if (!res.ok) throw new Error(data.error || 'Error loading GPX')
       const enriched = { ...route, points: data.points, distanceKm: data.distanceKm, loadingGpx: false }
       setRoutes(prev => prev.map(r => r.osmId === route.osmId ? enriched : r))
-      await importRoute(enriched)
+      return enriched
     } catch (e: any) {
-      setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: false } : r))
-      setImportErrors(prev => ({ ...prev, [route.osmId]: e.message }))
+      setRoutes(prev => prev.map(r => r.osmId === route.osmId ? { ...r, loadingGpx: false, gpxError: e.message } : r))
+      return null
+    }
+  }
+
+  const importRoute = async (route: OsmRoute) => {
+    const loaded = await ensureGpx(route)
+    if (!loaded) return
+    const groupName = route.name
+    await callImport(groupName, [loaded])
+  }
+
+  // Groups selected routes by ref (or name if no ref), loads GPX for any missing, imports each group as one trip
+  const importSelected = async () => {
+    const toProcess = [...selected]
+      .map(id => routes.find(r => r.osmId === id))
+      .filter((r): r is OsmRoute => !!r && !importedIds.has(r.osmId))
+
+    // Ensure all have GPX loaded (warms server cache)
+    const loaded: OsmRoute[] = []
+    for (const route of toProcess) {
+      const r = await ensureGpx(route)
+      if (r) loaded.push(r)
+    }
+
+    // Group by ref, falling back to name
+    const groups = new Map<string, OsmRoute[]>()
+    for (const route of loaded) {
+      const key = (route.ref || route.name).trim().toUpperCase()
+      if (!groups.has(key)) groups.set(key, [])
+      groups.get(key)!.push(route)
+    }
+
+    for (const groupRoutes of groups.values()) {
+      const groupName = groupRoutes[0].ref
+        ? `${groupRoutes[0].ref} — ${groupRoutes[0].name.split(/[–—:]/)[0].trim()}`
+        : groupRoutes[0].name
+      await callImport(groupName, groupRoutes)
     }
   }
 
@@ -349,7 +356,7 @@ export default function RouteDiscoveryPanel() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {!isImported && (
                         <button
-                          onClick={() => hasGpx ? importRoute(route) : loadGpxAndImport(route)}
+                          onClick={() => importRoute(route)}
                           disabled={isImporting}
                           className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
                           title={hasGpx ? 'Importar como viaje' : 'Cargar GPX e importar'}
