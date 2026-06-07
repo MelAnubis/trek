@@ -64,12 +64,17 @@ export default function RouteDiscoveryPanel() {
   // Results & state
   const [routes, setRoutes] = useState<OsmRoute[]>([])
   const [searching, setSearching] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [selected, setSelected] = useState<Set<number>>(new Set())
   const [expanded, setExpanded] = useState<Set<number>>(new Set())
   const [importing, setImporting] = useState<Set<number>>(new Set())
   const [importedIds, setImportedIds] = useState<Set<number>>(new Set())
   const [importErrors, setImportErrors] = useState<Record<number, string>>({})
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalRoutes, setTotalRoutes] = useState(0)
 
   const toggleCountry = (c: string) =>
     setCountries(prev => prev.includes(c) ? prev.filter(x => x !== c) : [...prev, c])
@@ -80,27 +85,48 @@ export default function RouteDiscoveryPanel() {
   const toggleExpand = (id: number) =>
     setExpanded(prev => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; })
 
+  const fetchPage = async (page: number, append: boolean) => {
+    try {
+      const r = await fetch('/api/admin/route-discovery/search', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ countries, networks, minDistanceKm, page }),
+      })
+      const data = await r.json()
+      if (!r.ok) throw new Error(data.error || 'Error searching')
+      if (append) {
+        setRoutes(prev => [...prev, ...data.routes])
+      } else {
+        setRoutes(data.routes)
+        setSelected(new Set())
+        setImportedIds(new Set())
+        setImportErrors({})
+      }
+      setCurrentPage(data.page)
+      setTotalPages(data.totalPages)
+      setTotalRoutes(data.total)
+    } catch (e: any) {
+      setSearchError(e.message)
+    }
+  }
+
   const handleSearch = async () => {
     if (countries.length === 0 || networks.length === 0) return
     setSearching(true)
     setSearchError(null)
     setRoutes([])
-    setSelected(new Set())
-    setImportedIds(new Set())
-    setImportErrors({})
-    try {
-      const r = await fetch('/api/admin/route-discovery/search', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ countries, networks, minDistanceKm }),
-      })
-      const data = await r.json()
-      if (!r.ok) throw new Error(data.error || 'Error searching')
-      setRoutes(data.routes)
-    } catch (e: any) {
-      setSearchError(e.message)
-    }
+    setCurrentPage(1)
+    setTotalPages(1)
+    setTotalRoutes(0)
+    await fetchPage(1, false)
     setSearching(false)
+  }
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true)
+    setSearchError(null)
+    await fetchPage(currentPage + 1, true)
+    setLoadingMore(false)
   }
 
   const loadGpx = (route: OsmRoute) => ensureGpx(route)
@@ -273,7 +299,9 @@ export default function RouteDiscoveryPanel() {
         <div className={card}>
           <div className="flex items-center justify-between mb-4">
             <div>
-              <span className="font-semibold text-slate-900">{routes.length} rutas encontradas</span>
+              <span className="font-semibold text-slate-900">
+                {routes.length} de {totalRoutes} rutas
+              </span>
               {selected.size > 0 && (
                 <span className="ml-2 text-sm text-slate-500">{selected.size} seleccionadas</span>
               )}
@@ -294,7 +322,7 @@ export default function RouteDiscoveryPanel() {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2" id="route-list">
             {routes.map(route => {
               const isSelected = selected.has(route.osmId)
               const isExpanded = expanded.has(route.osmId)
@@ -417,6 +445,22 @@ export default function RouteDiscoveryPanel() {
               )
             })}
           </div>
+
+          {/* Load more */}
+          {currentPage < totalPages && (
+            <div className="mt-4 text-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 mx-auto px-5 py-2.5 bg-slate-100 text-slate-700 text-sm font-semibold rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loadingMore ? <Loader2 size={15} className="animate-spin" /> : <ChevronDown size={15} />}
+                {loadingMore
+                  ? 'Cargando más rutas…'
+                  : `Cargar más (${totalRoutes - routes.length} restantes)`}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

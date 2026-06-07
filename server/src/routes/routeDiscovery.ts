@@ -24,9 +24,16 @@ type CacheEntry = { points: { lat: number; lng: number }[]; distanceKm: number; 
 const gpxCache = new Map<number, CacheEntry>();
 const CACHE_TTL = 60 * 60 * 1000;
 
+// Search result cache: avoids re-querying Overpass for the same filters on paginated requests.
+// Keyed by JSON of { countries, networks, minDistanceKm }. Entries expire after 5 minutes.
+type SearchCacheEntry = { routes: any[]; cachedAt: number };
+const searchCache = new Map<string, SearchCacheEntry>();
+const SEARCH_CACHE_TTL = 5 * 60 * 1000;
+
 function prunCache() {
   const now = Date.now();
   for (const [k, v] of gpxCache) if (now - v.cachedAt > CACHE_TTL) gpxCache.delete(k);
+  for (const [k, v] of searchCache) if (now - v.cachedAt > SEARCH_CACHE_TTL) searchCache.delete(k);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -141,55 +148,85 @@ function insertTrack(tripId: number, userId: number, trackName: string, points: 
   );
 }
 
+const PAGE_SIZE = 50;
+
 // ── POST /api/admin/route-discovery/search ────────────────────────────────────
 router.post('/search', async (req: Request, res: Response) => {
-  const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'] } = req.body;
+  const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'], page = 1 } = req.body;
 
   const validCountries = (countries as string[]).filter(c => c in COUNTRY_BBOXES);
   if (validCountries.length === 0) return res.status(400).json({ error: 'Invalid countries' });
 
-  const networkRegex = (networks as string[]).join('|');
-  const unionLines = validCountries.map(c =>
-    `  relation["route"="bicycle"]["network"~"^(${networkRegex})$"](${COUNTRY_BBOXES[c]});`
-  );
+  prunCache();
 
-  const query = `[out:json][timeout:120];
+  const sortedCountries = [...validCountries].sort();
+  const sortedNetworks = [...(networks as string[])].sort();
+  const cacheKey = JSON.stringify({ countries: sortedCountries, networks: sortedNetworks, minDistanceKm });
+
+  let allRoutes: any[];
+  const cached = searchCache.get(cacheKey);
+  if (cached) {
+    allRoutes = cached.routes;
+    console.log(`[route-discovery search] cache hit, ${allRoutes.length} routes`);
+  } else {
+    const networkRegex = sortedNetworks.join('|');
+    const unionLines = sortedCountries.map(c =>
+      `  relation["route"="bicycle"]["network"~"^(${networkRegex})$"](${COUNTRY_BBOXES[c]});`
+    );
+
+    const query = `[out:json][timeout:120];
 (
 ${unionLines.join('\n')}
 );
 out tags;`;
 
-  try {
-    const data = await overpassQuery(query);
-    const elements: any[] = data.elements || [];
+    try {
+      const data = await overpassQuery(query);
+      const elements: any[] = data.elements || [];
 
-    const routes = elements
-      .filter(e => e.tags?.name)
-      .map(e => {
-        const tags = e.tags || {};
-        const distTag = tags.distance ? parseFloat(tags.distance) : null;
-        return {
-          osmId: e.id,
-          name: tags.name,
-          network: tags.network || '',
-          ref: tags.ref || null,
-          distance: distTag,
-          website: tags.website || tags.url || null,
-          description: tags.description || tags['description:es'] || tags['description:en'] || null,
-          wikidata: tags.wikidata || null,
-          operator: tags.operator || null,
-          wikipedia: tags.wikipedia || null,
-          colour: tags.colour || null,
-          hasMinInfo: !!(tags.name && (distTag == null || distTag >= minDistanceKm)),
-        };
-      })
-      .filter(r => r.distance == null || r.distance >= minDistanceKm);
+      allRoutes = elements
+        .filter(e => e.tags?.name)
+        .map(e => {
+          const tags = e.tags || {};
+          const distTag = tags.distance ? parseFloat(tags.distance) : null;
+          return {
+            osmId: e.id,
+            name: tags.name,
+            network: tags.network || '',
+            ref: tags.ref || null,
+            distance: distTag,
+            website: tags.website || tags.url || null,
+            description: tags.description || tags['description:es'] || tags['description:en'] || null,
+            wikidata: tags.wikidata || null,
+            operator: tags.operator || null,
+            wikipedia: tags.wikipedia || null,
+            colour: tags.colour || null,
+            hasMinInfo: !!(tags.name && (distTag == null || distTag >= minDistanceKm)),
+          };
+        })
+        .filter(r => r.distance == null || r.distance >= minDistanceKm)
+        // Sort longest first; routes with unknown distance go last
+        .sort((a, b) => {
+          if (a.distance == null && b.distance == null) return 0;
+          if (a.distance == null) return 1;
+          if (b.distance == null) return -1;
+          return b.distance - a.distance;
+        });
 
-    res.json({ routes, total: routes.length });
-  } catch (e: any) {
-    console.error('[route-discovery search]', e.message);
-    res.status(502).json({ error: e.message });
+      searchCache.set(cacheKey, { routes: allRoutes, cachedAt: Date.now() });
+      console.log(`[route-discovery search] fetched ${allRoutes.length} routes from Overpass, cached`);
+    } catch (e: any) {
+      console.error('[route-discovery search]', e.message);
+      return res.status(502).json({ error: e.message });
+    }
   }
+
+  const pageNum = Math.max(1, Number(page));
+  const start = (pageNum - 1) * PAGE_SIZE;
+  const routes = allRoutes.slice(start, start + PAGE_SIZE);
+  const totalPages = Math.ceil(allRoutes.length / PAGE_SIZE);
+
+  res.json({ routes, total: allRoutes.length, page: pageNum, pageSize: PAGE_SIZE, totalPages });
 });
 
 // ── POST /api/admin/route-discovery/fetch-gpx ─────────────────────────────────
