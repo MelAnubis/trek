@@ -345,9 +345,12 @@ function TrackDetail({
   }
 
   if (!profile) {
+    const hasPoints = (track.points?.length || 0) > 0
     return (
       <div style={{ padding: 16, color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
-        Sin datos de elevación — carga el track con puntos
+        {hasPoints
+          ? 'Sin datos de altitud — este track fue importado desde OpenStreetMap, que no incluye perfil de elevación.'
+          : 'Sin datos de elevación — carga el track con puntos'}
       </div>
     )
   }
