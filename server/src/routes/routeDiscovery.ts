@@ -188,6 +188,42 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// Fill null elevation values using Open-Meteo (free, no key, SRTM 90m global, 1000 pts/batch)
+async function enrichMissingElevation(
+  points: { lat: number; lng: number; ele: number | null }[],
+): Promise<{ lat: number; lng: number; ele: number | null }[]> {
+  const indices = points.map((p, i) => p.ele == null ? i : -1).filter(i => i >= 0);
+  if (indices.length === 0) return points;
+  const result = [...points];
+  const BATCH = 1000;
+  for (let b = 0; b < indices.length; b += BATCH) {
+    const batch = indices.slice(b, b + BATCH);
+    const lats = batch.map(i => points[i].lat).join(',');
+    const lngs = batch.map(i => points[i].lng).join(',');
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 20000);
+      let r: Response;
+      try {
+        r = await fetch(
+          `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
+          { signal: ctrl.signal },
+        );
+      } finally { clearTimeout(tid); }
+      if (!r.ok) { console.warn('[route-discovery elevation] open-meteo error', r.status); continue; }
+      const data: any = await r.json();
+      const elevs: number[] = data.elevation ?? [];
+      for (let j = 0; j < batch.length && j < elevs.length; j++) {
+        const ele = elevs[j];
+        if (ele != null && !isNaN(ele)) {
+          result[batch[j]] = { ...result[batch[j]], ele: Math.round(ele * 10) / 10 };
+        }
+      }
+    } catch (err: any) { console.warn('[route-discovery elevation] batch failed:', err.message); }
+  }
+  return result;
+}
+
 function calcDistanceKm(points: { lat: number; lng: number }[]): number {
   let d = 0;
   for (let i = 1; i < points.length; i++) {
@@ -413,8 +449,9 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
   if (typeof source === 'string' && source.startsWith('wmt_')) {
     const sport = source.slice(4);
     try {
-      const points = await fetchWmtPoints(Number(osmId), sport);
-      if (points.length < 10) return res.status(422).json({ error: 'Insufficient WMT geometry' });
+      const rawPoints = await fetchWmtPoints(Number(osmId), sport);
+      if (rawPoints.length < 10) return res.status(422).json({ error: 'Insufficient WMT geometry' });
+      const points = await enrichMissingElevation(rawPoints);
       const distanceKm = calcDistanceKm(points);
       gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
       const hasEle = points.some(p => p.ele != null);
@@ -499,16 +536,19 @@ out body qt;`;
 
     const rawDistanceKm = calcDistanceKm(raw);
     // Only simplify extreme tracks (>30 000pts) to avoid losing elevation data
-    const points = raw.length > 30000
+    const simplified = raw.length > 30000
       ? simplifyPoints(raw, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
       : raw;
+    const points = await enrichMissingElevation(
+      simplified.map(p => ({ ...p, ele: (p as any).ele ?? null }))
+    );
     const distanceKm = calcDistanceKm(points);
 
     // Cache under both the requested key and the osm: key (for WMT fallback path)
     gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
     if (osmCacheKey !== cacheKey) gpxCache.set(osmCacheKey, { points, distanceKm, cachedAt: Date.now() });
 
-    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${points.length}pts dist=${distanceKm}km`);
+    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${simplified.length}pts dist=${distanceKm}km`);
     res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
   } catch (e: any) {
     console.error('[route-discovery fetch-gpx]', e.message);
