@@ -1374,6 +1374,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 onIbpUpdated={(trackId, ibp) =>
                   setGpxTracksWithPoints(prev => prev.map(t => t.id === trackId ? { ...t, ibp } : t))
                 }
+                onTrackUpdated={(updated) =>
+                  setGpxTracksWithPoints(prev => prev.map(t => t.id === updated.id ? updated : t))
+                }
               />
             </div>
           </div>

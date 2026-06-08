@@ -8,7 +8,7 @@ import {
   ComposedChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, CartesianGrid, Brush, Bar,
 } from 'recharts'
-import { Mountain, ChevronDown, ChevronUp, Layers, RefreshCw, Download } from 'lucide-react'
+import { Mountain, ChevronDown, ChevronUp, Layers, RefreshCw, Download, ArrowDownToLine } from 'lucide-react'
 
 // ── Colores por track ─────────────────────────────────────────────────────────
 const TRACK_COLORS = ['#22d96e', '#38bdf8', '#f59e0b', '#a78bfa', '#f87171', '#34d399']
@@ -176,6 +176,7 @@ interface ElevationDetailProps {
   tracks: GpxTrack[]
   tripId?: number | string
   onIbpUpdated?: (trackId: number, ibp: number) => void
+  onTrackUpdated?: (track: GpxTrack) => void
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -291,6 +292,7 @@ function TrackDetail({
   fitness,
   tripId,
   onIbpUpdated,
+  onTrackUpdated,
 }: {
   track: GpxTrack
   color: string
@@ -299,9 +301,11 @@ function TrackDetail({
   fitness: number
   tripId?: number | string
   onIbpUpdated?: (trackId: number, ibp: number) => void
+  onTrackUpdated?: (track: GpxTrack) => void
 }) {
-  const profile = useMemo(() => buildProfile(track), [track.id])
+  const profile = useMemo(() => buildProfile(track), [track.id, track.total_elevation_gain, (track.points || []).length])
   const [recalculating, setRecalculating] = useState(false)
+  const [fetchingEle, setFetchingEle] = useState(false)
 
   const handleRecalcIbp = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -344,6 +348,22 @@ function TrackDetail({
     setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
+  const handleFetchElevation = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!tripId || fetchingEle) return
+    setFetchingEle(true)
+    try {
+      const r = await fetch(`/api/trips/${tripId}/gpx/${track.id}/fetch-elevation`, {
+        method: 'POST', credentials: 'include',
+      })
+      if (r.ok) {
+        const updated = await r.json()
+        onTrackUpdated?.({ ...updated, points: updated.points })
+      }
+    } catch { /* ignore */ }
+    setFetchingEle(false)
+  }
+
   if (!profile) {
     const hasPoints = (track.points?.length || 0) > 0
     return (
@@ -365,6 +385,16 @@ function TrackDetail({
                 : ' · Sin puntos GPS cargados'}
             </div>
           </div>
+          {hasPoints && tripId && (
+            <button
+              onClick={handleFetchElevation}
+              disabled={fetchingEle}
+              title="Obtener altitudes"
+              style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+            >
+              <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
+            </button>
+          )}
           {hasPoints && (
             <button
               onClick={handleDownload}
@@ -555,7 +585,7 @@ function TrackDetail({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ElevationDetail({ tracks, tripId, onIbpUpdated }: ElevationDetailProps) {
+export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackUpdated }: ElevationDetailProps) {
   const [fitness, setFitness]   = useState(2)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
 
@@ -624,6 +654,7 @@ export default function ElevationDetail({ tracks, tripId, onIbpUpdated }: Elevat
           fitness={fitness}
           tripId={tripId}
           onIbpUpdated={onIbpUpdated}
+          onTrackUpdated={onTrackUpdated}
         />
       ))}
     </div>
