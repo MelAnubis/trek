@@ -36,13 +36,20 @@ export class GpxRecorderService {
     this.running = false
   }
 
-  addPoint(lat: number, lng: number, alt: number | null, speed: number | null, timestamp: number) {
+  addPoint(lat: number, lng: number, alt: number | null, speed: number | null, timestamp: number, accuracy?: number) {
     if (!this.running) return
+
+    // Reject points with poor GPS signal (accuracy > 50m) — avoids initial-acquisition loops
+    if (accuracy !== undefined && accuracy > 50) return
+
     const last = this.points[this.points.length - 1]
     if (last) {
       const dist = haversineM(last.lat, last.lng, lat, lng)
-      // Skip if < 3m away and < 4 seconds since last point (avoids GPS jitter)
+      // Skip stationary jitter: < 3m AND < 4s since last point
       if (dist < 3 && timestamp - last.timestamp < 4000) return
+      // Reject GPS outlier jumps: implied speed > 60 m/s (216 km/h) is impossible on a bicycle
+      const dt = (timestamp - last.timestamp) / 1000
+      if (dt > 0 && dist / dt > 60) return
     }
     this.points.push({ lat, lng, alt, speed, timestamp })
   }
