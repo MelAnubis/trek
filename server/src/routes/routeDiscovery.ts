@@ -365,6 +365,45 @@ function collectWayIds(relation: any, elementMap: Map<string, any>, visited = ne
   return ids;
 }
 
+// ── OSRM road-snap ────────────────────────────────────────────────────────────
+// When a route only has sparse waypoints (e.g. one node per town), call OSRM
+// cycling profile to calculate the actual road path between them.
+// Chunks into segments of ≤80 waypoints to stay within URL limits.
+const OSRM_CYCLING = 'https://router.project-osrm.org/route/v1/cycling';
+
+async function snapToRoads(pts: { lat: number; lng: number }[]): Promise<{ lat: number; lng: number }[] | null> {
+  if (pts.length < 2) return null;
+  const CHUNK = 80;
+  const out: { lat: number; lng: number }[] = [];
+  for (let i = 0; i < pts.length - 1; i += CHUNK - 1) {
+    const chunk = pts.slice(i, i + CHUNK);
+    if (chunk.length < 2) break;
+    const coordStr = chunk.map(p => `${p.lng},${p.lat}`).join(';');
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const r = await fetch(
+        `${OSRM_CYCLING}/${coordStr}?overview=full&geometries=geojson`,
+        { headers: { 'User-Agent': 'TrekWanderer/1.0' }, signal: ctrl.signal },
+      );
+      if (!r.ok) { console.warn(`[route-discovery osrm] ${r.status}`); return null; }
+      const data = await r.json();
+      if (data.code !== 'Ok') { console.warn('[route-discovery osrm] code:', data.code); return null; }
+      const coords: [number, number][] = data.routes?.[0]?.geometry?.coordinates ?? [];
+      if (coords.length < 2) return null;
+      // Skip first point on subsequent chunks (already added as last point of prev chunk)
+      const startIdx = out.length === 0 ? 0 : 1;
+      for (let j = startIdx; j < coords.length; j++) out.push({ lat: coords[j][1], lng: coords[j][0] });
+    } catch (e: any) {
+      console.warn('[route-discovery osrm] failed:', e.message);
+      return null;
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+  return out.length >= 10 ? out : null;
+}
+
 async function overpassQuery(query: string): Promise<any> {
   let lastError = '';
   for (const url of OVERPASS_MIRRORS) {
@@ -716,10 +755,26 @@ out body qt;`;
     if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
     const rawDistanceKm = calcDistanceKm(raw);
+    const rawDensity = raw.length / rawDistanceKm; // pts per km
+
+    // If Overpass only returned sparse waypoints (< 2 pts/km), snap them to the actual
+    // road network via OSRM so the track follows real roads instead of straight lines.
+    let workingPts = raw;
+    if (rawDensity < 2 && raw.length <= 500) {
+      console.log(`[route-discovery fetch-gpx] sparse geometry (${raw.length} pts, ${rawDensity.toFixed(2)} pts/km) — trying OSRM snap`);
+      const snapped = await snapToRoads(raw);
+      if (snapped) {
+        console.log(`[route-discovery fetch-gpx] OSRM snap: ${raw.length} → ${snapped.length} pts`);
+        workingPts = snapped;
+      } else {
+        console.warn('[route-discovery fetch-gpx] OSRM snap failed, keeping sparse Overpass geometry');
+      }
+    }
+
     // Only simplify extreme tracks (>30 000pts) to avoid losing elevation data
-    const simplified = raw.length > 30000
-      ? simplifyPoints(raw, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
-      : raw;
+    const simplified = workingPts.length > 30000
+      ? simplifyPoints(workingPts, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
+      : workingPts;
     const points = await enrichMissingElevation(
       simplified.map(p => ({ ...p, ele: (p as any).ele ?? null }))
     );
@@ -729,7 +784,7 @@ out body qt;`;
     gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
     if (osmCacheKey !== cacheKey) gpxCache.set(osmCacheKey, { points, distanceKm, cachedAt: Date.now() });
 
-    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${simplified.length}pts dist=${distanceKm}km`);
+    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts final=${points.length}pts dist=${distanceKm}km`);
     res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
   } catch (e: any) {
     console.error('[route-discovery fetch-gpx]', e.message);
