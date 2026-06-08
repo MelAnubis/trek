@@ -91,11 +91,51 @@ async function wmtSearch(query: string): Promise<any[]> {
   return all.filter(r => !seen.has(r.osmId) && seen.add(r.osmId));
 }
 
+// Parse trkpt elements from a GPX string
+function parseGpxPoints(gpxText: string): { lat: number; lng: number; ele: number | null }[] {
+  const re = /<trkpt\s+[^>]*?(lat="([^"]+)"[^>]*?lon="([^"]+)"|lon="([^"]+)"[^>]*?lat="([^"]+)")[^>]*>([\s\S]*?)<\/trkpt>/g;
+  const points: { lat: number; lng: number; ele: number | null }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(gpxText)) !== null) {
+    const lat = parseFloat(m[2] || m[5]);
+    const lng = parseFloat(m[3] || m[4]);
+    const eleM = m[6].match(/<ele>([\s\S]*?)<\/ele>/);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      points.push({ lat, lng, ele: eleM ? Math.round(parseFloat(eleM[1]) * 10) / 10 : null });
+    }
+  }
+  return points;
+}
+
 async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: number; lng: number; ele: number | null }[]> {
   const base = sport === 'hiking'
     ? 'https://hiking.waymarkedtrails.org/api/v1'
     : 'https://cycling.waymarkedtrails.org/api/v1';
 
+  // Try direct GPX download first — segments are pre-ordered by WMT, avoids stitching errors
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 30000);
+    try {
+      const r = await fetch(`${base}/details/relation/${osmId}/gpx`, {
+        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' },
+        signal: ctrl.signal,
+      });
+      if (r.ok) {
+        const gpxText = await r.text();
+        const points = parseGpxPoints(gpxText);
+        if (points.length >= 10) {
+          const hasEle = points.some(p => p.ele != null);
+          console.log(`[route-discovery wmt-gpx] osmId=${osmId} pts=${points.length} ele=${hasEle}`);
+          return points;
+        }
+      }
+    } finally { clearTimeout(tid); }
+  } catch (gpxErr: any) {
+    console.warn(`[route-discovery wmt-gpx] GPX download failed: ${gpxErr.message}`);
+  }
+
+  // Fall back to /way-elevation with greedy-nearest-neighbour stitching
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 30000);
   try {
@@ -118,7 +158,6 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
     if (rawSegs.length === 0) throw new Error('No WMT elevation data');
     if (rawSegs.length === 1) return rawSegs[0];
 
-    // Stitch multiple segments by nearest endpoint
     const chain: { lat: number; lng: number; ele: number | null }[] = [...rawSegs.shift()!];
     const remaining = [...rawSegs];
     while (remaining.length > 0) {
@@ -412,27 +451,47 @@ out body qt;`;
 
     const wayIds = collectWayIds(topRelation, elementMap);
 
-    const wayMap = new Map<number, { lat: number; lng: number }[]>();
+    // Store way details with endpoint node IDs for accurate stitching
+    const wayDetails = new Map<number, { firstNode: number; lastNode: number; pts: { lat: number; lng: number }[] }>();
     for (const e of elements) {
-      if (e.type === 'way') {
-        const pts = (e.nodes || [])
+      if (e.type === 'way' && (e.nodes?.length ?? 0) >= 2) {
+        const pts = (e.nodes as number[])
           .map((nid: number) => nodeMap.get(nid))
           .filter(Boolean) as { lat: number; lng: number }[];
-        wayMap.set(e.id, pts);
+        if (pts.length > 0) {
+          wayDetails.set(e.id, { firstNode: e.nodes[0], lastNode: e.nodes[e.nodes.length - 1], pts });
+        }
       }
     }
 
+    // Stitch ways using shared endpoint nodes — avoids duplicate points and wrong orientations.
+    // Falls back to distance-based orientation only when two consecutive ways don't share a node.
     const raw: { lat: number; lng: number }[] = [];
+    let lastNodeId: number | null = null;
     for (const wid of wayIds) {
-      const seg = wayMap.get(wid);
-      if (!seg || seg.length === 0) continue;
+      const w = wayDetails.get(wid);
+      if (!w || w.pts.length === 0) continue;
       if (raw.length === 0) {
-        raw.push(...seg);
+        raw.push(...w.pts);
+        lastNodeId = w.lastNode;
+      } else if (w.firstNode === lastNodeId) {
+        raw.push(...w.pts.slice(1));       // forward — skip shared endpoint
+        lastNodeId = w.lastNode;
+      } else if (w.lastNode === lastNodeId) {
+        raw.push(...[...w.pts].reverse().slice(1));  // reverse — skip shared endpoint
+        lastNodeId = w.firstNode;
       } else {
+        // No shared node: fall back to distance-based orientation
         const last = raw[raw.length - 1];
-        const firstDist = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
-        const lastDist = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
-        raw.push(...(lastDist < firstDist ? [...seg].reverse() : seg));
+        const d1 = haversineKm(last.lat, last.lng, w.pts[0].lat, w.pts[0].lng);
+        const d2 = haversineKm(last.lat, last.lng, w.pts[w.pts.length - 1].lat, w.pts[w.pts.length - 1].lng);
+        if (d2 < d1) {
+          raw.push(...[...w.pts].reverse());
+          lastNodeId = w.firstNode;
+        } else {
+          raw.push(...w.pts);
+          lastNodeId = w.lastNode;
+        }
       }
     }
 
