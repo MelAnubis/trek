@@ -284,6 +284,9 @@ async function enrichWithElevation(
 ): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
   // Default to public opentopodata.org API; override with custom server via OPEN_ELEVATION_URL
   const baseUrl = (process.env.OPEN_ELEVATION_URL || 'https://api.opentopodata.org/v1/srtm30m').replace(/\/$/, '');
+  const isPublicApi = !process.env.OPEN_ELEVATION_URL;
+  // opentopodata.org public API limit: 1 req/s. Private servers can go faster.
+  const BATCH_DELAY_MS = isPublicApi ? 1100 : 0;
   const BATCH = 100;
   const result = [...points];
   const indices: number[] = [];
@@ -293,6 +296,9 @@ async function enrichWithElevation(
   if (indices.length === 0) return result;
 
   for (let b = 0; b < indices.length; b += BATCH) {
+    if (b > 0 && BATCH_DELAY_MS > 0) {
+      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
+    }
     const batch = indices.slice(b, b + BATCH);
     const locs  = batch.map(i => `${points[i].lat},${points[i].lng}`).join('|');
     try {

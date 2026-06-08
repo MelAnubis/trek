@@ -289,9 +289,10 @@ out body qt;`;
     if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
     const rawDistanceKm = calcDistanceKm(raw);
-    // Keep epsilon small enough to preserve elevation detail (~15m tolerance max)
-    const epsilon = Math.max(0.00005, rawDistanceKm / (20000 * 111));
-    const points = raw.length > 5000 ? simplifyPoints(raw, epsilon) : raw;
+    // Only simplify extreme tracks (>30 000pts) to avoid losing elevation data
+    const points = raw.length > 30000
+      ? simplifyPoints(raw, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
+      : raw;
     const distanceKm = calcDistanceKm(points);
 
     // Cache server-side so import doesn't need a large request body
