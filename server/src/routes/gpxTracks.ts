@@ -275,19 +275,11 @@ function computeStats(points: { lat: number; lng: number; ele: number | null }[]
 }
 
 // ── Open Elevation enrichment ────────────────────────────────────────────────
-// Fetches elevation from an Open Elevation-compatible API (configurable via
-// OPEN_ELEVATION_URL env var; defaults to opentopodata.org SRTM 30m).
-// Points are batched in groups of 100 to stay within API limits.
-// Returns a new array with ele filled where the API provides data.
+// Default: Open-Meteo (free, no API key, no rate limit, global SRTM 90m, up to 1000 pts/batch).
+// Override with a custom Open-Elevation-compatible server via OPEN_ELEVATION_URL.
 async function enrichWithElevation(
   points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
 ): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
-  // Default to public opentopodata.org API; override with custom server via OPEN_ELEVATION_URL
-  const baseUrl = (process.env.OPEN_ELEVATION_URL || 'https://api.opentopodata.org/v1/srtm30m').replace(/\/$/, '');
-  // Rate-limit when hitting opentopodata.org (public API: 1 req/s), regardless of how the URL was set
-  const isPublicApi = !process.env.OPEN_ELEVATION_URL || baseUrl.includes('opentopodata.org');
-  const BATCH_DELAY_MS = isPublicApi ? 1100 : 0;
-  const BATCH = 100;
   const result = [...points];
   const indices: number[] = [];
   for (let i = 0; i < points.length; i++) {
@@ -295,34 +287,66 @@ async function enrichWithElevation(
   }
   if (indices.length === 0) return result;
 
-  for (let b = 0; b < indices.length; b += BATCH) {
-    if (b > 0 && BATCH_DELAY_MS > 0) {
-      await new Promise(resolve => setTimeout(resolve, BATCH_DELAY_MS));
-    }
-    const batch = indices.slice(b, b + BATCH);
-    const locs  = batch.map(i => `${points[i].lat},${points[i].lng}`).join('|');
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 15000);
-      let r: Response;
+  const customUrl = process.env.OPEN_ELEVATION_URL?.trim();
+
+  if (customUrl) {
+    // Custom Open-Elevation-compatible server (opentopodata / open-elevation format)
+    const baseUrl = customUrl.replace(/\/$/, '');
+    const isRateLimited = baseUrl.includes('opentopodata.org');
+    const BATCH = 100;
+    const DELAY = isRateLimited ? 1100 : 0;
+
+    for (let b = 0; b < indices.length; b += BATCH) {
+      if (b > 0 && DELAY > 0) await new Promise(r => setTimeout(r, DELAY));
+      const batch = indices.slice(b, b + BATCH);
+      const locs  = batch.map(i => `${points[i].lat},${points[i].lng}`).join('|');
       try {
-        r = await fetch(`${baseUrl}?locations=${locs}`, { signal: controller.signal });
-      } finally {
-        clearTimeout(timeout);
-      }
-      if (!r.ok) { console.warn('[elevation] API error', r.status); continue; }
-      const data: any = await r.json();
-      const elevs: any[] = data.results ?? data.elevations ?? [];
-      for (let j = 0; j < batch.length && j < elevs.length; j++) {
-        const ele = elevs[j]?.elevation ?? elevs[j]?.ele;
-        if (ele != null && !isNaN(Number(ele))) {
-          result[batch[j]] = { ...result[batch[j]], ele: Math.round(Number(ele) * 10) / 10 };
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 15000);
+        let r: Response;
+        try { r = await fetch(`${baseUrl}?locations=${locs}`, { signal: controller.signal }); }
+        finally { clearTimeout(tid); }
+        if (!r.ok) { console.warn('[elevation] custom API error', r.status); continue; }
+        const data: any = await r.json();
+        const elevs: any[] = data.results ?? data.elevations ?? [];
+        for (let j = 0; j < batch.length && j < elevs.length; j++) {
+          const ele = elevs[j]?.elevation ?? elevs[j]?.ele;
+          if (ele != null && !isNaN(Number(ele))) {
+            result[batch[j]] = { ...result[batch[j]], ele: Math.round(Number(ele) * 10) / 10 };
+          }
         }
-      }
-    } catch (err: any) {
-      console.warn('[elevation] batch failed:', err.message);
+      } catch (err: any) { console.warn('[elevation] batch failed:', err.message); }
+    }
+  } else {
+    // Default: Open-Meteo elevation API — free, no key, no rate limit, SRTM 90m global
+    const BATCH = 1000;
+    for (let b = 0; b < indices.length; b += BATCH) {
+      const batch = indices.slice(b, b + BATCH);
+      const lats = batch.map(i => points[i].lat).join(',');
+      const lngs = batch.map(i => points[i].lng).join(',');
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 20000);
+        let r: Response;
+        try {
+          r = await fetch(
+            `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
+            { signal: controller.signal },
+          );
+        } finally { clearTimeout(tid); }
+        if (!r.ok) { console.warn('[elevation] open-meteo error', r.status); continue; }
+        const data: any = await r.json();
+        const elevs: number[] = data.elevation ?? [];
+        for (let j = 0; j < batch.length && j < elevs.length; j++) {
+          const ele = elevs[j];
+          if (ele != null && !isNaN(ele)) {
+            result[batch[j]] = { ...result[batch[j]], ele: Math.round(ele * 10) / 10 };
+          }
+        }
+      } catch (err: any) { console.warn('[elevation] open-meteo batch failed:', err.message); }
     }
   }
+
   return result;
 }
 

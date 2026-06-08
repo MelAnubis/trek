@@ -30,7 +30,9 @@ services:
       - ONEDRIVE_REDIRECT_URI=${ONEDRIVE_REDIRECT_URI}
       # IBP API key (obtener en https://www.ibpindex.com/index.php/es/ibp-services/ibp-index-api-v2-0)
       # - IBP_API_KEY=tu_clave_ibp_aqui
-      - OPEN_ELEVATION_URL=${OPEN_ELEVATION_URL:-http://open-elevation:8080/api/v1/lookup}
+      # Elevación: Open-Meteo por defecto (gratis, sin API key, sin rate limit).
+      # Solo necesario si quieres usar un servidor propio (open-elevation compatible).
+      # - OPEN_ELEVATION_URL=http://mi-servidor/api/v1/lookup
       # IA "Lugares imprescindibles" — configurar UNA clave (en orden de preferencia):
       # 1. Groq — GRATIS: https://console.groq.com (recomendado)
       - GROQ_API_KEY=${GROQ_API_KEY:-}
@@ -64,21 +66,6 @@ services:
       retries: 3
       start_period: 15s
 
-  open-elevation:
-    image: openelevation/open-elevation:latest
-    container_name: trek_open_elevation
-    restart: unless-stopped
-    volumes:
-      - open_elevation_data:/code/data
-    networks:
-      - trek_net
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/v1/lookup?locations=0,0"]
-      interval: 60s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
   nginx:
     image: nginx:alpine
     container_name: trek_nginx
@@ -98,6 +85,3 @@ services:
 networks:
   trek_net:
     driver: bridge
-
-volumes:
-  open_elevation_data:
