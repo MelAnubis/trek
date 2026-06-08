@@ -133,6 +133,138 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
   } finally { clearTimeout(tid); }
 }
 
+// ── Komoot integration ────────────────────────────────────────────────────────
+
+function parseKomootUrl(input: string): { type: 'tour' | 'collection'; id: string } | null {
+  const tourM = input.match(/komoot\.[a-z]+\/(?:tour|t)\/(\d+)/i);
+  if (tourM) return { type: 'tour', id: tourM[1] };
+  const collM = input.match(/komoot\.[a-z]+\/collection\/(\d+)/i);
+  if (collM) return { type: 'collection', id: collM[1] };
+  if (/^\d{8,13}$/.test(input.trim())) return { type: 'tour', id: input.trim() };
+  return null;
+}
+
+function hashUrl(url: string): number {
+  let h = 5381;
+  for (let i = 0; i < url.length; i++) { h = (((h << 5) + h) + url.charCodeAt(i)) & 0x7fffffff; }
+  return h || 1;
+}
+
+// Extract __NEXT_DATA__ JSON from a Komoot HTML page
+function extractKomootPageData(html: string): any | null {
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch { return null; }
+}
+
+async function fetchKomootTourInfo(tourId: string): Promise<{ name: string; distanceKm: number; description: string | null }> {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (r.ok) {
+      const d = await r.json();
+      return { name: d.name || `Komoot ${tourId}`, distanceKm: Math.round((d.distance || 0) / 100) / 10, description: d.summary || null };
+    }
+  } catch { /* fall through to page */ } finally { clearTimeout(tid); }
+
+  const r2 = await fetch(`https://www.komoot.com/tour/${tourId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+  });
+  if (!r2.ok) throw new Error(`Komoot tour ${tourId} not accessible (${r2.status})`);
+  const json = extractKomootPageData(await r2.text());
+  const tour = json?.props?.pageProps?.tour ?? json?.props?.pageProps?.serverProps?.page?.tour;
+  if (!tour) throw new Error('Komoot: tour data not found in page');
+  return { name: tour.name || `Komoot ${tourId}`, distanceKm: Math.round((tour.distance || 0) / 100) / 10, description: tour.summary || null };
+}
+
+async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: number; ele: number | null }[]> {
+  // Try API with coordinates embedded
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}?_embedded=coordinates`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (r.ok) {
+      const d = await r.json();
+      const items: any[] = d?._embedded?.coordinates?.items ?? [];
+      if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid); }
+
+  // Try GPX export endpoint
+  const ctrl2 = new AbortController();
+  const tid2 = setTimeout(() => ctrl2.abort(), 30000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}/export.gpx`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml' },
+      signal: ctrl2.signal,
+    });
+    if (r.ok) {
+      const pts = parseGpxPoints(await r.text());
+      if (pts.length >= 10) return pts;
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid2); }
+
+  // Page scraping: extract __NEXT_DATA__ coordinates
+  const ctrl3 = new AbortController();
+  const tid3 = setTimeout(() => ctrl3.abort(), 30000);
+  try {
+    const r = await fetch(`https://www.komoot.com/tour/${tourId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+      signal: ctrl3.signal,
+    });
+    if (r.ok) {
+      const json = extractKomootPageData(await r.text());
+      const tour = json?.props?.pageProps?.tour ?? json?.props?.pageProps?.serverProps?.page?.tour;
+      const items: any[] = tour?._embedded?.coordinates?.items ?? [];
+      if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid3); }
+
+  throw new Error('No se pudo obtener la geometría de Komoot. El tour puede ser privado.');
+}
+
+async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
+  const tryExtractTours = (json: any): any[] | null => {
+    const items =
+      json?.props?.pageProps?.collection?._embedded?.tours?._embedded?.items ??
+      json?.props?.pageProps?.tours?._embedded?.items ??
+      json?.props?.pageProps?.serverProps?.page?.collection?._embedded?.tours?._embedded?.items;
+    return Array.isArray(items) ? items : null;
+  };
+
+  // Try API
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/collections/${collectionId}?_embedded=tours`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+      signal: ctrl.signal,
+    });
+    if (r.ok) {
+      const d = await r.json();
+      const items: any[] = d?._embedded?.tours?._embedded?.items ?? d?._embedded?.tours ?? [];
+      if (items.length > 0) return items.map((t: any) => ({ osmId: Number(t.id), name: t.name || `Komoot ${t.id}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null }));
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid); }
+
+  // Page scraping
+  const r2 = await fetch(`https://www.komoot.com/collection/${collectionId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+  });
+  if (!r2.ok) throw new Error(`Komoot collection ${collectionId} no accesible (${r2.status})`);
+  const json = extractKomootPageData(await r2.text());
+  const items = json ? tryExtractTours(json) : null;
+  if (!items || items.length === 0) throw new Error('Komoot: no se encontraron tours en la colección');
+  return items.slice(0, 50).map((t: any) => ({ osmId: Number(t.id), name: t.name || `Komoot ${t.id}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null }));
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -291,13 +423,59 @@ router.post('/search', async (req: Request, res: Response) => {
 
   prunCache();
 
-  // Text-search mode: query Waymarked Trails (cycling + hiking)
+  // Text-search mode
   if (query && typeof query === 'string' && query.trim().length >= 2) {
+    const q = query.trim();
+
+    // ── Komoot URL / ID ────────────────────────────────────────────────────────
+    const komoot = parseKomootUrl(q);
+    if (komoot) {
+      try {
+        let routes: any[];
+        if (komoot.type === 'collection') {
+          const tours = await fetchKomootCollection(komoot.id);
+          routes = tours.map(t => ({
+            osmId: t.osmId, name: t.name, network: '', ref: null,
+            distance: t.distanceKm, website: `https://www.komoot.com/tour/${t.osmId}`,
+            description: null, wikipedia: null, operator: null, colour: null,
+            hasMinInfo: true, source: 'komoot',
+          }));
+        } else {
+          const info = await fetchKomootTourInfo(komoot.id);
+          routes = [{
+            osmId: Number(komoot.id), name: info.name, network: '', ref: null,
+            distance: info.distanceKm, website: `https://www.komoot.com/tour/${komoot.id}`,
+            description: info.description, wikipedia: null, operator: null, colour: null,
+            hasMinInfo: true, source: 'komoot',
+          }];
+        }
+        console.log(`[route-discovery search] komoot ${komoot.type}=${komoot.id} → ${routes.length} results`);
+        return res.json({ routes, total: routes.length, page: 1, pageSize: PAGE_SIZE, totalPages: 1 });
+      } catch (e: any) {
+        console.error('[route-discovery search komoot]', e.message);
+        return res.status(502).json({ error: e.message });
+      }
+    }
+
+    // ── Direct GPX URL ─────────────────────────────────────────────────────────
+    if (/^https?:\/\//i.test(q)) {
+      const urlName = (() => { try { return new URL(q).pathname.split('/').filter(Boolean).pop()?.replace(/\.gpx$/i, '').replace(/[-_+]/g, ' ').trim() || 'Ruta GPX'; } catch { return 'Ruta GPX'; } })();
+      return res.json({
+        routes: [{
+          osmId: hashUrl(q), name: urlName, network: '', ref: null,
+          distance: null, website: q, description: null,
+          wikipedia: null, operator: null, colour: null, hasMinInfo: true, source: 'url',
+        }],
+        total: 1, page: 1, pageSize: PAGE_SIZE, totalPages: 1,
+      });
+    }
+
+    // ── Waymarked Trails text search ───────────────────────────────────────────
     try {
-      const allRoutes = await wmtSearch(query.trim());
+      const allRoutes = await wmtSearch(q);
       const pageNum = Math.max(1, Number(page));
       const start = (pageNum - 1) * PAGE_SIZE;
-      console.log(`[route-discovery search] wmt query="${query.trim()}" → ${allRoutes.length} results`);
+      console.log(`[route-discovery search] wmt query="${q}" → ${allRoutes.length} results`);
       return res.json({
         routes: allRoutes.slice(start, start + PAGE_SIZE),
         total: allRoutes.length,
@@ -416,6 +594,48 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
     } catch (wmtErr: any) {
       console.warn(`[route-discovery fetch-gpx] WMT failed (${wmtErr.message}), falling back to Overpass`);
       // Fall through to Overpass below
+    }
+  }
+
+  // ── Komoot source ─────────────────────────────────────────────────────────
+  if (source === 'komoot') {
+    try {
+      const rawPoints = await fetchKomootPoints(String(osmId));
+      const points = await enrichMissingElevation(rawPoints);
+      const distanceKm = calcDistanceKm(points);
+      gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+      const hasEle = points.some(p => p.ele != null);
+      console.log(`[route-discovery fetch-gpx] komoot id=${osmId} pts=${points.length} dist=${distanceKm}km ele=${hasEle}`);
+      return res.json({ points, distanceKm, pointCount: points.length, hasElevation: hasEle });
+    } catch (e: any) {
+      console.error('[route-discovery fetch-gpx komoot]', e.message);
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
+  // ── Direct GPX URL source ─────────────────────────────────────────────────
+  if (source === 'url') {
+    const gpxUrl = req.body.gpxUrl as string;
+    if (!gpxUrl) return res.status(400).json({ error: 'gpxUrl required for source=url' });
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 30000);
+      let r: Response;
+      try {
+        r = await fetch(gpxUrl, { headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' }, signal: ctrl.signal });
+      } finally { clearTimeout(tid); }
+      if (!r.ok) return res.status(502).json({ error: `URL fetch failed: ${r.status}` });
+      const rawPoints = parseGpxPoints(await r.text());
+      if (rawPoints.length < 10) return res.status(422).json({ error: 'GPX insuficiente o inaccesible desde URL' });
+      const points = await enrichMissingElevation(rawPoints);
+      const distanceKm = calcDistanceKm(points);
+      gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+      const hasEle = points.some(p => p.ele != null);
+      console.log(`[route-discovery fetch-gpx] url pts=${points.length} dist=${distanceKm}km`);
+      return res.json({ points, distanceKm, pointCount: points.length, hasElevation: hasEle });
+    } catch (e: any) {
+      console.error('[route-discovery fetch-gpx url]', e.message);
+      return res.status(502).json({ error: e.message });
     }
   }
 
