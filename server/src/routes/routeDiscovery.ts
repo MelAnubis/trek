@@ -289,7 +289,8 @@ out body qt;`;
     if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
     const rawDistanceKm = calcDistanceKm(raw);
-    const epsilon = Math.max(0.0001, rawDistanceKm / (5000 * 111));
+    // Keep epsilon small enough to preserve elevation detail (~15m tolerance max)
+    const epsilon = Math.max(0.00005, rawDistanceKm / (20000 * 111));
     const points = raw.length > 5000 ? simplifyPoints(raw, epsilon) : raw;
     const distanceKm = calcDistanceKm(points);
 

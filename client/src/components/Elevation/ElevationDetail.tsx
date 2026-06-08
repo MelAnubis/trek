@@ -381,7 +381,7 @@ function TrackDetail({
             <div style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)' }}>
               {track.total_distance ? `${Math.round(track.total_distance * 10) / 10} km` : ''}
               {hasPoints
-                ? ' · Sin datos de altitud (importado desde OpenStreetMap)'
+                ? ' · Sin datos de altitud'
                 : ' · Sin puntos GPS cargados'}
             </div>
           </div>

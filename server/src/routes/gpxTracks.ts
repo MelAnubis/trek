@@ -282,6 +282,7 @@ function computeStats(points: { lat: number; lng: number; ele: number | null }[]
 async function enrichWithElevation(
   points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
 ): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
+  // Default to public opentopodata.org API; override with custom server via OPEN_ELEVATION_URL
   const baseUrl = (process.env.OPEN_ELEVATION_URL || 'https://api.opentopodata.org/v1/srtm30m').replace(/\/$/, '');
   const BATCH = 100;
   const result = [...points];
@@ -405,9 +406,8 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
 
     // Enrich with elevation if the GPX has no altitude data and an elevation API is available
     const hasElevation = parsed.points.some(p => p.ele != null);
-    const elevationApiEnabled = !!(process.env.OPEN_ELEVATION_URL || process.env.OPEN_ELEVATION_ENABLED);
     let finalPoints = parsed.points;
-    if (!hasElevation && elevationApiEnabled) {
+    if (!hasElevation) {
       try {
         finalPoints = await enrichWithElevation(parsed.points);
         console.log(`[gpx] elevation enriched: ${finalPoints.filter(p => p.ele != null).length}/${finalPoints.length} points`);
@@ -569,10 +569,6 @@ router.post('/:trackId/recalculate-ibp', authenticate, requireTripAccess, async 
 router.post('/:trackId/fetch-elevation', authenticate, requireTripAccess, async (req: Request, res: Response) => {
   const tripId  = (req as AuthRequest).params.id;
   const trackId = req.params.trackId;
-
-  if (!process.env.OPEN_ELEVATION_URL && !process.env.OPEN_ELEVATION_ENABLED) {
-    return res.status(400).json({ error: 'OPEN_ELEVATION_URL no configurado' });
-  }
 
   try {
     const track = db.prepare('SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId) as any;
