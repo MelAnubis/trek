@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Search, MapPin, Route, Globe, ExternalLink, CheckSquare, Square, Download, Loader2, ChevronDown, ChevronRight, AlertCircle } from 'lucide-react'
+import { Search, MapPin, Route, Globe, ExternalLink, CheckSquare, Square, Download, Loader2, ChevronDown, ChevronRight, AlertCircle, Mountain } from 'lucide-react'
 
 interface OsmRoute {
   osmId: number
@@ -13,8 +13,9 @@ interface OsmRoute {
   operator: string | null
   colour: string | null
   hasMinInfo: boolean
+  source?: string
   // loaded on demand
-  points?: { lat: number; lng: number }[]
+  points?: { lat: number; lng: number; ele?: number | null }[]
   distanceKm?: number
   loadingGpx?: boolean
   gpxError?: string
@@ -40,7 +41,7 @@ const TRIP_TYPES = [
 
 function networkBadge(network: string) {
   const colors: Record<string, string> = {
-    icn: '#6366f1', ncn: '#0ea5e9', rcn: '#22c55e',
+    icn: '#6366f1', ncn: '#0ea5e9', rcn: '#22c55e', lcn: '#f59e0b',
   }
   return (
     <span style={{
@@ -54,8 +55,31 @@ function networkBadge(network: string) {
   )
 }
 
+function sourceBadge(source?: string) {
+  if (!source || source === 'osm') return (
+    <span style={{ background: '#64748b22', border: '1px solid #64748b', color: '#64748b', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
+      OSM
+    </span>
+  )
+  if (source === 'wmt_cycling') return (
+    <span style={{ background: '#22c55e22', border: '1px solid #22c55e', color: '#16a34a', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
+      🚴 WMT
+    </span>
+  )
+  if (source === 'wmt_hiking') return (
+    <span style={{ background: '#f59e0b22', border: '1px solid #f59e0b', color: '#d97706', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
+      🥾 WMT
+    </span>
+  )
+  return null
+}
+
 export default function RouteDiscoveryPanel() {
-  // Search filters
+  // Mode
+  const [mode, setMode] = useState<'browse' | 'search'>('browse')
+  const [queryText, setQueryText] = useState('')
+
+  // Browse filters
   const [countries, setCountries] = useState<string[]>(['ES'])
   const [networks, setNetworks] = useState<string[]>(['icn', 'ncn'])
   const [minDistanceKm, setMinDistanceKm] = useState(150)
@@ -87,10 +111,16 @@ export default function RouteDiscoveryPanel() {
 
   const fetchPage = async (page: number, append: boolean) => {
     try {
+      const body: any = { page }
+      if (mode === 'search') {
+        body.query = queryText.trim()
+      } else {
+        Object.assign(body, { countries, networks, minDistanceKm })
+      }
       const r = await fetch('/api/admin/route-discovery/search', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ countries, networks, minDistanceKm, page }),
+        body: JSON.stringify(body),
       })
       const data = await r.json()
       if (!r.ok) throw new Error(data.error || 'Error searching')
@@ -111,7 +141,8 @@ export default function RouteDiscoveryPanel() {
   }
 
   const handleSearch = async () => {
-    if (countries.length === 0 || networks.length === 0) return
+    if (mode === 'browse' && (countries.length === 0 || networks.length === 0)) return
+    if (mode === 'search' && queryText.trim().length < 2) return
     setSearching(true)
     setSearchError(null)
     setRoutes([])
@@ -140,7 +171,11 @@ export default function RouteDiscoveryPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupName,
-          routes: groupRoutes.map(r => ({ osmId: r.osmId, name: r.name, ref: r.ref, website: r.website, description: r.description })),
+          routes: groupRoutes.map(r => ({
+            osmId: r.osmId, name: r.name, ref: r.ref,
+            website: r.website, description: r.description,
+            source: r.source || 'osm',
+          })),
           tripType,
         }),
       })
@@ -175,7 +210,7 @@ export default function RouteDiscoveryPanel() {
       const res = await fetch('/api/admin/route-discovery/fetch-gpx', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ osmId: route.osmId }),
+        body: JSON.stringify({ osmId: route.osmId, source: route.source || 'osm' }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Error loading GPX')
@@ -237,51 +272,92 @@ export default function RouteDiscoveryPanel() {
     <div>
       <div className="mb-6">
         <h2 className="text-lg font-bold text-slate-900">🗺️ Descubridor de Rutas</h2>
-        <p className="text-sm text-slate-500 mt-1">Busca rutas en OpenStreetMap y crea viajes en TrekWanderer</p>
+        <p className="text-sm text-slate-500 mt-1">Busca rutas en OpenStreetMap y Waymarked Trails (ciclismo + senderismo)</p>
+      </div>
+
+      {/* Mode toggle */}
+      <div className="flex gap-2 mb-4">
+        <button onClick={() => setMode('browse')} className={chip(mode === 'browse')}>
+          🔍 Navegar por red
+        </button>
+        <button onClick={() => setMode('search')} className={chip(mode === 'search')}>
+          ✏️ Buscar por nombre
+        </button>
       </div>
 
       {/* Filters */}
       <div className={card}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
-          {/* Countries */}
-          <div>
-            <label className={label}>Países</label>
-            <div className="flex flex-wrap gap-2">
-              {COUNTRIES.map(c => (
-                <button key={c.code} onClick={() => toggleCountry(c.code)} className={chip(countries.includes(c.code))}>
-                  {c.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Networks */}
-          <div>
-            <label className={label}>Red ciclista</label>
-            <div className="flex flex-wrap gap-2">
-              {NETWORKS.map(n => (
-                <button key={n.code} onClick={() => toggleNetwork(n.code)} className={chip(networks.includes(n.code))}>
-                  {n.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Min distance */}
-          <div>
-            <label className={label}>Distancia mínima: <strong>{minDistanceKm} km</strong></label>
+        {mode === 'search' ? (
+          /* Text search mode */
+          <div className="mb-5">
+            <label className={label}>Nombre de la ruta</label>
             <input
-              type="range" min={50} max={1000} step={25} value={minDistanceKm}
-              onChange={e => setMinDistanceKm(Number(e.target.value))}
-              className="w-full accent-slate-900"
+              type="text"
+              value={queryText}
+              onChange={e => setQueryText(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSearch()}
+              placeholder="Ej: EuroVelo, Camino de Santiago, Via Verde…"
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
-            <div className="flex justify-between text-xs text-slate-400 mt-1">
-              <span>50 km</span><span>≈ 3 días: 150 km</span><span>1000 km</span>
+            <p className="text-xs text-slate-400 mt-1.5">Busca en Waymarked Trails (ciclismo + senderismo). Resultados incluyen elevación.</p>
+          </div>
+        ) : (
+          /* Browse mode */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+            {/* Countries */}
+            <div>
+              <label className={label}>Países</label>
+              <div className="flex flex-wrap gap-2">
+                {COUNTRIES.map(c => (
+                  <button key={c.code} onClick={() => toggleCountry(c.code)} className={chip(countries.includes(c.code))}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Networks */}
+            <div>
+              <label className={label}>Red ciclista</label>
+              <div className="flex flex-wrap gap-2">
+                {NETWORKS.map(n => (
+                  <button key={n.code} onClick={() => toggleNetwork(n.code)} className={chip(networks.includes(n.code))}>
+                    {n.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Min distance */}
+            <div>
+              <label className={label}>Distancia mínima: <strong>{minDistanceKm} km</strong></label>
+              <input
+                type="range" min={50} max={1000} step={25} value={minDistanceKm}
+                onChange={e => setMinDistanceKm(Number(e.target.value))}
+                className="w-full accent-slate-900"
+              />
+              <div className="flex justify-between text-xs text-slate-400 mt-1">
+                <span>50 km</span><span>≈ 3 días: 150 km</span><span>1000 km</span>
+              </div>
+            </div>
+
+            {/* Trip type */}
+            <div>
+              <label className={label}>Tipo de viaje a crear</label>
+              <div className="flex flex-wrap gap-2">
+                {TRIP_TYPES.map(t => (
+                  <button key={t.value} onClick={() => setTripType(t.value)} className={chip(tripType === t.value)}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Trip type */}
-          <div>
+        {/* Trip type for search mode */}
+        {mode === 'search' && (
+          <div className="mb-5">
             <label className={label}>Tipo de viaje a crear</label>
             <div className="flex flex-wrap gap-2">
               {TRIP_TYPES.map(t => (
@@ -291,15 +367,17 @@ export default function RouteDiscoveryPanel() {
               ))}
             </div>
           </div>
-        </div>
+        )}
 
         <button
           onClick={handleSearch}
-          disabled={searching || countries.length === 0 || networks.length === 0}
+          disabled={searching || (mode === 'browse' ? (countries.length === 0 || networks.length === 0) : queryText.trim().length < 2)}
           className="flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white text-sm font-semibold rounded-lg hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-          {searching ? 'Buscando en OpenStreetMap…' : 'Buscar rutas'}
+          {searching
+            ? (mode === 'search' ? 'Buscando en Waymarked Trails…' : 'Buscando en OpenStreetMap…')
+            : 'Buscar rutas'}
         </button>
 
         {searchError && (
@@ -345,6 +423,7 @@ export default function RouteDiscoveryPanel() {
               const isImporting = importing.has(route.osmId) || route.loadingGpx
               const importErr = importErrors[route.osmId]
               const hasGpx = (route.points?.length || 0) > 0
+              const hasEle = hasGpx && route.points!.some(p => p.ele != null)
 
               return (
                 <div key={route.osmId} style={{
@@ -373,7 +452,13 @@ export default function RouteDiscoveryPanel() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-slate-900 text-sm truncate">{route.name}</span>
                         {networkBadge(route.network)}
+                        {sourceBadge(route.source)}
                         {route.ref && <span className="text-xs text-slate-500 font-mono">{route.ref}</span>}
+                        {hasEle && (
+                          <span title="Incluye datos de elevación" style={{ color: '#16a34a', fontSize: 11 }}>
+                            <Mountain size={12} className="inline" /> ele
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-0.5 text-xs text-slate-500">
                         {route.distanceKm != null
@@ -428,7 +513,10 @@ export default function RouteDiscoveryPanel() {
                     <div className="border-t border-slate-100 px-4 py-3 bg-slate-50 text-sm space-y-2">
                       {route.loadingGpx && (
                         <div className="flex items-center gap-2 text-slate-500">
-                          <Loader2 size={13} className="animate-spin" /> Cargando geometría desde OSM…
+                          <Loader2 size={13} className="animate-spin" />
+                          {(route.source || 'osm').startsWith('wmt')
+                            ? 'Cargando geometría desde Waymarked Trails…'
+                            : 'Cargando geometría desde OSM…'}
                         </div>
                       )}
                       {route.gpxError && (
@@ -437,9 +525,10 @@ export default function RouteDiscoveryPanel() {
                         </div>
                       )}
                       {hasGpx && (
-                        <div className="flex gap-4 text-xs text-slate-600">
+                        <div className="flex gap-4 text-xs text-slate-600 flex-wrap">
                           <span><Globe size={12} className="inline mr-1" /><strong>{route.distanceKm} km</strong></span>
                           <span><MapPin size={12} className="inline mr-1" />{route.points!.length.toLocaleString()} puntos GPS</span>
+                          {hasEle && <span style={{ color: '#16a34a' }}><Mountain size={12} className="inline mr-1" />Elevación incluida</span>}
                           <span><Route size={12} className="inline mr-1" />OSM ID: {route.osmId}</span>
                         </div>
                       )}
@@ -483,6 +572,7 @@ export default function RouteDiscoveryPanel() {
         <div className="text-center py-12 text-slate-400">
           <Route size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">Configura los filtros y pulsa "Buscar rutas"</p>
+          <p className="text-xs mt-1 opacity-70">O usa "Buscar por nombre" para buscar en Waymarked Trails con elevación</p>
         </div>
       )}
     </div>
