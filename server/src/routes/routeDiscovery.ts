@@ -188,7 +188,7 @@ async function fetchKomootTourInfo(tourId: string): Promise<{ name: string; dist
   const tid = setTimeout(() => ctrl.abort(), 15000);
   try {
     const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}`, {
-      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
       signal: ctrl.signal,
     });
     if (r.ok) {
@@ -213,7 +213,7 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
   const tid = setTimeout(() => ctrl.abort(), 30000);
   try {
     const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}?_embedded=coordinates`, {
-      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
       signal: ctrl.signal,
     });
     if (r.ok) {
@@ -295,6 +295,15 @@ function toTourEntry(t: any, idx: number) {
   return { osmId: Number(t.id), name: t.name || `Komoot tour ${idx + 1}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null };
 }
 
+// Scan raw HTML for Komoot /tour/{id} links — works even on CSR/App Router pages
+function extractTourIdsFromHtml(html: string): string[] {
+  const re = /\/(?:tour|t)\/(\d{6,15})/g;
+  const ids = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) ids.add(m[1]);
+  return [...ids];
+}
+
 async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
   // Try API endpoints (embedded + paginated)
   for (const apiUrl of [
@@ -305,7 +314,7 @@ async function fetchKomootCollection(collectionId: string): Promise<{ osmId: num
     const tid = setTimeout(() => ctrl.abort(), 15000);
     try {
       const r = await fetch(apiUrl, {
-        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
         signal: ctrl.signal,
       });
       if (r.ok) {
@@ -321,7 +330,7 @@ async function fetchKomootCollection(collectionId: string): Promise<{ osmId: num
     } finally { clearTimeout(tid); }
   }
 
-  // Page scraping (try plain URL and locale-prefixed URL)
+  // Page scraping: __NEXT_DATA__ recursive search, then HTML link extraction
   for (const pageUrl of [
     `https://www.komoot.com/collection/${collectionId}`,
     `https://www.komoot.com/es/collection/${collectionId}`,
@@ -330,16 +339,49 @@ async function fetchKomootCollection(collectionId: string): Promise<{ osmId: num
     const tid = setTimeout(() => ctrl.abort(), 30000);
     try {
       const r = await fetch(pageUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', Accept: 'text/html' },
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          Accept: 'text/html',
+        },
         signal: ctrl.signal,
       });
       if (!r.ok) { console.warn(`[route-discovery komoot-collection] page ${pageUrl} → ${r.status}`); continue; }
       const html = await r.text();
+
+      // Try __NEXT_DATA__ recursive search
       const json = extractKomootPageData(html);
-      if (!json) { console.warn(`[route-discovery komoot-collection] no __NEXT_DATA__ at ${pageUrl}`); continue; }
-      const items = findCollectionTours(json);
-      console.log(`[route-discovery komoot-collection] page ${pageUrl} → found=${items?.length ?? 0}`);
-      if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+      if (json) {
+        const items = findCollectionTours(json);
+        console.log(`[route-discovery komoot-collection] __NEXT_DATA__ at ${pageUrl} → found=${items?.length ?? 0}`);
+        if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+      } else {
+        console.warn(`[route-discovery komoot-collection] no __NEXT_DATA__ at ${pageUrl}`);
+      }
+
+      // Last resort: scan HTML for /tour/{id} links (reliable even on App Router / CSR pages)
+      const tourIds = extractTourIdsFromHtml(html);
+      console.log(`[route-discovery komoot-collection] HTML link scan at ${pageUrl} → ${tourIds.length} IDs`);
+      if (tourIds.length > 0) {
+        // Fetch names in parallel (up to 10 concurrent, best-effort)
+        const CONCURRENCY = 10;
+        const named: { osmId: number; name: string; distanceKm: number | null }[] = [];
+        const ids = tourIds.slice(0, 50);
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const batch = ids.slice(i, i + CONCURRENCY);
+          const results = await Promise.allSettled(batch.map(async id => {
+            try {
+              const info = await fetchKomootTourInfo(id);
+              return { osmId: Number(id), name: info.name, distanceKm: info.distanceKm };
+            } catch {
+              return { osmId: Number(id), name: `Komoot ${id}`, distanceKm: null };
+            }
+          }));
+          for (const r of results) {
+            if (r.status === 'fulfilled') named.push(r.value);
+          }
+        }
+        if (named.length > 0) return named;
+      }
     } catch (e: any) {
       console.warn(`[route-discovery komoot-collection] page error: ${e.message}`);
     } finally { clearTimeout(tid); }
