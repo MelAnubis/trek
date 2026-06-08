@@ -107,84 +107,28 @@ function parseGpxPoints(gpxText: string): { lat: number; lng: number; ele: numbe
   return points;
 }
 
+// fetchWmtPoints only handles the /gpx download path.
+// If that fails (404, insufficient data), the caller falls through to the OSM Overpass path
+// which uses node-based stitching + Open-Meteo elevation — more reliable than /way-elevation.
 async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: number; lng: number; ele: number | null }[]> {
   const base = sport === 'hiking'
     ? 'https://hiking.waymarkedtrails.org/api/v1'
     : 'https://cycling.waymarkedtrails.org/api/v1';
 
-  // Try direct GPX download first — segments are pre-ordered by WMT, avoids stitching errors
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 30000);
   try {
-    const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 30000);
-    try {
-      const r = await fetch(`${base}/details/relation/${osmId}/gpx`, {
-        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' },
-        signal: ctrl.signal,
-      });
-      if (r.ok) {
-        const gpxText = await r.text();
-        const points = parseGpxPoints(gpxText);
-        if (points.length >= 10) {
-          const hasEle = points.some(p => p.ele != null);
-          console.log(`[route-discovery wmt-gpx] osmId=${osmId} pts=${points.length} ele=${hasEle}`);
-          return points;
-        }
-      }
-    } finally { clearTimeout(tid); }
-  } catch (gpxErr: any) {
-    console.warn(`[route-discovery wmt-gpx] GPX download failed: ${gpxErr.message}`);
-  }
-
-  // Fall back to /way-elevation with sequential stitching in JSON insertion order
-  const controller = new AbortController();
-  const tid = setTimeout(() => controller.abort(), 30000);
-  try {
-    const r = await fetch(`${base}/details/relation/${osmId}/way-elevation`, {
-      headers: { 'User-Agent': 'TrekWanderer/1.0' },
-      signal: controller.signal,
+    const r = await fetch(`${base}/details/relation/${osmId}/gpx`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' },
+      signal: ctrl.signal,
     });
-    if (!r.ok) throw new Error(`WMT way-elevation ${r.status}`);
-
-    // V8 sorts integer-like object keys numerically, losing the JSON insertion order
-    // which is the route order. Extract key order from raw text before parsing.
-    const rawText = await r.text();
-    const data = JSON.parse(rawText);
-
-    const segStart = rawText.indexOf('"segments"');
-    const keyOrder: string[] = [];
-    if (segStart >= 0) {
-      const segBlock = rawText.slice(segStart);
-      const keyRe = /"(\d+)":/g;
-      let km: RegExpExecArray | null;
-      while ((km = keyRe.exec(segBlock)) !== null) keyOrder.push(km[1]);
-    }
-
-    const segsObj = data.segments || {};
-    const orderedKeys = keyOrder.length > 0 ? keyOrder : Object.keys(segsObj);
-    const rawSegs: { lat: number; lng: number; ele: number | null }[][] = orderedKeys
-      .map(k => segsObj[k])
-      .filter(Boolean)
-      .map((seg: any) =>
-        (seg.elevation || []).map((p: any) => ({
-          ...mercatorToLatLng(p.x, p.y),
-          ele: typeof p.ele === 'number' ? Math.round(p.ele * 10) / 10 : null,
-        }))
-      )
-      .filter((s: any[]) => s.length > 0);
-
-    if (rawSegs.length === 0) throw new Error('No WMT elevation data');
-    if (rawSegs.length === 1) return rawSegs[0];
-
-    // Sequential stitching — segments are in route order, just need to orient each one
-    const chain: { lat: number; lng: number; ele: number | null }[] = [...rawSegs[0]];
-    for (let i = 1; i < rawSegs.length; i++) {
-      const last = chain[chain.length - 1];
-      const seg = rawSegs[i];
-      const d1 = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
-      const d2 = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
-      chain.push(...(d2 < d1 ? [...seg].reverse() : seg));
-    }
-    return chain;
+    if (!r.ok) throw new Error(`WMT GPX ${r.status}`);
+    const gpxText = await r.text();
+    const points = parseGpxPoints(gpxText);
+    if (points.length < 10) throw new Error('WMT GPX insufficient data');
+    const hasEle = points.some(p => p.ele != null);
+    console.log(`[route-discovery wmt-gpx] osmId=${osmId} pts=${points.length} ele=${hasEle}`);
+    return points;
   } finally { clearTimeout(tid); }
 }
 
