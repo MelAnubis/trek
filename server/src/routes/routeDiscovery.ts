@@ -136,11 +136,14 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
 // ── Komoot integration ────────────────────────────────────────────────────────
 
 function parseKomootUrl(input: string): { type: 'tour' | 'collection'; id: string } | null {
-  const tourM = input.match(/komoot\.[a-z]+\/(?:tour|t)\/(\d+)/i);
-  if (tourM) return { type: 'tour', id: tourM[1] };
-  const collM = input.match(/komoot\.[a-z]+\/collection\/(\d+)/i);
+  const s = input.trim();
+  const collM = s.match(/komoot\.[a-z]+(?:\/[a-z-]+)?\/collection\/(\d+)/i);
   if (collM) return { type: 'collection', id: collM[1] };
-  if (/^\d{8,13}$/.test(input.trim())) return { type: 'tour', id: input.trim() };
+  // Covers /tour/, /t/, /smarttour/, /highlight/ and API paths like /tours/12345
+  const tourM = s.match(/komoot\.[a-z]+(?:\/[a-z-]+)?\/(?:tour|t|smarttour|highlight)s?\/(\d+)/i)
+    ?? s.match(/\/tours?\/(\d{6,})/i);
+  if (tourM) return { type: 'tour', id: tourM[1] };
+  if (/^\d{6,15}$/.test(s)) return { type: 'tour', id: s };
   return null;
 }
 
@@ -155,6 +158,29 @@ function extractKomootPageData(html: string): any | null {
   const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
   if (!m) return null;
   try { return JSON.parse(m[1]); } catch { return null; }
+}
+
+// Recursively search a Komoot __NEXT_DATA__ object for an array of GPS coordinates
+function findGpsCoords(obj: any, depth = 0): { lat: number; lng: number; ele: number | null }[] | null {
+  if (depth > 8 || obj == null) return null;
+  if (Array.isArray(obj)) {
+    if (obj.length >= 10 && typeof obj[0]?.lat === 'number' && typeof obj[0]?.lng === 'number') {
+      return obj.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? p.ele ?? null }));
+    }
+    for (const item of obj.slice(0, 10)) {
+      const r = findGpsCoords(item, depth + 1);
+      if (r) return r;
+    }
+  } else if (typeof obj === 'object') {
+    for (const key of ['items', 'coordinates', 'points', 'waypoints', 'track']) {
+      if (obj[key]) { const r = findGpsCoords(obj[key], depth + 1); if (r) return r; }
+    }
+    for (const key of Object.keys(obj)) {
+      const r = findGpsCoords(obj[key], depth + 1);
+      if (r) return r;
+    }
+  }
+  return null;
 }
 
 async function fetchKomootTourInfo(tourId: string): Promise<{ name: string; distanceKm: number; description: string | null }> {
@@ -194,10 +220,13 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
       const d = await r.json();
       const items: any[] = d?._embedded?.coordinates?.items ?? [];
       if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
+      // Try recursive search in case the structure is different
+      const found = findGpsCoords(d);
+      if (found && found.length >= 10) return found;
     }
   } catch { /* fall through */ } finally { clearTimeout(tid); }
 
-  // Try GPX export endpoint
+  // Try GPX export endpoint (requires auth on private tours)
   const ctrl2 = new AbortController();
   const tid2 = setTimeout(() => ctrl2.abort(), 30000);
   try {
@@ -206,12 +235,16 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
       signal: ctrl2.signal,
     });
     if (r.ok) {
-      const pts = parseGpxPoints(await r.text());
-      if (pts.length >= 10) return pts;
+      const text = await r.text();
+      // Only parse if response is actually XML, not an auth redirect page
+      if (text.trim().startsWith('<') && text.includes('<trkpt')) {
+        const pts = parseGpxPoints(text);
+        if (pts.length >= 10) return pts;
+      }
     }
   } catch { /* fall through */ } finally { clearTimeout(tid2); }
 
-  // Page scraping: extract __NEXT_DATA__ coordinates
+  // Page scraping: extract __NEXT_DATA__ coordinates via recursive search
   const ctrl3 = new AbortController();
   const tid3 = setTimeout(() => ctrl3.abort(), 30000);
   try {
@@ -221,13 +254,14 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
     });
     if (r.ok) {
       const json = extractKomootPageData(await r.text());
-      const tour = json?.props?.pageProps?.tour ?? json?.props?.pageProps?.serverProps?.page?.tour;
-      const items: any[] = tour?._embedded?.coordinates?.items ?? [];
-      if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
+      if (json) {
+        const found = findGpsCoords(json);
+        if (found && found.length >= 10) return found;
+      }
     }
   } catch { /* fall through */ } finally { clearTimeout(tid3); }
 
-  throw new Error('No se pudo obtener la geometría de Komoot. El tour puede ser privado.');
+  throw new Error('Komoot requiere cuenta para descargar la geometría. Descarga el GPX desde komoot.com y pégalo como URL directa.');
 }
 
 async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
