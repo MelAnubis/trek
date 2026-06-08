@@ -179,7 +179,7 @@ export default function RouteDiscoveryPanel() {
           tripType,
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         // Server cache expired — re-fetch GPX to re-warm cache, then retry once
         if (!_retried && (data.error || '').includes('GPX not loaded')) {
@@ -212,8 +212,8 @@ export default function RouteDiscoveryPanel() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ osmId: route.osmId, source: route.source || 'osm' }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error loading GPX')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Error loading GPX (${res.status})`)
       const enriched = { ...route, points: data.points, distanceKm: data.distanceKm, loadingGpx: false }
       setRoutes(prev => prev.map(r => r.osmId === route.osmId ? enriched : r))
       return enriched

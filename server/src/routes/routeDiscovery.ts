@@ -8,8 +8,9 @@ router.use(authenticate, adminOnly);
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
 ];
 
 const COUNTRY_BBOXES: Record<string, string> = {
@@ -236,7 +237,7 @@ async function overpassQuery(query: string): Promise<any> {
   let lastError = '';
   for (const url of OVERPASS_MIRRORS) {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 330000);
+    const tid = setTimeout(() => controller.abort(), 65000);
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -421,7 +422,7 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
   // ── OSM Overpass source (default + WMT fallback) ──────────────────────────
   const osmCacheKey = source.startsWith('wmt_') ? `osm:${osmId}` : cacheKey;
 
-  const overpassQry = `[out:json][timeout:300];
+  const overpassQry = `[out:json][timeout:55];
 relation(${osmId});
 (._; >>;);
 out body qt;`;
