@@ -228,8 +228,8 @@ export function useNavigation() {
       // No navModeRef guard here — the watch is only active during recording and
       // recorder.current.running is false once stopRecording() is called, so
       // addPoint() will silently no-op any late-arriving callbacks.
-      const { lat, lng, altitude, speed, timestamp } = gpos
-      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
+      const { lat, lng, altitude, speed, timestamp, accuracy } = gpos
+      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp, accuracy)
       setRecordedPoints([...recorder.current.points])
 
       const alt = altitude ?? null
