@@ -284,8 +284,8 @@ async function enrichWithElevation(
 ): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
   // Default to public opentopodata.org API; override with custom server via OPEN_ELEVATION_URL
   const baseUrl = (process.env.OPEN_ELEVATION_URL || 'https://api.opentopodata.org/v1/srtm30m').replace(/\/$/, '');
-  const isPublicApi = !process.env.OPEN_ELEVATION_URL;
-  // opentopodata.org public API limit: 1 req/s. Private servers can go faster.
+  // Rate-limit when hitting opentopodata.org (public API: 1 req/s), regardless of how the URL was set
+  const isPublicApi = !process.env.OPEN_ELEVATION_URL || baseUrl.includes('opentopodata.org');
   const BATCH_DELAY_MS = isPublicApi ? 1100 : 0;
   const BATCH = 100;
   const result = [...points];
