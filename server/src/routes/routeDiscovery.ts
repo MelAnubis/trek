@@ -264,15 +264,34 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
   throw new Error('Komoot requiere cuenta para descargar la geometría. Descarga el GPX desde komoot.com y pégalo como URL directa.');
 }
 
-async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
-  const tryExtractTours = (json: any): any[] | null => {
-    const items =
-      json?.props?.pageProps?.collection?._embedded?.tours?._embedded?.items ??
-      json?.props?.pageProps?.tours?._embedded?.items ??
-      json?.props?.pageProps?.serverProps?.page?.collection?._embedded?.tours?._embedded?.items;
-    return Array.isArray(items) ? items : null;
-  };
+// Recursively search for an array of Komoot tour objects (each has id + name/distance)
+function findCollectionTours(obj: any, depth = 0): any[] | null {
+  if (depth > 8 || obj == null) return null;
+  if (Array.isArray(obj)) {
+    if (obj.length >= 1 && obj[0]?.id != null && (obj[0]?.name != null || obj[0]?.distance != null)) {
+      return obj;
+    }
+    for (const item of obj.slice(0, 20)) {
+      const r = findCollectionTours(item, depth + 1);
+      if (r) return r;
+    }
+  } else if (typeof obj === 'object') {
+    for (const key of ['items', 'tours', 'results', 'content']) {
+      if (obj[key]) { const r = findCollectionTours(obj[key], depth + 1); if (r) return r; }
+    }
+    for (const key of Object.keys(obj)) {
+      const r = findCollectionTours(obj[key], depth + 1);
+      if (r) return r;
+    }
+  }
+  return null;
+}
 
+function toTourEntry(t: any, idx: number) {
+  return { osmId: Number(t.id), name: t.name || `Komoot tour ${idx + 1}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null };
+}
+
+async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
   // Try API
   const ctrl = new AbortController();
   const tid = setTimeout(() => ctrl.abort(), 15000);
@@ -283,20 +302,26 @@ async function fetchKomootCollection(collectionId: string): Promise<{ osmId: num
     });
     if (r.ok) {
       const d = await r.json();
-      const items: any[] = d?._embedded?.tours?._embedded?.items ?? d?._embedded?.tours ?? [];
-      if (items.length > 0) return items.map((t: any) => ({ osmId: Number(t.id), name: t.name || `Komoot ${t.id}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null }));
+      const items = findCollectionTours(d);
+      if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
     }
   } catch { /* fall through */ } finally { clearTimeout(tid); }
 
   // Page scraping
-  const r2 = await fetch(`https://www.komoot.com/collection/${collectionId}`, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
-  });
-  if (!r2.ok) throw new Error(`Komoot collection ${collectionId} no accesible (${r2.status})`);
-  const json = extractKomootPageData(await r2.text());
-  const items = json ? tryExtractTours(json) : null;
-  if (!items || items.length === 0) throw new Error('Komoot: no se encontraron tours en la colección');
-  return items.slice(0, 50).map((t: any) => ({ osmId: Number(t.id), name: t.name || `Komoot ${t.id}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null }));
+  const ctrl2 = new AbortController();
+  const tid2 = setTimeout(() => ctrl2.abort(), 30000);
+  try {
+    const r = await fetch(`https://www.komoot.com/collection/${collectionId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+      signal: ctrl2.signal,
+    });
+    if (!r.ok) throw new Error(`Komoot collection ${collectionId} no accesible (${r.status})`);
+    const json = extractKomootPageData(await r.text());
+    const items = json ? findCollectionTours(json) : null;
+    if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+  } finally { clearTimeout(tid2); }
+
+  throw new Error('Komoot: no se encontraron tours en la colección. Comprueba que la URL es correcta y que la colección es pública.');
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
