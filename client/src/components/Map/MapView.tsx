@@ -616,10 +616,9 @@ export const MapView = memo(function MapView({
             <Polyline
               key={i}
               positions={seg}
-              color="#111827"
-              weight={3}
+              color="#3b82f6"
+              weight={4}
               opacity={0.9}
-              dashArray="6, 5"
             />
           ))}
           {routeSegments.map((seg, i) => (
