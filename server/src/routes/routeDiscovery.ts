@@ -135,7 +135,7 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
     console.warn(`[route-discovery wmt-gpx] GPX download failed: ${gpxErr.message}`);
   }
 
-  // Fall back to /way-elevation with greedy-nearest-neighbour stitching
+  // Fall back to /way-elevation with sequential stitching in JSON insertion order
   const controller = new AbortController();
   const tid = setTimeout(() => controller.abort(), 30000);
   try {
@@ -144,9 +144,26 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
       signal: controller.signal,
     });
     if (!r.ok) throw new Error(`WMT way-elevation ${r.status}`);
-    const data = await r.json();
 
-    const rawSegs: { lat: number; lng: number; ele: number | null }[][] = Object.values(data.segments || {})
+    // V8 sorts integer-like object keys numerically, losing the JSON insertion order
+    // which is the route order. Extract key order from raw text before parsing.
+    const rawText = await r.text();
+    const data = JSON.parse(rawText);
+
+    const segStart = rawText.indexOf('"segments"');
+    const keyOrder: string[] = [];
+    if (segStart >= 0) {
+      const segBlock = rawText.slice(segStart);
+      const keyRe = /"(\d+)":/g;
+      let km: RegExpExecArray | null;
+      while ((km = keyRe.exec(segBlock)) !== null) keyOrder.push(km[1]);
+    }
+
+    const segsObj = data.segments || {};
+    const orderedKeys = keyOrder.length > 0 ? keyOrder : Object.keys(segsObj);
+    const rawSegs: { lat: number; lng: number; ele: number | null }[][] = orderedKeys
+      .map(k => segsObj[k])
+      .filter(Boolean)
       .map((seg: any) =>
         (seg.elevation || []).map((p: any) => ({
           ...mercatorToLatLng(p.x, p.y),
@@ -158,20 +175,14 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
     if (rawSegs.length === 0) throw new Error('No WMT elevation data');
     if (rawSegs.length === 1) return rawSegs[0];
 
-    const chain: { lat: number; lng: number; ele: number | null }[] = [...rawSegs.shift()!];
-    const remaining = [...rawSegs];
-    while (remaining.length > 0) {
+    // Sequential stitching — segments are in route order, just need to orient each one
+    const chain: { lat: number; lng: number; ele: number | null }[] = [...rawSegs[0]];
+    for (let i = 1; i < rawSegs.length; i++) {
       const last = chain[chain.length - 1];
-      let bi = 0, bDist = Infinity, bRev = false;
-      for (let i = 0; i < remaining.length; i++) {
-        const seg = remaining[i];
-        const d1 = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
-        const d2 = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
-        if (d1 < bDist) { bDist = d1; bi = i; bRev = false; }
-        if (d2 < bDist) { bDist = d2; bi = i; bRev = true; }
-      }
-      const next = remaining.splice(bi, 1)[0];
-      chain.push(...(bRev ? [...next].reverse() : next));
+      const seg = rawSegs[i];
+      const d1 = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
+      const d2 = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
+      chain.push(...(d2 < d1 ? [...seg].reverse() : seg));
     }
     return chain;
   } finally { clearTimeout(tid); }
