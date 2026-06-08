@@ -465,6 +465,16 @@ function TrackDetail({
             {ibpOfficial ? 'IBP ✓' : 'IBP ~'}
           </div>
         </div>
+        {track.points && track.points.length > 0 && tripId && (
+          <button
+            onClick={handleFetchElevation}
+            disabled={fetchingEle}
+            title="Volver a obtener altitudes"
+            style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+          >
+            <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
+          </button>
+        )}
         {track.points && track.points.length > 0 && (
           <button
             onClick={handleDownload}
