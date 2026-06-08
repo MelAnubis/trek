@@ -19,9 +19,9 @@ const COUNTRY_BBOXES: Record<string, string> = {
 };
 
 // Server-side cache for fetched GPX points. Avoids sending large bodies from client→server.
-// Keyed by osmId. Entries expire after 60 minutes.
-type CacheEntry = { points: { lat: number; lng: number }[]; distanceKm: number; cachedAt: number };
-const gpxCache = new Map<number, CacheEntry>();
+// Keyed as "source:osmId" (e.g. "osm:12345", "wmt_cycling:67890"). Entries expire after 60 minutes.
+type CacheEntry = { points: { lat: number; lng: number; ele?: number | null }[]; distanceKm: number; cachedAt: number };
+const gpxCache = new Map<string, CacheEntry>();
 const CACHE_TTL = 60 * 60 * 1000;
 
 // Search result cache: avoids re-querying Overpass for the same filters on paginated requests.
@@ -34,6 +34,108 @@ function prunCache() {
   const now = Date.now();
   for (const [k, v] of gpxCache) if (now - v.cachedAt > CACHE_TTL) gpxCache.delete(k);
   for (const [k, v] of searchCache) if (now - v.cachedAt > SEARCH_CACHE_TTL) searchCache.delete(k);
+}
+
+// ── Waymarked Trails integration ──────────────────────────────────────────────
+
+const WMT_SOURCES = [
+  { sport: 'cycling', base: 'https://cycling.waymarkedtrails.org/api/v1' },
+  { sport: 'hiking',  base: 'https://hiking.waymarkedtrails.org/api/v1' },
+];
+
+const WMT_GROUP_NET: Record<string, string> = {
+  INT: 'icn', NAT: 'ncn', REG: 'rcn', LOC: 'lcn',
+};
+
+// Convert EPSG:3857 (Web Mercator) to WGS84
+function mercatorToLatLng(x: number, y: number) {
+  return {
+    lat: Math.round(((Math.atan(Math.exp((y / 20037508.34) * Math.PI)) * 360) / Math.PI - 90) * 1e7) / 1e7,
+    lng: Math.round((x / 20037508.34 * 180) * 1e7) / 1e7,
+  };
+}
+
+async function wmtSearch(query: string): Promise<any[]> {
+  const results = await Promise.allSettled(
+    WMT_SOURCES.map(async ({ sport, base }) => {
+      const controller = new AbortController();
+      const tid = setTimeout(() => controller.abort(), 10000);
+      try {
+        const r = await fetch(`${base}/list/search?query=${encodeURIComponent(query)}&lang=es&limit=30`, {
+          headers: { 'User-Agent': 'TrekWanderer/1.0' },
+          signal: controller.signal,
+        });
+        if (!r.ok) return [];
+        const data = await r.json();
+        return (data.results || []).map((rt: any) => ({
+          osmId: rt.id,
+          name: rt.name || query,
+          network: WMT_GROUP_NET[rt.group] || 'lcn',
+          ref: rt.ref || null,
+          distance: null,
+          website: null,
+          description: rt.itinerary?.length ? (rt.itinerary as string[]).join(' → ') : null,
+          wikipedia: null, operator: null, colour: null, hasMinInfo: true,
+          source: `wmt_${sport}`,
+        }));
+      } catch { return []; } finally { clearTimeout(tid); }
+    })
+  );
+
+  const all = results
+    .filter((r): r is PromiseFulfilledResult<any[]> => r.status === 'fulfilled')
+    .flatMap(r => r.value);
+
+  // Deduplicate by osmId (same relation might appear in cycling and hiking)
+  const seen = new Set<number>();
+  return all.filter(r => !seen.has(r.osmId) && seen.add(r.osmId));
+}
+
+async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: number; lng: number; ele: number | null }[]> {
+  const base = sport === 'hiking'
+    ? 'https://hiking.waymarkedtrails.org/api/v1'
+    : 'https://cycling.waymarkedtrails.org/api/v1';
+
+  const controller = new AbortController();
+  const tid = setTimeout(() => controller.abort(), 30000);
+  try {
+    const r = await fetch(`${base}/details/relation/${osmId}/way-elevation`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0' },
+      signal: controller.signal,
+    });
+    if (!r.ok) throw new Error(`WMT way-elevation ${r.status}`);
+    const data = await r.json();
+
+    const rawSegs: { lat: number; lng: number; ele: number | null }[][] = Object.values(data.segments || {})
+      .map((seg: any) =>
+        (seg.elevation || []).map((p: any) => ({
+          ...mercatorToLatLng(p.x, p.y),
+          ele: typeof p.ele === 'number' ? Math.round(p.ele * 10) / 10 : null,
+        }))
+      )
+      .filter((s: any[]) => s.length > 0);
+
+    if (rawSegs.length === 0) throw new Error('No WMT elevation data');
+    if (rawSegs.length === 1) return rawSegs[0];
+
+    // Stitch multiple segments by nearest endpoint
+    const chain: { lat: number; lng: number; ele: number | null }[] = [...rawSegs.shift()!];
+    const remaining = [...rawSegs];
+    while (remaining.length > 0) {
+      const last = chain[chain.length - 1];
+      let bi = 0, bDist = Infinity, bRev = false;
+      for (let i = 0; i < remaining.length; i++) {
+        const seg = remaining[i];
+        const d1 = haversineKm(last.lat, last.lng, seg[0].lat, seg[0].lng);
+        const d2 = haversineKm(last.lat, last.lng, seg[seg.length - 1].lat, seg[seg.length - 1].lng);
+        if (d1 < bDist) { bDist = d1; bi = i; bRev = false; }
+        if (d2 < bDist) { bDist = d2; bi = i; bRev = true; }
+      }
+      const next = remaining.splice(bi, 1)[0];
+      chain.push(...(bRev ? [...next].reverse() : next));
+    }
+    return chain;
+  } finally { clearTimeout(tid); }
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -128,8 +230,8 @@ async function overpassQuery(query: string): Promise<any> {
   throw new Error(lastError || 'All Overpass mirrors failed');
 }
 
-function insertTrack(tripId: number, userId: number, trackName: string, points: { lat: number; lng: number }[]) {
-  const pts = points.map(p => ({ lat: p.lat, lng: p.lng, ele: null as null }));
+function insertTrack(tripId: number, userId: number, trackName: string, points: { lat: number; lng: number; ele?: number | null }[]) {
+  const pts = points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele ?? null }));
   const stats = calcStats(pts);
   const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(tripId) as { n: number };
   db.prepare(`
@@ -154,12 +256,33 @@ const PAGE_SIZE = 50;
 
 // ── POST /api/admin/route-discovery/search ────────────────────────────────────
 router.post('/search', async (req: Request, res: Response) => {
-  const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'], page = 1 } = req.body;
-
-  const validCountries = (countries as string[]).filter(c => c in COUNTRY_BBOXES);
-  if (validCountries.length === 0) return res.status(400).json({ error: 'Invalid countries' });
+  const { countries = ['ES'], minDistanceKm = 150, networks = ['icn', 'ncn', 'rcn'], page = 1, query } = req.body;
 
   prunCache();
+
+  // Text-search mode: query Waymarked Trails (cycling + hiking)
+  if (query && typeof query === 'string' && query.trim().length >= 2) {
+    try {
+      const allRoutes = await wmtSearch(query.trim());
+      const pageNum = Math.max(1, Number(page));
+      const start = (pageNum - 1) * PAGE_SIZE;
+      console.log(`[route-discovery search] wmt query="${query.trim()}" → ${allRoutes.length} results`);
+      return res.json({
+        routes: allRoutes.slice(start, start + PAGE_SIZE),
+        total: allRoutes.length,
+        page: pageNum,
+        pageSize: PAGE_SIZE,
+        totalPages: Math.ceil(allRoutes.length / PAGE_SIZE) || 1,
+      });
+    } catch (e: any) {
+      console.error('[route-discovery search wmt]', e.message);
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
+  // Browse mode: existing OSM Overpass query
+  const validCountries = (countries as string[]).filter(c => c in COUNTRY_BBOXES);
+  if (validCountries.length === 0) return res.status(400).json({ error: 'Invalid countries' });
 
   const sortedCountries = [...validCountries].sort();
   const sortedNetworks = [...(networks as string[])].sort();
@@ -204,6 +327,7 @@ out tags;`;
             wikipedia: tags.wikipedia || null,
             colour: tags.colour || null,
             hasMinInfo: !!(tags.name && (distTag == null || distTag >= minDistanceKm)),
+            source: 'osm',
           };
         })
         .filter(r => r.distance == null || r.distance >= minDistanceKm)
@@ -235,18 +359,44 @@ out tags;`;
 // Fetches full geometry for a single OSM relation and caches it server-side.
 // The import endpoint reads from this cache — the client never sends points back.
 router.post('/fetch-gpx', async (req: Request, res: Response) => {
-  const { osmId } = req.body;
+  const { osmId, source = 'osm' } = req.body;
   if (!osmId) return res.status(400).json({ error: 'osmId required' });
 
   prunCache();
+  const cacheKey = `${source}:${osmId}`;
 
-  const query = `[out:json][timeout:300];
+  const alreadyCached = gpxCache.get(cacheKey);
+  if (alreadyCached) {
+    return res.json({ points: alreadyCached.points, distanceKm: alreadyCached.distanceKm, pointCount: alreadyCached.points.length });
+  }
+
+  // ── Waymarked Trails source ────────────────────────────────────────────────
+  if (typeof source === 'string' && source.startsWith('wmt_')) {
+    const sport = source.slice(4);
+    try {
+      const points = await fetchWmtPoints(Number(osmId), sport);
+      if (points.length < 10) return res.status(422).json({ error: 'Insufficient WMT geometry' });
+      const distanceKm = calcDistanceKm(points);
+      gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+      const hasEle = points.some(p => p.ele != null);
+      console.log(`[route-discovery fetch-gpx] wmt_${sport} osmId=${osmId} pts=${points.length} dist=${distanceKm}km ele=${hasEle}`);
+      return res.json({ points, distanceKm, pointCount: points.length, hasElevation: hasEle });
+    } catch (wmtErr: any) {
+      console.warn(`[route-discovery fetch-gpx] WMT failed (${wmtErr.message}), falling back to Overpass`);
+      // Fall through to Overpass below
+    }
+  }
+
+  // ── OSM Overpass source (default + WMT fallback) ──────────────────────────
+  const osmCacheKey = source.startsWith('wmt_') ? `osm:${osmId}` : cacheKey;
+
+  const overpassQry = `[out:json][timeout:300];
 relation(${osmId});
 (._; >>;);
 out body qt;`;
 
   try {
-    const data = await overpassQuery(query);
+    const data = await overpassQuery(overpassQry);
     const elements: any[] = data.elements || [];
 
     const nodeMap = new Map<number, { lat: number; lng: number }>();
@@ -295,8 +445,9 @@ out body qt;`;
       : raw;
     const distanceKm = calcDistanceKm(points);
 
-    // Cache server-side so import doesn't need a large request body
-    gpxCache.set(Number(osmId), { points, distanceKm, cachedAt: Date.now() });
+    // Cache under both the requested key and the osm: key (for WMT fallback path)
+    gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+    if (osmCacheKey !== cacheKey) gpxCache.set(osmCacheKey, { points, distanceKm, cachedAt: Date.now() });
 
     console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${points.length}pts dist=${distanceKm}km`);
     res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
@@ -321,7 +472,9 @@ router.post('/import', async (req: Request, res: Response) => {
   // Resolve all segments from cache
   const segments: { route: any; cached: CacheEntry }[] = [];
   for (const route of routes) {
-    const cached = gpxCache.get(Number(route.osmId));
+    const src = route.source || 'osm';
+    const cacheKey = `${src}:${route.osmId}`;
+    const cached = gpxCache.get(cacheKey);
     if (!cached) {
       return res.status(400).json({
         error: `GPX not loaded for "${route.name}" (OSM ${route.osmId}) — click "Cargar GPX" first`,
@@ -333,13 +486,14 @@ router.post('/import', async (req: Request, res: Response) => {
   const totalDist = Math.round(segments.reduce((s, seg) => s + seg.cached.distanceKm, 0) * 10) / 10;
   const osmIds = routes.map((r: any) => r.osmId).join(', ');
   const firstRoute = routes[0];
+  const sourceLabel = (firstRoute.source || 'osm').startsWith('wmt') ? 'Waymarked Trails' : 'OpenStreetMap';
 
   const description = [
     routes.map((r: any) => r.description).filter(Boolean).join('\n\n'),
     firstRoute.website ? `\nMás información: ${firstRoute.website}` : '',
     firstRoute.ref ? `\nReferencia: ${firstRoute.ref}` : '',
     `\n\nDistancia total estimada: ${totalDist} km`,
-    `\nFuente: OpenStreetMap (IDs: ${osmIds})`,
+    `\nFuente: ${sourceLabel} (IDs: ${osmIds})`,
   ].join('').trim();
 
   try {
