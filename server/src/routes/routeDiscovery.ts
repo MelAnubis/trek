@@ -264,19 +264,23 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
   throw new Error('Komoot requiere cuenta para descargar la geometría. Descarga el GPX desde komoot.com y pégalo como URL directa.');
 }
 
-// Recursively search for an array of Komoot tour objects (each has id + name/distance)
+// Recursively search for an array of Komoot tour objects (each has numeric id + tour field)
 function findCollectionTours(obj: any, depth = 0): any[] | null {
-  if (depth > 8 || obj == null) return null;
+  if (depth > 12 || obj == null) return null;
   if (Array.isArray(obj)) {
-    if (obj.length >= 1 && obj[0]?.id != null && (obj[0]?.name != null || obj[0]?.distance != null)) {
-      return obj;
+    if (obj.length >= 1) {
+      const first = obj[0];
+      if (typeof first?.id === 'number' &&
+          (first?.name != null || first?.sport != null || first?.distance != null || first?.difficulty != null)) {
+        return obj;
+      }
     }
     for (const item of obj.slice(0, 20)) {
       const r = findCollectionTours(item, depth + 1);
       if (r) return r;
     }
   } else if (typeof obj === 'object') {
-    for (const key of ['items', 'tours', 'results', 'content']) {
+    for (const key of ['items', 'tours', 'results', 'content', 'data', 'pages']) {
       if (obj[key]) { const r = findCollectionTours(obj[key], depth + 1); if (r) return r; }
     }
     for (const key of Object.keys(obj)) {
@@ -292,34 +296,54 @@ function toTourEntry(t: any, idx: number) {
 }
 
 async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
-  // Try API
-  const ctrl = new AbortController();
-  const tid = setTimeout(() => ctrl.abort(), 15000);
-  try {
-    const r = await fetch(`https://api.komoot.de/v007/collections/${collectionId}?_embedded=tours`, {
-      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
-      signal: ctrl.signal,
-    });
-    if (r.ok) {
-      const d = await r.json();
-      const items = findCollectionTours(d);
-      if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
-    }
-  } catch { /* fall through */ } finally { clearTimeout(tid); }
+  // Try API endpoints (embedded + paginated)
+  for (const apiUrl of [
+    `https://api.komoot.de/v007/collections/${collectionId}?_embedded=tours`,
+    `https://api.komoot.de/v007/collections/${collectionId}/tours?page=0&limit=50`,
+  ]) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const r = await fetch(apiUrl, {
+        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/json' },
+        signal: ctrl.signal,
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const items = findCollectionTours(d);
+        console.log(`[route-discovery komoot-collection] API ${apiUrl} → found=${items?.length ?? 0}`);
+        if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+      } else {
+        console.warn(`[route-discovery komoot-collection] API ${apiUrl} → ${r.status}`);
+      }
+    } catch (e: any) {
+      console.warn(`[route-discovery komoot-collection] API error: ${e.message}`);
+    } finally { clearTimeout(tid); }
+  }
 
-  // Page scraping
-  const ctrl2 = new AbortController();
-  const tid2 = setTimeout(() => ctrl2.abort(), 30000);
-  try {
-    const r = await fetch(`https://www.komoot.com/collection/${collectionId}`, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
-      signal: ctrl2.signal,
-    });
-    if (!r.ok) throw new Error(`Komoot collection ${collectionId} no accesible (${r.status})`);
-    const json = extractKomootPageData(await r.text());
-    const items = json ? findCollectionTours(json) : null;
-    if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
-  } finally { clearTimeout(tid2); }
+  // Page scraping (try plain URL and locale-prefixed URL)
+  for (const pageUrl of [
+    `https://www.komoot.com/collection/${collectionId}`,
+    `https://www.komoot.com/es/collection/${collectionId}`,
+  ]) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 30000);
+    try {
+      const r = await fetch(pageUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', Accept: 'text/html' },
+        signal: ctrl.signal,
+      });
+      if (!r.ok) { console.warn(`[route-discovery komoot-collection] page ${pageUrl} → ${r.status}`); continue; }
+      const html = await r.text();
+      const json = extractKomootPageData(html);
+      if (!json) { console.warn(`[route-discovery komoot-collection] no __NEXT_DATA__ at ${pageUrl}`); continue; }
+      const items = findCollectionTours(json);
+      console.log(`[route-discovery komoot-collection] page ${pageUrl} → found=${items?.length ?? 0}`);
+      if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+    } catch (e: any) {
+      console.warn(`[route-discovery komoot-collection] page error: ${e.message}`);
+    } finally { clearTimeout(tid); }
+  }
 
   throw new Error('Komoot: no se encontraron tours en la colección. Comprueba que la URL es correcta y que la colección es pública.');
 }
