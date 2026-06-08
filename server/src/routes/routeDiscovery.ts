@@ -584,7 +584,12 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
     const sport = source.slice(4);
     try {
       const rawPoints = await fetchWmtPoints(Number(osmId), sport);
-      if (rawPoints.length < 10) return res.status(422).json({ error: 'Insufficient WMT geometry' });
+      const rawDistKm = calcDistanceKm(rawPoints);
+      // Require ≥2 pts/km — WMT sometimes returns only waypoint nodes (1 per town),
+      // giving straight lines when rendered. Fall through to Overpass for denser geometry.
+      if (rawPoints.length < Math.max(10, rawDistKm * 2)) {
+        throw new Error(`WMT GPX too sparse (${rawPoints.length} pts for ${rawDistKm.toFixed(0)} km) — falling back to Overpass`);
+      }
       const points = await enrichMissingElevation(rawPoints);
       const distanceKm = calcDistanceKm(points);
       gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
