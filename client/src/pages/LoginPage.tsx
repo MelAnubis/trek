@@ -6,7 +6,8 @@ import { SUPPORTED_LANGUAGES, useTranslation, detectBrowserLanguage } from '../i
 import { authApi, configApi } from '../api/client'
 import { hasStoredLanguage } from '../store/settingsStore'
 import { getApiErrorMessage } from '../types'
-import { Plane, Eye, EyeOff, Mail, Lock, MapPin, Calendar, Package, User, Globe, Zap, Users, Wallet, Map, CheckSquare, BookMarked, FolderOpen, Route, Shield, KeyRound, ChevronDown } from 'lucide-react'
+import { Plane, Eye, EyeOff, Mail, Lock, MapPin, Calendar, Package, User, Globe, Zap, Users, Wallet, Map, CheckSquare, BookMarked, FolderOpen, Route, Shield, KeyRound, ChevronDown, Fingerprint } from 'lucide-react'
+import { startAuthentication } from '@simplewebauthn/browser'
 
 interface AppConfig {
   has_users: boolean
@@ -21,6 +22,8 @@ interface AppConfig {
   oidc_login: boolean
   oidc_registration: boolean
   env_override_oidc_only: boolean
+  passkey_login?: boolean
+  passkey_configured?: boolean
 }
 
 export default function LoginPage(): React.ReactElement {
@@ -178,6 +181,28 @@ export default function LoginPage(): React.ReactElement {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : t('login.demoFailed'))
     } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handlePasskeyLogin = async (): Promise<void> => {
+    setError('')
+    setIsLoading(true)
+    try {
+      const options = await authApi.passkey.loginOptions()
+      const assertion = await startAuthentication({ optionsJSON: options })
+      await authApi.passkey.loginVerify(assertion)
+      await loadUser({ silent: true })
+      setShowTakeoff(true)
+      setTimeout(() => navigate(redirectTarget), 2600)
+    } catch (err: unknown) {
+      // The user dismissing the native prompt isn't an error worth surfacing.
+      const name = (err as { name?: string })?.name
+      if (name === 'NotAllowedError' || name === 'AbortError') {
+        setIsLoading(false)
+        return
+      }
+      setError(getApiErrorMessage(err, t('login.passkey.failed')))
       setIsLoading(false)
     }
   }
@@ -885,6 +910,36 @@ export default function LoginPage(): React.ReactElement {
                 <Shield size={16} />
                 {t('login.oidcSignIn', { name: appConfig.oidc_display_name })}
               </a>
+            </>
+          )}
+
+          {/* Passkey login button (instance toggle on + a usable RP ID resolves) */}
+          {appConfig?.passkey_login && appConfig?.passkey_configured && !oidcOnly && mode === 'login' && !mfaStep && !passwordChangeStep && (
+            <>
+              {!(appConfig?.oidc_configured && appConfig?.oidc_login) && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
+                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>{t('common.or')}</span>
+                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                </div>
+              )}
+              <button type="button" onClick={handlePasskeyLogin} disabled={isLoading}
+                style={{
+                  marginTop: 12, width: '100%', padding: '12px',
+                  background: 'white', color: '#374151',
+                  border: '1px solid #d1d5db', borderRadius: 12,
+                  fontSize: 14, fontWeight: 600, cursor: isLoading ? 'default' : 'pointer',
+                  fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: isLoading ? 0.7 : 1,
+                  transition: 'background 180ms cubic-bezier(0.23,1,0.32,1), border-color 180ms cubic-bezier(0.23,1,0.32,1)',
+                  boxSizing: 'border-box',
+                }}
+                onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isLoading) { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.borderColor = '#9ca3af' } }}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'white'; e.currentTarget.style.borderColor = '#d1d5db' }}
+              >
+                <Fingerprint size={16} />
+                {t('login.passkey.signIn')}
+              </button>
             </>
           )}
 

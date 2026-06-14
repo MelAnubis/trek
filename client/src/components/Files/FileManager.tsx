@@ -1,7 +1,7 @@
 import ReactDOM from 'react-dom'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Trash2, ExternalLink, Download, X, FileText, FileImage, File, MapPin, Ticket, StickyNote, Star, RotateCcw, Pencil, Check, ChevronLeft, ChevronRight, Plane, Train, Car, Ship } from 'lucide-react'
+import { Upload, Trash2, ExternalLink, Download, X, FileText, FileImage, File, MapPin, Ticket, StickyNote, Star, RotateCcw, Pencil, Check, ChevronLeft, ChevronRight, Plane, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import { filesApi } from '../../api/client'
@@ -239,12 +239,17 @@ function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avatarUrl?: 
   )
 }
 
-const TRANSPORT_TYPES = new Set(['flight', 'train', 'car', 'cruise'])
+const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
 
 function transportIcon(type: string) {
   if (type === 'train') return Train
+  if (type === 'bus') return Bus
   if (type === 'car') return Car
+  if (type === 'taxi') return CarTaxiFront
+  if (type === 'bicycle') return Bike
   if (type === 'cruise') return Ship
+  if (type === 'ferry') return Sailboat
+  if (type === 'transport_other') return Route
   return Plane
 }
 

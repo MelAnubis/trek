@@ -9,6 +9,8 @@ import {
   reverseGeocode,
   resolveGoogleMapsUrl,
   autocompletePlaces,
+  searchOverpassPois,
+  POI_CATEGORY_KEYS,
 } from '../services/mapsService';
 import { db } from '../db/database';
 import { serveFilePath } from '../services/placePhotoCache';
@@ -142,6 +144,29 @@ router.get('/reverse', authenticate, async (req: Request, res: Response) => {
     res.json({ name: null, address: null });
   }
 });
+
+// GET /pois — OSM POI explore: places of a category within a viewport bbox
+router.get('/pois', authenticate, async (req: Request, res: Response) => {
+  const { category, south, west, north, east } = req.query as Record<string, string>
+  if (!category) return res.status(400).json({ error: 'category required' })
+  if (!POI_CATEGORY_KEYS.includes(category)) return res.status(400).json({ error: 'Unknown category' })
+  const bbox = {
+    south: parseFloat(south), west: parseFloat(west),
+    north: parseFloat(north), east: parseFloat(east),
+  }
+  if ([bbox.south, bbox.west, bbox.north, bbox.east].some(isNaN)) {
+    return res.status(400).json({ error: 'south, west, north, east required' })
+  }
+  try {
+    const result = await searchOverpassPois(category, bbox)
+    res.json(result)
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status || 500
+    const message = err instanceof Error ? err.message : 'POI search error'
+    if (status >= 500) console.error('[Maps] POI search error:', err)
+    res.status(status).json({ error: message })
+  }
+})
 
 // POST /resolve-url
 router.post('/resolve-url', authenticate, async (req: Request, res: Response) => {

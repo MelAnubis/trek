@@ -24,7 +24,9 @@ export interface Trip {
   is_archived: boolean
   reminder_days: number
   trip_type: string | null  // 'general' | 'cycling'
+  currency?: string | null
   owner_id: number
+  user_id?: number  // server-side alias for owner_id
   created_at: string
   updated_at: string
 }
@@ -125,18 +127,36 @@ export interface BudgetItem {
   id: number
   trip_id: number
   name: string
-  amount: number
-  currency: string
+  total_price: number
+  currency: string | null
+  exchange_rate?: number
   category: string | null
-  paid_by: number | null
-  persons: number
-  members: BudgetMember[]
+  persons?: number | null
+  days?: number | null
+  note?: string | null
+  sort_order: number
+  created_at?: string
   expense_date: string | null
+  reservation_id?: number | null
+  members?: BudgetMember[]
+  payers?: BudgetItemPayer[]
+  // Legacy compatibility
+  amount?: number
+  paid_by?: number | null
 }
 
 export interface BudgetMember {
   user_id: number
-  paid: boolean
+  paid: number | boolean
+  username?: string
+  avatar_url?: string | null
+}
+
+export interface BudgetItemPayer {
+  user_id: number
+  amount: number
+  username?: string
+  avatar_url?: string | null
 }
 
 export interface ReservationEndpoint {
@@ -224,6 +244,7 @@ export interface Settings {
   mapbox_style?: string
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
+  map_poi_pill_enabled?: boolean
 }
 
 export interface AssignmentsMap {
@@ -437,4 +458,50 @@ export interface MergedItem {
   type: 'assignment' | 'note' | 'place' | 'transport'
   sortKey: number
   data: Assignment | DayNote | Reservation
+}
+
+// ---------------------------------------------------------------------------
+// Booking import (KDE KItinerary)
+// ---------------------------------------------------------------------------
+
+export interface BookingImportEndpoint {
+  role: 'from' | 'to' | 'stop'
+  sequence: number
+  name: string
+  code: string | null
+  lat: number
+  lng: number
+  timezone: string | null
+  local_time: string | null
+  local_date: string | null
+}
+
+export interface BookingImportVenue {
+  name: string
+  lat?: number
+  lng?: number
+  address?: string
+  website?: string
+  phone?: string
+}
+
+export interface BookingImportAccommodation {
+  check_in?: string
+  check_out?: string
+  confirmation?: string
+}
+
+export interface BookingImportPreviewItem {
+  type: string
+  title: string
+  reservation_time?: string | null
+  reservation_end_time?: string | null
+  confirmation_number?: string | null
+  location?: string | null
+  metadata?: Record<string, unknown>
+  endpoints?: BookingImportEndpoint[]
+  needs_review?: boolean
+  _venue?: BookingImportVenue
+  _accommodation?: BookingImportAccommodation
+  source: { fileName: string; index: number }
 }

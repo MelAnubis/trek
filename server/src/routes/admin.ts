@@ -6,6 +6,7 @@ import * as svc from '../services/adminService';
 import { getAdminUserDefaults, setAdminUserDefaults } from '../services/settingsService';
 import { invalidateMcpSessions } from '../mcp';
 import { getPreferencesMatrix, setAdminPreferences } from '../services/notificationPreferencesService';
+import { adminResetPasskeys } from '../services/passkeyService';
 
 const router = express.Router();
 
@@ -59,6 +60,23 @@ router.delete('/users/:id', (req: Request, res: Response) => {
   });
   logInfo(`Admin ${authReq.user.email} deleted user ${result.email}`);
   res.json({ success: true });
+});
+
+// ── Admin: reset a user's passkeys ────────────────────────────────────────
+
+router.delete('/users/:id/passkeys', (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const targetId = Number(req.params.id);
+  const result = adminResetPasskeys(targetId);
+  if (result.error) return res.status(result.status!).json({ error: result.error });
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.user_passkeys_reset',
+    resource: String(targetId),
+    ip: getClientIp(req),
+    details: { targetUser: result.email, deleted: result.deleted },
+  });
+  res.json({ success: true, deleted: result.deleted });
 });
 
 // ── Stats ──────────────────────────────────────────────────────────────────
