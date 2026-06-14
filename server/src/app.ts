@@ -49,7 +49,8 @@ import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
-import { Addon } from './types';
+import { Addon, AuthRequest } from './types';
+import { getUpcomingReservations } from './services/reservationService';
 import { getPhotoProviderConfig } from './services/memories/helpersService';
 import { getCollabFeatures } from './services/adminService';
 import { isAddonEnabled } from './services/adminService';
@@ -287,6 +288,10 @@ export function createApp(): express.Application {
   app.use('/api/trips/:tripId/budget', budgetRoutes);
   app.use('/api/trips/:tripId/collab', collabRoutes);
   app.use('/api/trips/:tripId/reservations', reservationsRoutes);
+  app.get('/api/reservations/upcoming', authenticate, (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    res.json({ reservations: getUpcomingReservations(authReq.user.id) });
+  });
   app.use('/api/trips/:tripId/days/:dayId/notes', dayNotesRoutes);
   app.use('/api/trips/:tripId/suggestions', suggestionsRoutes);
   app.get('/api/health', (_req: Request, res: Response) => {
