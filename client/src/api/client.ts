@@ -242,6 +242,7 @@ export const daysApi = {
   create: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/days`, data).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/days/${dayId}`, data).then(r => r.data),
   delete: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}`).then(r => r.data),
+  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/reorder`, { orderedIds }).then(r => r.data),
 }
 
 export const placesApi = {

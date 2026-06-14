@@ -1050,6 +1050,15 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'dayplan.pdf': 'PDF',
   'dayplan.pdfTooltip': 'Export day plan as PDF',
   'dayplan.pdfError': 'Failed to export PDF',
+  'dayplan.reorderDays': 'Reorder days',
+  'dayplan.reorderTitle': 'Reorder days',
+  'dayplan.reorderHint': "A day's places, notes and bookings move with it.",
+  'dayplan.addDay': 'Add day',
+  'dayplan.moveUp': 'Move up',
+  'dayplan.moveDown': 'Move down',
+  'dayplan.reorderUndo': 'Reorder days',
+  'dayplan.reorderError': 'Failed to reorder days',
+  'dayplan.addDayError': 'Failed to add day',
 
   // Places Sidebar
   'places.addPlace': 'Add Place/Activity',
