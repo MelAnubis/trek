@@ -1129,6 +1129,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'places.categoryCreateError': 'Failed to create category',
   'places.nameRequired': 'Please enter a name',
   'places.saveError': 'Failed to save',
+  'places.enrichOnImport': 'Enrich places via Google',
+  'places.enrichOnImportHint': 'Look up each imported place to fill in photos, address and contact details. Uses your Google Maps key.',
   // Place Inspector
   'inspector.opened': 'Open',
   'inspector.closed': 'Closed',

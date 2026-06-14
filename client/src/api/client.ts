@@ -266,10 +266,10 @@ export const placesApi = {
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
     return apiClient.post(`/trips/${tripId}/places/import/map`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
   },
-  importGoogleList: (tripId: number | string, url: string) =>
-      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url }).then(r => r.data),
-  importNaverList: (tripId: number | string, url: string) =>
-      apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url }).then(r => r.data),
+  importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
+      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich }).then(r => r.data),
+  importNaverList: (tripId: number | string, url: string, enrich?: boolean) =>
+      apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich }).then(r => r.data),
   bulkDelete: (tripId: number | string, ids: number[]) =>
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids }).then(r => r.data),
 }

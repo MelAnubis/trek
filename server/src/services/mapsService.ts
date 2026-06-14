@@ -327,12 +327,24 @@ export async function fetchWikimediaPhoto(lat: number, lng: number, name?: strin
 
 // ── Search places (Google or Nominatim fallback) ─────────────────────────────
 
-export async function searchPlaces(userId: number, query: string, lang?: string): Promise<{ places: Record<string, unknown>[]; source: string }> {
+export async function searchPlaces(userId: number, query: string, lang?: string, locationBias?: { lat: number; lng: number; radius?: number }): Promise<{ places: Record<string, unknown>[]; source: string }> {
   const apiKey = getMapsKey(userId);
 
   if (!apiKey) {
     const places = await searchNominatim(query, lang);
     return { places, source: 'openstreetmap' };
+  }
+
+  const searchBody: Record<string, unknown> = { textQuery: query, languageCode: lang || 'en' };
+  // Bias results toward the caller's area when supplied — without it Google Text
+  // Search falls back to the API key's billing region, which skews foreign-region queries.
+  if (locationBias) {
+    searchBody.locationBias = {
+      circle: {
+        center: { latitude: locationBias.lat, longitude: locationBias.lng },
+        radius: locationBias.radius ?? 50000,
+      },
+    };
   }
 
   const response = await googleFetch('https://places.googleapis.com/v1/places:searchText', 'searchText', {
@@ -342,7 +354,7 @@ export async function searchPlaces(userId: number, query: string, lang?: string)
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'places.id,places.displayName,places.formattedAddress,places.location,places.rating,places.websiteUri,places.nationalPhoneNumber,places.types',
     },
-    body: JSON.stringify({ textQuery: query, languageCode: lang || 'en' }),
+    body: JSON.stringify(searchBody),
   });
 
   const data = await response.json() as { places?: GooglePlaceResult[]; error?: { message?: string } };
