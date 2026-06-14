@@ -616,4 +616,17 @@ export const inAppNotificationsApi = {
       apiClient.post(`/notifications/in-app/${id}/respond`, { response }).then(r => r.data),
 }
 
+export const airtrailApi = {
+  getSettings: () => apiClient.get('/integrations/airtrail/settings').then(r => r.data),
+  saveSettings: (data: { url: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.put('/integrations/airtrail/settings', data).then(r => r.data),
+  status: () => apiClient.get('/integrations/airtrail/status').then(r => r.data),
+  test: (data: { url?: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.post('/integrations/airtrail/test', data).then(r => r.data),
+  sync: (): Promise<{ changed: number }> => apiClient.post('/integrations/airtrail/sync').then(r => r.data),
+  flights: () => apiClient.get('/integrations/airtrail/flights').then(r => r.data),
+  import: (tripId: number, flightIds: string[]) =>
+    apiClient.post(`/trips/${tripId}/reservations/import/airtrail`, { flightIds }).then(r => r.data),
+}
+
 export default apiClient

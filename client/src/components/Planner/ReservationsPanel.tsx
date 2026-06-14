@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Download,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -182,6 +182,20 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             }} title={t('reservations.needsReviewHint')}>
               <AlertCircle size={11} />
               {t('reservations.needsReview')}
+            </span>
+          ) : null}
+          {(r as any).external_source === 'airtrail' ? (
+            <span
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
+                color: (r as any).sync_enabled ? '#2563eb' : 'var(--text-faint)',
+                background: (r as any).sync_enabled ? 'rgba(59,130,246,0.12)' : 'var(--bg-tertiary)',
+              }}
+              title={(r as any).sync_enabled ? t('reservations.airtrail.syncedHint') : t('reservations.airtrail.notSyncedHint')}
+            >
+              <Plane size={11} />
+              {(r as any).sync_enabled ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
             </span>
           ) : null}
         </div>
@@ -475,6 +489,10 @@ interface ReservationsPanelProps {
   assignments: AssignmentsMap
   files?: TripFile[]
   onAdd: () => void
+  onImport?: () => void
+  bookingImportAvailable?: boolean
+  onAirTrailImport?: () => void
+  airTrailAvailable?: boolean
   onEdit: (reservation: Reservation) => void
   onDelete: (id: number) => void
   onNavigateToFiles: () => void
@@ -482,7 +500,7 @@ interface ReservationsPanelProps {
   addManualKey?: string
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -595,20 +613,53 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           )}
 
           {canEdit && (
-            <button onClick={onAdd} style={{
-              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-              marginLeft: 'auto',
-              transition: 'opacity 0.15s ease',
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t(addManualKey)}</span>
-            </button>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
+              {onImport && bookingImportAvailable && (
+                <button onClick={onImport} style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  background: 'var(--bg-card)', color: 'var(--text-primary)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.import.title')}
+                >
+                  <Download size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
+                </button>
+              )}
+              {onAirTrailImport && airTrailAvailable && (
+                <button onClick={onAirTrailImport} style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.airtrail.title')}
+                >
+                  <Plane size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
+                </button>
+              )}
+              <button onClick={onAdd} style={{
+                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+                transition: 'opacity 0.15s ease',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span className="hidden sm:inline">{t(addManualKey)}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>
