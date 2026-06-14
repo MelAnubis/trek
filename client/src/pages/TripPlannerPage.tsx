@@ -28,6 +28,10 @@ import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation } from 'lucide-react'
+import { usePoiExplore } from '../components/Map/usePoiExplore'
+import PoiCategoryPill from '../components/Map/PoiCategoryPill'
+import { MapCompassPill } from '../components/Map/MapCompassPill'
+import type { Poi } from '../components/Map/poiCategories'
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
@@ -385,6 +389,25 @@ export default function TripPlannerPage(): React.ReactElement | null {
   }, [tripId])
 
   useTripWebSocket(tripId)
+
+  // POI Explore state
+  const poi = usePoiExplore()
+  const [glMap, setGlMap] = useState<import('mapbox-gl').Map | null>(null)
+  const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
+
+  // Opens the add-place form pre-filled from an OSM POI marker click.
+  const openAddPlaceFromPoi = useCallback((poiItem: Poi) => {
+    if (!can('place_edit', trip)) return
+    setPrefillCoords({
+      lat: poiItem.lat,
+      lng: poiItem.lng,
+      name: poiItem.name,
+      address: poiItem.address || undefined,
+    })
+    setEditingPlace(null)
+    setEditingAssignmentId(null)
+    setShowPlaceForm(true)
+  }, [can, trip])
 
   const [mapCategoryFilter, setMapCategoryFilter] = useState<Set<string>>(new Set())
   const [mapPlacesFilter, setMapPlacesFilter] = useState<string>('all')
@@ -939,8 +962,37 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 const r = reservations.find(x => x.id === rid)
                 if (r) setMapTransportDetail(r)
               }}
+              pois={poi.pois}
+              onPoiClick={openAddPlaceFromPoi}
+              onViewportChange={poi.onViewportChange}
+              onMapReady={setGlMap}
             />
 
+
+            {/* POI Explore pill — desktop only, floats below the tab bar */}
+            {poiPillEnabled && (
+              <div className="hidden md:flex" style={{
+                position: 'absolute',
+                top: 10,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 20,
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                gap: 8,
+                pointerEvents: 'none',
+              }}>
+                <PoiCategoryPill
+                  active={poi.active}
+                  onToggle={poi.toggle}
+                  loadingKeys={poi.loadingKeys}
+                  errorKeys={poi.errorKeys}
+                  moved={poi.moved}
+                  onSearchArea={poi.searchArea}
+                />
+                {glMap && <MapCompassPill map={glMap} />}
+              </div>
+            )}
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
               <button onClick={() => setLeftCollapsed(c => !c)}

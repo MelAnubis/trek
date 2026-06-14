@@ -803,3 +803,166 @@ export async function resolveGoogleMapsUrl(url: string): Promise<{ lat: number; 
 
   return { lat, lng, name, address };
 }
+
+// ── Overpass POI search (by category within a viewport bbox) ─────────────────
+// Powers the "explore places on the map" pill. OSM-ONLY by design.
+
+export interface OverpassPoi {
+  osm_id: string;
+  name: string;
+  lat: number;
+  lng: number;
+  category: string;
+  poi_type: string;
+  address: string | null;
+  website: string | null;
+  phone: string | null;
+  opening_hours: string | null;
+  cuisine: string | null;
+  source: 'openstreetmap';
+}
+
+const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
+  restaurant: ['amenity=restaurant', 'amenity=fast_food'],
+  cafe: ['amenity=cafe'],
+  bar: ['amenity=bar', 'amenity=pub', 'amenity=nightclub'],
+  hotel: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel'],
+  sights: ['tourism=attraction', 'tourism=viewpoint', 'historic=monument', 'historic=castle', 'historic=memorial', 'historic=ruins'],
+  museum: ['tourism=museum', 'tourism=gallery', 'tourism=artwork', 'amenity=theatre'],
+  nature: ['leisure=park', 'leisure=garden', 'natural=beach', 'natural=peak'],
+  activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
+};
+
+export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
+
+interface OverpassPoiElement {
+  type: string;
+  id: number;
+  lat?: number;
+  lon?: number;
+  center?: { lat: number; lon: number };
+  tags?: Record<string, string>;
+}
+
+interface PoiSearchResult {
+  pois: OverpassPoi[];
+  source: 'openstreetmap';
+  truncated: boolean;
+  clamped: boolean;
+}
+
+const OVERPASS_MIRRORS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+];
+const OVERPASS_TIMEOUT_MS = 12000;
+const MAX_BBOX_SPAN_DEG = 0.5;
+
+const POI_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
+const POI_CACHE_TTL_MS = 5 * 60 * 1000;
+const POI_CACHE_MAX = 500;
+
+async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
+  const body = `data=${encodeURIComponent(query)}`;
+  const controllers: AbortController[] = [];
+
+  const attempt = async (url: string): Promise<OverpassPoiElement[]> => {
+    const ctrl = new AbortController();
+    controllers.push(ctrl);
+    const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+        signal: ctrl.signal,
+      });
+      if (!res.ok) throw new Error(`Overpass ${res.status} @ ${url}`);
+      const data = await res.json() as { elements?: OverpassPoiElement[]; remark?: string };
+      if (data.remark) throw new Error(`Overpass remark @ ${url}: ${data.remark}`);
+      if (!Array.isArray(data.elements)) throw new Error(`Overpass non-OSM body @ ${url}`);
+      return data.elements;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+
+  try {
+    return await Promise.any(OVERPASS_MIRRORS.map(attempt));
+  } catch {
+    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
+  } finally {
+    controllers.forEach(c => { try { c.abort(); } catch { /* noop */ } });
+  }
+}
+
+export async function searchOverpassPois(
+  category: string,
+  bbox: { south: number; west: number; north: number; east: number },
+  limit = 60,
+): Promise<PoiSearchResult> {
+  const filters = CATEGORY_OSM_FILTERS[category];
+  if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+
+  let { south, west, north, east } = bbox;
+  let clamped = false;
+  if (north - south > MAX_BBOX_SPAN_DEG) {
+    const c = (north + south) / 2;
+    south = c - MAX_BBOX_SPAN_DEG / 2;
+    north = c + MAX_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+  if (east - west > MAX_BBOX_SPAN_DEG) {
+    const c = (east + west) / 2;
+    west = c - MAX_BBOX_SPAN_DEG / 2;
+    east = c + MAX_BBOX_SPAN_DEG / 2;
+    clamped = true;
+  }
+
+  const cacheKey = `${category}|${south.toFixed(2)},${west.toFixed(2)},${north.toFixed(2)},${east.toFixed(2)}|${limit}`;
+  const cached = POI_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
+  if (cached) POI_CACHE.delete(cacheKey);
+
+  const box = `(${south},${west},${north},${east})`;
+  const selectors = filters.map(f => {
+    const [k, v] = f.split('=');
+    return `  nwr["${k}"="${v}"]${box};`;
+  }).join('\n');
+  const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+
+  const elements = await overpassFetch(query);
+
+  const pois: OverpassPoi[] = [];
+  for (const el of elements) {
+    const tags = el.tags || {};
+    const name = tags.name || tags['name:en'] || tags.brand || null;
+    if (!name) continue;
+    const lat = el.lat ?? el.center?.lat;
+    const lng = el.lon ?? el.center?.lon;
+    if (lat == null || lng == null) continue;
+    const matched = filters.find(f => { const [k, v] = f.split('='); return tags[k] === v; }) || filters[0];
+    const addr = [tags['addr:street'], tags['addr:housenumber'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ') || null;
+    pois.push({
+      osm_id: `${el.type}:${el.id}`,
+      name,
+      lat,
+      lng,
+      category,
+      poi_type: matched,
+      address: addr,
+      website: tags.website || tags['contact:website'] || null,
+      phone: tags.phone || tags['contact:phone'] || null,
+      opening_hours: tags.opening_hours || null,
+      cuisine: tags.cuisine || null,
+      source: 'openstreetmap',
+    });
+  }
+  const truncated = pois.length > limit;
+  const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
+  if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
+  POI_CACHE.set(cacheKey, { at: Date.now(), value });
+  return value;
+}

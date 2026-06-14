@@ -224,6 +224,7 @@ export interface Settings {
   mapbox_style?: string
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
+  map_poi_pill_enabled?: boolean
 }
 
 export interface AssignmentsMap {
