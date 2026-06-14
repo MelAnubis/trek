@@ -438,3 +438,49 @@ export interface MergedItem {
   sortKey: number
   data: Assignment | DayNote | Reservation
 }
+
+// ---------------------------------------------------------------------------
+// Booking import (KDE KItinerary)
+// ---------------------------------------------------------------------------
+
+export interface BookingImportEndpoint {
+  role: 'from' | 'to' | 'stop'
+  sequence: number
+  name: string
+  code: string | null
+  lat: number
+  lng: number
+  timezone: string | null
+  local_time: string | null
+  local_date: string | null
+}
+
+export interface BookingImportVenue {
+  name: string
+  lat?: number
+  lng?: number
+  address?: string
+  website?: string
+  phone?: string
+}
+
+export interface BookingImportAccommodation {
+  check_in?: string
+  check_out?: string
+  confirmation?: string
+}
+
+export interface BookingImportPreviewItem {
+  type: string
+  title: string
+  reservation_time?: string | null
+  reservation_end_time?: string | null
+  confirmation_number?: string | null
+  location?: string | null
+  metadata?: Record<string, unknown>
+  endpoints?: BookingImportEndpoint[]
+  needs_review?: boolean
+  _venue?: BookingImportVenue
+  _accommodation?: BookingImportAccommodation
+  source: { fileName: string; index: number }
+}

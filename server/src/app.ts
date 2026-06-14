@@ -46,6 +46,8 @@ import gpxTracksRoutes from './routes/gpxTracks';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
+import bookingImportRoutes from './routes/bookingImport';
+import { isKitineraryAvailable } from './services/kitinerary-extractor';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
 import { Addon } from './types';
@@ -285,12 +287,17 @@ export function createApp(): express.Application {
   app.use('/api/trips/:id/gpx', gpxTracksRoutes);
   app.use('/api/trips/:tripId/budget', budgetRoutes);
   app.use('/api/trips/:tripId/collab', collabRoutes);
+  app.use('/api/trips/:tripId/reservations/import', bookingImportRoutes);
   app.use('/api/trips/:tripId/reservations', reservationsRoutes);
   app.use('/api/trips/:tripId/days/:dayId/notes', dayNotesRoutes);
   app.use('/api/trips/:tripId/suggestions', suggestionsRoutes);
   app.get('/api/health', (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
     res.json({ status: 'ok' })
+  });
+  app.get('/api/health/features', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store, must-revalidate')
+    res.json({ bookingImport: isKitineraryAvailable() })
   });
   app.use('/api/config', publicConfigRoutes);
   app.use('/api', assignmentsRoutes);
