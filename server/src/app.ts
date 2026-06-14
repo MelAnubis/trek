@@ -49,6 +49,8 @@ import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
 import bookingImportRoutes from './routes/bookingImport';
 import { isKitineraryAvailable } from './services/kitinerary-extractor';
+import airtrailRoutes from './routes/airtrail';
+import airtrailImportRoutes from './routes/airtrailImport';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
 import { Addon, AuthRequest } from './types';
@@ -383,6 +385,8 @@ export function createApp(): express.Application {
   }, journeyRoutes);
   app.use('/api/public/journey', journeyPublicRoutes);
   app.use('/api/integrations/memories', memoriesRoutes);
+  app.use('/api/integrations/airtrail', airtrailRoutes);
+  app.use('/api/trips/:tripId/reservations/import/airtrail', airtrailImportRoutes);
   app.use('/api/photos', photoRoutes);
   app.use('/api/maps', mapsRoutes);
   app.use('/api/airports', airportsRoutes);

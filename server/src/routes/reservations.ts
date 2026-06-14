@@ -161,6 +161,14 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   res.json({ reservation });
   broadcast(tripId, 'reservation:updated', { reservation }, req.headers['x-socket-id'] as string);
 
+  // Push a locally-edited AirTrail flight back to AirTrail (fire-and-forget,
+  // under the importer's credentials — see airtrailSync). #214
+  if ((reservation as any)?.external_source === 'airtrail' && (reservation as any)?.sync_enabled) {
+    import('../services/airtrail/airtrailSync').then(({ pushReservationToAirtrail }) => {
+      void pushReservationToAirtrail(Number((reservation as any).id), Number(tripId)).catch(() => {});
+    });
+  }
+
   import('../services/notificationService').then(({ send }) => {
     const tripInfo = db.prepare('SELECT title FROM trips WHERE id = ?').get(tripId) as { title: string } | undefined;
     send({ event: 'booking_change', actorId: authReq.user.id, scope: 'trip', targetId: Number(tripId), params: { trip: tripInfo?.title || 'Untitled', actor: authReq.user.email, booking: title || current.title, type: type || current.type || 'booking', tripId: String(tripId) } }).catch(() => {});

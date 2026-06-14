@@ -2598,6 +2598,42 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'transport.modalTitle.edit': 'Edit transport',
   'transport.title': 'Transports',
   'transport.addManual': 'Manual Transport',
+
+  // AirTrail integration — reservations
+  'reservations.airtrail.title': 'Import from AirTrail',
+  'reservations.airtrail.cta': 'AirTrail',
+  'reservations.airtrail.synced': 'AirTrail',
+  'reservations.airtrail.syncedHint': 'Synced from AirTrail — edits stay in sync both ways.',
+  'reservations.airtrail.notSynced': 'Not synced',
+  'reservations.airtrail.notSyncedHint': 'This flight was removed in AirTrail and no longer syncs.',
+  'reservations.airtrail.loadError': 'Could not load your AirTrail flights.',
+  'reservations.airtrail.imported': '{count} flight(s) imported',
+  'reservations.airtrail.skippedDuplicate': '{count} already in this trip, skipped',
+  'reservations.airtrail.nothingImported': 'Nothing to import.',
+  'reservations.airtrail.importError': 'Import failed. Please try again.',
+  'reservations.airtrail.undo': 'Import from AirTrail',
+  'reservations.airtrail.alreadyImported': 'Imported',
+  'reservations.airtrail.duringTrip': 'During this trip',
+  'reservations.airtrail.otherFlights': 'Other flights',
+  'reservations.airtrail.empty': 'No flights found in your AirTrail account.',
+  'reservations.airtrail.importCta': 'Import {count}',
+
+  // AirTrail integration — settings
+  'settings.airtrail.title': 'AirTrail',
+  'settings.airtrail.hint': 'Connect your self-hosted AirTrail to import and sync flights. Create an API key in AirTrail under Settings → Security.',
+  'settings.airtrail.url': 'Instance URL',
+  'settings.airtrail.apiKey': 'API key',
+  'settings.airtrail.apiKeyPlaceholder': 'Bearer API key',
+  'settings.airtrail.apiKeyHint': 'Generated in AirTrail under Settings → Security. Stored encrypted.',
+  'settings.airtrail.allowInsecureTls': 'Allow self-signed certificates',
+  'settings.airtrail.allowInsecureTlsHint': 'Enable only for a trusted instance on your own network.',
+  'settings.airtrail.connected': 'Connected',
+  'settings.airtrail.notConnected': 'Not connected',
+  'settings.airtrail.toast.saved': 'AirTrail connection saved',
+  'settings.airtrail.toast.saveError': 'Could not save the connection',
+  'settings.airtrail.test.button': 'Test connection',
+  'settings.airtrail.test.success': 'Connected — {count} flight(s) found',
+  'settings.airtrail.test.failed': 'Connection failed',
 }
 
 export default en

@@ -2367,11 +2367,8 @@ function runMigrations(db: Database.Database): void {
     },
     // Migration: Budget → Costs rework — multi-payer table, per-expense currency, settlements
     () => {
-      // Add currency + exchange_rate columns to budget_items (idempotent)
       try { db.exec('ALTER TABLE budget_items ADD COLUMN currency TEXT'); } catch (_) {}
       try { db.exec('ALTER TABLE budget_items ADD COLUMN exchange_rate REAL NOT NULL DEFAULT 1'); } catch (_) {}
-
-      // Per-item payers (replaces the single paid_by_user_id pattern)
       db.exec(`
         CREATE TABLE IF NOT EXISTS budget_item_payers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2383,8 +2380,6 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_budget_item_payers_item ON budget_item_payers(budget_item_id);
         CREATE INDEX IF NOT EXISTS idx_budget_item_payers_user ON budget_item_payers(user_id);
       `);
-
-      // Settle-up history (Splitwise-style persisted settlements with undo)
       db.exec(`
         CREATE TABLE IF NOT EXISTS budget_settlements (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2397,8 +2392,6 @@ function runMigrations(db: Database.Database): void {
         );
         CREATE INDEX IF NOT EXISTS idx_budget_settlements_trip ON budget_settlements(trip_id);
       `);
-
-      // Backfill: if paid_by_user_id exists, migrate those rows to budget_item_payers
       const cols = db.prepare("PRAGMA table_info('budget_items')").all() as Array<{ name: string }>;
       const hasPaidBy = cols.some(c => c.name === 'paid_by_user_id');
       if (hasPaidBy) {
@@ -2408,6 +2401,29 @@ function runMigrations(db: Database.Database): void {
         const ins = db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
         for (const r of rows) ins.run(r.id, r.paid_by_user_id, r.total_price);
       }
+    },
+    // Migration: AirTrail integration addon + per-user connection + reservation linkage
+    () => {
+      try {
+        db.prepare("INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)")
+          .run('airtrail', 'AirTrail', 'Sync flights from your self-hosted AirTrail instance', 'integration', 'Plane', 0, 14);
+      } catch (err: any) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
+    () => {
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_url TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_api_key TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_allow_insecure_tls INTEGER DEFAULT 0"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
+    () => {
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_source TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_id TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_owner_user_id INTEGER"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_synced_at TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN sync_enabled INTEGER DEFAULT 1"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_hash TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_external ON reservations(external_source, external_id, trip_id)");
     },
   ];
 

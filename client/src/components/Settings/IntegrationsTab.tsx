@@ -7,6 +7,7 @@ import { authApi, oauthApi } from '../../api/client'
 import { useAddonStore } from '../../store/addonStore'
 import PhotoProvidersSection from './PhotoProvidersSection'
 import OneDriveSection from './OneDriveSection'
+import AirTrailConnectionSection from './AirTrailConnectionSection'
 import { ALL_SCOPES } from '../../api/oauthScopes'
 import ScopeGroupPicker from '../OAuth/ScopeGroupPicker'
 
@@ -98,6 +99,7 @@ export default function IntegrationsTab(): React.ReactElement {
   const toast = useToast()
   const { isEnabled: addonEnabled, loadAddons } = useAddonStore()
   const mcpEnabled = addonEnabled('mcp')
+  const airtrailEnabled = addonEnabled('airtrail')
 
   useEffect(() => {
     loadAddons()
@@ -280,6 +282,7 @@ export default function IntegrationsTab(): React.ReactElement {
     <>
       <PhotoProvidersSection />
       <OneDriveSection />
+      {airtrailEnabled && <AirTrailConnectionSection />}
       {mcpEnabled && (
         <Section title={t('settings.mcp.title')} icon={Terminal}>
           {/* Endpoint URL */}

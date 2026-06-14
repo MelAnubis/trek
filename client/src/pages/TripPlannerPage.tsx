@@ -49,6 +49,8 @@ import { findNearestDay } from '../utils/geoUtils'
 import { ListTodo, Upload, Plus, Trash2, FolderPlus } from 'lucide-react'
 import GpxManager from '../components/Elevation/GpxManager'
 import ElevationDetail, { type GpxTrack } from '../components/Elevation/ElevationDetail'
+import { useAirtrailConnection } from '../hooks/useAirtrailConnection'
+import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
@@ -226,6 +228,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const can = useCanDo()
   const canUploadFiles = can('file_upload', trip)
   const { pushUndo, undo, canUndo, lastActionLabel } = usePlannerHistory()
+  const { available: airTrailAvailable } = useAirtrailConnection()
 
   const handleUndo = useCallback(async () => {
     const label = lastActionLabel
@@ -312,6 +315,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
+  const [showAirTrailImport, setShowAirTrailImport] = useState<boolean>(false)
   const [fitKey, setFitKey] = useState<number>(0)
   const initialFitTripId = useRef<number | null>(null)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
@@ -1340,6 +1344,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
               assignments={assignments}
               files={files}
               onAdd={() => { setEditingTransport(null); setShowTransportModal(true) }}
+              onAirTrailImport={() => setShowAirTrailImport(true)}
+              airTrailAvailable={airTrailAvailable}
               onEdit={(r) => { setEditingTransport(r); setShowTransportModal(true) }}
               onDelete={handleDeleteReservation}
               onNavigateToFiles={() => handleTabChange('dateien')}
@@ -1469,6 +1475,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} />
       {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null) }} onSave={handleSaveTransport} reservation={editingTransport} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} />}
       <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={Number(tripId)} pushUndo={pushUndo} />
+      <AirTrailImportModal isOpen={showAirTrailImport} onClose={() => setShowAirTrailImport(false)} tripId={Number(tripId)} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}
         onClose={() => setDeletePlaceId(null)}
