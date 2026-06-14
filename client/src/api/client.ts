@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import type { BookingImportPreviewItem } from '../types'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
 import en from '../i18n/translations/en'
@@ -506,6 +507,21 @@ export const reservationsApi = {
   update: (tripId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
+  importBookingPreview: async (tripId: number | string, files: File[]): Promise<{ items: BookingImportPreviewItem[]; warnings: string[] }> => {
+    const form = new FormData()
+    for (const f of files) form.append('files', f)
+    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }).then(r => r.data)
+  },
+  importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<{ created: import('../types').Reservation[] }> =>
+    apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }, { timeout: 60000 }).then(r => r.data),
+}
+
+export const healthApi = {
+  features: (): Promise<{ bookingImport: boolean }> =>
+    apiClient.get('/health/features').then(r => r.data),
 }
 
 export const weatherApi = {

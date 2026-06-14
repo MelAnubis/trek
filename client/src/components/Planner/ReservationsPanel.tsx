@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Upload,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -485,9 +485,12 @@ interface ReservationsPanelProps {
   onNavigateToFiles: () => void
   titleKey?: string
   addManualKey?: string
+  onImportBooking?: () => void
+  bookingImportAvailable?: boolean
+  pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', onImportBooking, bookingImportAvailable, pushUndo }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -600,20 +603,37 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           )}
 
           {canEdit && (
-            <button onClick={onAdd} style={{
-              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-              marginLeft: 'auto',
-              transition: 'opacity 0.15s ease',
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t(addManualKey)}</span>
-            </button>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto' }}>
+              {bookingImportAvailable && onImportBooking && (
+                <button onClick={onImportBooking} style={{
+                  appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  background: 'var(--accent)', color: 'var(--accent-text)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.import.cta')}
+                >
+                  <Upload size={14} strokeWidth={2.5} />
+                  <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
+                </button>
+              )}
+              <button onClick={onAdd} style={{
+                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                background: 'var(--accent)', color: 'var(--accent-text)',
+                transition: 'opacity 0.15s ease',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span className="hidden sm:inline">{t(addManualKey)}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

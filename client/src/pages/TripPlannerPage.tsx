@@ -16,6 +16,7 @@ import SlidingTabs from '../components/shared/SlidingTabs'
 import TripMembersModal from '../components/Trips/TripMembersModal'
 import { ReservationModal } from '../components/Planner/ReservationModal'
 import { TransportModal } from '../components/Planner/TransportModal'
+import BookingImportModal from '../components/Planner/BookingImportModal'
 // MemoriesPanel moved to Journey addon
 import ReservationsPanel from '../components/Planner/ReservationsPanel'
 import PackingListPanel from '../components/Packing/PackingListPanel'
@@ -251,6 +252,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
     authApi.getAppConfig().then(config => {
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
     }).catch(() => {})
+    import('../api/client').then(({ healthApi }) => {
+      healthApi.features().then(f => setBookingImportAvailable(f.bookingImport)).catch(() => {})
+    })
   }, [])
 
   const TRANSPORT_TYPES = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
@@ -299,6 +303,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [showReservationModal, setShowReservationModal] = useState<boolean>(false)
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null)
   const [bookingForAssignmentId, setBookingForAssignmentId] = useState<number | null>(null)
+  const [showBookingImport, setShowBookingImport] = useState<boolean>(false)
+  const [bookingImportAvailable, setBookingImportAvailable] = useState<boolean>(false)
   const [showTransportModal, setShowTransportModal] = useState<boolean>(false)
   const [editingTransport, setEditingTransport] = useState<Reservation | null>(null)
   const [transportModalDayId, setTransportModalDayId] = useState<number | null>(null)
@@ -1303,6 +1309,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
               onEdit={(r) => { setEditingReservation(r); setShowReservationModal(true) }}
               onDelete={handleDeleteReservation}
               onNavigateToFiles={() => handleTabChange('dateien')}
+              onImportBooking={() => setShowBookingImport(true)}
+              bookingImportAvailable={bookingImportAvailable}
+              pushUndo={pushUndo}
             />
           </div>
         )}
@@ -1407,6 +1416,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
       <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} />
       <ReservationModal isOpen={showReservationModal} onClose={() => { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) }} onSave={handleSaveReservation} reservation={editingReservation} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} />
       {showTransportModal && <TransportModal isOpen={showTransportModal} onClose={() => { setShowTransportModal(false); setEditingTransport(null); setTransportModalDayId(null) }} onSave={handleSaveTransport} reservation={editingTransport} days={days} selectedDayId={transportModalDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} />}
+      <BookingImportModal isOpen={showBookingImport} onClose={() => setShowBookingImport(false)} tripId={Number(tripId)} pushUndo={pushUndo} />
       <ConfirmDialog
         isOpen={!!deletePlaceId}
         onClose={() => setDeletePlaceId(null)}
