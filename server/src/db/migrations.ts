@@ -2425,6 +2425,36 @@ function runMigrations(db: Database.Database): void {
       try { db.exec("ALTER TABLE reservations ADD COLUMN external_hash TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
       db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_external ON reservations(external_source, external_id, trip_id)");
     },
+    // Migration: WebAuthn (Passkey) credentials and single-use challenge store
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS webauthn_credentials (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          credential_id TEXT NOT NULL UNIQUE,
+          public_key BLOB NOT NULL,
+          counter INTEGER NOT NULL DEFAULT 0,
+          transports TEXT,
+          device_type TEXT,
+          backed_up INTEGER NOT NULL DEFAULT 0,
+          name TEXT,
+          aaguid TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_used_at DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user ON webauthn_credentials(user_id);
+        CREATE TABLE IF NOT EXISTS webauthn_challenges (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          challenge TEXT NOT NULL UNIQUE,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges(expires_at);
+        INSERT OR IGNORE INTO app_settings (key, value) VALUES ('passkey_login', 'false');
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -20,6 +20,7 @@ import { verifyJwtAndLoadUser } from '../middleware/auth';
 import { User } from '../types';
 import { DEMO_EMAIL_PRIMARY, isDemoEmail } from './demo';
 import { getFlightDistanceKm } from './distanceService';
+import { isPasskeyConfigured } from './webauthnConfig';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -42,6 +43,7 @@ const ADMIN_SETTINGS_KEYS = [
   'notification_channels', 'admin_webhook_url', 'admin_ntfy_server', 'admin_ntfy_topic', 'admin_ntfy_token',
   'notify_trip_reminder',
   'password_login', 'password_registration', 'oidc_login', 'oidc_registration',
+  'passkey_login', 'webauthn_rp_id', 'webauthn_origins',
 ];
 
 const avatarDir = path.join(__dirname, '../../uploads/avatars');
@@ -317,6 +319,8 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
     places_details_enabled: placesDetailsEnabled,
     permissions: authenticatedUser ? getAllPermissions() : undefined,
     dev_mode: process.env.NODE_ENV === 'development',
+    passkey_login: (db.prepare("SELECT value FROM app_settings WHERE key = 'passkey_login'").get() as { value: string } | undefined)?.value === 'true',
+    passkey_configured: isPasskeyConfigured(),
   };
 }
 

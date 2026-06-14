@@ -33,6 +33,7 @@ import budgetRoutes from './routes/budget';
 import collabRoutes from './routes/collab';
 import backupRoutes from './routes/backup';
 import oidcRoutes from './routes/oidc';
+import passkeyRoutes from './routes/passkey';
 import { oauthPublicRouter, oauthApiRouter } from './routes/oauth';
 import vacayRoutes from './routes/vacay';
 import atlasRoutes from './routes/atlas';
@@ -281,6 +282,7 @@ export function createApp(): express.Application {
   app.use('/api/auth', authRoutes);
   app.use('/api/bikepack', bikepackRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
+  app.use('/api/auth/passkey', passkeyRoutes);
   app.use('/api/trips', tripsRoutes);
   app.use('/api/trips/:tripId/days', daysRoutes);
   app.use('/api/trips/:tripId/accommodations', accommodationsRoutes);

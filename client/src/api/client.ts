@@ -181,6 +181,24 @@ export const authApi = {
     create: (name: string) => apiClient.post('/auth/mcp-tokens', { name }).then(r => r.data),
     delete: (id: number) => apiClient.delete(`/auth/mcp-tokens/${id}`).then(r => r.data),
   },
+  passkey: {
+    registerOptions: (password: string) => apiClient.post('/auth/passkey/register/options', { password }).then(r => r.data),
+    registerVerify: (attestationResponse: unknown, name?: string) => apiClient.post('/auth/passkey/register/verify', { attestationResponse, name }).then(r => r.data),
+    loginOptions: () => apiClient.post('/auth/passkey/login/options', {}).then(r => r.data),
+    loginVerify: (assertionResponse: unknown) => apiClient.post('/auth/passkey/login/verify', { assertionResponse }).then(r => r.data as { token: string; user: Record<string, unknown> }),
+    list: () => apiClient.get('/auth/passkey/credentials').then(r => r.data as { credentials: PasskeyCredential[] }),
+    rename: (id: number, name: string) => apiClient.patch(`/auth/passkey/credentials/${id}`, { name }).then(r => r.data),
+    delete: (id: number, password: string) => apiClient.delete(`/auth/passkey/credentials/${id}`, { data: { password } }).then(r => r.data),
+  },
+}
+
+export interface PasskeyCredential {
+  id: number
+  name: string | null
+  device_type: string | null
+  backed_up: boolean
+  created_at: string
+  last_used_at: string | null
 }
 
 export const oauthApi = {
@@ -376,6 +394,7 @@ export const adminApi = {
       apiClient.get('/admin/audit-log', { params }).then(r => r.data),
   mcpTokens: () => apiClient.get('/admin/mcp-tokens').then(r => r.data),
   deleteMcpToken: (id: number) => apiClient.delete(`/admin/mcp-tokens/${id}`).then(r => r.data),
+  resetUserPasskeys: (id: number) => apiClient.delete(`/admin/users/${id}/passkeys`).then(r => r.data),
   oauthSessions: () => apiClient.get('/admin/oauth-sessions').then(r => r.data),
   revokeOAuthSession: (id: number) => apiClient.delete(`/admin/oauth-sessions/${id}`).then(r => r.data),
   getPermissions: () => apiClient.get('/admin/permissions').then(r => r.data),

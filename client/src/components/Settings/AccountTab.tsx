@@ -8,6 +8,7 @@ import { authApi, adminApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import type { UserWithOidc } from '../../types'
 import Section from './Section'
+import PasskeysSection from './PasskeysSection'
 
 const MFA_BACKUP_SESSION_KEY = 'trek_mfa_backup_codes_pending'
 
@@ -398,6 +399,9 @@ export default function AccountTab(): React.ReactElement {
             )}
           </div>
         </div>
+
+        {/* Passkeys */}
+        <PasskeysSection demoMode={demoMode} />
 
         {/* Avatar */}
         <div className="flex items-center gap-4">
