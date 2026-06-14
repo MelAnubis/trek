@@ -4,7 +4,8 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
-import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, X, Route as RouteIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, ArrowUpDown, X, Route as RouteIcon } from 'lucide-react'
+import { DayReorderPopup } from './DayReorderPopup'
 
 const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, event: Ticket, tour: Users, other: FileText }
 import { assignmentsApi, reservationsApi } from '../../api/client'
@@ -171,6 +172,8 @@ interface DayPlanSidebarProps {
   onDayDetail: (day: Day) => void
   accommodations?: Assignment[]
   onReorder: (dayId: number, orderedIds: number[]) => void
+  onReorderDays?: (orderedIds: number[]) => void
+  onAddDay?: (position?: number) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
   onRouteCalculated: (dayId: number, route: RouteResult | null) => void
   onAssignToDay: (placeId: number, dayId: number) => void
@@ -205,7 +208,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   trip, days, places, categories, assignments,
   selectedDayId, selectedPlaceId, selectedAssignmentId,
   onSelectDay, onPlaceClick, onDayDetail, accommodations = [],
-  onReorder, onUpdateDayTitle, onRouteCalculated,
+  onReorder, onReorderDays, onAddDay, onUpdateDayTitle, onRouteCalculated,
   onAssignToDay, onRemoveAssignment, onEditPlace, onDeletePlace,
   reservations = [],
   visibleConnectionIds = [],
@@ -257,6 +260,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const [undoHover, setUndoHover] = useState(false)
   const [pdfHover, setPdfHover] = useState(false)
   const [icsHover, setIcsHover] = useState(false)
+  const [reorderOpen, setReorderOpen] = useState(false)
   const [hoveredAssignmentId, setHoveredAssignmentId] = useState<number | null>(null)
   const [dropTargetKey, _setDropTargetKey] = useState(null)
   const dropTargetRef = useRef(null)
@@ -1023,6 +1027,39 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                 }}>
                   {canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button')}
                 </div>
+              )}
+            </div>
+          )}
+          {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <Tooltip label={t('dayplan.reorderDays')} placement="bottom">
+                <button
+                  onClick={() => setReorderOpen(v => !v)}
+                  aria-label={t('dayplan.reorderDays')}
+                  aria-pressed={reorderOpen}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 30, height: 30, borderRadius: 8,
+                    border: '1px solid var(--border-primary)',
+                    background: reorderOpen ? 'var(--bg-hover)' : 'none',
+                    color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+                    transition: 'color 0.15s, border-color 0.15s, background 0.15s',
+                  }}
+                  onMouseEnter={e => { if (!reorderOpen) e.currentTarget.style.background = 'var(--bg-hover)' }}
+                  onMouseLeave={e => { if (!reorderOpen) e.currentTarget.style.background = 'transparent' }}
+                >
+                  <ArrowUpDown size={14} strokeWidth={2} />
+                </button>
+              </Tooltip>
+              {reorderOpen && (
+                <DayReorderPopup
+                  days={days}
+                  t={t}
+                  locale={locale}
+                  onReorder={onReorderDays}
+                  onAddDay={() => onAddDay()}
+                  onClose={() => setReorderOpen(false)}
+                />
               )}
             </div>
           )}
