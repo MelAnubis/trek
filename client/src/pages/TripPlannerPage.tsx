@@ -23,7 +23,7 @@ import ApplyTemplateButton from '../components/Packing/ApplyTemplateButton'
 import BikepackImportModal from '../components/Packing/BikepackImportModal'
 import TodoListPanel from '../components/Todo/TodoListPanel'
 import FileManager from '../components/Files/FileManager'
-import BudgetPanel from '../components/Budget/BudgetPanel'
+import CostsPanel from '../components/Budget/CostsPanel'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
@@ -1296,7 +1296,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
         {activeTab === 'finanzplan' && (
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <BudgetPanel tripId={tripId} tripMembers={tripMembers} />
+            <CostsPanel tripId={tripId} tripMembers={tripMembers} />
           </div>
         )}
 

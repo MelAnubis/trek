@@ -24,7 +24,9 @@ export interface Trip {
   is_archived: boolean
   reminder_days: number
   trip_type: string | null  // 'general' | 'cycling'
+  currency?: string | null
   owner_id: number
+  user_id?: number  // server-side alias for owner_id
   created_at: string
   updated_at: string
 }
@@ -125,18 +127,36 @@ export interface BudgetItem {
   id: number
   trip_id: number
   name: string
-  amount: number
-  currency: string
+  total_price: number
+  currency: string | null
+  exchange_rate?: number
   category: string | null
-  paid_by: number | null
-  persons: number
-  members: BudgetMember[]
+  persons?: number | null
+  days?: number | null
+  note?: string | null
+  sort_order: number
+  created_at?: string
   expense_date: string | null
+  reservation_id?: number | null
+  members?: BudgetMember[]
+  payers?: BudgetItemPayer[]
+  // Legacy compatibility
+  amount?: number
+  paid_by?: number | null
 }
 
 export interface BudgetMember {
   user_id: number
-  paid: boolean
+  paid: number | boolean
+  username?: string
+  avatar_url?: string | null
+}
+
+export interface BudgetItemPayer {
+  user_id: number
+  amount: number
+  username?: string
+  avatar_url?: string | null
 }
 
 export interface ReservationEndpoint {
