@@ -2365,6 +2365,50 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_nav_photos_trip ON nav_photos(trip_id);
       `);
     },
+    // Migration: Budget → Costs rework — multi-payer table, per-expense currency, settlements
+    () => {
+      // Add currency + exchange_rate columns to budget_items (idempotent)
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN currency TEXT'); } catch (_) {}
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN exchange_rate REAL NOT NULL DEFAULT 1'); } catch (_) {}
+
+      // Per-item payers (replaces the single paid_by_user_id pattern)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_item_payers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          budget_item_id INTEGER NOT NULL REFERENCES budget_items(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL DEFAULT 0,
+          UNIQUE(budget_item_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_item_payers_item ON budget_item_payers(budget_item_id);
+        CREATE INDEX IF NOT EXISTS idx_budget_item_payers_user ON budget_item_payers(user_id);
+      `);
+
+      // Settle-up history (Splitwise-style persisted settlements with undo)
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_settlements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL,
+          created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_settlements_trip ON budget_settlements(trip_id);
+      `);
+
+      // Backfill: if paid_by_user_id exists, migrate those rows to budget_item_payers
+      const cols = db.prepare("PRAGMA table_info('budget_items')").all() as Array<{ name: string }>;
+      const hasPaidBy = cols.some(c => c.name === 'paid_by_user_id');
+      if (hasPaidBy) {
+        const rows = db.prepare(
+          'SELECT id, total_price, paid_by_user_id FROM budget_items WHERE paid_by_user_id IS NOT NULL AND total_price > 0'
+        ).all() as Array<{ id: number; total_price: number; paid_by_user_id: number }>;
+        const ins = db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
+        for (const r of rows) ins.run(r.id, r.paid_by_user_id, r.total_price);
+      }
+    },
   ];
 
   if (currentVersion < migrations.length) {
