@@ -13,6 +13,9 @@ export function isPublicApiPath(method: string, pathNoQuery: string): boolean {
   if (method === 'GET' && pathNoQuery.startsWith('/api/auth/invite/')) return true;
   if (method === 'POST' && pathNoQuery === '/api/auth/mfa/verify-login') return true;
   if (pathNoQuery.startsWith('/api/auth/oidc/')) return true;
+  // Passkey login is a primary authentication method — allow it before MFA
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/login/options') return true;
+  if (method === 'POST' && pathNoQuery === '/api/auth/passkey/login/verify') return true;
   return false;
 }
 

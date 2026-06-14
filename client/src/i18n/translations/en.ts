@@ -487,6 +487,30 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.mfa.toastDisabled': 'Two-factor authentication disabled',
   'settings.mfa.demoBlocked': 'Not available in demo mode',
 
+  // Passkeys
+  'settings.passkey.title': 'Passkeys',
+  'settings.passkey.description':
+    'Sign in faster and phishing-resistant with a passkey — your fingerprint, face, PIN, or a hardware key. Your password stays as a backup.',
+  'settings.passkey.notConfigured':
+    'Passkeys are enabled but not fully configured on this server yet. Ask your administrator to set the WebAuthn domain.',
+  'settings.passkey.add': 'Add a passkey',
+  'settings.passkey.addTitle': 'Add a passkey',
+  'settings.passkey.passwordPrompt': 'Confirm your current password, then follow your device prompt.',
+  'settings.passkey.passwordRequired': 'Your current password is required.',
+  'settings.passkey.namePlaceholder': 'Name (optional, e.g. "iPhone")',
+  'settings.passkey.addedToast': 'Passkey added',
+  'settings.passkey.added': 'Added',
+  'settings.passkey.addError': 'Could not add passkey',
+  'settings.passkey.cancelled': 'Passkey setup cancelled',
+  'settings.passkey.deleted': 'Passkey removed',
+  'settings.passkey.deleteConfirm': 'Remove this passkey? Confirm with your password.',
+  'settings.passkey.rename': 'Rename',
+  'settings.passkey.defaultName': 'Passkey',
+  'settings.passkey.synced': 'Synced',
+  'settings.passkey.deviceBound': 'This device',
+  'settings.passkey.lastUsed': 'Last used',
+  'settings.passkey.neverUsed': 'Never used',
+
   // Login
   'login.error': 'Login failed. Please check your credentials.',
   'login.tagline': 'Your Trips.\nYour Plan.',
@@ -542,6 +566,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'login.mfaVerify': 'Verify',
   'login.invalidInviteLink': 'Invalid or expired invite link',
   'login.oidcFailed': 'OIDC login failed',
+  'login.passkey.signIn': 'Sign in with a passkey',
+  'login.passkey.failed': 'Passkey sign-in failed. Please try again.',
   'login.usernameRequired': 'Username is required',
   'login.passwordMinLength': 'Password must be at least 8 characters',
   'login.forgotPassword': 'Forgot password?',
@@ -679,6 +705,26 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'admin.oidcSaved': 'OIDC configuration saved',
   'admin.oidcOnlyMode': 'Disable password authentication',
   'admin.oidcOnlyModeHint': 'When enabled, only SSO login is permitted. Password-based login and registration are blocked.',
+
+  // Passkey / WebAuthn admin settings
+  'admin.passkey.title': 'Passkey login',
+  'admin.passkey.cardHint': 'Let users sign in with passkeys (WebAuthn). Off by default.',
+  'admin.passkey.login': 'Enable passkey login',
+  'admin.passkey.loginHint':
+    'Show a "Sign in with a passkey" option and let users enrol passkeys in their settings.',
+  'admin.passkey.notConfigured':
+    'No WebAuthn domain resolves for this deployment yet. Set APP_URL or the Relying Party ID below — passkeys stay hidden until then.',
+  'admin.passkey.rpId': 'Relying Party ID (domain)',
+  'admin.passkey.rpIdHint':
+    'The bare domain passkeys are bound to, e.g. trek.example.org. Leave empty to derive it from APP_URL. Changing it later invalidates existing passkeys.',
+  'admin.passkey.origins': 'Allowed origins',
+  'admin.passkey.originsHint':
+    'Comma-separated list of allowed origins, e.g. https://trek.example.org. Leave empty to derive from APP_URL.',
+  'admin.passkey.reset': 'Reset passkeys',
+  'admin.passkey.resetHint':
+    "Remove all of this user's passkeys (e.g. on a lost device). They can still sign in with their password.",
+  'admin.passkey.resetConfirm': 'Remove all passkeys for {name}?',
+  'admin.passkey.resetDone': 'Removed {count} passkey(s)',
 
   // File Types
   'admin.fileTypes': 'Allowed File Types',
