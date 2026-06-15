@@ -15,7 +15,7 @@ export function LoginScreen() {
   const { login, init, isLoading } = useAuthStore();
 
   const [serverUrl, setServerUrl] = useState('');
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,13 +27,13 @@ export function LoginScreen() {
   }, []);
 
   const handleLogin = async () => {
-    if (!serverUrl.trim() || !username.trim() || !password.trim()) {
+    if (!serverUrl.trim() || !email.trim() || !password.trim()) {
       Alert.alert('Campos requeridos', 'Rellena todos los campos');
       return;
     }
     setLoading(true);
     try {
-      await login(serverUrl.trim(), username.trim(), password);
+      await login(serverUrl.trim(), email.trim(), password);
     } catch (e: any) {
       const msg = e?.response?.data?.message ?? e?.message ?? 'Error de conexión';
       Alert.alert('Error al iniciar sesión', msg);
@@ -84,10 +84,11 @@ export function LoginScreen() {
           <Text style={[styles.sectionLabel, { marginTop: 20 }]}>CUENTA</Text>
           <TextInput
             style={styles.input}
-            placeholder="Usuario"
+            placeholder="Email"
             placeholderTextColor="#9CA3AF"
-            value={username}
-            onChangeText={setUsername}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
           />
