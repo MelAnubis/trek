@@ -11,7 +11,7 @@ interface AuthState {
   error: string | null;
 
   init: () => Promise<void>;
-  login: (serverUrl: string, username: string, password: string) => Promise<void>;
+  login: (serverUrl: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -43,10 +43,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  login: async (serverUrl, username, password) => {
+  login: async (serverUrl, email, password) => {
     set({ error: null });
     const url = serverUrl.replace(/\/$/, '');
-    const { data } = await api.post('/api/auth/login', { username, password }, {
+    const { data } = await api.post('/api/auth/login', { email, password }, {
       baseURL: url,
     });
     await Promise.all([
