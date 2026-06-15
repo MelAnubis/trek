@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, useWindowDimensions,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,7 @@ import { useTripStore } from '@/store/tripStore';
 import type { RootStackParamList } from '../../App';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
+import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
 
 type Route = RouteProp<RootStackParamList, 'Navigate'>;
 
@@ -106,6 +107,7 @@ export function NavigationScreen() {
   const { tracks } = useTripStore();
   const track = tracks.find((t) => t.id === trackId);
 
+  const { width: screenWidth } = useWindowDimensions();
   const [points, setPoints] = useState<GpxPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
@@ -176,6 +178,17 @@ export function NavigationScreen() {
 
   const progressPct = totalDist > 0 ? (distanceDone / totalDist) * 100 : 0;
 
+  const elevPoints = useMemo<ElevPoint[]>(() => {
+    if (points.length < 2) return [];
+    let d = 0;
+    const result: ElevPoint[] = [];
+    for (let i = 0; i < points.length; i++) {
+      if (i > 0) d += haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+      if (points[i].ele != null) result.push({ dist: d, ele: points[i].ele! });
+    }
+    return result;
+  }, [points]);
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -240,11 +253,22 @@ export function NavigationScreen() {
 
       {/* Bottom panel */}
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 16 }]}>
+        {elevPoints.length > 1 && (
+          <View style={styles.elevStrip}>
+            <ElevationChart
+              points={elevPoints}
+              width={screenWidth - 40}
+              height={60}
+              currentDist={started ? distanceDone : undefined}
+              compact={false}
+            />
+          </View>
+        )}
         {!started ? (
           <>
             <View style={styles.routeRow}>
-              <Text style={styles.routeStat}>📏 {formatDist(totalDist)}</Text>
-              {track && <Text style={styles.routeStat}>⛰ +{Math.round(track.totalElevationGain)} m</Text>}
+              <Text style={styles.routeStat}>{`📏 ${formatDist(totalDist)}`}</Text>
+              {track ? <Text style={styles.routeStat}>{`⛰ +${Math.round(track.totalElevationGain)} m`}</Text> : null}
             </View>
             <TouchableOpacity style={styles.startBtn} onPress={startNavigation} activeOpacity={0.85}>
               <Text style={styles.startBtnText}>▶  Iniciar navegación</Text>
@@ -290,6 +314,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20, paddingTop: 16,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 12,
   },
+  elevStrip: { marginBottom: 10, marginTop: -4 },
   routeRow: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 14 },
   routeStat: { ...TYPE.body, color: COLORS.text },
   startBtn: {

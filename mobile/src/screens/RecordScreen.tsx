@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
 import { api } from '@/api/client';
 import { useTripStore } from '@/store/tripStore';
 import type { Trip } from '@/types';
@@ -26,8 +27,16 @@ export interface RecordedPoint {
   speed: number | null;
 }
 
+interface PhotoWaypoint {
+  lat: number;
+  lng: number;
+  time: string;
+  uri: string;
+}
+
 // Module-level bridge between background task and React component
 let _pts: RecordedPoint[] = [];
+let _photos: PhotoWaypoint[] = [];
 let _onNewPoint: ((pt: RecordedPoint) => void) | null = null;
 
 TaskManager.defineTask(BG_TASK, ({ data, error }: any) => {
@@ -102,14 +111,17 @@ window.addEventListener('message',function(e){
 </body></html>`;
 }
 
-function buildGpx(points: RecordedPoint[], name: string): string {
+function buildGpx(points: RecordedPoint[], photos: PhotoWaypoint[], name: string): string {
+  const wpts = photos.map((w, i) =>
+    `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>Foto ${i + 1}</name>\n    <time>${w.time}</time>\n  </wpt>`
+  ).join('\n');
   const trkpts = points.map((p) => {
     const ele = p.ele != null ? `\n        <ele>${p.ele.toFixed(1)}</ele>` : '';
     return `      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">${ele}\n        <time>${p.time}</time>\n      </trkpt>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Trek Mobile" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
+${wpts ? wpts + '\n' : ''}  <trk>
     <name>${name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</name>
     <trkseg>
 ${trkpts}
@@ -133,6 +145,7 @@ export function RecordScreen() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [saving, setSaving] = useState(false);
   const [mapHtml, setMapHtml] = useState('');
+  const [lastPhoto, setLastPhoto] = useState<string | null>(null);
 
   const webViewRef = useRef<WebView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -202,6 +215,7 @@ export function RecordScreen() {
     }
 
     _pts = [];
+    _photos = [];
     distRef.current = 0;
     gainRef.current = 0;
     lastEleRef.current = null;
@@ -272,7 +286,7 @@ export function RecordScreen() {
     if (_pts.length < 2) { Alert.alert('Ruta muy corta', 'Necesitas al menos 2 puntos grabados.'); return; }
     setSaving(true);
     try {
-      const gpx = buildGpx(_pts, trackName || 'Ruta grabada');
+      const gpx = buildGpx(_pts, _photos, trackName || 'Ruta grabada');
       const path = `${FileSystem.cacheDirectory}trek_track.gpx`;
       await FileSystem.writeAsStringAsync(path, gpx, { encoding: FileSystem.EncodingType.UTF8 });
       const formData = new FormData();
@@ -408,6 +422,20 @@ export function RecordScreen() {
     );
   }
 
+  const takePhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.'); return; }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false });
+    if (result.canceled || !result.assets[0]) return;
+    const uri = result.assets[0].uri;
+    const current = _pts[_pts.length - 1];
+    if (current) {
+      _photos.push({ lat: current.lat, lng: current.lng, time: new Date().toISOString(), uri });
+    }
+    setLastPhoto(uri);
+    setTimeout(() => setLastPhoto(null), 3000);
+  }, []);
+
   const reCenter = useCallback(async () => {
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
@@ -450,10 +478,18 @@ export function RecordScreen() {
         </View>
       </View>
 
-      {/* Locate button */}
-      <TouchableOpacity style={[styles.locateBtn, { top: insets.top + 70 + 80 }]} onPress={reCenter} activeOpacity={0.8}>
-        <Text style={styles.locateBtnText}>◎</Text>
+      {/* Side buttons */}
+      <TouchableOpacity style={[styles.sideBtn, { top: insets.top + 70 + 80 }]} onPress={reCenter} activeOpacity={0.8}>
+        <Text style={styles.sideBtnText}>◎</Text>
       </TouchableOpacity>
+      <TouchableOpacity style={[styles.sideBtn, { top: insets.top + 70 + 136 }]} onPress={takePhoto} activeOpacity={0.8}>
+        <Text style={styles.sideBtnText}>📷</Text>
+      </TouchableOpacity>
+
+      {/* Photo flash confirmation */}
+      {lastPhoto && (
+        <Image source={{ uri: lastPhoto }} style={[styles.photoThumb, { top: insets.top + 70 + 192 }]} />
+      )}
 
       <View style={[styles.controls, { paddingBottom: insets.bottom + 16 }]}>
         {state === 'recording' ? (
@@ -553,11 +589,17 @@ const styles = StyleSheet.create({
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
   },
   stopBtnText: { ...TYPE.h3, color: COLORS.danger, fontSize: 15 },
-  locateBtn: {
+  sideBtn: {
     position: 'absolute', right: 16,
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, elevation: 6,
   },
-  locateBtnText: { fontSize: 22, color: COLORS.primaryDark },
+  sideBtnText: { fontSize: 20, color: COLORS.primaryDark },
+  photoThumb: {
+    position: 'absolute', right: 16,
+    width: 60, height: 60, borderRadius: 10,
+    borderWidth: 2, borderColor: '#fff',
+    shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6,
+  },
 });
