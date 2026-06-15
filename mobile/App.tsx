@@ -13,7 +13,7 @@ import { TripsScreen } from '@/screens/TripsScreen';
 import { TripDetailScreen } from '@/screens/TripDetailScreen';
 import { DayMapScreen } from '@/screens/DayMapScreen';
 import { NavigationScreen } from '@/screens/NavigationScreen';
-import { AtlasScreen } from '@/screens/AtlasScreen';
+import { RecordScreen } from '@/screens/RecordScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { COLORS } from '@/theme/colors';
 import { TabBar } from '@/components/TabBar';
@@ -42,7 +42,7 @@ function TabNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Trips" component={TripsScreen} />
-      <Tab.Screen name="Atlas" component={AtlasScreen} />
+      <Tab.Screen name="Atlas" component={RecordScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
