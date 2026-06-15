@@ -18,6 +18,14 @@ import { TYPE } from '@/theme/typography';
 const BG_TASK = 'trek-gps-recording';
 
 type RecordState = 'idle' | 'recording' | 'paused' | 'done';
+type ActivityType = 'hiking' | 'cycling' | 'mountain_biking' | 'running';
+
+const ACTIVITIES: { type: ActivityType; icon: string; label: string }[] = [
+  { type: 'hiking', icon: '🥾', label: 'Senderismo' },
+  { type: 'cycling', icon: '🚴', label: 'Ciclismo' },
+  { type: 'mountain_biking', icon: '🚵', label: 'MTB' },
+  { type: 'running', icon: '🏃', label: 'Running' },
+];
 
 export interface RecordedPoint {
   lat: number;
@@ -111,7 +119,7 @@ window.addEventListener('message',function(e){
 </body></html>`;
 }
 
-function buildGpx(points: RecordedPoint[], photos: PhotoWaypoint[], name: string): string {
+function buildGpx(points: RecordedPoint[], photos: PhotoWaypoint[], name: string, activityType: ActivityType = 'hiking'): string {
   const wpts = photos.map((w, i) =>
     `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>Foto ${i + 1}</name>\n    <time>${w.time}</time>\n  </wpt>`
   ).join('\n');
@@ -123,6 +131,7 @@ function buildGpx(points: RecordedPoint[], photos: PhotoWaypoint[], name: string
 <gpx version="1.1" creator="Trek Mobile" xmlns="http://www.topografix.com/GPX/1/1">
 ${wpts ? wpts + '\n' : ''}  <trk>
     <name>${name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</name>
+    <type>${activityType}</type>
     <trkseg>
 ${trkpts}
     </trkseg>
@@ -137,6 +146,7 @@ export function RecordScreen() {
   const { trips, fetchTrips } = useTripStore();
 
   const [state, setState] = useState<RecordState>('idle');
+  const [activityType, setActivityType] = useState<ActivityType>('hiking');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [trackName, setTrackName] = useState('');
   const [distanceM, setDistanceM] = useState(0);
@@ -286,7 +296,7 @@ export function RecordScreen() {
     if (_pts.length < 2) { Alert.alert('Ruta muy corta', 'Necesitas al menos 2 puntos grabados.'); return; }
     setSaving(true);
     try {
-      const gpx = buildGpx(_pts, _photos, trackName || 'Ruta grabada');
+      const gpx = buildGpx(_pts, _photos, trackName || 'Ruta grabada', activityType);
       const path = `${FileSystem.cacheDirectory}trek_track.gpx`;
       await FileSystem.writeAsStringAsync(path, gpx, { encoding: FileSystem.EncodingType.UTF8 });
       const formData = new FormData();
@@ -323,6 +333,23 @@ export function RecordScreen() {
             <Text style={styles.recordCardIcon}>📍</Text>
             <Text style={styles.recordCardTitle}>Nueva grabación GPS</Text>
             <Text style={styles.recordCardSub}>Funciona con pantalla apagada</Text>
+          </View>
+
+          <Text style={styles.sectionLabel}>TIPO DE ACTIVIDAD</Text>
+          <View style={styles.activityRow}>
+            {ACTIVITIES.map((a) => (
+              <TouchableOpacity
+                key={a.type}
+                style={[styles.activityBtn, activityType === a.type && styles.activityBtnActive]}
+                onPress={() => setActivityType(a.type)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.activityIcon}>{a.icon}</Text>
+                <Text style={[styles.activityLabel, activityType === a.type && styles.activityLabelActive]}>
+                  {a.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <Text style={styles.sectionLabel}>ASOCIAR A UN VIAJE (opcional)</Text>
@@ -602,4 +629,14 @@ const styles = StyleSheet.create({
     borderWidth: 2, borderColor: '#fff',
     shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, elevation: 6,
   },
+  activityRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
+  activityBtn: {
+    flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12,
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: 'transparent',
+    shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
+  },
+  activityBtnActive: { borderColor: COLORS.primary, backgroundColor: `${COLORS.primary}12` },
+  activityIcon: { fontSize: 22, marginBottom: 4 },
+  activityLabel: { ...TYPE.caption, color: COLORS.textMuted, fontSize: 10 },
+  activityLabelActive: { color: COLORS.primaryDark, fontWeight: '700' },
 });

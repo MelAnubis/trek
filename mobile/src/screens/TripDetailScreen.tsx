@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image, Share, useWindowDimensions,
+  ActivityIndicator, Image, Share, useWindowDimensions, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -14,6 +14,7 @@ import type { Day, GpxTrack } from '@/types';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
+import { tilesForBbox, downloadTiles, hasCachedTiles } from '@/utils/offlineTiles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'TripDetail'>;
@@ -149,6 +150,11 @@ export function TripDetailScreen() {
   const { serverUrl } = useAuthStore();
   const { width: screenWidth } = useWindowDimensions();
   const chartWidth = screenWidth - 64;
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [offlineReady, setOfflineReady] = useState(false);
+
+  useEffect(() => { hasCachedTiles().then(setOfflineReady); }, []);
 
   useEffect(() => { fetchTripDetail(tripId); }, [tripId]);
 
@@ -166,6 +172,34 @@ export function TripDetailScreen() {
           : `${currentTrip?.name ?? 'Viaje'} · ${totalKm.toFixed(0)} km · +${Math.round(totalGain)} m`,
       });
     } catch {}
+  };
+
+  const handleDownloadOffline = async () => {
+    if (tracks.length === 0) { Alert.alert('Sin rutas', 'No hay rutas GPX para descargar.'); return; }
+    setDownloading(true);
+    setDownloadProgress(0);
+    try {
+      let minLat = Infinity, minLng = Infinity, maxLat = -Infinity, maxLng = -Infinity;
+      for (const track of tracks) {
+        const pts = await getGpxPoints(tripId, track.id);
+        for (const p of pts) {
+          if (p.lat < minLat) minLat = p.lat;
+          if (p.lat > maxLat) maxLat = p.lat;
+          if (p.lng < minLng) minLng = p.lng;
+          if (p.lng > maxLng) maxLng = p.lng;
+        }
+      }
+      const buf = 0.05;
+      const tiles = tilesForBbox(minLat - buf, minLng - buf, maxLat + buf, maxLng + buf);
+      await downloadTiles(tiles, (done, total) => setDownloadProgress(Math.round((done / total) * 100)));
+      setOfflineReady(true);
+      Alert.alert('Descarga completa', `${tiles.length} teselas descargadas para uso offline.`);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'No se pudo descargar el mapa.');
+    } finally {
+      setDownloading(false);
+      setDownloadProgress(0);
+    }
   };
 
   if (loadingDetail && !currentTrip) {
@@ -213,6 +247,25 @@ export function TripDetailScreen() {
           {/* Map button */}
           <TouchableOpacity style={styles.mapBtn} onPress={() => navigation.navigate('DayMap', { tripId })} activeOpacity={0.85}>
             <Text style={styles.mapBtnText}>{'🗺  Ver en el mapa'}</Text>
+          </TouchableOpacity>
+
+          {/* Offline map download */}
+          <TouchableOpacity
+            style={[styles.offlineBtn, offlineReady && styles.offlineBtnReady, downloading && { opacity: 0.7 }]}
+            onPress={handleDownloadOffline}
+            disabled={downloading}
+            activeOpacity={0.85}
+          >
+            {downloading ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.offlineBtnText}>{`Descargando… ${downloadProgress}%`}</Text>
+              </View>
+            ) : (
+              <Text style={styles.offlineBtnText}>
+                {offlineReady ? '✓  Mapa offline disponible' : '⬇  Descargar mapa offline'}
+              </Text>
+            )}
           </TouchableOpacity>
 
           {/* GPX Tracks */}
@@ -282,9 +335,15 @@ const styles = StyleSheet.create({
 
   mapBtn: {
     backgroundColor: COLORS.bg, borderRadius: 12, paddingVertical: 14,
-    alignItems: 'center', marginBottom: 24,
+    alignItems: 'center', marginBottom: 10,
   },
   mapBtnText: { ...TYPE.label, color: COLORS.primary, fontSize: 15 },
+  offlineBtn: {
+    backgroundColor: '#F3F4F6', borderRadius: 12, paddingVertical: 13,
+    alignItems: 'center', marginBottom: 24, borderWidth: 1, borderColor: COLORS.border,
+  },
+  offlineBtnReady: { backgroundColor: `${COLORS.primary}12`, borderColor: COLORS.primary },
+  offlineBtnText: { ...TYPE.label, color: COLORS.textMuted, fontSize: 14 },
 
   section: { marginBottom: 24 },
   sectionTitle: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 10, letterSpacing: 1 },

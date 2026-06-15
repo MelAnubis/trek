@@ -12,10 +12,15 @@ import type { RootStackParamList } from '../../App';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
+import {
+  checkVoiceAnnouncements, resetVoiceState, setVoiceMuted, isVoiceMuted,
+} from '@/utils/voiceNavigation';
+import { hasCachedTiles, getTilesDir } from '@/utils/offlineTiles';
 
 type Route = RouteProp<RootStackParamList, 'Navigate'>;
 
 interface GpxPoint { lat: number; lng: number; ele?: number }
+interface Highlight { lat: number; lng: number; label: string }
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -58,28 +63,44 @@ function formatTime(ms: number) {
   return h > 0 ? `${h}h ${m}min` : `${m}min`;
 }
 
-function buildNavHtml(points: GpxPoint[], nearestIdx: number): string {
+function buildNavHtml(points: GpxPoint[], nearestIdx: number, tilesDir = ''): string {
   const fullCoords = JSON.stringify(points.map((p) => [p.lat, p.lng]));
   const doneCoords = JSON.stringify(points.slice(0, nearestIdx + 1).map((p) => [p.lat, p.lng]));
   const center = points[0] ?? { lat: 40.4168, lng: -3.7038 };
+  const escapedDir = tilesDir.replace(/'/g, "\\'");
+  const tileLayerJs = `
+var TILES_DIR='${escapedDir}';
+var HybridTile=L.TileLayer.extend({createTile:function(c,done){
+  var t=document.createElement('img');t.setAttribute('role','presentation');
+  var local=TILES_DIR?TILES_DIR+c.z+'/'+c.x+'/'+c.y+'.png':null;
+  var remote='https://tile.openstreetmap.org/'+c.z+'/'+c.x+'/'+c.y+'.png';
+  var usedR=false;
+  t.onload=function(){done(null,t);};
+  t.onerror=function(){if(!usedR){usedR=true;t.src=remote;}else{done(new Error(),t);}};
+  t.src=local||remote;return t;
+}});
+new HybridTile('',{maxZoom:19}).addTo(map);`;
+
   return `<!DOCTYPE html>
 <html>
 <head>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<style>html,body,#map{margin:0;padding:0;width:100%;height:100%;}</style>
+<style>html,body,#map{margin:0;padding:0;width:100%;height:100%;}
+.hl-icon{font-size:20px;line-height:1;}</style>
 </head>
 <body>
 <div id="map"></div>
 <script>
 var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([${center.lat},${center.lng}],14);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+${tileLayerJs}
 var full=${fullCoords};
 var done=${doneCoords};
 if(full.length>1)L.polyline(full,{color:'#D1FAE5',weight:5,opacity:0.7}).addTo(map);
 if(done.length>1)L.polyline(done,{color:'${COLORS.primary}',weight:5}).addTo(map);
 var userMarker=null;
+var hlCount=0;
 function updateUser(lat,lng){
   if(userMarker)map.removeLayer(userMarker);
   userMarker=L.circleMarker([lat,lng],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
@@ -92,6 +113,12 @@ window.addEventListener('message',function(e){
     if(done.length>1){map.eachLayer(function(l){if(l._latlngs&&l.options.color==='${COLORS.primary}')map.removeLayer(l);});}
     done=d.done;
     if(done.length>1)L.polyline(done,{color:'${COLORS.primary}',weight:5}).addTo(map);
+  }
+  if(d.type==='highlight'){
+    hlCount++;
+    var ico=L.divIcon({html:'<span class="hl-icon">📌</span>',iconSize:[24,24],iconAnchor:[12,24],className:''});
+    L.marker([d.lat,d.lng],{icon:ico}).addTo(map)
+     .bindPopup(d.label||('Punto '+hlCount)).openPopup();
   }
 });
 </script>
@@ -118,21 +145,31 @@ export function NavigationScreen() {
   const [elapsedMs, setElapsedMs] = useState(0);
   const [totalDist, setTotalDist] = useState(0);
   const [htmlContent, setHtmlContent] = useState('');
+  const [muted, setMuted] = useState(false);
+  const [highlights, setHighlights] = useState<Highlight[]>([]);
 
   const webViewRef = useRef<WebView>(null);
   const locationSub = useRef<Location.LocationSubscription | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const nearestIdxRef = useRef(0);
+  const lastLatRef = useRef<number | null>(null);
+  const lastLngRef = useRef<number | null>(null);
+  const tilesDirRef = useRef('');
 
   useEffect(() => {
     (async () => {
       try {
-        const pts = await getGpxPoints(tripId, trackId);
+        const [pts, hasOffline] = await Promise.all([
+          getGpxPoints(tripId, trackId),
+          hasCachedTiles(),
+        ]);
+        const tDir = hasOffline ? getTilesDir() : '';
+        tilesDirRef.current = tDir;
         setPoints(pts);
         setTotalDist(totalTrackDistance(pts));
         setDistanceLeft(totalTrackDistance(pts));
-        setHtmlContent(buildNavHtml(pts, 0));
+        setHtmlContent(buildNavHtml(pts, 0, tDir));
       } catch {}
       setLoading(false);
     })();
@@ -142,10 +179,27 @@ export function NavigationScreen() {
     };
   }, [tripId, trackId]);
 
+  const toggleMute = useCallback(() => {
+    setMuted((prev) => {
+      setVoiceMuted(!prev);
+      return !prev;
+    });
+  }, []);
+
+  const markHighlight = useCallback(() => {
+    const lat = lastLatRef.current;
+    const lng = lastLngRef.current;
+    if (lat == null || lng == null) return;
+    const label = `Punto ${highlights.length + 1}`;
+    setHighlights((prev) => [...prev, { lat, lng, label }]);
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'highlight', lat, lng, label }));
+  }, [highlights.length]);
+
   const startNavigation = useCallback(async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return;
     setStarted(true);
+    resetVoiceState();
     startTimeRef.current = Date.now();
     timerRef.current = setInterval(() => setElapsedMs(Date.now() - startTimeRef.current), 1000);
 
@@ -153,6 +207,8 @@ export function NavigationScreen() {
       { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1500, distanceInterval: 3 },
       (loc) => {
         const { latitude: lat, longitude: lng, speed: spd } = loc.coords;
+        lastLatRef.current = lat;
+        lastLngRef.current = lng;
         setSpeed(spd ?? 0);
         webViewRef.current?.postMessage(JSON.stringify({ type: 'location', lat, lng }));
         setPoints((prev) => {
@@ -162,6 +218,7 @@ export function NavigationScreen() {
           const done = distanceFromStart(prev, idx);
           setDistanceDone(done);
           setDistanceLeft(totalDist - done);
+          checkVoiceAnnouncements(done, totalDist);
           const doneCoords = prev.slice(0, idx + 1).map((p) => [p.lat, p.lng]);
           webViewRef.current?.postMessage(JSON.stringify({ type: 'update', done: doneCoords }));
           return prev;
@@ -189,6 +246,8 @@ export function NavigationScreen() {
     return result;
   }, [points]);
 
+  const hasOfflineTiles = tilesDirRef.current !== '';
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -203,11 +262,14 @@ export function NavigationScreen() {
       {htmlContent ? (
         <WebView
           ref={webViewRef}
-          source={{ html: htmlContent }}
+          source={{ html: htmlContent, baseUrl: hasOfflineTiles ? getTilesDir() : undefined }}
           style={StyleSheet.absoluteFill}
           javaScriptEnabled
           domStorageEnabled
           originWhitelist={['*']}
+          allowFileAccess={hasOfflineTiles}
+          allowUniversalAccessFromFileURLs={hasOfflineTiles}
+          mixedContentMode={hasOfflineTiles ? 'always' : 'never'}
         />
       ) : (
         <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.mapBg }]} />
@@ -222,6 +284,9 @@ export function NavigationScreen() {
           <Text style={styles.trackName} numberOfLines={1}>{track?.trackName ?? 'Ruta'}</Text>
           {started && <Text style={styles.elapsed}>{formatTime(elapsedMs)}</Text>}
         </View>
+        <TouchableOpacity style={styles.muteBtn} onPress={toggleMute}>
+          <Text style={styles.muteBtnText}>{muted ? '🔇' : '🔊'}</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Stats HUD */}
@@ -241,6 +306,24 @@ export function NavigationScreen() {
             <Text style={styles.hudValue}>{formatDist(distanceDone)}</Text>
             <Text style={styles.hudLabel}>recorrido</Text>
           </View>
+        </View>
+      )}
+
+      {/* Mark highlight button (floating, during navigation) */}
+      {started && (
+        <TouchableOpacity
+          style={[styles.hlBtn, { top: insets.top + 70 + 80 }]}
+          onPress={markHighlight}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.hlBtnText}>📌</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* Highlight count badge */}
+      {started && highlights.length > 0 && (
+        <View style={[styles.hlBadge, { top: insets.top + 70 + 80 }]}>
+          <Text style={styles.hlBadgeText}>{highlights.length}</Text>
         </View>
       )}
 
@@ -296,6 +379,8 @@ const styles = StyleSheet.create({
   topCenter: { flex: 1 },
   trackName: { ...TYPE.h3, color: '#fff', fontSize: 15 },
   elapsed: { ...TYPE.caption, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  muteBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
+  muteBtnText: { fontSize: 16 },
   hud: {
     position: 'absolute', left: 16, right: 16,
     flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)',
@@ -306,6 +391,20 @@ const styles = StyleSheet.create({
   hudValue: { ...TYPE.h3, color: COLORS.text },
   hudLabel: { ...TYPE.caption, color: COLORS.textMuted, marginTop: 2 },
   hudDiv: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
+  hlBtn: {
+    position: 'absolute', right: 16,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 8, elevation: 5,
+  },
+  hlBtnText: { fontSize: 22 },
+  hlBadge: {
+    position: 'absolute', right: 10,
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: COLORS.primary, justifyContent: 'center', alignItems: 'center',
+  },
+  hlBadgeText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   progressBg: { position: 'absolute', bottom: 110, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   progressFill: { height: 3, backgroundColor: COLORS.primary },
   bottom: {
