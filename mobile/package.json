@@ -17,7 +17,7 @@
     "expo-document-picker": "~13.1.0",
     "expo-image-picker": "~16.1.0",
     "expo-file-system": "~18.1.0",
-    "react": "18.3.2",
+    "react": "19.0.0",
     "react-native": "0.79.2",
     "@react-navigation/native": "^7.0.14",
     "@react-navigation/bottom-tabs": "^7.2.0",
@@ -36,8 +36,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",
-    "@types/react": "~18.3.12",
-    "@types/react-native": "~0.73.0",
+    "@types/react": "~19.0.0",
     "typescript": "^5.3.0"
   }
 }
