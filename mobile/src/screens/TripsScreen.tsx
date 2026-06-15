@@ -39,12 +39,12 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
           <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
         </View>
         {dateRange && <Text style={styles.cardDate}>{dateRange}</Text>}
-        {trip.countries && trip.countries.length > 0 && (
+        {!!trip.countries?.length && (
           <Text style={styles.cardCountries} numberOfLines={1}>
-            📍 {trip.countries.join(' · ')}
+            📍 {trip.countries!.join(' · ')}
           </Text>
         )}
-        {trip.totalDays && (
+        {(trip.totalDays ?? 0) > 0 && (
           <Text style={styles.cardDays}>{trip.totalDays} días</Text>
         )}
       </View>
