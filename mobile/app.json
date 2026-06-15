@@ -43,8 +43,7 @@
         {
           "locationAlwaysAndWhenInUsePermission": "Trek needs background location for GPS navigation."
         }
-      ],
-      "@maplibre/maplibre-react-native"
+      ]
     ]
   }
 }
