@@ -1,8 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, RefreshControl, TouchableOpacity, Image,
+  View, Text, StyleSheet, RefreshControl, TouchableOpacity, Image, FlatList,
 } from 'react-native';
-import { FlashList } from '@shopify/flash-list';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -73,10 +72,9 @@ export function TripsScreen() {
         <Text style={styles.headerTitle}>Mis viajes</Text>
       </View>
 
-      <FlashList
+      <FlatList
         data={trips}
         renderItem={renderItem}
-        estimatedItemSize={200}
         keyExtractor={(t) => String(t.id)}
         contentContainerStyle={styles.list}
         refreshControl={
