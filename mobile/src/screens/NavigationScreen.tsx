@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, AppState,
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
 } from 'react-native';
-import MapLibreGL, {
-  MapView, Camera, ShapeSource, LineLayer, CircleLayer,
-} from '@maplibre/maplibre-react-native';
+import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as Location from 'expo-location';
@@ -14,33 +12,9 @@ import type { RootStackParamList } from '../../App';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 
-MapLibreGL.setAccessToken(null);
-
 type Route = RouteProp<RootStackParamList, 'Navigate'>;
 
 interface GpxPoint { lat: number; lng: number; ele?: number }
-interface NavState {
-  position: [number, number] | null;
-  speed: number;
-  heading: number;
-  distanceDone: number;
-  distanceLeft: number;
-  elapsedMs: number;
-  nearestIdx: number;
-}
-
-const OSM_STYLE = {
-  version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-} as any;
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -48,17 +22,6 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
   const dLng = ((lng2 - lng1) * Math.PI) / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-function findNearestIdx(points: GpxPoint[], lat: number, lng: number, fromIdx: number): number {
-  let best = fromIdx;
-  let bestDist = Infinity;
-  const search = Math.min(fromIdx + 50, points.length);
-  for (let i = fromIdx; i < search; i++) {
-    const d = haversineM(lat, lng, points[i].lat, points[i].lng);
-    if (d < bestDist) { bestDist = d; best = i; }
-  }
-  return best;
 }
 
 function totalTrackDistance(points: GpxPoint[]): number {
@@ -77,17 +40,62 @@ function distanceFromStart(points: GpxPoint[], idx: number): number {
   return total;
 }
 
-function formatDist(m: number): string {
-  if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
-  return `${Math.round(m)} m`;
+function findNearest(points: GpxPoint[], lat: number, lng: number, from: number): number {
+  let best = from;
+  let bestDist = Infinity;
+  const end = Math.min(from + 50, points.length);
+  for (let i = from; i < end; i++) {
+    const d = haversineM(lat, lng, points[i].lat, points[i].lng);
+    if (d < bestDist) { bestDist = d; best = i; }
+  }
+  return best;
 }
 
-function formatTime(ms: number): string {
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  if (h > 0) return `${h}h ${m}min`;
-  return `${m}min`;
+function formatDist(m: number) { return m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`; }
+function formatTime(ms: number) {
+  const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+  return h > 0 ? `${h}h ${m}min` : `${m}min`;
+}
+
+function buildNavHtml(points: GpxPoint[], nearestIdx: number): string {
+  const fullCoords = JSON.stringify(points.map((p) => [p.lat, p.lng]));
+  const doneCoords = JSON.stringify(points.slice(0, nearestIdx + 1).map((p) => [p.lat, p.lng]));
+  const center = points[0] ?? { lat: 40.4168, lng: -3.7038 };
+  return `<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>html,body,#map{margin:0;padding:0;width:100%;height:100%;}</style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([${center.lat},${center.lng}],14);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+var full=${fullCoords};
+var done=${doneCoords};
+if(full.length>1)L.polyline(full,{color:'#D1FAE5',weight:5,opacity:0.7}).addTo(map);
+if(done.length>1)L.polyline(done,{color:'${COLORS.primary}',weight:5}).addTo(map);
+var userMarker=null;
+function updateUser(lat,lng){
+  if(userMarker)map.removeLayer(userMarker);
+  userMarker=L.circleMarker([lat,lng],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
+  map.setView([lat,lng],15);
+}
+window.addEventListener('message',function(e){
+  var d=JSON.parse(e.data);
+  if(d.type==='location')updateUser(d.lat,d.lng);
+  if(d.type==='update'){
+    if(done.length>1){map.eachLayer(function(l){if(l._latlngs&&l.options.color==='${COLORS.primary}')map.removeLayer(l);});}
+    done=d.done;
+    if(done.length>1)L.polyline(done,{color:'${COLORS.primary}',weight:5}).addTo(map);
+  }
+});
+</script>
+</body>
+</html>`;
 }
 
 export function NavigationScreen() {
@@ -95,23 +103,25 @@ export function NavigationScreen() {
   const navigation = useNavigation();
   const route = useRoute<Route>();
   const { tripId, trackId } = route.params;
-
   const { tracks } = useTripStore();
   const track = tracks.find((t) => t.id === trackId);
 
   const [points, setPoints] = useState<GpxPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [nav, setNav] = useState<NavState>({
-    position: null, speed: 0, heading: 0,
-    distanceDone: 0, distanceLeft: 0, elapsedMs: 0, nearestIdx: 0,
-  });
+  const [nearestIdx, setNearestIdx] = useState(0);
+  const [distanceDone, setDistanceDone] = useState(0);
+  const [distanceLeft, setDistanceLeft] = useState(0);
+  const [speed, setSpeed] = useState(0);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [totalDist, setTotalDist] = useState(0);
-  const [followUser, setFollowUser] = useState(true);
-  const cameraRef = useRef<Camera>(null);
+  const [htmlContent, setHtmlContent] = useState('');
+
+  const webViewRef = useRef<WebView>(null);
   const locationSub = useRef<Location.LocationSubscription | null>(null);
-  const startTimeRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startTimeRef = useRef(0);
+  const nearestIdxRef = useRef(0);
 
   useEffect(() => {
     (async () => {
@@ -119,6 +129,8 @@ export function NavigationScreen() {
         const pts = await getGpxPoints(tripId, trackId);
         setPoints(pts);
         setTotalDist(totalTrackDistance(pts));
+        setDistanceLeft(totalTrackDistance(pts));
+        setHtmlContent(buildNavHtml(pts, 0));
       } catch {}
       setLoading(false);
     })();
@@ -131,65 +143,38 @@ export function NavigationScreen() {
   const startNavigation = useCallback(async () => {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') return;
-
     setStarted(true);
     startTimeRef.current = Date.now();
-
-    timerRef.current = setInterval(() => {
-      setNav((prev) => ({ ...prev, elapsedMs: Date.now() - startTimeRef.current }));
-    }, 1000);
+    timerRef.current = setInterval(() => setElapsedMs(Date.now() - startTimeRef.current), 1000);
 
     locationSub.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1500, distanceInterval: 3 },
       (loc) => {
-        const { latitude: lat, longitude: lng, speed, heading } = loc.coords;
-        setNav((prev) => {
-          const nearIdx = findNearestIdx(points, lat, lng, Math.max(0, prev.nearestIdx - 2));
-          const done = distanceFromStart(points, nearIdx);
-          return {
-            position: [lng, lat],
-            speed: speed ?? 0,
-            heading: heading ?? 0,
-            distanceDone: done,
-            distanceLeft: totalDist - done,
-            elapsedMs: prev.elapsedMs,
-            nearestIdx: nearIdx,
-          };
+        const { latitude: lat, longitude: lng, speed: spd } = loc.coords;
+        setSpeed(spd ?? 0);
+        webViewRef.current?.postMessage(JSON.stringify({ type: 'location', lat, lng }));
+        setPoints((prev) => {
+          const idx = findNearest(prev, lat, lng, Math.max(0, nearestIdxRef.current - 2));
+          nearestIdxRef.current = idx;
+          setNearestIdx(idx);
+          const done = distanceFromStart(prev, idx);
+          setDistanceDone(done);
+          setDistanceLeft(totalDist - done);
+          const doneCoords = prev.slice(0, idx + 1).map((p) => [p.lat, p.lng]);
+          webViewRef.current?.postMessage(JSON.stringify({ type: 'update', done: doneCoords }));
+          return prev;
         });
-
-        if (followUser) {
-          cameraRef.current?.setCamera({
-            centerCoordinate: [lng, lat],
-            zoomLevel: 15,
-            heading: heading ?? 0,
-            animationDuration: 400,
-          });
-        }
       }
     );
-  }, [points, totalDist, followUser]);
+  }, [totalDist]);
 
-  const stopNavigation = () => {
+  const stop = () => {
     locationSub.current?.remove();
     if (timerRef.current) clearInterval(timerRef.current);
     navigation.goBack();
   };
 
-  const trackCoords: [number, number][] = points.map((p) => [p.lng, p.lat]);
-  const doneCoords = trackCoords.slice(0, nav.nearestIdx + 1);
-
-  const geojsonFull: GeoJSON.Feature<GeoJSON.LineString> = {
-    type: 'Feature',
-    geometry: { type: 'LineString', coordinates: trackCoords },
-    properties: {},
-  };
-  const geojsonDone: GeoJSON.Feature<GeoJSON.LineString> = {
-    type: 'Feature',
-    geometry: { type: 'LineString', coordinates: doneCoords.length >= 2 ? doneCoords : [] },
-    properties: {},
-  };
-
-  const progressPct = totalDist > 0 ? (nav.distanceDone / totalDist) * 100 : 0;
+  const progressPct = totalDist > 0 ? (distanceDone / totalDist) * 100 : 0;
 
   if (loading) {
     return (
@@ -202,60 +187,45 @@ export function NavigationScreen() {
 
   return (
     <View style={styles.container}>
-      <MapView style={StyleSheet.absoluteFill} styleJSON={JSON.stringify(OSM_STYLE)} rotateEnabled compassEnabled compassViewPosition={3}>
-        <Camera ref={cameraRef} zoomLevel={13}
-          centerCoordinate={points.length > 0 ? [points[0].lng, points[0].lat] : [0, 0]}
+      {htmlContent ? (
+        <WebView
+          ref={webViewRef}
+          source={{ html: htmlContent }}
+          style={StyleSheet.absoluteFill}
+          javaScriptEnabled
+          domStorageEnabled
+          originWhitelist={['*']}
         />
-
-        {trackCoords.length >= 2 && (
-          <ShapeSource id="track-full" shape={geojsonFull}>
-            <LineLayer id="track-full-line" style={{ lineColor: '#D1FAE5', lineWidth: 5, lineOpacity: 0.7 }} />
-          </ShapeSource>
-        )}
-        {doneCoords.length >= 2 && (
-          <ShapeSource id="track-done" shape={geojsonDone}>
-            <LineLayer id="track-done-line" style={{ lineColor: COLORS.primary, lineWidth: 5 }} />
-          </ShapeSource>
-        )}
-        {nav.position && (
-          <ShapeSource id="user-pos" shape={{ type: 'Feature', geometry: { type: 'Point', coordinates: nav.position }, properties: {} }}>
-            <CircleLayer id="user-circle" style={{ circleRadius: 10, circleColor: '#2563EB', circleStrokeColor: '#fff', circleStrokeWidth: 3 }} />
-          </ShapeSource>
-        )}
-      </MapView>
+      ) : (
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.mapBg }]} />
+      )}
 
       {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
-        <TouchableOpacity style={styles.closeBtn} onPress={stopNavigation}>
+        <TouchableOpacity style={styles.closeBtn} onPress={stop}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
-        <View style={styles.topBarCenter}>
+        <View style={styles.topCenter}>
           <Text style={styles.trackName} numberOfLines={1}>{track?.trackName ?? 'Ruta'}</Text>
-          {started && <Text style={styles.elapsedText}>{formatTime(nav.elapsedMs)}</Text>}
+          {started && <Text style={styles.elapsed}>{formatTime(elapsedMs)}</Text>}
         </View>
-        <TouchableOpacity
-          style={[styles.followBtn, followUser && styles.followBtnActive]}
-          onPress={() => setFollowUser((v) => !v)}
-        >
-          <Text style={styles.followBtnText}>🧭</Text>
-        </TouchableOpacity>
       </View>
 
       {/* Stats HUD */}
       {started && (
-        <View style={[styles.statsHud, { top: insets.top + 70 }]}>
+        <View style={[styles.hud, { top: insets.top + 70 }]}>
           <View style={styles.hudStat}>
-            <Text style={styles.hudValue}>{formatDist(nav.distanceLeft)}</Text>
+            <Text style={styles.hudValue}>{formatDist(distanceLeft)}</Text>
             <Text style={styles.hudLabel}>restante</Text>
           </View>
-          <View style={styles.hudDivider} />
+          <View style={styles.hudDiv} />
           <View style={styles.hudStat}>
-            <Text style={styles.hudValue}>{((nav.speed ?? 0) * 3.6).toFixed(1)}</Text>
+            <Text style={styles.hudValue}>{(speed * 3.6).toFixed(1)}</Text>
             <Text style={styles.hudLabel}>km/h</Text>
           </View>
-          <View style={styles.hudDivider} />
+          <View style={styles.hudDiv} />
           <View style={styles.hudStat}>
-            <Text style={styles.hudValue}>{formatDist(nav.distanceDone)}</Text>
+            <Text style={styles.hudValue}>{formatDist(distanceDone)}</Text>
             <Text style={styles.hudLabel}>recorrido</Text>
           </View>
         </View>
@@ -263,16 +233,16 @@ export function NavigationScreen() {
 
       {/* Progress bar */}
       {started && (
-        <View style={styles.progressBar}>
+        <View style={styles.progressBg}>
           <View style={[styles.progressFill, { width: `${progressPct}%` as any }]} />
         </View>
       )}
 
       {/* Bottom panel */}
-      <View style={[styles.bottomPanel, { paddingBottom: insets.bottom + 16 }]}>
+      <View style={[styles.bottom, { paddingBottom: insets.bottom + 16 }]}>
         {!started ? (
           <>
-            <View style={styles.routeSummary}>
+            <View style={styles.routeRow}>
               <Text style={styles.routeStat}>📏 {formatDist(totalDist)}</Text>
               {track && <Text style={styles.routeStat}>⛰ +{Math.round(track.totalElevationGain)} m</Text>}
             </View>
@@ -281,7 +251,7 @@ export function NavigationScreen() {
             </TouchableOpacity>
           </>
         ) : (
-          <TouchableOpacity style={styles.stopBtn} onPress={stopNavigation} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.stopBtn} onPress={stop} activeOpacity={0.85}>
             <Text style={styles.stopBtnText}>⏹  Finalizar</Text>
           </TouchableOpacity>
         )}
@@ -292,61 +262,41 @@ export function NavigationScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.mapBg },
-
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 12, gap: 10,
     backgroundColor: 'rgba(13,43,30,0.88)',
   },
-  closeBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
-  },
+  closeBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center' },
   closeBtnText: { color: '#fff', fontSize: 16 },
-  topBarCenter: { flex: 1 },
+  topCenter: { flex: 1 },
   trackName: { ...TYPE.h3, color: '#fff', fontSize: 15 },
-  elapsedText: { ...TYPE.caption, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
-  followBtn: {
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)', justifyContent: 'center', alignItems: 'center',
-  },
-  followBtnActive: { backgroundColor: COLORS.primary },
-  followBtnText: { fontSize: 18 },
-
-  statsHud: {
+  elapsed: { ...TYPE.caption, color: 'rgba(255,255,255,0.7)', marginTop: 1 },
+  hud: {
     position: 'absolute', left: 16, right: 16,
     flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 14, padding: 14, gap: 0,
+    borderRadius: 14, padding: 14,
     shadowColor: '#000', shadowOpacity: 0.12, shadowRadius: 10, elevation: 6,
   },
   hudStat: { flex: 1, alignItems: 'center' },
   hudValue: { ...TYPE.h3, color: COLORS.text },
   hudLabel: { ...TYPE.caption, color: COLORS.textMuted, marginTop: 2 },
-  hudDivider: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
-
-  progressBar: {
-    position: 'absolute', bottom: 110, left: 0, right: 0,
-    height: 3, backgroundColor: 'rgba(255,255,255,0.3)',
-  },
+  hudDiv: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
+  progressBg: { position: 'absolute', bottom: 110, left: 0, right: 0, height: 3, backgroundColor: 'rgba(255,255,255,0.3)' },
   progressFill: { height: 3, backgroundColor: COLORS.primary },
-
-  bottomPanel: {
+  bottom: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: 'rgba(255,255,255,0.97)',
-    borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 20, paddingTop: 16,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 12,
   },
-  routeSummary: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 14 },
+  routeRow: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: 14 },
   routeStat: { ...TYPE.body, color: COLORS.text },
   startBtn: {
-    backgroundColor: COLORS.primaryDark, borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    backgroundColor: COLORS.primaryDark, borderRadius: 14, paddingVertical: 16, alignItems: 'center',
+    shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
   startBtnText: { ...TYPE.h3, color: '#fff', fontSize: 16 },
-  stopBtn: {
-    backgroundColor: COLORS.danger + '15', borderWidth: 1.5, borderColor: COLORS.danger,
-    borderRadius: 14, paddingVertical: 16, alignItems: 'center',
-  },
+  stopBtn: { backgroundColor: COLORS.danger + '15', borderWidth: 1.5, borderColor: COLORS.danger, borderRadius: 14, paddingVertical: 16, alignItems: 'center' },
   stopBtnText: { ...TYPE.h3, color: COLORS.danger, fontSize: 16 },
 });
