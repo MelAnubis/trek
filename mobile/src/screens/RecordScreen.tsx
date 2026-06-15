@@ -6,6 +6,7 @@ import {
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
+import * as TaskManager from 'expo-task-manager';
 import * as FileSystem from 'expo-file-system';
 import { api } from '@/api/client';
 import { useTripStore } from '@/store/tripStore';
@@ -13,15 +14,38 @@ import type { Trip } from '@/types';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 
+const BG_TASK = 'trek-gps-recording';
+
 type RecordState = 'idle' | 'recording' | 'paused' | 'done';
 
-interface RecordedPoint {
+export interface RecordedPoint {
   lat: number;
   lng: number;
   ele: number | null;
   time: string;
   speed: number | null;
 }
+
+// Module-level bridge between background task and React component
+let _pts: RecordedPoint[] = [];
+let _onNewPoint: ((pt: RecordedPoint) => void) | null = null;
+
+TaskManager.defineTask(BG_TASK, ({ data, error }: any) => {
+  if (error || !data?.locations) return;
+  for (const loc of data.locations as Location.LocationObject[]) {
+    const pt: RecordedPoint = {
+      lat: loc.coords.latitude,
+      lng: loc.coords.longitude,
+      ele: loc.coords.altitude,
+      time: new Date(loc.timestamp).toISOString(),
+      speed: loc.coords.speed,
+    };
+    _pts.push(pt);
+    _onNewPoint?.(pt);
+  }
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000;
@@ -33,16 +57,16 @@ function haversineM(lat1: number, lng1: number, lat2: number, lng2: number): num
 
 function formatTime(ms: number) {
   const s = Math.floor(ms / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}` : `${m}:${String(sec).padStart(2, '0')}`;
+  return h > 0
+    ? `${h}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+    : `${m}:${String(sec).padStart(2, '0')}`;
 }
 
 function formatDist(m: number) {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
 }
 
-function buildMapHtml(pts: RecordedPoint[]): string {
-  const coords = JSON.stringify(pts.map((p) => [p.lat, p.lng]));
-  const center = pts.length > 0 ? pts[pts.length - 1] : { lat: 40.4168, lng: -3.7038 };
+function buildMapHtml(): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -53,15 +77,12 @@ function buildMapHtml(pts: RecordedPoint[]): string {
 </head>
 <body><div id="map"></div>
 <script>
-var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([${center.lat},${center.lng}],16);
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([40.4168,-3.7038],14);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
-var coords=${coords};
+var coords=[];
 var polyline=L.polyline(coords,{color:'${COLORS.primary}',weight:5}).addTo(map);
 var marker=null;
-if(coords.length>0){
-  var last=coords[coords.length-1];
-  marker=L.circleMarker(last,{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
-}
+var located=false;
 window.addEventListener('message',function(e){
   var d=JSON.parse(e.data);
   if(d.type==='point'){
@@ -69,8 +90,10 @@ window.addEventListener('message',function(e){
     polyline.setLatLngs(coords);
     if(marker)map.removeLayer(marker);
     marker=L.circleMarker([d.lat,d.lng],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
-    map.setView([d.lat,d.lng],16);
+    if(!located||coords.length%5===0)map.setView([d.lat,d.lng],16);
+    located=true;
   }
+  if(d.type==='reset'){coords=[];polyline.setLatLngs(coords);if(marker){map.removeLayer(marker);marker=null;}}
 });
 </script>
 </body></html>`;
@@ -92,6 +115,8 @@ ${trkpts}
 </gpx>`;
 }
 
+// ── Component ──────────────────────────────────────────────────────────────
+
 export function RecordScreen() {
   const insets = useSafeAreaInsets();
   const { trips, fetchTrips } = useTripStore();
@@ -99,145 +124,142 @@ export function RecordScreen() {
   const [state, setState] = useState<RecordState>('idle');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [trackName, setTrackName] = useState('');
-  const [points, setPoints] = useState<RecordedPoint[]>([]);
   const [distanceM, setDistanceM] = useState(0);
   const [elevGain, setElevGain] = useState(0);
   const [speed, setSpeed] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [saving, setSaving] = useState(false);
-  const [htmlContent, setHtmlContent] = useState('');
 
   const webViewRef = useRef<WebView>(null);
-  const locationSub = useRef<Location.LocationSubscription | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
-  const pausedMs = useRef(0);
-  const lastEle = useRef<number | null>(null);
-  const pointsRef = useRef<RecordedPoint[]>([]);
+  const pausedMsRef = useRef(0);
+  const lastEleRef = useRef<number | null>(null);
   const distRef = useRef(0);
   const gainRef = useRef(0);
 
   useEffect(() => {
     fetchTrips();
     return () => {
-      locationSub.current?.remove();
-      if (timerRef.current) clearInterval(timerRef.current);
+      _onNewPoint = null;
+      stopTimer();
+      Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
     };
   }, []);
 
   const startTimer = () => {
-    startTimeRef.current = Date.now() - pausedMs.current;
+    startTimeRef.current = Date.now() - pausedMsRef.current;
     timerRef.current = setInterval(() => setElapsedMs(Date.now() - startTimeRef.current), 1000);
   };
 
   const stopTimer = () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    pausedMs.current = Date.now() - startTimeRef.current;
+    pausedMsRef.current = Date.now() - startTimeRef.current;
   };
 
+  const handleNewPoint = useCallback((pt: RecordedPoint) => {
+    const prev = _pts[_pts.length - 2]; // -1 is current pt, -2 is previous
+    if (prev) {
+      const d = haversineM(prev.lat, prev.lng, pt.lat, pt.lng);
+      distRef.current += d;
+      setDistanceM(distRef.current);
+      if (pt.ele != null && lastEleRef.current != null && pt.ele > lastEleRef.current) {
+        gainRef.current += pt.ele - lastEleRef.current;
+        setElevGain(gainRef.current);
+      }
+    }
+    if (pt.ele != null) lastEleRef.current = pt.ele;
+    if (pt.speed != null) setSpeed(pt.speed);
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'point', lat: pt.lat, lng: pt.lng }));
+  }, []);
+
   const startRecording = useCallback(async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permiso denegado', 'Se necesita acceso a la ubicación para grabar la ruta.');
+    const { status: fg } = await Location.requestForegroundPermissionsAsync();
+    if (fg !== 'granted') {
+      Alert.alert('Permiso denegado', 'Se necesita acceso a la ubicación.');
       return;
     }
-    pointsRef.current = [];
+    const { status: bg } = await Location.requestBackgroundPermissionsAsync();
+    if (bg !== 'granted') {
+      Alert.alert('Permiso de fondo denegado', 'Para grabar con la pantalla apagada activa "Permitir siempre" en ajustes de ubicación.');
+    }
+
+    _pts = [];
     distRef.current = 0;
     gainRef.current = 0;
-    lastEle.current = null;
-    pausedMs.current = 0;
-    setPoints([]);
+    lastEleRef.current = null;
+    pausedMsRef.current = 0;
+    _onNewPoint = handleNewPoint;
+
     setDistanceM(0);
     setElevGain(0);
     setElapsedMs(0);
-    setHtmlContent(buildMapHtml([]));
     setState('recording');
     startTimer();
 
-    locationSub.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 2000, distanceInterval: 5 },
-      (loc) => {
-        const { latitude: lat, longitude: lng, altitude: ele, speed: spd } = loc.coords;
-        setSpeed(spd ?? 0);
-        const pt: RecordedPoint = { lat, lng, ele, time: new Date(loc.timestamp).toISOString(), speed: spd };
+    webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
 
-        const prev = pointsRef.current[pointsRef.current.length - 1];
-        if (prev) {
-          distRef.current += haversineM(prev.lat, prev.lng, lat, lng);
-          setDistanceM(distRef.current);
-          if (ele != null && lastEle.current != null && ele > lastEle.current) {
-            gainRef.current += ele - lastEle.current;
-            setElevGain(gainRef.current);
-          }
-        }
-        if (ele != null) lastEle.current = ele;
+    await Location.startLocationUpdatesAsync(BG_TASK, {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 3000,
+      distanceInterval: 5,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'Trek Wanderer',
+        notificationBody: 'Grabando tu ruta GPS…',
+        notificationColor: COLORS.primary,
+      },
+    });
+  }, [handleNewPoint]);
 
-        pointsRef.current = [...pointsRef.current, pt];
-        setPoints(pointsRef.current);
-        webViewRef.current?.postMessage(JSON.stringify({ type: 'point', lat, lng }));
-      }
-    );
-  }, []);
-
-  const pause = () => {
-    locationSub.current?.remove();
-    locationSub.current = null;
+  const pause = async () => {
+    await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
+    _onNewPoint = null;
     stopTimer();
     setState('paused');
   };
 
   const resume = useCallback(async () => {
+    _onNewPoint = handleNewPoint;
     setState('recording');
     startTimer();
-    locationSub.current = await Location.watchPositionAsync(
-      { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 2000, distanceInterval: 5 },
-      (loc) => {
-        const { latitude: lat, longitude: lng, altitude: ele, speed: spd } = loc.coords;
-        setSpeed(spd ?? 0);
-        const pt: RecordedPoint = { lat, lng, ele, time: new Date(loc.timestamp).toISOString(), speed: spd };
-        const prev = pointsRef.current[pointsRef.current.length - 1];
-        if (prev) {
-          distRef.current += haversineM(prev.lat, prev.lng, lat, lng);
-          setDistanceM(distRef.current);
-          if (ele != null && lastEle.current != null && ele > lastEle.current) {
-            gainRef.current += ele - lastEle.current;
-            setElevGain(gainRef.current);
-          }
-        }
-        if (ele != null) lastEle.current = ele;
-        pointsRef.current = [...pointsRef.current, pt];
-        setPoints(pointsRef.current);
-        webViewRef.current?.postMessage(JSON.stringify({ type: 'point', lat, lng }));
-      }
-    );
-  }, []);
+    await Location.startLocationUpdatesAsync(BG_TASK, {
+      accuracy: Location.Accuracy.BestForNavigation,
+      timeInterval: 3000,
+      distanceInterval: 5,
+      showsBackgroundLocationIndicator: true,
+      foregroundService: {
+        notificationTitle: 'Trek Wanderer',
+        notificationBody: 'Grabando tu ruta GPS…',
+        notificationColor: COLORS.primary,
+      },
+    });
+  }, [handleNewPoint]);
 
-  const stop = () => {
-    locationSub.current?.remove();
-    locationSub.current = null;
+  const stop = async () => {
+    await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
+    _onNewPoint = null;
     stopTimer();
     const now = new Date();
-    const defaultName = `Ruta ${now.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`;
-    setTrackName(defaultName);
+    setTrackName(`Ruta ${now.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`);
     setState('done');
   };
 
   const save = async () => {
-    if (!selectedTrip) { Alert.alert('Selecciona un viaje', 'Elige a qué viaje quieres añadir esta ruta.'); return; }
-    if (pointsRef.current.length < 2) { Alert.alert('Ruta muy corta', 'Necesitas al menos 2 puntos grabados.'); return; }
+    if (!selectedTrip) { Alert.alert('Selecciona un viaje', 'Elige a qué viaje añadir la ruta.'); return; }
+    if (_pts.length < 2) { Alert.alert('Ruta muy corta', 'Necesitas al menos 2 puntos grabados.'); return; }
     setSaving(true);
     try {
-      const gpx = buildGpx(pointsRef.current, trackName || 'Ruta grabada');
+      const gpx = buildGpx(_pts, trackName || 'Ruta grabada');
       const path = `${FileSystem.cacheDirectory}trek_track.gpx`;
       await FileSystem.writeAsStringAsync(path, gpx, { encoding: FileSystem.EncodingType.UTF8 });
-
       const formData = new FormData();
       formData.append('gpx', { uri: path, type: 'application/gpx+xml', name: 'trek_track.gpx' } as any);
       await api.post(`/api/trips/${selectedTrip.id}/gpx/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      Alert.alert('¡Guardado!', `La ruta se ha añadido al viaje "${selectedTrip.name}".`, [
-        { text: 'OK', onPress: () => { setState('idle'); setPoints([]); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
+      Alert.alert('¡Guardado!', `Ruta añadida al viaje "${selectedTrip.name}".`, [
+        { text: 'OK', onPress: () => { _pts = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
       ]);
     } catch (e: any) {
       Alert.alert('Error al guardar', e?.response?.data?.error ?? e?.message ?? 'Error desconocido');
@@ -247,13 +269,13 @@ export function RecordScreen() {
   };
 
   const discard = () => {
-    Alert.alert('Descartar ruta', '¿Seguro que quieres descartar la grabación?', [
+    Alert.alert('Descartar ruta', '¿Seguro?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: () => { setState('idle'); setPoints([]); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
+      { text: 'Descartar', style: 'destructive', onPress: () => { _pts = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
     ]);
   };
 
-  // ── Idle ──────────────────────────────────────────────────────────────────
+  // ── Idle ─────────────────────────────────────────────────────────────────
   if (state === 'idle') {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -264,7 +286,7 @@ export function RecordScreen() {
           <View style={styles.recordCard}>
             <Text style={styles.recordCardIcon}>📍</Text>
             <Text style={styles.recordCardTitle}>Nueva grabación GPS</Text>
-            <Text style={styles.recordCardSub}>Graba tu ruta y guárdala en Trek</Text>
+            <Text style={styles.recordCardSub}>Funciona con pantalla apagada</Text>
           </View>
 
           <Text style={styles.sectionLabel}>ASOCIAR A UN VIAJE (opcional)</Text>
@@ -293,7 +315,7 @@ export function RecordScreen() {
     );
   }
 
-  // ── Done ──────────────────────────────────────────────────────────────────
+  // ── Done ─────────────────────────────────────────────────────────────────
   if (state === 'done') {
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -315,7 +337,7 @@ export function RecordScreen() {
                 </View>
                 <View style={styles.summaryDiv} />
                 <View style={styles.summaryStat}>
-                  <Text style={styles.summaryValue}>+{Math.round(elevGain)} m</Text>
+                  <Text style={styles.summaryValue}>{`+${Math.round(elevGain)} m`}</Text>
                   <Text style={styles.summaryLabel}>desnivel</Text>
                 </View>
               </View>
@@ -350,7 +372,9 @@ export function RecordScreen() {
               disabled={saving}
               activeOpacity={0.85}
             >
-              {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.startBtnText}>💾  Guardar ruta</Text>}
+              {saving
+                ? <ActivityIndicator color="#fff" />
+                : <Text style={styles.startBtnText}>{'💾  Guardar ruta'}</Text>}
             </TouchableOpacity>
 
             <TouchableOpacity style={styles.discardBtn} onPress={discard} activeOpacity={0.8}>
@@ -362,30 +386,24 @@ export function RecordScreen() {
     );
   }
 
-  // ── Recording / Paused ────────────────────────────────────────────────────
+  // ── Recording / Paused ───────────────────────────────────────────────────
   return (
     <View style={styles.container}>
-      {htmlContent ? (
-        <WebView
-          ref={webViewRef}
-          source={{ html: htmlContent }}
-          style={StyleSheet.absoluteFill}
-          javaScriptEnabled
-          domStorageEnabled
-          originWhitelist={['*']}
-        />
-      ) : (
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: COLORS.mapBg }]} />
-      )}
+      <WebView
+        ref={webViewRef}
+        source={{ html: buildMapHtml() }}
+        style={StyleSheet.absoluteFill}
+        javaScriptEnabled
+        domStorageEnabled
+        originWhitelist={['*']}
+      />
 
-      {/* Top bar */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <View style={[styles.recordingDot, state === 'paused' && styles.recordingDotPaused]} />
         <Text style={styles.topBarTitle}>{state === 'paused' ? 'En pausa' : 'Grabando…'}</Text>
         <Text style={styles.topBarTime}>{formatTime(elapsedMs)}</Text>
       </View>
 
-      {/* Stats HUD */}
       <View style={[styles.hud, { top: insets.top + 70 }]}>
         <View style={styles.hudStat}>
           <Text style={styles.hudValue}>{formatDist(distanceM)}</Text>
@@ -393,29 +411,28 @@ export function RecordScreen() {
         </View>
         <View style={styles.hudDiv} />
         <View style={styles.hudStat}>
-          <Text style={styles.hudValue}>{(speed * 3.6).toFixed(1)}</Text>
+          <Text style={styles.hudValue}>{`${(speed * 3.6).toFixed(1)}`}</Text>
           <Text style={styles.hudLabel}>km/h</Text>
         </View>
         <View style={styles.hudDiv} />
         <View style={styles.hudStat}>
-          <Text style={styles.hudValue}>+{Math.round(elevGain)} m</Text>
+          <Text style={styles.hudValue}>{`+${Math.round(elevGain)} m`}</Text>
           <Text style={styles.hudLabel}>desnivel</Text>
         </View>
       </View>
 
-      {/* Controls */}
       <View style={[styles.controls, { paddingBottom: insets.bottom + 16 }]}>
         {state === 'recording' ? (
           <TouchableOpacity style={styles.pauseBtn} onPress={pause} activeOpacity={0.85}>
-            <Text style={styles.pauseBtnText}>⏸  Pausar</Text>
+            <Text style={styles.pauseBtnText}>{'⏸  Pausar'}</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={styles.pauseBtn} onPress={resume} activeOpacity={0.85}>
-            <Text style={styles.pauseBtnText}>▶  Continuar</Text>
+            <Text style={styles.pauseBtnText}>{'▶  Continuar'}</Text>
           </TouchableOpacity>
         )}
         <TouchableOpacity style={styles.stopBtn} onPress={stop} activeOpacity={0.85}>
-          <Text style={styles.stopBtnText}>⏹  Finalizar</Text>
+          <Text style={styles.stopBtnText}>{'⏹  Finalizar'}</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -424,25 +441,20 @@ export function RecordScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F9FAFB' },
-
   header: {
     paddingHorizontal: 20, paddingBottom: 12, paddingTop: 8,
     backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: COLORS.border,
   },
   headerTitle: { ...TYPE.h2, color: COLORS.text },
-
-  idleContent: { padding: 20, gap: 0 },
-
+  idleContent: { padding: 20 },
   recordCard: {
     backgroundColor: COLORS.bg, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 28,
   },
   recordCardIcon: { fontSize: 40, marginBottom: 8 },
   recordCardTitle: { ...TYPE.h3, color: '#fff', marginBottom: 4 },
   recordCardSub: { ...TYPE.body, color: 'rgba(255,255,255,0.6)' },
-
   sectionLabel: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 10, marginTop: 4, letterSpacing: 0.8 },
   noTrips: { ...TYPE.body, color: COLORS.textMuted, marginBottom: 16 },
-
   tripRow: {
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
     borderRadius: 12, padding: 14, marginBottom: 8, gap: 12,
@@ -453,14 +465,12 @@ const styles = StyleSheet.create({
   tripDot: { width: 10, height: 10, borderRadius: 5 },
   tripRowName: { ...TYPE.label, color: COLORS.text, flex: 1 },
   checkmark: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
-
   startBtn: {
     backgroundColor: COLORS.primaryDark, borderRadius: 14, paddingVertical: 16,
     alignItems: 'center', marginTop: 24,
     shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
   },
   startBtnText: { ...TYPE.h3, color: '#fff', fontSize: 16 },
-
   summaryCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 24,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
@@ -470,29 +480,22 @@ const styles = StyleSheet.create({
   summaryValue: { ...TYPE.h3, color: COLORS.text },
   summaryLabel: { ...TYPE.caption, color: COLORS.textMuted, marginTop: 2 },
   summaryDiv: { width: 1, height: 40, backgroundColor: COLORS.border },
-
   nameInput: {
     backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: COLORS.border,
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
     fontSize: 16, color: COLORS.text, marginBottom: 4,
   },
-
   discardBtn: { paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   discardBtnText: { ...TYPE.label, color: COLORS.textMuted },
-
-  // Recording map styles
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingBottom: 12, gap: 10,
     backgroundColor: 'rgba(13,43,30,0.88)',
   },
-  recordingDot: {
-    width: 10, height: 10, borderRadius: 5, backgroundColor: '#EF4444',
-  },
+  recordingDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#EF4444' },
   recordingDotPaused: { backgroundColor: '#F59E0B' },
   topBarTitle: { ...TYPE.label, color: '#fff', flex: 1 },
   topBarTime: { ...TYPE.h3, color: '#fff', fontSize: 18 },
-
   hud: {
     position: 'absolute', left: 16, right: 16,
     flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.95)',
@@ -503,19 +506,16 @@ const styles = StyleSheet.create({
   hudValue: { ...TYPE.h3, color: COLORS.text },
   hudLabel: { ...TYPE.caption, color: COLORS.textMuted, marginTop: 2 },
   hudDiv: { width: 1, backgroundColor: COLORS.border, marginVertical: 4 },
-
   controls: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     backgroundColor: 'rgba(255,255,255,0.97)', borderTopLeftRadius: 20, borderTopRightRadius: 20,
     paddingHorizontal: 20, paddingTop: 16, gap: 10,
     shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 20, elevation: 12,
   },
-  pauseBtn: {
-    backgroundColor: COLORS.bg, borderRadius: 14, paddingVertical: 14, alignItems: 'center',
-  },
+  pauseBtn: { backgroundColor: COLORS.bg, borderRadius: 14, paddingVertical: 14, alignItems: 'center' },
   pauseBtnText: { ...TYPE.h3, color: COLORS.primary, fontSize: 15 },
   stopBtn: {
-    backgroundColor: COLORS.danger + '15', borderWidth: 1.5, borderColor: COLORS.danger,
+    backgroundColor: `${COLORS.danger}15`, borderWidth: 1.5, borderColor: COLORS.danger,
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
   },
   stopBtnText: { ...TYPE.h3, color: COLORS.danger, fontSize: 15 },
