@@ -66,7 +66,7 @@ function formatDist(m: number) {
   return m >= 1000 ? `${(m / 1000).toFixed(2)} km` : `${Math.round(m)} m`;
 }
 
-function buildMapHtml(): string {
+function buildMapHtml(initLat = 40.4168, initLng = -3.7038): string {
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -77,23 +77,26 @@ function buildMapHtml(): string {
 </head>
 <body><div id="map"></div>
 <script>
-var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([40.4168,-3.7038],14);
+var map=L.map('map',{zoomControl:false,attributionControl:false}).setView([${initLat},${initLng}],16);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
 var coords=[];
 var polyline=L.polyline(coords,{color:'${COLORS.primary}',weight:5}).addTo(map);
-var marker=null;
-var located=false;
+var userMarker=L.circleMarker([${initLat},${initLng}],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
 window.addEventListener('message',function(e){
   var d=JSON.parse(e.data);
+  if(d.type==='locate'){
+    map.setView([d.lat,d.lng],16);
+    userMarker.setLatLng([d.lat,d.lng]);
+  }
   if(d.type==='point'){
     coords.push([d.lat,d.lng]);
     polyline.setLatLngs(coords);
-    if(marker)map.removeLayer(marker);
-    marker=L.circleMarker([d.lat,d.lng],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
-    if(!located||coords.length%5===0)map.setView([d.lat,d.lng],16);
-    located=true;
+    userMarker.setLatLng([d.lat,d.lng]);
+    map.setView([d.lat,d.lng],16);
   }
-  if(d.type==='reset'){coords=[];polyline.setLatLngs(coords);if(marker){map.removeLayer(marker);marker=null;}}
+  if(d.type==='reset'){
+    coords=[];polyline.setLatLngs(coords);
+  }
 });
 </script>
 </body></html>`;
@@ -129,6 +132,7 @@ export function RecordScreen() {
   const [speed, setSpeed] = useState(0);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [saving, setSaving] = useState(false);
+  const [mapHtml, setMapHtml] = useState('');
 
   const webViewRef = useRef<WebView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -140,6 +144,19 @@ export function RecordScreen() {
 
   useEffect(() => {
     fetchTrips();
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        try {
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          setMapHtml(buildMapHtml(loc.coords.latitude, loc.coords.longitude));
+        } catch {
+          setMapHtml(buildMapHtml());
+        }
+      } else {
+        setMapHtml(buildMapHtml());
+      }
+    })();
     return () => {
       _onNewPoint = null;
       stopTimer();
@@ -198,6 +215,11 @@ export function RecordScreen() {
     startTimer();
 
     webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
+    // Center on current position immediately
+    try {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'locate', lat: loc.coords.latitude, lng: loc.coords.longitude }));
+    } catch {}
 
     await Location.startLocationUpdatesAsync(BG_TASK, {
       accuracy: Location.Accuracy.BestForNavigation,
@@ -386,12 +408,19 @@ export function RecordScreen() {
     );
   }
 
+  const reCenter = useCallback(async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'locate', lat: loc.coords.latitude, lng: loc.coords.longitude }));
+    } catch {}
+  }, []);
+
   // ── Recording / Paused ───────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <WebView
         ref={webViewRef}
-        source={{ html: buildMapHtml() }}
+        source={{ html: mapHtml || buildMapHtml() }}
         style={StyleSheet.absoluteFill}
         javaScriptEnabled
         domStorageEnabled
@@ -420,6 +449,11 @@ export function RecordScreen() {
           <Text style={styles.hudLabel}>desnivel</Text>
         </View>
       </View>
+
+      {/* Locate button */}
+      <TouchableOpacity style={[styles.locateBtn, { top: insets.top + 70 + 80 }]} onPress={reCenter} activeOpacity={0.8}>
+        <Text style={styles.locateBtnText}>◎</Text>
+      </TouchableOpacity>
 
       <View style={[styles.controls, { paddingBottom: insets.bottom + 16 }]}>
         {state === 'recording' ? (
@@ -519,4 +553,11 @@ const styles = StyleSheet.create({
     borderRadius: 14, paddingVertical: 14, alignItems: 'center',
   },
   stopBtnText: { ...TYPE.h3, color: COLORS.danger, fontSize: 15 },
+  locateBtn: {
+    position: 'absolute', right: 16,
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: '#fff', justifyContent: 'center', alignItems: 'center',
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 6, elevation: 6,
+  },
+  locateBtnText: { fontSize: 22, color: COLORS.primaryDark },
 });
