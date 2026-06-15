@@ -28,7 +28,7 @@ export type RootStackParamList = {
 
 export type TabParamList = {
   Trips: undefined;
-  Atlas: undefined;
+  Grabar: undefined;
   Profile: undefined;
 };
 
@@ -42,7 +42,7 @@ function TabNavigator() {
       screenOptions={{ headerShown: false }}
     >
       <Tab.Screen name="Trips" component={TripsScreen} />
-      <Tab.Screen name="Atlas" component={RecordScreen} />
+      <Tab.Screen name="Grabar" component={RecordScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );

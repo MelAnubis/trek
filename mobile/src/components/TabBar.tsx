@@ -6,7 +6,7 @@ import { COLORS } from '@/theme/colors';
 
 const ICONS: Record<string, string> = {
   Trips: '🗺',
-  Atlas: '⏺',
+  Grabar: '⏺',
   Profile: '👤',
 };
 
