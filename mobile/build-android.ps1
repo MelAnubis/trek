@@ -4,8 +4,8 @@
 # Usage:  .\build-android.ps1
 
 $ErrorActionPreference = "Stop"
-$ROOT  = $PSScriptRoot
-$ADB   = "C:\Users\ortiz\AppData\Local\Android\Sdk\platform-tools\adb.exe"
+$ROOT = $PSScriptRoot
+$ADB  = "C:\Users\ortiz\AppData\Local\Android\Sdk\platform-tools\adb.exe"
 
 Write-Host ""
 Write-Host "=== Trek Android Build ===" -ForegroundColor Cyan
@@ -24,19 +24,19 @@ $content = [System.IO.File]::ReadAllText($buildGradle)
 $patched = $content -replace 'id "org\.jetbrains\.kotlin\.android" version "[^"]+" apply false',
                               'id "org.jetbrains.kotlin.android" version "2.0.21" apply false'
 if ($content -eq $patched) {
-    Write-Host "  (Kotlin already 2.0.21 or pattern not found — check android\build.gradle)" -ForegroundColor Yellow
+    Write-Host "  Already 2.0.21 or pattern not found - check android\build.gradle" -ForegroundColor Yellow
 } else {
     [System.IO.File]::WriteAllText($buildGradle, $patched)
     Write-Host "  Kotlin pinned to 2.0.21" -ForegroundColor Green
 }
 
 # --- 3. Build ---
-Write-Host "[3/4] Building release APK (this takes ~40 min on first run)..." -ForegroundColor Cyan
+Write-Host "[3/4] Building release APK..." -ForegroundColor Cyan
 Push-Location "$ROOT\android"
 .\gradlew app:assembleRelease --no-daemon --no-build-cache
 if ($LASTEXITCODE -ne 0) {
     Pop-Location
-    Write-Host "`nBUILD FAILED" -ForegroundColor Red
+    Write-Host "BUILD FAILED" -ForegroundColor Red
     exit 1
 }
 Pop-Location
@@ -50,10 +50,10 @@ if (-not (Test-Path $apk)) {
 }
 & $ADB install -r $apk
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nInstall failed. Is the device connected with USB debugging on?" -ForegroundColor Red
+    Write-Host "Install failed. Is the device connected with USB debugging on?" -ForegroundColor Red
     Write-Host "APK saved at: $apk" -ForegroundColor Yellow
     exit 1
 }
 
 Write-Host ""
-Write-Host "Trek installed successfully on device." -ForegroundColor Green
+Write-Host "Trek installed on device." -ForegroundColor Green
