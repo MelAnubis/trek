@@ -4,7 +4,7 @@ import {
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/authStore';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
@@ -21,7 +21,7 @@ export function LoginScreen() {
 
   useEffect(() => {
     init();
-    SecureStore.getItemAsync(BASE_URL_KEY).then((url) => {
+    AsyncStorage.getItem(BASE_URL_KEY).then((url) => {
       if (url) setServerUrl(url);
     });
   }, []);
