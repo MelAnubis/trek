@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTripStore } from '@/store/tripStore';
 import type { RootStackParamList } from '../../App';
@@ -45,7 +46,9 @@ function TripCard({ trip, onPress }: { trip: Trip; onPress: () => void }) {
           </Text>
         )}
         {(trip.totalDays ?? 0) > 0 && (
-          <Text style={styles.cardDays}>{trip.totalDays} días</Text>
+          <View style={styles.cardDaysBadge}>
+            <Text style={styles.cardDaysText}>{trip.totalDays} dias</Text>
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -69,7 +72,15 @@ export function TripsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis viajes</Text>
+        <View>
+          <Text style={styles.headerEyebrow}>Trek Wanderer</Text>
+          <Text style={styles.headerTitle}>Mis viajes</Text>
+        </View>
+        {trips.length > 0 && (
+          <View style={styles.headerBadge}>
+            <Text style={styles.headerBadgeText}>{trips.length}</Text>
+          </View>
+        )}
       </View>
 
       <FlatList
@@ -95,34 +106,72 @@ export function TripsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
   header: {
-    paddingHorizontal: 20, paddingBottom: 12, paddingTop: 8,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    paddingTop: 10,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 2,
   },
+  headerEyebrow: { fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 0.8, marginBottom: 2 },
   headerTitle: { ...TYPE.h2, color: COLORS.text },
+  headerBadge: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    minWidth: 30,
+    alignItems: 'center',
+  },
+  headerBadgeText: { fontSize: 13, fontWeight: '800', color: '#FFFFFF' },
 
-  list: { padding: 16 },
+  list: { padding: 16, paddingTop: 18 },
 
   card: {
-    backgroundColor: '#FFFFFF', borderRadius: 16, marginBottom: 14,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    marginBottom: 16,
     overflow: 'hidden',
-    shadowColor: '#000', shadowOpacity: 0.07, shadowRadius: 10, shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 4,
   },
-  cardImage: { width: '100%', height: 160 },
-  cardImagePlaceholder: { backgroundColor: COLORS.mapBg, justifyContent: 'center', alignItems: 'center' },
-  placeholderEmoji: { fontSize: 48 },
-  cardBody: { padding: 14 },
-  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  cardTitle: { ...TYPE.h3, color: COLORS.text, flex: 1 },
+  cardImage: { width: '100%', height: 170 },
+  cardImagePlaceholder: {
+    backgroundColor: COLORS.bg,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  placeholderEmoji: { fontSize: 52, opacity: 0.6 },
+  cardBody: { padding: 16 },
+  cardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 },
+  cardTitle: { ...TYPE.h3, color: COLORS.text, flex: 1, fontSize: 17 },
   statusDot: { width: 8, height: 8, borderRadius: 4, marginLeft: 8 },
-  cardDate: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 4 },
+  cardDate: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 5 },
   cardCountries: { ...TYPE.caption, color: COLORS.textMuted },
-  cardDays: { ...TYPE.label, color: COLORS.primary, marginTop: 6 },
+  cardDaysBadge: {
+    alignSelf: 'flex-start',
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 10,
+  },
+  cardDaysText: { fontSize: 12, fontWeight: '700', color: COLORS.primaryDark },
 
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { fontSize: 52, marginBottom: 16 },
+  empty: { alignItems: 'center', paddingTop: 100 },
+  emptyIcon: { fontSize: 56, marginBottom: 18 },
   emptyTitle: { ...TYPE.h3, color: COLORS.text },
-  emptyText: { ...TYPE.body, color: COLORS.textMuted, marginTop: 6 },
+  emptyText: { ...TYPE.body, color: COLORS.textMuted, marginTop: 6, textAlign: 'center' },
 });
