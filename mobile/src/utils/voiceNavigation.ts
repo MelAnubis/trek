@@ -1,4 +1,5 @@
-// expo-speech stub — will be re-enabled once the correct version is confirmed
+import * as Speech from 'expo-speech';
+
 let _muted = false;
 let _lastKmAnnounced = -1;
 let _announced500 = false;
@@ -13,8 +14,8 @@ export function resetVoiceState() {
   _announcedArrival = false;
 }
 
-function speak(_text: string) {
-  // no-op until expo-speech version is confirmed for SDK 53
+function speak(text: string) {
+  Speech.speak(text, { language: 'es-ES', rate: 0.95 });
 }
 
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
