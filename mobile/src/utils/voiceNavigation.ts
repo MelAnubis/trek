@@ -1,5 +1,4 @@
-import * as Speech from 'expo-speech';
-
+// expo-speech stub — will be re-enabled once the correct version is confirmed
 let _muted = false;
 let _lastKmAnnounced = -1;
 let _announced500 = false;
@@ -14,16 +13,13 @@ export function resetVoiceState() {
   _announcedArrival = false;
 }
 
-function speak(text: string) {
-  if (_muted) return;
-  Speech.stop();
-  Speech.speak(text, { language: 'es-ES', rate: 0.95 });
+function speak(_text: string) {
+  // no-op until expo-speech version is confirmed for SDK 53
 }
 
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
-  if (totalDistM <= 0) return;
+  if (_muted || totalDistM <= 0) return;
   const remaining = totalDistM - distDoneM;
-
   if (!_announcedArrival && remaining >= 0 && remaining < 30) {
     _announcedArrival = true;
     speak('Has llegado a tu destino');
