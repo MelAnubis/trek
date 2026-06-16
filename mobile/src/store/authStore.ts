@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { api, TOKEN_KEY, BASE_URL_KEY } from '@/api/client';
 import type { User } from '@/types';
 
@@ -25,8 +25,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   init: async () => {
     try {
       const [token, serverUrl] = await Promise.all([
-        SecureStore.getItemAsync(TOKEN_KEY),
-        SecureStore.getItemAsync(BASE_URL_KEY),
+        AsyncStorage.getItem(TOKEN_KEY),
+        AsyncStorage.getItem(BASE_URL_KEY),
       ]);
       if (token && serverUrl) {
         api.defaults.baseURL = serverUrl;
@@ -38,7 +38,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         set({ isLoading: false });
       }
     } catch {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await AsyncStorage.removeItem(TOKEN_KEY);
       set({ token: null, user: null, isLoading: false });
     }
   },
@@ -50,8 +50,8 @@ export const useAuthStore = create<AuthState>((set) => ({
       baseURL: url,
     });
     await Promise.all([
-      SecureStore.setItemAsync(TOKEN_KEY, data.token),
-      SecureStore.setItemAsync(BASE_URL_KEY, url),
+      AsyncStorage.setItem(TOKEN_KEY, data.token),
+      AsyncStorage.setItem(BASE_URL_KEY, url),
     ]);
     api.defaults.baseURL = url;
     set({ token: data.token, user: data.user, serverUrl: url });
@@ -59,8 +59,8 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   logout: async () => {
     await Promise.all([
-      SecureStore.deleteItemAsync(TOKEN_KEY),
-      SecureStore.deleteItemAsync(BASE_URL_KEY),
+      AsyncStorage.removeItem(TOKEN_KEY),
+      AsyncStorage.removeItem(BASE_URL_KEY),
     ]);
     set({ token: null, user: null, serverUrl: null });
   },
