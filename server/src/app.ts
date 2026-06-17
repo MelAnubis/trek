@@ -33,6 +33,7 @@ import budgetRoutes from './routes/budget';
 import collabRoutes from './routes/collab';
 import backupRoutes from './routes/backup';
 import oidcRoutes from './routes/oidc';
+import passkeyRoutes from './routes/passkey';
 import { oauthPublicRouter, oauthApiRouter } from './routes/oauth';
 import vacayRoutes from './routes/vacay';
 import atlasRoutes from './routes/atlas';
@@ -43,12 +44,18 @@ import shareRoutes from './routes/share';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import gpxTracksRoutes from './routes/gpxTracks';
+import routeDiscoveryRoutes from './routes/routeDiscovery';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
+import bookingImportRoutes from './routes/bookingImport';
+import { isKitineraryAvailable } from './services/kitinerary-extractor';
+import airtrailRoutes from './routes/airtrail';
+import airtrailImportRoutes from './routes/airtrailImport';
 import { mcpHandler } from './mcp';
 import { trekOAuthProvider, trekClientsStore } from './mcp/oauthProvider';
-import { Addon } from './types';
+import { Addon, AuthRequest } from './types';
+import { getUpcomingReservations } from './services/reservationService';
 import { getPhotoProviderConfig } from './services/memories/helpersService';
 import { getCollabFeatures } from './services/adminService';
 import { isAddonEnabled } from './services/adminService';
@@ -275,6 +282,7 @@ export function createApp(): express.Application {
   app.use('/api/auth', authRoutes);
   app.use('/api/bikepack', bikepackRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
+  app.use('/api/auth/passkey', passkeyRoutes);
   app.use('/api/trips', tripsRoutes);
   app.use('/api/trips/:tripId/days', daysRoutes);
   app.use('/api/trips/:tripId/accommodations', accommodationsRoutes);
@@ -285,18 +293,28 @@ export function createApp(): express.Application {
   app.use('/api/trips/:id/gpx', gpxTracksRoutes);
   app.use('/api/trips/:tripId/budget', budgetRoutes);
   app.use('/api/trips/:tripId/collab', collabRoutes);
+  app.use('/api/trips/:tripId/reservations/import', bookingImportRoutes);
   app.use('/api/trips/:tripId/reservations', reservationsRoutes);
+  app.get('/api/reservations/upcoming', authenticate, (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    res.json({ reservations: getUpcomingReservations(authReq.user.id) });
+  });
   app.use('/api/trips/:tripId/days/:dayId/notes', dayNotesRoutes);
   app.use('/api/trips/:tripId/suggestions', suggestionsRoutes);
   app.get('/api/health', (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
     res.json({ status: 'ok' })
   });
+  app.get('/api/health/features', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-store, must-revalidate')
+    res.json({ bookingImport: isKitineraryAvailable() })
+  });
   app.use('/api/config', publicConfigRoutes);
   app.use('/api', assignmentsRoutes);
   app.use('/api/tags', tagsRoutes);
   app.use('/api/categories', categoriesRoutes);
   app.use('/api/admin', adminRoutes);
+  app.use('/api/admin/route-discovery', express.json({ limit: '10mb' }), routeDiscoveryRoutes);
 
   // Addons list endpoint
   app.get('/api/addons', authenticate, (_req: Request, res: Response) => {
@@ -369,6 +387,8 @@ export function createApp(): express.Application {
   }, journeyRoutes);
   app.use('/api/public/journey', journeyPublicRoutes);
   app.use('/api/integrations/memories', memoriesRoutes);
+  app.use('/api/integrations/airtrail', airtrailRoutes);
+  app.use('/api/trips/:tripId/reservations/import/airtrail', airtrailImportRoutes);
   app.use('/api/photos', photoRoutes);
   app.use('/api/maps', mapsRoutes);
   app.use('/api/airports', airportsRoutes);

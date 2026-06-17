@@ -8,7 +8,7 @@ import {
   ComposedChart, Area, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, CartesianGrid, Brush, Bar,
 } from 'recharts'
-import { Mountain, ChevronDown, ChevronUp, Layers } from 'lucide-react'
+import { Mountain, ChevronDown, ChevronUp, Layers, RefreshCw, Download, ArrowDownToLine } from 'lucide-react'
 
 // ── Colores por track ─────────────────────────────────────────────────────────
 const TRACK_COLORS = ['#22d96e', '#38bdf8', '#f59e0b', '#a78bfa', '#f87171', '#34d399']
@@ -174,6 +174,9 @@ export interface GpxTrack {
 
 interface ElevationDetailProps {
   tracks: GpxTrack[]
+  tripId?: number | string
+  onIbpUpdated?: (trackId: number, ibp: number) => void
+  onTrackUpdated?: (track: GpxTrack) => void
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -287,19 +290,124 @@ function TrackDetail({
   expanded,
   onToggle,
   fitness,
+  tripId,
+  onIbpUpdated,
+  onTrackUpdated,
 }: {
   track: GpxTrack
   color: string
   expanded: boolean
   onToggle: () => void
   fitness: number
+  tripId?: number | string
+  onIbpUpdated?: (trackId: number, ibp: number) => void
+  onTrackUpdated?: (track: GpxTrack) => void
 }) {
-  const profile = useMemo(() => buildProfile(track), [track.id])
+  const profile = useMemo(() => buildProfile(track), [track.id, track.total_elevation_gain, (track.points || []).length])
+  const [recalculating, setRecalculating] = useState(false)
+  const [fetchingEle, setFetchingEle] = useState(false)
+
+  const handleRecalcIbp = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!tripId || recalculating) return
+    setRecalculating(true)
+    try {
+      const r = await fetch(`/api/trips/${tripId}/gpx/${track.id}/recalculate-ibp`, {
+        method: 'POST', credentials: 'include',
+      })
+      if (r.ok) {
+        const { ibp } = await r.json()
+        onIbpUpdated?.(track.id, ibp)
+      }
+    } catch { /* ignore */ }
+    setRecalculating(false)
+  }
+
+  const handleDownload = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const points = track.points
+    if (!points || points.length === 0) return
+    const ptLines = points.map(p =>
+      `    <trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}</trkpt>`
+    )
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">',
+      `  <trk><name>${track.track_name}</name><trkseg>`,
+      ...ptLines,
+      '  </trkseg></trk>',
+      '</gpx>',
+    ].join('\n')
+    const filename = `${track.track_name.replace(/[^a-z0-9]/gi, '_')}.gpx`
+    const blob = new Blob([xml], { type: 'application/gpx+xml' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = filename
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
+  }
+
+  const handleFetchElevation = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!tripId || fetchingEle) return
+    setFetchingEle(true)
+    try {
+      const r = await fetch(`/api/trips/${tripId}/gpx/${track.id}/fetch-elevation`, {
+        method: 'POST', credentials: 'include',
+      })
+      if (r.ok) {
+        const updated = await r.json()
+        onTrackUpdated?.({ ...updated, points: updated.points })
+      }
+    } catch { /* ignore */ }
+    setFetchingEle(false)
+  }
 
   if (!profile) {
+    const hasPoints = (track.points?.length || 0) > 0
     return (
-      <div style={{ padding: 16, color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
-        Sin datos de elevación — carga el track con puntos
+      <div style={{
+        border: '1px solid var(--border-primary, #2d3f55)',
+        borderRadius: 10, marginBottom: 10, overflow: 'hidden',
+        background: 'var(--bg-primary, #1e2a3a)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
+          <div style={{ width: 14, height: 14, borderRadius: 4, background: color, flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary, #e2e8f0)', marginBottom: 2 }}>
+              {track.track_name}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)' }}>
+              {track.total_distance ? `${Math.round(track.total_distance * 10) / 10} km` : ''}
+              {hasPoints
+                ? ' · Sin datos de altitud'
+                : ' · Sin puntos GPS cargados'}
+            </div>
+          </div>
+          {hasPoints && tripId && (
+            <button
+              onClick={handleFetchElevation}
+              disabled={fetchingEle}
+              title="Obtener altitudes"
+              style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+            >
+              <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
+            </button>
+          )}
+          {hasPoints && (
+            <button
+              onClick={handleDownload}
+              title="Descargar GPX"
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
+              }}
+            >
+              <Download size={14} />
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -357,6 +465,41 @@ function TrackDetail({
             {ibpOfficial ? 'IBP ✓' : 'IBP ~'}
           </div>
         </div>
+        {track.points && track.points.length > 0 && tripId && (
+          <button
+            onClick={handleFetchElevation}
+            disabled={fetchingEle}
+            title="Volver a obtener altitudes"
+            style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+          >
+            <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
+          </button>
+        )}
+        {track.points && track.points.length > 0 && (
+          <button
+            onClick={handleDownload}
+            title="Descargar GPX"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
+            }}
+          >
+            <Download size={14} />
+          </button>
+        )}
+        {tripId && (
+          <button
+            onClick={handleRecalcIbp}
+            title="Recalcular IBP"
+            style={{
+              background: 'none', border: 'none', cursor: recalculating ? 'wait' : 'pointer',
+              padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
+              opacity: recalculating ? 0.5 : 1,
+            }}
+          >
+            <RefreshCw size={14} style={{ animation: recalculating ? 'spin 1s linear infinite' : 'none' }} />
+          </button>
+        )}
         {expanded ? <ChevronUp size={16} color="var(--text-tertiary)" /> : <ChevronDown size={16} color="var(--text-tertiary)" />}
       </div>
 
@@ -452,7 +595,7 @@ function TrackDetail({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ElevationDetail({ tracks }: ElevationDetailProps) {
+export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackUpdated }: ElevationDetailProps) {
   const [fitness, setFitness]   = useState(2)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
 
@@ -519,8 +662,18 @@ export default function ElevationDetail({ tracks }: ElevationDetailProps) {
           expanded={!!expanded[track.id]}
           onToggle={() => toggle(track.id)}
           fitness={fitness}
+          tripId={tripId}
+          onIbpUpdated={onIbpUpdated}
+          onTrackUpdated={onTrackUpdated}
         />
       ))}
     </div>
   )
+}
+
+const _spinStyle = document.createElement('style')
+_spinStyle.textContent = '@keyframes spin { to { transform: rotate(360deg) } }'
+if (typeof document !== 'undefined' && !document.querySelector('#elevation-spin')) {
+  _spinStyle.id = 'elevation-spin'
+  document.head.appendChild(_spinStyle)
 }

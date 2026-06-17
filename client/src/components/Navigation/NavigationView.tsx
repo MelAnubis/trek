@@ -60,6 +60,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const [showElevation, setShowElevation] = useState(!!trackPoints?.length)
   const [showSummary, setShowSummary] = useState(false)
   const [wakeLock, setWakeLock] = useState(false)
+  const [photoFlash, setPhotoFlash] = useState(false)
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const startedFollowing = useRef(false)
 
@@ -76,67 +77,78 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
   const handleStopRecording = useCallback(() => {
     nav.stopRecording()
-    if (nav.recordedPoints.length > 2) {
-      setShowSummary(true)
-    } else {
-      onExit()
-    }
-  }, [nav, onExit])
+    setShowSummary(true)
+  }, [nav])
 
   const handleCameraClick = useCallback(async () => {
-    // Capacitor native: Camera plugin preserves WebView state on Android
+    const savePhoto = async (file: File) => {
+      if (tripId) {
+        const saved = await nav.captureNavPhoto(file, tripId)
+        if (saved) { setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600) }
+      } else {
+        const url = URL.createObjectURL(file)
+        const a = document.createElement('a'); a.href = url; a.download = file.name; a.click()
+        URL.revokeObjectURL(url)
+        setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600)
+      }
+    }
+
+    // Push a barrier entry with the SAME URL before opening the camera.
+    // Chrome Android fires a spurious popstate when any camera/file-picker
+    // Activity closes. Because popstate pops our barrier (not the real nav
+    // entry), the URL stays the same → React Router sees no route change.
+    //
+    // stopImmediatePropagation in capture phase does NOT work: popstate fires
+    // on window itself, so all listeners (capture+bubble) run in registration
+    // order. React Router registered before us → it always wins that race.
+    const prevState = window.history.state
+    // React Router (history v5) compares window.history.state.idx to its
+    // internal index on every popstate. If idx is unchanged, delta=0 and
+    // React Router skips navigation entirely. We must preserve idx (and key)
+    // in the barrier so the spurious Chrome popstate looks like a no-op.
+    const barrierState = (prevState && typeof prevState === 'object')
+      ? { ...prevState, _navCam: true }
+      : { _navCam: true }
+    window.history.pushState(barrierState, '')
+    // replaceState restores the entry without firing popstate.
+    const cleanupBarrier = () => window.history.replaceState(prevState, '')
+
     if (isNativeCapacitor()) {
       const captured = await capturePhotoNative()
-      if (!captured) return
-      const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
-      if (tripId) {
-        await nav.captureNavPhoto(file, tripId)
-      } else {
-        const url = URL.createObjectURL(captured.blob)
-        const a = document.createElement('a'); a.href = url; a.download = captured.filename; a.click()
-        URL.revokeObjectURL(url)
+      if (captured) {
+        const file = new File([captured.blob], captured.filename, { type: captured.blob.type })
+        await savePhoto(file)
+        cleanupBarrier()
+        return
       }
-      return
+      // null: barrier popped by Chrome (user cancelled) → return; barrier still there → plugin failed → fall through to file input
+      const barrierStillThere = (window.history.state as { _navCam?: boolean } | null)?._navCam === true
+      if (!barrierStillThere) return
+      // Barrier intact → Capacitor plugin unavailable → fall through to file input
     }
 
-    // Browser PWA: push a history barrier BEFORE opening the file picker so
-    // Chrome Android's synthetic popstate on camera-close is absorbed here
-    // rather than triggering React Router navigation.
-    window.history.pushState({ _navCam: true }, '')
+    // File input path (browser + Capacitor fallback)
+    let done = false
+    let safetyTimer: ReturnType<typeof setTimeout>
+    let onBlur: (() => void) | null = null
 
-    const absorb = (e: PopStateEvent) => {
-      // Any popstate while the picker is open → stay on the navigate screen
-      e.stopImmediatePropagation()
-      window.history.pushState({ _navCam: true }, '')
+    const finish = () => {
+      if (done) return
+      done = true
+      clearTimeout(safetyTimer)
+      cleanupBarrier()
+      if (onBlur) window.removeEventListener('blur', onBlur)
+      cameraInputRef.current?.removeEventListener('change', onFilePick)
     }
-    window.addEventListener('popstate', absorb)
-
-    const done = () => {
-      window.removeEventListener('popstate', absorb)
-      window.removeEventListener('blur', onBlur)
-      // Remove the barrier entry we pushed
-      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
-        window.history.back()
-      }
+    const onFilePick = () => finish()
+    onBlur = () => {
+      // Window blurs when camera intent opens; regains focus when it closes.
+      // 200 ms grace period so 'change' can fire first if a file was picked.
+      window.addEventListener('focus', () => setTimeout(finish, 200), { once: true })
     }
-
-    // Wait for window blur (camera opens) then focus (camera closes)
-    const onBlur = () => {
-      window.addEventListener('focus', done, { once: true })
-    }
+    safetyTimer = setTimeout(finish, 120_000)
     window.addEventListener('blur', onBlur, { once: true })
-
-    // Fallback: if window never blurs (desktop / some PWAs), clean up on change
-    const onEarlyChange = () => {
-      window.removeEventListener('blur', onBlur)
-      window.removeEventListener('focus', done)
-      window.removeEventListener('popstate', absorb)
-      if ((window.history.state as { _navCam?: boolean } | null)?._navCam) {
-        window.history.back()
-      }
-    }
-    cameraInputRef.current?.addEventListener('change', onEarlyChange, { once: true })
-
+    cameraInputRef.current?.addEventListener('change', onFilePick, { once: true })
     cameraInputRef.current?.click()
   }, [nav, tripId])
 
@@ -144,7 +156,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     const file = e.target.files?.[0]
     if (!file) return
     if (tripId) {
-      await nav.captureNavPhoto(file, tripId)
+      const saved = await nav.captureNavPhoto(file, tripId)
+      if (saved) { setPhotoFlash(true); setTimeout(() => setPhotoFlash(false), 600) }
     } else {
       // No trip — download the photo directly
       const url = URL.createObjectURL(file)
@@ -162,15 +175,16 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     onExit()
   }, [nav, onExit])
 
-  const handleSaveToTrip = async (name: string) => {
-    if (!tripId) return
-    await nav.recorder.saveToTrip(tripId, name)
+  const handleSaveToTrip = async (name: string, targetTripId?: number) => {
+    const id = targetTripId ?? tripId
+    if (!id) return
+    await nav.recorder.saveToTrip(id, name)
     setTimeout(onExit, 1200)
   }
 
-  const handleDownload = (name: string) => {
-    nav.recorder.downloadGpx(name)
-    onExit()
+  const handleDownload = async (name: string) => {
+    await nav.recorder.downloadGpx(name)
+    // Don't exit — let user decide after downloading (they may also want to save to trip)
   }
 
   const hasTrack = nav.navMode === 'following' && nav.trackPoints.length > 0
@@ -199,6 +213,12 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
           style={{ display: 'none' }}
           onChange={handlePhotoCapture}
         />
+        {/* Photo captured flash */}
+        {photoFlash && (
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,217,110,0.25)', zIndex: 50, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'rgba(34,217,110,0.9)', borderRadius: 12, padding: '10px 20px', color: '#0a0a14', fontWeight: 800, fontSize: 14 }}>📷 Foto guardada</div>
+          </div>
+        )}
       </div>
 
       {/* ── Top HUD ── */}
@@ -366,9 +386,15 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
                 <div>
-                  <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
-                  {nav.navPhotos.length > 0 && (
-                    <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                  {nav.geoRecordingError ? (
+                    <div style={{ fontSize: 10, color: '#f97316', fontWeight: 600, maxWidth: 140, lineHeight: 1.3 }}>{nav.geoRecordingError}</div>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
+                      {nav.navPhotos.length > 0 && (
+                        <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>

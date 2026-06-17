@@ -572,7 +572,7 @@ function buildDescriptionsPrompt(
   ).join('\n');
 
   const user =
-    `I am cycling the route "${tripTitle}". ` +
+    `I am exploring the route "${tripTitle}". ` +
     `For each of these places found along the route, write a compelling 1-2 sentence description ` +
     `explaining why it is worth visiting. Be specific: mention the architecture, history, legend, ` +
     `natural feature or cultural significance that makes it unmissable.\n\n` +

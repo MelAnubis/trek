@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { MapContainer, TileLayer, Polyline, Circle, CircleMarker, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -107,6 +107,125 @@ function PhotoMarker({ photo }: { photo: NavPhoto }) {
   return <Marker position={[photo.lat, photo.lng]} icon={icon} interactive={false} />
 }
 
+// ── Tile layer catalogue ──────────────────────────────────────────────────────
+const TILE_LAYERS = {
+  topo: {
+    label: 'Topo',
+    url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
+    attribution: 'OpenTopoMap (CC-BY-SA)',
+    maxZoom: 17,
+    color: '#4ade80',
+  },
+  cyclosm: {
+    label: 'Ciclismo',
+    url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+    attribution: 'CyclOSM | OpenStreetMap',
+    maxZoom: 20,
+    color: '#38bdf8',
+  },
+  dark: {
+    label: 'Oscuro',
+    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    attribution: '© OpenStreetMap © CARTO',
+    maxZoom: 19,
+    color: '#94a3b8',
+  },
+  osm: {
+    label: 'Estándar',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    color: '#fb923c',
+  },
+} as const
+
+type TileKey = keyof typeof TILE_LAYERS
+const STORAGE_KEY = 'trek_nav_tile'
+
+function loadTileKey(): TileKey {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY)
+    if (v && v in TILE_LAYERS) return v as TileKey
+  } catch { /* noop */ }
+  return 'topo'
+}
+
+// ── Floating tile picker ──────────────────────────────────────────────────────
+function TilePicker({ current, onChange }: { current: TileKey; onChange: (k: TileKey) => void }) {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={{ position: 'absolute', top: 104, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+      {/* Toggle button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        title="Cambiar mapa"
+        style={{
+          width: 38, height: 38,
+          borderRadius: 10,
+          background: 'rgba(10,10,20,0.88)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          border: `1.5px solid ${TILE_LAYERS[current].color}55`,
+          cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        }}
+      >
+        {/* Layers icon */}
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={TILE_LAYERS[current].color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+          <polyline points="2 17 12 22 22 17"/>
+          <polyline points="2 12 12 17 22 12"/>
+        </svg>
+      </button>
+
+      {/* Options panel */}
+      {open && (
+        <div style={{
+          background: 'rgba(10,10,20,0.92)',
+          backdropFilter: 'blur(14px)',
+          WebkitBackdropFilter: 'blur(14px)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: 12,
+          padding: '6px 4px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 2,
+          boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+          minWidth: 120,
+        }}>
+          {(Object.keys(TILE_LAYERS) as TileKey[]).map(key => {
+            const t = TILE_LAYERS[key]
+            const active = key === current
+            return (
+              <button
+                key={key}
+                onClick={() => { onChange(key); setOpen(false) }}
+                style={{
+                  background: active ? `${t.color}18` : 'transparent',
+                  border: `1px solid ${active ? t.color + '50' : 'transparent'}`,
+                  borderRadius: 8,
+                  padding: '7px 12px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: '100%',
+                  textAlign: 'left',
+                }}
+              >
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 13, color: active ? '#f1f5f9' : '#94a3b8', fontWeight: active ? 700 : 400 }}>{t.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 interface Props {
   position: GeoPosition | null
   trackPoints: TrackPoint[]           // GPX track to follow (orange)
@@ -118,6 +237,13 @@ interface Props {
 }
 
 export default function NavigationMap({ position, trackPoints, recordedPoints, approachRoute, navPhotos, follow, onMapTouch }: Props) {
+  const [tileKey, setTileKey] = useState<TileKey>(loadTileKey)
+
+  const handleTileChange = (k: TileKey) => {
+    setTileKey(k)
+    try { localStorage.setItem(STORAGE_KEY, k) } catch { /* noop */ }
+  }
+
   const defaultCenter: [number, number] = position
     ? [position.lat, position.lng]
     : trackPoints.length > 0
@@ -126,8 +252,10 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
 
   const trackLatLngs: [number, number][] = trackPoints.map(p => [p.lat, p.lng])
   const recordedLatLngs: [number, number][] = recordedPoints.map(p => [p.lat, p.lng])
+  const tile = TILE_LAYERS[tileKey]
 
   return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
     <MapContainer
       center={defaultCenter}
       zoom={15}
@@ -136,11 +264,11 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       attributionControl={false}
       tap={false}
     >
-      {/* Dark tile layer — better for navigation */}
       <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution="&copy; OpenStreetMap &copy; CARTO"
-        maxZoom={19}
+        key={tileKey}
+        url={tile.url}
+        attribution={tile.attribution}
+        maxZoom={tile.maxZoom}
       />
 
       <FollowController position={position} follow={follow} />
@@ -193,6 +321,8 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       {/* Touch handler to break auto-follow */}
       {onMapTouch && <TouchBreaker onTouch={onMapTouch} />}
     </MapContainer>
+    <TilePicker current={tileKey} onChange={handleTileChange} />
+    </div>
   )
 }
 

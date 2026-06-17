@@ -274,6 +274,82 @@ function computeStats(points: { lat: number; lng: number; ele: number | null }[]
   };
 }
 
+// ── Open Elevation enrichment ────────────────────────────────────────────────
+// Default: Open-Meteo (free, no API key, no rate limit, global SRTM 90m, up to 1000 pts/batch).
+// Override with a custom Open-Elevation-compatible server via OPEN_ELEVATION_URL.
+async function enrichWithElevation(
+  points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
+): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
+  const result = [...points];
+  const indices: number[] = [];
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].ele == null) indices.push(i);
+  }
+  if (indices.length === 0) return result;
+
+  const customUrl = process.env.OPEN_ELEVATION_URL?.trim();
+
+  if (customUrl) {
+    // Custom Open-Elevation-compatible server (opentopodata / open-elevation format)
+    const baseUrl = customUrl.replace(/\/$/, '');
+    const isRateLimited = baseUrl.includes('opentopodata.org');
+    const BATCH = 100;
+    const DELAY = isRateLimited ? 1100 : 0;
+
+    for (let b = 0; b < indices.length; b += BATCH) {
+      if (b > 0 && DELAY > 0) await new Promise(r => setTimeout(r, DELAY));
+      const batch = indices.slice(b, b + BATCH);
+      const locs  = batch.map(i => `${points[i].lat},${points[i].lng}`).join('|');
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 15000);
+        let r: Response;
+        try { r = await fetch(`${baseUrl}?locations=${locs}`, { signal: controller.signal }); }
+        finally { clearTimeout(tid); }
+        if (!r.ok) { console.warn('[elevation] custom API error', r.status); continue; }
+        const data: any = await r.json();
+        const elevs: any[] = data.results ?? data.elevations ?? [];
+        for (let j = 0; j < batch.length && j < elevs.length; j++) {
+          const ele = elevs[j]?.elevation ?? elevs[j]?.ele;
+          if (ele != null && !isNaN(Number(ele))) {
+            result[batch[j]] = { ...result[batch[j]], ele: Math.round(Number(ele) * 10) / 10 };
+          }
+        }
+      } catch (err: any) { console.warn('[elevation] batch failed:', err.message); }
+    }
+  } else {
+    // Default: Open-Meteo elevation API — free, no key, no rate limit, SRTM 90m global
+    const BATCH = 1000;
+    for (let b = 0; b < indices.length; b += BATCH) {
+      const batch = indices.slice(b, b + BATCH);
+      const lats = batch.map(i => points[i].lat).join(',');
+      const lngs = batch.map(i => points[i].lng).join(',');
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 20000);
+        let r: Response;
+        try {
+          r = await fetch(
+            `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
+            { signal: controller.signal },
+          );
+        } finally { clearTimeout(tid); }
+        if (!r.ok) { console.warn('[elevation] open-meteo error', r.status); continue; }
+        const data: any = await r.json();
+        const elevs: number[] = data.elevation ?? [];
+        for (let j = 0; j < batch.length && j < elevs.length; j++) {
+          const ele = elevs[j];
+          if (ele != null && !isNaN(ele)) {
+            result[batch[j]] = { ...result[batch[j]], ele: Math.round(ele * 10) / 10 };
+          }
+        }
+      } catch (err: any) { console.warn('[elevation] open-meteo batch failed:', err.message); }
+    }
+  }
+
+  return result;
+}
+
 // ── Save track to DB ──────────────────────────────────────────────────────────
 function saveTrack(
   tripId: string | number,
@@ -358,29 +434,49 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
       return res.status(400).json({ error: 'GPX file has no track points' });
     }
 
+    // Enrich with elevation if the GPX has no altitude data and an elevation API is available
+    const hasElevation = parsed.points.some(p => p.ele != null);
+    let finalPoints = parsed.points;
+    if (!hasElevation) {
+      try {
+        finalPoints = await enrichWithElevation(parsed.points);
+        console.log(`[gpx] elevation enriched: ${finalPoints.filter(p => p.ele != null).length}/${finalPoints.length} points`);
+      } catch (err: any) {
+        console.warn('[gpx] elevation enrichment failed:', err.message);
+      }
+    }
+
     const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(tripId) as { n: number };
     const dayId = req.body.day_id ? parseInt(req.body.day_id) : null;
 
     const newId = saveTrack(
       tripId, authReq.user.id,
       parsed.trackName, req.file.originalname,
-      parsed.points, parsed.waypoints || [],
+      finalPoints, parsed.waypoints || [],
       sortRow.n, dayId
     );
 
     // Intentar obtener IBP via API si hay clave configurada
     if (process.env.IBP_API_KEY) {
       try {
-        const fetch = (await import('node-fetch')).default;
-        const FormData = (await import('form-data')).default;
+        const trip = db.prepare('SELECT trip_type FROM trips WHERE id = ?').get(tripId) as { trip_type: string } | undefined;
+        const isTrekking = trip?.trip_type === 'trekking';
         const form = new FormData();
         form.append('key', process.env.IBP_API_KEY);
-        form.append('file', fs.createReadStream(req.file.path), req.file.originalname);
-        const r = await (fetch as any)('https://www.ibpindex.com/api/', {
-          method: 'POST', body: form, headers: (form as any).getHeaders(), timeout: 30000,
-        });
-        const data = await (r as any).json();
-        const ibp = data?.bicycle?.ibp;
+        const fileBuffer = fs.readFileSync(req.file.path);
+        const fileBlob = new Blob([fileBuffer], { type: 'application/gpx+xml' });
+        form.append('file', fileBlob, req.file.originalname);
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
+        let r: Response;
+        try {
+          r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
+        } finally {
+          clearTimeout(timeoutId);
+        }
+        const data = await r.json();
+        // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (clave "hiking", acrónimo HKG)
+        const ibp = isTrekking ? (data?.hiking?.ibp ?? data?.hkg?.ibp) : data?.bicycle?.ibp;
         if (ibp != null) {
           db.prepare('UPDATE gpx_tracks SET ibp = ? WHERE id = ?').run(Math.round(ibp), newId);
         }
@@ -440,7 +536,109 @@ router.post('/:trackId/recalculate', authenticate, requireTripAccess, (req: Requ
   }
 });
 
-// ── POST /api/trips/:id/gpx/:trackId/split-by-days ───────────────────────────
+// ── POST /api/trips/:id/gpx/:trackId/recalculate-ibp ─────────────────────────
+// Re-sends stored track points to IBPIndex API and updates the ibp column.
+router.post('/:trackId/recalculate-ibp', authenticate, requireTripAccess, async (req: Request, res: Response) => {
+  const tripId  = (req as AuthRequest).params.id;
+  const trackId = req.params.trackId;
+
+  if (!process.env.IBP_API_KEY) return res.status(400).json({ error: 'IBP_API_KEY not configured' });
+
+  try {
+    const track = db.prepare('SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const points: { lat: number; lng: number; ele: number | null }[] = JSON.parse(track.points_json || '[]');
+    if (points.length < 2) return res.status(400).json({ error: 'Track has insufficient points' });
+
+    // Rebuild minimal GPX from stored points
+    const ptLines = points.map(p =>
+      `    <trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}</trkpt>`
+    );
+    const gpxXml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">',
+      `  <trk><name>${track.track_name}</name><trkseg>`,
+      ...ptLines,
+      '  </trkseg></trk>',
+      '</gpx>',
+    ].join('\n');
+
+    const trip = db.prepare('SELECT trip_type FROM trips WHERE id = ?').get(tripId) as { trip_type: string } | undefined;
+    const isTrekking = trip?.trip_type === 'trekking';
+
+    const form = new FormData();
+    form.append('key', process.env.IBP_API_KEY);
+    form.append('file', new Blob([gpxXml], { type: 'application/gpx+xml' }), `${track.track_name}.gpx`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let r: Response;
+    try {
+      r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    const data = await r.json() as any;
+    const ibpRaw = isTrekking ? (data?.hiking?.ibp ?? data?.hkg?.ibp) : data?.bicycle?.ibp;
+    if (ibpRaw == null) return res.status(502).json({ error: 'IBP not returned by API' });
+
+    const ibp = Math.round(Number(ibpRaw));
+    db.prepare('UPDATE gpx_tracks SET ibp = ? WHERE id = ?').run(ibp, trackId);
+    res.json({ ibp });
+  } catch (e: any) {
+    console.error('[gpx recalculate-ibp]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+
+// ── POST /api/trips/:id/gpx/:trackId/fetch-elevation ─────────────────────────
+// Fetches elevation data for a track's points using the configured Open Elevation API.
+// Only enriches points that currently have null elevation.
+router.post('/:trackId/fetch-elevation', authenticate, requireTripAccess, async (req: Request, res: Response) => {
+  const tripId  = (req as AuthRequest).params.id;
+  const trackId = req.params.trackId;
+
+  try {
+    const track = db.prepare('SELECT * FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const points: { lat: number; lng: number; ele: number | null; time?: string | null }[] =
+      JSON.parse(track.points_json || '[]');
+    if (points.length < 2) return res.status(400).json({ error: 'Track has insufficient points' });
+
+    const enriched = await enrichWithElevation(points);
+    const filled = enriched.filter(p => p.ele != null).length;
+
+    const stats = computeStats(enriched);
+    db.prepare(`
+      UPDATE gpx_tracks
+      SET points_json = ?,
+          total_elevation_gain = ?, total_elevation_loss = ?,
+          max_elevation = ?, min_elevation = ?
+      WHERE id = ?
+    `).run(
+      JSON.stringify(enriched),
+      stats.totalElevationGain, stats.totalElevationLoss,
+      stats.maxElevation, stats.minElevation,
+      trackId,
+    );
+
+    const updated = db.prepare('SELECT * FROM gpx_tracks WHERE id = ?').get(trackId) as any;
+    res.json({
+      ...updated,
+      points: enriched,
+      waypoints: JSON.parse(updated.waypoints_json || '[]'),
+      enriched: filled,
+      total: enriched.length,
+    });
+  } catch (e: any) {
+    console.error('[gpx fetch-elevation]', e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Divide un GPX largo en etapas usando los lugares de inicio/fin de cada día
 router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;

@@ -4,6 +4,7 @@ import { broadcast } from '../websocket';
 import { checkPermission } from '../services/permissions';
 import { AuthRequest } from '../types';
 import { db } from '../db/database';
+import { getRates } from '../services/exchangeRateService';
 import {
   verifyTripAccess,
   listBudgetItems,
@@ -12,8 +13,12 @@ import {
   deleteBudgetItem,
   updateMembers,
   toggleMemberPaid,
+  setItemPayers,
   getPerPersonSummary,
   calculateSettlement,
+  listSettlements,
+  createSettlement,
+  deleteSettlement,
   reorderBudgetItems,
   reorderBudgetCategories,
 } from '../services/budgetService';
@@ -38,6 +43,65 @@ router.get('/summary/per-person', authenticate, (req: Request, res: Response) =>
     return res.status(404).json({ error: 'Trip not found' });
 
   res.json({ summary: getPerPersonSummary(tripId) });
+});
+
+router.get('/settlement', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  const base = ((req.query.base as string) || (trip as any).currency || 'EUR').toUpperCase();
+  const rates = await getRates(base);
+  const tripCurrency = ((trip as any).currency || base).toUpperCase();
+  res.json(calculateSettlement(tripId, { base, rates, tripCurrency }));
+});
+
+router.get('/settlements', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  if (!verifyTripAccess(tripId, authReq.user.id))
+    return res.status(404).json({ error: 'Trip not found' });
+
+  res.json({ settlements: listSettlements(tripId) });
+});
+
+router.post('/settlements', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const { from_user_id, to_user_id, amount } = req.body;
+  if (from_user_id == null || to_user_id == null || amount == null)
+    return res.status(400).json({ error: 'from_user_id, to_user_id and amount are required' });
+
+  const settlement = createSettlement(tripId, { from_user_id, to_user_id, amount }, authReq.user.id);
+  res.json({ settlement });
+  broadcast(tripId, 'budget:settlement-created', { settlement }, req.headers['x-socket-id'] as string);
+});
+
+router.delete('/settlements/:settlementId', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId, settlementId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  if (!deleteSettlement(settlementId, tripId))
+    return res.status(404).json({ error: 'Settlement not found' });
+
+  res.json({ success: true });
+  broadcast(tripId, 'budget:settlement-deleted', { settlementId: Number(settlementId) }, req.headers['x-socket-id'] as string);
 });
 
 router.post('/', authenticate, (req: Request, res: Response) => {
@@ -143,6 +207,26 @@ router.put('/:id/members', authenticate, (req: Request, res: Response) => {
   broadcast(Number(tripId), 'budget:members-updated', { itemId: Number(id), members: result.members, persons: result.item.persons }, req.headers['x-socket-id'] as string);
 });
 
+router.put('/:id/payers', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId, id } = req.params;
+
+  const access = verifyTripAccess(Number(tripId), authReq.user.id);
+  if (!access) return res.status(404).json({ error: 'Trip not found' });
+
+  if (!checkPermission('budget_edit', authReq.user.role, access.user_id, authReq.user.id, access.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const { payers } = req.body;
+  if (!Array.isArray(payers)) return res.status(400).json({ error: 'payers must be an array' });
+
+  const item = setItemPayers(id, tripId, payers as { user_id: number; amount: number }[]);
+  if (!item) return res.status(404).json({ error: 'Budget item not found' });
+
+  res.json({ item });
+  broadcast(Number(tripId), 'budget:updated', { item }, req.headers['x-socket-id'] as string);
+});
+
 router.put('/:id/members/:userId/paid', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, id, userId } = req.params;
@@ -154,19 +238,9 @@ router.put('/:id/members/:userId/paid', authenticate, (req: Request, res: Respon
     return res.status(403).json({ error: 'No permission' });
 
   const { paid } = req.body;
-  const member = toggleMemberPaid(id, userId, paid);
+  const member = toggleMemberPaid(id, tripId, userId, paid);
   res.json({ member });
   broadcast(Number(tripId), 'budget:member-paid-updated', { itemId: Number(id), userId: Number(userId), paid: paid ? 1 : 0 }, req.headers['x-socket-id'] as string);
-});
-
-router.get('/settlement', authenticate, (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { tripId } = req.params;
-
-  if (!verifyTripAccess(Number(tripId), authReq.user.id))
-    return res.status(404).json({ error: 'Trip not found' });
-
-  res.json(calculateSettlement(tripId));
 });
 
 router.delete('/:id', authenticate, (req: Request, res: Response) => {

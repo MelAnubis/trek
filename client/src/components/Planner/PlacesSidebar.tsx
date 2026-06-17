@@ -10,8 +10,10 @@ import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 import { placesApi } from '../../api/client'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
+import { useAuthStore } from '../../store/authStore'
 import type { Place, Category, Day, AssignmentsMap } from '../../types'
 import FileImportModal from './FileImportModal'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import Tooltip from '../shared/Tooltip'
 import MustSeeSuggestionsModal from './MustSeeSuggestionsModal'
@@ -157,6 +159,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   const loadTrip = useTripStore((s) => s.loadTrip)
   const can = useCanDo()
   const canEditPlaces = can('place_edit', trip)
+  // Places-API enrichment (#886) needs a Google Maps key; gate the toggle on it.
+  const canEnrichImport = useAuthStore((s) => s.hasMapsKey)
   const isNaverListImportEnabled = true
 
   const [mustSeeOpen, setMustSeeOpen] = useState(false)
@@ -203,6 +207,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   const [listImportUrl, setListImportUrl] = useState('')
   const [listImportLoading, setListImportLoading] = useState(false)
   const [listImportProvider, setListImportProvider] = useState<'google' | 'naver'>('google')
+  const [listImportEnrich, setListImportEnrich] = useState(false)
   const availableListImportProviders: Array<'google' | 'naver'> = isNaverListImportEnabled ? ['google', 'naver'] : ['google']
   const hasMultipleListImportProviders = availableListImportProviders.length > 1
 
@@ -217,9 +222,10 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
     setListImportLoading(true)
     const provider = listImportProvider === 'naver' && isNaverListImportEnabled ? 'naver' : 'google'
     try {
+      const enrich = listImportEnrich && canEnrichImport
       const result = provider === 'google'
-        ? await placesApi.importGoogleList(tripId, listImportUrl.trim())
-        : await placesApi.importNaverList(tripId, listImportUrl.trim())
+        ? await placesApi.importGoogleList(tripId, listImportUrl.trim(), enrich)
+        : await placesApi.importNaverList(tripId, listImportUrl.trim(), enrich)
       await loadTrip(tripId)
       if (result.count === 0 && result.skipped > 0) {
         toast.warning(t('places.importAllSkipped'))
@@ -853,6 +859,15 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
                 fontFamily: 'inherit', boxSizing: 'border-box',
               }}
             />
+            {canEnrichImport && (
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="text-content" style={{ fontSize: 12, fontWeight: 600 }}>{t('places.enrichOnImport')}</div>
+                  <div className="text-content-faint" style={{ fontSize: 12, marginTop: 2 }}>{t('places.enrichOnImportHint')}</div>
+                </div>
+                <ToggleSwitch on={listImportEnrich} onToggle={() => setListImportEnrich(!listImportEnrich)} />
+              </div>
+            )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
               <button
                 onClick={() => { setListImportOpen(false); setListImportUrl('') }}

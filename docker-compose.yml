@@ -30,6 +30,9 @@ services:
       - ONEDRIVE_REDIRECT_URI=${ONEDRIVE_REDIRECT_URI}
       # IBP API key (obtener en https://www.ibpindex.com/index.php/es/ibp-services/ibp-index-api-v2-0)
       # - IBP_API_KEY=tu_clave_ibp_aqui
+      # Elevación: Open-Meteo por defecto (gratis, sin API key, sin rate limit).
+      # Solo necesario si quieres usar un servidor propio (open-elevation compatible).
+      # - OPEN_ELEVATION_URL=http://mi-servidor/api/v1/lookup
       # IA "Lugares imprescindibles" — configurar UNA clave (en orden de preferencia):
       # 1. Groq — GRATIS: https://console.groq.com (recomendado)
       - GROQ_API_KEY=${GROQ_API_KEY:-}

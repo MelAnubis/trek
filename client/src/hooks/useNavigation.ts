@@ -123,6 +123,7 @@ export function useNavigation() {
   const [approachInstrIdx, setApproachInstrIdx] = useState(0)
   const [isApproaching, setIsApproaching] = useState(false)
   const [navPhotos, setNavPhotos] = useState<NavPhoto[]>([])
+  const [geoRecordingError, setGeoRecordingError] = useState<string | null>(null)
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -215,6 +216,7 @@ export function useNavigation() {
     lastAltRef.current = null
     setRecordedPoints([])
     setStats(INITIAL_STATS)
+    setGeoRecordingError(null)
     startTimeRef.current = Date.now()
     startTimer()
     setNavMode('recording')
@@ -223,9 +225,11 @@ export function useNavigation() {
     // Use native background GPS (Capacitor) or high-frequency web watchPosition
     stopRecordWatch()
     const handlePos = (gpos: import('../services/nativeGeoService').NativeGeoPosition) => {
-      if (navModeRef.current !== 'recording') return
-      const { lat, lng, altitude, speed, timestamp } = gpos
-      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp)
+      // No navModeRef guard here — the watch is only active during recording and
+      // recorder.current.running is false once stopRecording() is called, so
+      // addPoint() will silently no-op any late-arriving callbacks.
+      const { lat, lng, altitude, speed, timestamp, accuracy } = gpos
+      recorder.current.addPoint(lat, lng, altitude ?? null, speed, timestamp, accuracy)
       setRecordedPoints([...recorder.current.points])
 
       const alt = altitude ?? null
@@ -251,11 +255,11 @@ export function useNavigation() {
       }))
     }
 
-    if (nativeGeoService.isNative()) {
-      // Capacitor: background GPS via Android ForegroundService / iOS background location
-      nativeGeoService.start(handlePos, () => { /* error shown by OS permission flow */ })
-    } else {
-      // Browser PWA: maximumAge:0 high-frequency watcher
+    // Always use navigator.geolocation.watchPosition — it works in both the
+    // browser PWA and the Capacitor WebView (Chrome WebView supports it natively).
+    // The BackgroundGeolocation plugin is tried in parallel for background tracking
+    // on Android, but recording never depends on it succeeding.
+    const startBrowserWatch = () => {
       recordWatchRef.current = navigator.geolocation.watchPosition(
         pos => handlePos({
           lat: pos.coords.latitude,
@@ -265,9 +269,24 @@ export function useNavigation() {
           accuracy: pos.coords.accuracy,
           timestamp: pos.timestamp,
         }),
-        () => { /* errors handled by useGeolocation */ },
-        { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        (err) => {
+          if (err.code === err.PERMISSION_DENIED) {
+            setGeoRecordingError('Permiso de ubicación denegado. Activa el GPS en ajustes.')
+          } else if (err.code === err.POSITION_UNAVAILABLE) {
+            setGeoRecordingError('GPS no disponible. Sal al exterior para obtener señal.')
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       )
+    }
+
+    startBrowserWatch()
+
+    // On native Capacitor also start the background plugin so GPS keeps running
+    // when the screen turns off. Failures are intentionally ignored — the
+    // browser watchPosition above is the source of truth.
+    if (nativeGeoService.isNative()) {
+      nativeGeoService.start(handlePos, () => { /* background plugin optional */ })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -334,13 +353,19 @@ export function useNavigation() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const captureNavPhoto = useCallback(async (file: File, tripId: number): Promise<NavPhoto | null> => {
+    // Use current GPS position; if not yet fixed, fall back to last recorded point
     const pos = geo.position
-    if (!pos) return null
+    const pts = recorder.current.points
+    const lastPt = pts.length > 0 ? pts[pts.length - 1] : undefined
+    const lat = pos?.lat ?? lastPt?.lat
+    const lng = pos?.lng ?? lastPt?.lng
+    const altitude = pos?.altitude ?? lastPt?.alt ?? null
+    if (lat == null || lng == null) return null
     const form = new FormData()
     form.append('photo', file)
-    form.append('lat', String(pos.lat))
-    form.append('lng', String(pos.lng))
-    if (pos.altitude != null) form.append('altitude', String(pos.altitude))
+    form.append('lat', String(lat))
+    form.append('lng', String(lng))
+    if (altitude != null) form.append('altitude', String(altitude))
     form.append('taken_at', new Date().toISOString())
     try {
       const r = await fetch(`/api/trips/${tripId}/gpx/nav-photos`, { method: 'POST', body: form })
@@ -386,6 +411,7 @@ export function useNavigation() {
 
     stats,
     navPhotos,
+    geoRecordingError,
 
     startRecording,
     stopRecording,

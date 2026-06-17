@@ -2365,6 +2365,96 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_nav_photos_trip ON nav_photos(trip_id);
       `);
     },
+    // Migration: Budget → Costs rework — multi-payer table, per-expense currency, settlements
+    () => {
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN currency TEXT'); } catch (_) {}
+      try { db.exec('ALTER TABLE budget_items ADD COLUMN exchange_rate REAL NOT NULL DEFAULT 1'); } catch (_) {}
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_item_payers (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          budget_item_id INTEGER NOT NULL REFERENCES budget_items(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL DEFAULT 0,
+          UNIQUE(budget_item_id, user_id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_item_payers_item ON budget_item_payers(budget_item_id);
+        CREATE INDEX IF NOT EXISTS idx_budget_item_payers_user ON budget_item_payers(user_id);
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS budget_settlements (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          trip_id INTEGER NOT NULL REFERENCES trips(id) ON DELETE CASCADE,
+          from_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          to_user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          amount REAL NOT NULL,
+          created_by_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_budget_settlements_trip ON budget_settlements(trip_id);
+      `);
+      const cols = db.prepare("PRAGMA table_info('budget_items')").all() as Array<{ name: string }>;
+      const hasPaidBy = cols.some(c => c.name === 'paid_by_user_id');
+      if (hasPaidBy) {
+        const rows = db.prepare(
+          'SELECT id, total_price, paid_by_user_id FROM budget_items WHERE paid_by_user_id IS NOT NULL AND total_price > 0'
+        ).all() as Array<{ id: number; total_price: number; paid_by_user_id: number }>;
+        const ins = db.prepare('INSERT OR IGNORE INTO budget_item_payers (budget_item_id, user_id, amount) VALUES (?, ?, ?)');
+        for (const r of rows) ins.run(r.id, r.paid_by_user_id, r.total_price);
+      }
+    },
+    // Migration: AirTrail integration addon + per-user connection + reservation linkage
+    () => {
+      try {
+        db.prepare("INSERT OR IGNORE INTO addons (id, name, description, type, icon, enabled, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)")
+          .run('airtrail', 'AirTrail', 'Sync flights from your self-hosted AirTrail instance', 'integration', 'Plane', 0, 14);
+      } catch (err: any) {
+        console.warn('[migrations] Non-fatal migration step failed:', err);
+      }
+    },
+    () => {
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_url TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_api_key TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE users ADD COLUMN airtrail_allow_insecure_tls INTEGER DEFAULT 0"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
+    () => {
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_source TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_id TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_owner_user_id INTEGER"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_synced_at TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN sync_enabled INTEGER DEFAULT 1"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      try { db.exec("ALTER TABLE reservations ADD COLUMN external_hash TEXT"); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+      db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_reservations_external ON reservations(external_source, external_id, trip_id)");
+    },
+    // Migration: WebAuthn (Passkey) credentials and single-use challenge store
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS webauthn_credentials (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          credential_id TEXT NOT NULL UNIQUE,
+          public_key BLOB NOT NULL,
+          counter INTEGER NOT NULL DEFAULT 0,
+          transports TEXT,
+          device_type TEXT,
+          backed_up INTEGER NOT NULL DEFAULT 0,
+          name TEXT,
+          aaguid TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_used_at DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS idx_webauthn_credentials_user ON webauthn_credentials(user_id);
+        CREATE TABLE IF NOT EXISTS webauthn_challenges (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          challenge TEXT NOT NULL UNIQUE,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          type TEXT NOT NULL,
+          expires_at INTEGER NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_webauthn_challenges_expires ON webauthn_challenges(expires_at);
+        INSERT OR IGNORE INTO app_settings (key, value) VALUES ('passkey_login', 'false');
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

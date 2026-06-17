@@ -1,10 +1,13 @@
-import React, { useRef, useEffect } from 'react'
+import React, { useRef, useEffect, useState as useStateImport } from 'react'
 import { MapContainer, TileLayer, Polyline, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Clock, Route, Zap, TrendingUp, Camera, Download, Save, X } from 'lucide-react'
+import { Clock, Route, Zap, TrendingUp, Camera, Download, Save, X, ChevronDown } from 'lucide-react'
 import type { NavStats, NavPhoto } from '../../hooks/useNavigation'
 import type { RecordedPoint } from '../../services/gpxRecorderService'
+import { tripsApi } from '../../api/client'
+
+interface TripOption { id: number; title: string }
 
 interface Props {
   trackName: string
@@ -12,8 +15,8 @@ interface Props {
   stats: NavStats
   navPhotos: NavPhoto[]
   tripId?: number
-  onSaveToTrip: (name: string) => Promise<void>
-  onDownload: (name: string) => void
+  onSaveToTrip: (name: string, tripId?: number) => Promise<void>
+  onDownload: (name: string) => Promise<void>
   onDiscard: () => void
 }
 
@@ -54,9 +57,20 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
   const [name, setName] = React.useState(trackName)
   const [saving, setSaving] = React.useState(false)
   const [saved, setSaved] = React.useState(false)
+  const [trips, setTrips] = useStateImport<TripOption[]>([])
+  const [selectedTripId, setSelectedTripId] = useStateImport<number | ''>('')
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { inputRef.current?.focus() }, [])
+
+  useEffect(() => {
+    if (!tripId) {
+      tripsApi.list().then((data: any) => {
+        const list: TripOption[] = (data.trips ?? data ?? []).map((t: any) => ({ id: t.id, title: t.title }))
+        setTrips(list)
+      }).catch(() => {})
+    }
+  }, [tripId])
 
   const latlngs: [number, number][] = recordedPoints.map(p => [p.lat, p.lng])
   const center: [number, number] = latlngs.length > 0
@@ -66,7 +80,7 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
   const handleSave = async () => {
     setSaving(true)
     try {
-      await onSaveToTrip(name)
+      await onSaveToTrip(name, tripId ?? (selectedTripId !== '' ? selectedTripId : undefined))
       setSaved(true)
     } catch { /* error handled by parent */ }
     setSaving(false)
@@ -142,7 +156,8 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {tripId && (
+          {/* Save to trip: direct when tripId is known, or via selector for free navigation */}
+          {tripId ? (
             <button onClick={handleSave} disabled={saving || saved} style={{
               background: saved ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)',
               border: `1px solid ${saved ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`,
@@ -154,6 +169,43 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
               <Save size={18} />
               {saved ? '¡Guardado en el viaje!' : saving ? 'Guardando…' : 'Guardar en el viaje'}
             </button>
+          ) : trips.length > 0 && !saved && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ position: 'relative' }}>
+                <select
+                  value={selectedTripId}
+                  onChange={e => setSelectedTripId(e.target.value === '' ? '' : Number(e.target.value))}
+                  style={{
+                    width: '100%', appearance: 'none', WebkitAppearance: 'none',
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+                    borderRadius: 10, padding: '12px 36px 12px 14px',
+                    color: selectedTripId === '' ? '#64748b' : '#f1f5f9',
+                    fontSize: 14, cursor: 'pointer', outline: 'none',
+                  }}
+                >
+                  <option value="" style={{ background: '#0f172a' }}>Seleccionar viaje…</option>
+                  {trips.map(t => (
+                    <option key={t.id} value={t.id} style={{ background: '#0f172a' }}>{t.title}</option>
+                  ))}
+                </select>
+                <ChevronDown size={16} color="#64748b" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              </div>
+              <button
+                onClick={handleSave}
+                disabled={saving || selectedTripId === ''}
+                style={{
+                  background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
+                  borderRadius: 12, padding: '14px 16px',
+                  color: '#3b82f6', fontWeight: 700, fontSize: 15,
+                  cursor: saving || selectedTripId === '' ? 'not-allowed' : 'pointer',
+                  opacity: selectedTripId === '' ? 0.5 : 1,
+                  display: 'flex', alignItems: 'center', gap: 10,
+                }}
+              >
+                <Save size={18} />
+                {saving ? 'Guardando…' : 'Guardar en el viaje'}
+              </button>
+            </div>
           )}
           <button onClick={() => onDownload(name)} style={{
             background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',

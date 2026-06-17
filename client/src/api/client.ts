@@ -1,4 +1,5 @@
 import axios, { AxiosInstance } from 'axios'
+import type { BookingImportPreviewItem } from '../types'
 import { getSocketId } from './websocket'
 import { isReachable, probeNow } from '../sync/connectivity'
 import en from '../i18n/translations/en'
@@ -180,6 +181,24 @@ export const authApi = {
     create: (name: string) => apiClient.post('/auth/mcp-tokens', { name }).then(r => r.data),
     delete: (id: number) => apiClient.delete(`/auth/mcp-tokens/${id}`).then(r => r.data),
   },
+  passkey: {
+    registerOptions: (password: string) => apiClient.post('/auth/passkey/register/options', { password }).then(r => r.data),
+    registerVerify: (attestationResponse: unknown, name?: string) => apiClient.post('/auth/passkey/register/verify', { attestationResponse, name }).then(r => r.data),
+    loginOptions: () => apiClient.post('/auth/passkey/login/options', {}).then(r => r.data),
+    loginVerify: (assertionResponse: unknown) => apiClient.post('/auth/passkey/login/verify', { assertionResponse }).then(r => r.data as { token: string; user: Record<string, unknown> }),
+    list: () => apiClient.get('/auth/passkey/credentials').then(r => r.data as { credentials: PasskeyCredential[] }),
+    rename: (id: number, name: string) => apiClient.patch(`/auth/passkey/credentials/${id}`, { name }).then(r => r.data),
+    delete: (id: number, password: string) => apiClient.delete(`/auth/passkey/credentials/${id}`, { data: { password } }).then(r => r.data),
+  },
+}
+
+export interface PasskeyCredential {
+  id: number
+  name: string | null
+  device_type: string | null
+  backed_up: boolean
+  created_at: string
+  last_used_at: string | null
 }
 
 export const oauthApi = {
@@ -242,6 +261,7 @@ export const daysApi = {
   create: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/days`, data).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/days/${dayId}`, data).then(r => r.data),
   delete: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}`).then(r => r.data),
+  reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/reorder`, { orderedIds }).then(r => r.data),
 }
 
 export const placesApi = {
@@ -266,10 +286,10 @@ export const placesApi = {
     if (opts?.paths !== undefined) fd.append('importPaths', String(opts.paths))
     return apiClient.post(`/trips/${tripId}/places/import/map`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data)
   },
-  importGoogleList: (tripId: number | string, url: string) =>
-      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url }).then(r => r.data),
-  importNaverList: (tripId: number | string, url: string) =>
-      apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url }).then(r => r.data),
+  importGoogleList: (tripId: number | string, url: string, enrich?: boolean) =>
+      apiClient.post(`/trips/${tripId}/places/import/google-list`, { url, enrich }).then(r => r.data),
+  importNaverList: (tripId: number | string, url: string, enrich?: boolean) =>
+      apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich }).then(r => r.data),
   bulkDelete: (tripId: number | string, ids: number[]) =>
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids }).then(r => r.data),
 }
@@ -374,6 +394,7 @@ export const adminApi = {
       apiClient.get('/admin/audit-log', { params }).then(r => r.data),
   mcpTokens: () => apiClient.get('/admin/mcp-tokens').then(r => r.data),
   deleteMcpToken: (id: number) => apiClient.delete(`/admin/mcp-tokens/${id}`).then(r => r.data),
+  resetUserPasskeys: (id: number) => apiClient.delete(`/admin/users/${id}/passkeys`).then(r => r.data),
   oauthSessions: () => apiClient.get('/admin/oauth-sessions').then(r => r.data),
   revokeOAuthSession: (id: number) => apiClient.delete(`/admin/oauth-sessions/${id}`).then(r => r.data),
   getPermissions: () => apiClient.get('/admin/permissions').then(r => r.data),
@@ -462,6 +483,9 @@ export const mapsApi = {
   placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => r.data),
   reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => r.data),
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => r.data),
+  // OSM-only POI explore: places of a category within the current map viewport bbox.
+  pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, signal?: AbortSignal) =>
+    apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
 }
 
 export const airportsApi = {
@@ -476,8 +500,12 @@ export const budgetApi = {
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/budget/${id}`).then(r => r.data),
   setMembers: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/budget/${id}/members`, { user_ids: userIds }).then(r => r.data),
   togglePaid: (tripId: number | string, id: number, userId: number, paid: boolean) => apiClient.put(`/trips/${tripId}/budget/${id}/members/${userId}/paid`, { paid }).then(r => r.data),
+  setPayers: (tripId: number | string, id: number, payers: { user_id: number; amount: number }[]) => apiClient.put(`/trips/${tripId}/budget/${id}/payers`, { payers }).then(r => r.data),
   perPersonSummary: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/summary/per-person`).then(r => r.data),
-  settlement: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/settlement`).then(r => r.data),
+  settlement: (tripId: number | string, base?: string) => apiClient.get(`/trips/${tripId}/budget/settlement`, base ? { params: { base } } : undefined).then(r => r.data),
+  listSettlements: (tripId: number | string) => apiClient.get(`/trips/${tripId}/budget/settlements`).then(r => r.data),
+  createSettlement: (tripId: number | string, data: { from_user_id: number; to_user_id: number; amount: number }) => apiClient.post(`/trips/${tripId}/budget/settlements`, data).then(r => r.data),
+  deleteSettlement: (tripId: number | string, settlementId: number) => apiClient.delete(`/trips/${tripId}/budget/settlements/${settlementId}`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
 }
@@ -499,11 +527,27 @@ export const filesApi = {
 }
 
 export const reservationsApi = {
+  upcoming: () => apiClient.get('/reservations/upcoming').then(r => r.data),
   list: (tripId: number | string) => apiClient.get(`/trips/${tripId}/reservations`).then(r => r.data),
   create: (tripId: number | string, data: Record<string, unknown>) => apiClient.post(`/trips/${tripId}/reservations`, data).then(r => r.data),
   update: (tripId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/reservations/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/reservations/${id}`).then(r => r.data),
   updatePositions: (tripId: number | string, positions: { id: number; day_plan_position: number }[], dayId?: number) => apiClient.put(`/trips/${tripId}/reservations/positions`, { positions, day_id: dayId }).then(r => r.data),
+  importBookingPreview: async (tripId: number | string, files: File[]): Promise<{ items: BookingImportPreviewItem[]; warnings: string[] }> => {
+    const form = new FormData()
+    for (const f of files) form.append('files', f)
+    return apiClient.post(`/trips/${tripId}/reservations/import/booking`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 60000,
+    }).then(r => r.data)
+  },
+  importBookingConfirm: (tripId: number | string, items: BookingImportPreviewItem[]): Promise<{ created: import('../types').Reservation[] }> =>
+    apiClient.post(`/trips/${tripId}/reservations/import/booking/confirm`, { items }, { timeout: 60000 }).then(r => r.data),
+}
+
+export const healthApi = {
+  features: (): Promise<{ bookingImport: boolean }> =>
+    apiClient.get('/health/features').then(r => r.data),
 }
 
 export const weatherApi = {
@@ -614,6 +658,19 @@ export const inAppNotificationsApi = {
       apiClient.delete('/notifications/in-app/all').then(r => r.data),
   respond: (id: number, response: 'positive' | 'negative') =>
       apiClient.post(`/notifications/in-app/${id}/respond`, { response }).then(r => r.data),
+}
+
+export const airtrailApi = {
+  getSettings: () => apiClient.get('/integrations/airtrail/settings').then(r => r.data),
+  saveSettings: (data: { url: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.put('/integrations/airtrail/settings', data).then(r => r.data),
+  status: () => apiClient.get('/integrations/airtrail/status').then(r => r.data),
+  test: (data: { url?: string; apiKey?: string; allowInsecureTls?: boolean }) =>
+    apiClient.post('/integrations/airtrail/test', data).then(r => r.data),
+  sync: (): Promise<{ changed: number }> => apiClient.post('/integrations/airtrail/sync').then(r => r.data),
+  flights: () => apiClient.get('/integrations/airtrail/flights').then(r => r.data),
+  import: (tripId: number, flightIds: string[]) =>
+    apiClient.post(`/trips/${tripId}/reservations/import/airtrail`, { flightIds }).then(r => r.data),
 }
 
 export default apiClient

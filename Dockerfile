@@ -29,6 +29,12 @@ RUN rm -f package-lock.json && \
     mkdir -p /app/server && ln -s /app/uploads /app/server/uploads && ln -s /app/data /app/server/data && \
     chown -R node:node /app
 
+# KDE KItinerary extractor — enables booking-confirmation import.
+# Install best-effort; if unavailable the feature is simply disabled at runtime
+# (the /api/health/features endpoint returns { bookingImport: false }).
+# On Alpine the package lives in the community repo; ignore failures gracefully.
+RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community kitinerary 2>/dev/null || true
+
 ENV NODE_ENV=production
 ENV PORT=3000
 ARG APP_VERSION=dev

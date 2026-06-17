@@ -17,6 +17,7 @@
     "cap:open": "npx cap open android"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.1.2",
     "@capacitor-community/background-geolocation": "^1.2.26",
     "@capacitor/android": "^8.4.0",
     "@capacitor/camera": "^8.2.0",

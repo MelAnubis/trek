@@ -448,6 +448,7 @@ const nl: Record<string, string> = {
   'login.username': 'Gebruikersnaam',
   'login.oidc.registrationDisabled': 'Registratie is uitgeschakeld. Neem contact op met je beheerder.',
   'login.oidc.noEmail': 'Geen e-mailadres ontvangen van de provider.',
+  'login.oidc.emailNotVerified': 'E-mailadres is niet geverifieerd door de provider.',
   'login.mfaTitle': 'Tweefactorauthenticatie',
   'login.mfaSubtitle': 'Voer de 6-cijferige code van je authenticator-app in.',
   'login.mfaCodeLabel': 'Verificatiecode',

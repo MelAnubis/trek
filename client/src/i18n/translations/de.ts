@@ -453,6 +453,7 @@ const de: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Benutzername',
   'login.oidc.registrationDisabled': 'Registrierung ist deaktiviert. Kontaktiere den Administrator.',
   'login.oidc.noEmail': 'Keine E-Mail vom Provider erhalten.',
+  'login.oidc.emailNotVerified': 'E-Mail-Adresse wurde vom Provider nicht bestätigt.',
   'login.oidc.tokenFailed': 'Authentifizierung fehlgeschlagen.',
   'login.oidc.invalidState': 'Ungültige Sitzung. Bitte erneut versuchen.',
   'login.demoFailed': 'Demo-Login fehlgeschlagen',

@@ -448,6 +448,7 @@ const cs: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Uživatelské jméno',
   'login.oidc.registrationDisabled': 'Registrace je zakázána. Kontaktujte svého administrátora.',
   'login.oidc.noEmail': 'Od poskytovatele nebyl přijat žádný e-mail.',
+  'login.oidc.emailNotVerified': 'E-mail nebyl poskytovatelem ověřen.',
   'login.oidc.tokenFailed': 'Ověření se nezdařilo.',
   'login.oidc.invalidState': 'Neplatná relace. Zkuste to prosím znovu.',
   'login.demoFailed': 'Přihlášení do dema se nezdařilo',

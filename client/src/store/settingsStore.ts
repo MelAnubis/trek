@@ -33,6 +33,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     time_format: '12h',
     show_place_description: false,
     map_provider: 'leaflet',
+    map_poi_pill_enabled: true,
     mapbox_access_token: '',
     mapbox_style: 'mapbox://styles/mapbox/standard',
     mapbox_3d_enabled: true,

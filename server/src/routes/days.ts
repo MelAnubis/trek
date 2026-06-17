@@ -5,6 +5,7 @@ import { broadcast } from '../websocket';
 import { checkPermission } from '../services/permissions';
 import { AuthRequest } from '../types';
 import * as dayService from '../services/dayService';
+import { DayReorderError } from '../services/dayService';
 
 const router = express.Router({ mergeParams: true });
 
@@ -19,11 +20,43 @@ router.post('/', authenticate, requireTripAccess, (req: Request, res: Response) 
     return res.status(403).json({ error: 'No permission' });
 
   const { tripId } = req.params;
-  const { date, notes } = req.body;
+  const { date, notes, position } = req.body;
 
-  const day = dayService.createDay(tripId, date, notes);
+  // A `position` means "insert a new empty day here" (which on a dated trip
+  // extends the trip and re-pins dates); without it, the legacy append.
+  const day = position !== undefined
+    ? dayService.insertDay(tripId, position)
+    : dayService.createDay(tripId, date, notes);
+  // An insert can shuffle dates/positions of other days, so collaborators
+  // refetch the whole list; a plain append only needs the new day.
+  const event = position !== undefined ? 'day:reordered' : 'day:created';
   res.status(201).json({ day });
-  broadcast(tripId, 'day:created', { day }, req.headers['x-socket-id'] as string);
+  broadcast(tripId, event, { day }, req.headers['x-socket-id'] as string);
+});
+
+router.put('/reorder', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  if (!checkPermission('day_edit', authReq.user.role, authReq.trip!.user_id, authReq.user.id, authReq.trip!.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  const { tripId } = req.params;
+  const { orderedIds } = req.body;
+
+  if (!Array.isArray(orderedIds)) {
+    return res.status(400).json({ error: 'orderedIds must be an array' });
+  }
+
+  try {
+    dayService.reorderDays(tripId, orderedIds);
+  } catch (err) {
+    if (err instanceof DayReorderError) {
+      return res.status(400).json({ error: (err as Error).message });
+    }
+    throw err;
+  }
+
+  broadcast(tripId, 'day:reordered', { orderedIds }, req.headers['x-socket-id'] as string);
+  return res.json({ success: true });
 });
 
 router.put('/:id', authenticate, requireTripAccess, (req: Request, res: Response) => {

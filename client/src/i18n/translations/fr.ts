@@ -448,6 +448,7 @@ const fr: Record<string, string> = {
   'login.username': 'Nom d\'utilisateur',
   'login.oidc.registrationDisabled': 'Les inscriptions sont désactivées. Contactez votre administrateur.',
   'login.oidc.noEmail': 'Aucun e-mail reçu du fournisseur.',
+  'login.oidc.emailNotVerified': 'L\'adresse e-mail n\'est pas vérifiée par le fournisseur.',
   'login.mfaTitle': 'Authentification à deux facteurs',
   'login.mfaSubtitle': 'Entrez le code à 6 chiffres de votre application d\'authentification.',
   'login.mfaCodeLabel': 'Code de vérification',

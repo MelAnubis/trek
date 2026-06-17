@@ -6,9 +6,9 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
-  Plane, Hotel, Utensils, Train, Car, Ship, Ticket, FileText, MapPin,
+  Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Upload, Download,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -27,15 +27,20 @@ interface AssignmentLookupEntry {
 }
 
 const TYPE_OPTIONS = [
-  { value: 'flight',      labelKey: 'reservations.type.flight',      Icon: Plane, color: '#3b82f6' },
-  { value: 'hotel',       labelKey: 'reservations.type.hotel',       Icon: Hotel, color: '#8b5cf6' },
-  { value: 'restaurant',  labelKey: 'reservations.type.restaurant',  Icon: Utensils, color: '#ef4444' },
-  { value: 'train',       labelKey: 'reservations.type.train',       Icon: Train, color: '#06b6d4' },
-  { value: 'car',         labelKey: 'reservations.type.car',         Icon: Car, color: '#6b7280' },
-  { value: 'cruise',      labelKey: 'reservations.type.cruise',      Icon: Ship, color: '#0ea5e9' },
-  { value: 'event',       labelKey: 'reservations.type.event',       Icon: Ticket, color: '#f59e0b' },
-  { value: 'tour',        labelKey: 'reservations.type.tour',        Icon: Users, color: '#10b981' },
-  { value: 'other',       labelKey: 'reservations.type.other',       Icon: FileText, color: '#6b7280' },
+  { value: 'flight',          labelKey: 'reservations.type.flight',          Icon: Plane, color: '#3b82f6' },
+  { value: 'hotel',           labelKey: 'reservations.type.hotel',           Icon: Hotel, color: '#8b5cf6' },
+  { value: 'restaurant',      labelKey: 'reservations.type.restaurant',      Icon: Utensils, color: '#ef4444' },
+  { value: 'train',           labelKey: 'reservations.type.train',           Icon: Train, color: '#06b6d4' },
+  { value: 'bus',             labelKey: 'reservations.type.bus',             Icon: Bus, color: '#059669' },
+  { value: 'car',             labelKey: 'reservations.type.car',             Icon: Car, color: '#6b7280' },
+  { value: 'taxi',            labelKey: 'reservations.type.taxi',            Icon: CarTaxiFront, color: '#ca8a04' },
+  { value: 'bicycle',         labelKey: 'reservations.type.bicycle',         Icon: Bike, color: '#84cc16' },
+  { value: 'cruise',          labelKey: 'reservations.type.cruise',          Icon: Ship, color: '#0ea5e9' },
+  { value: 'ferry',           labelKey: 'reservations.type.ferry',           Icon: Sailboat, color: '#0d9488' },
+  { value: 'transport_other', labelKey: 'reservations.type.transport_other', Icon: Route, color: '#6b7280' },
+  { value: 'event',           labelKey: 'reservations.type.event',           Icon: Ticket, color: '#f59e0b' },
+  { value: 'tour',            labelKey: 'reservations.type.tour',            Icon: Users, color: '#10b981' },
+  { value: 'other',           labelKey: 'reservations.type.other',           Icon: FileText, color: '#6b7280' },
 ]
 
 function getType(type) {
@@ -110,7 +115,7 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   const hasCode = !!r.confirmation_number
   const dateCols = [hasDate, hasTime, hasCode].filter(Boolean).length
 
-  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'cruise'])
+  const TRANSPORT_TYPES_SET = new Set(['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other'])
   const isTransportType = TRANSPORT_TYPES_SET.has(r.type)
   const isHotel = r.type === 'hotel'
   const startDay = r.day_id ? days.find(d => d.id === r.day_id)
@@ -182,6 +187,20 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             }} title={t('reservations.needsReviewHint')}>
               <AlertCircle size={11} />
               {t('reservations.needsReview')}
+            </span>
+          ) : null}
+          {(r as any).external_source === 'airtrail' ? (
+            <span
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6,
+                color: (r as any).sync_enabled ? '#2563eb' : 'var(--text-faint)',
+                background: (r as any).sync_enabled ? 'rgba(59,130,246,0.12)' : 'var(--bg-tertiary)',
+              }}
+              title={(r as any).sync_enabled ? t('reservations.airtrail.syncedHint') : t('reservations.airtrail.notSyncedHint')}
+            >
+              <Plane size={11} />
+              {(r as any).sync_enabled ? t('reservations.airtrail.synced') : t('reservations.airtrail.notSynced')}
             </span>
           ) : null}
         </div>
@@ -475,14 +494,20 @@ interface ReservationsPanelProps {
   assignments: AssignmentsMap
   files?: TripFile[]
   onAdd: () => void
+  onImportBooking?: () => void
+  onImport?: () => void
+  bookingImportAvailable?: boolean
+  onAirTrailImport?: () => void
+  airTrailAvailable?: boolean
   onEdit: (reservation: Reservation) => void
   onDelete: (id: number) => void
   onNavigateToFiles: () => void
   titleKey?: string
   addManualKey?: string
+  pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual' }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', onImportBooking, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, pushUndo }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
@@ -595,20 +620,53 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           )}
 
           {canEdit && (
-            <button onClick={onAdd} style={{
-              appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-              padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-              background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-              marginLeft: 'auto',
-              transition: 'opacity 0.15s ease',
-            }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
-              <Plus size={14} strokeWidth={2.5} />
-              <span className="hidden sm:inline">{t(addManualKey)}</span>
-            </button>
+            <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
+              {bookingImportAvailable && (onImportBooking || onImport) && (
+                <button onClick={onImportBooking ?? onImport} style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                  background: 'var(--bg-card)', color: 'var(--text-primary)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.import.cta')}
+                >
+                  <Upload size={14} strokeWidth={2.5} />
+                  <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
+                </button>
+              )}
+              {onAirTrailImport && airTrailAvailable && (
+                <button onClick={onAirTrailImport} style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('reservations.airtrail.title')}
+                >
+                  <Plane size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
+                </button>
+              )}
+              <button onClick={onAdd} style={{
+                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
+                background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
+                transition: 'opacity 0.15s ease',
+              }}
+                onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                <span className="hidden sm:inline">{t(addManualKey)}</span>
+              </button>
+            </div>
           )}
         </div>
       </div>

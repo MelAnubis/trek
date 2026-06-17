@@ -5,7 +5,7 @@ import { calculateSegments } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
-const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'cruise']
+const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cruise', 'ferry', 'transport_other']
 
 /**
  * Manages route calculation state for a selected day. Extracts geo-coded waypoints from
@@ -130,7 +130,19 @@ export function useRouteCalculation(
   // Recalculate when assignments, transport positions, or GPX track changes
   const selectedDayAssignments = selectedDayId ? tripStore.assignments?.[String(selectedDayId)] : null
   useEffect(() => {
-    if (!selectedDayId) { setRoute(null); setRouteSegments([]); return }
+    if (!selectedDayId) {
+      // No day selected — show global GPX track on map if available
+      if (activeGpxTrack?.points && activeGpxTrack.points.length > 1) {
+        const gpxRoute: [number, number][] = (activeGpxTrack.points as any[])
+          .filter((p) => p.lat && p.lng)
+          .map((p) => [p.lat, p.lng] as [number, number])
+        setRoute([gpxRoute])
+      } else {
+        setRoute(null)
+      }
+      setRouteSegments([])
+      return
+    }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDayId, selectedDayAssignments, transportSignature, activeGpxTrack])

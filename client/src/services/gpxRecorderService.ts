@@ -36,13 +36,20 @@ export class GpxRecorderService {
     this.running = false
   }
 
-  addPoint(lat: number, lng: number, alt: number | null, speed: number | null, timestamp: number) {
+  addPoint(lat: number, lng: number, alt: number | null, speed: number | null, timestamp: number, accuracy?: number) {
     if (!this.running) return
+
+    // Reject points with poor GPS signal (accuracy > 50m) — avoids initial-acquisition loops
+    if (accuracy !== undefined && accuracy > 50) return
+
     const last = this.points[this.points.length - 1]
     if (last) {
       const dist = haversineM(last.lat, last.lng, lat, lng)
-      // Skip if < 3m away and < 4 seconds since last point (avoids GPS jitter)
+      // Skip stationary jitter: < 3m AND < 4s since last point
       if (dist < 3 && timestamp - last.timestamp < 4000) return
+      // Reject GPS outlier jumps: implied speed > 60 m/s (216 km/h) is impossible on a bicycle
+      const dt = (timestamp - last.timestamp) / 1000
+      if (dt > 0 && dist / dt > 60) return
     }
     this.points.push({ lat, lng, alt, speed, timestamp })
   }
@@ -77,15 +84,41 @@ export class GpxRecorderService {
     return [...head, ...pts, ...tail].join('\n')
   }
 
-  downloadGpx(name = 'Trek Recording') {
+  async downloadGpx(name = 'Trek Recording'): Promise<void> {
     const xml = this.exportGpx(name)
+    const filename = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`
     const blob = new Blob([xml], { type: 'application/gpx+xml' })
+
+    // Android WebView silently ignores <a download> — use Web Share API when available.
+    // Try sharing with files first (octet-stream for broadest Android compatibility),
+    // then fall back to text-only share so the user can at least send the GPX via
+    // email / Drive / etc. from the native share sheet.
+    if (typeof navigator.share === 'function') {
+      const shareFile = new File([blob], filename, { type: 'application/octet-stream' })
+      try {
+        await navigator.share({ files: [shareFile], title: name })
+        return
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return // user cancelled
+        // Files not supported — try sharing the raw XML as text
+      }
+      try {
+        await navigator.share({ title: filename, text: xml })
+        return
+      } catch (e) {
+        if (e instanceof Error && e.name === 'AbortError') return
+        // Fall through to <a download> for desktop PWA
+      }
+    }
+
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `${name.replace(/[^a-z0-9]/gi, '_')}.gpx`
+    a.download = filename
+    document.body.appendChild(a)
     a.click()
-    URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
   async saveToTrip(tripId: number, name = 'Trek Recording'): Promise<void> {

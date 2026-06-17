@@ -20,6 +20,7 @@ import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import PermissionsPanel from '../components/Admin/PermissionsPanel'
+import RouteDiscoveryPanel from '../components/Admin/RouteDiscoveryPanel'
 import { Users, Map, Briefcase, Shield, Trash2, Edit2, FileText, Eye, EyeOff, Save, CheckCircle, XCircle, Loader2, UserPlus, ArrowUpCircle, ExternalLink, Download, Sun, Link2, Copy, Plus, RefreshCw, AlertTriangle, SlidersHorizontal, UserCog, Puzzle, Settings as SettingsIcon, Bell, Database, ScrollText, KeyRound, GitBranch, Bug } from 'lucide-react'
 import CustomSelect from '../components/shared/CustomSelect'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
@@ -195,6 +196,7 @@ export default function AdminPage(): React.ReactElement {
     { id: 'audit', label: t('admin.tabs.audit'), icon: ScrollText },
     ...(mcpEnabled ? [{ id: 'mcp-tokens', label: t('admin.tabs.mcpTokens'), icon: KeyRound }] : []),
     { id: 'github', label: t('admin.tabs.github'), icon: GitBranch },
+    { id: 'route-discovery', label: '🗺️ Rutas OSM', icon: Map },
     ...(devMode ? [{ id: 'dev-notifications', label: 'Dev: Notifications', icon: Bug }] : []),
   ]
 
@@ -204,6 +206,7 @@ export default function AdminPage(): React.ReactElement {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
   const [editForm, setEditForm] = useState<{ username: string; email: string; role: string; password: string }>({ username: '', email: '', role: 'user', password: '' })
+  const [savingUser, setSavingUser] = useState(false)
   const [showCreateUser, setShowCreateUser] = useState<boolean>(false)
   const [createForm, setCreateForm] = useState<{ username: string; email: string; password: string; role: string }>({ username: '', email: '', password: '', role: 'user' })
 
@@ -240,6 +243,13 @@ export default function AdminPage(): React.ReactElement {
   const [oidcConfigured, setOidcConfigured] = useState<boolean>(false)
   const [requireMfa, setRequireMfa] = useState<boolean>(false)
 
+  // Passkey / WebAuthn
+  const [passkeyLogin, setPasskeyLogin] = useState<boolean>(false)
+  const [passkeyConfigured, setPasskeyConfigured] = useState<boolean>(false)
+  const [webauthnRpId, setWebauthnRpId] = useState<string>('')
+  const [webauthnOrigins, setWebauthnOrigins] = useState<string>('')
+  const [savingWebauthn, setSavingWebauthn] = useState<boolean>(false)
+
   // Invite links
   const [invites, setInvites] = useState<any[]>([])
   const [showCreateInvite, setShowCreateInvite] = useState<boolean>(false)
@@ -255,6 +265,8 @@ export default function AdminPage(): React.ReactElement {
   useEffect(() => {
     apiClient.get('/auth/app-settings').then(r => {
       setSmtpValues(r.data || {})
+      if (r.data?.webauthn_rp_id) setWebauthnRpId(r.data.webauthn_rp_id)
+      if (r.data?.webauthn_origins) setWebauthnOrigins(r.data.webauthn_origins)
       setSmtpLoaded(true)
     }).catch(() => setSmtpLoaded(true))
   }, [])
@@ -317,6 +329,8 @@ export default function AdminPage(): React.ReactElement {
       setOidcConfigured(config.oidc_configured ?? false)
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
+      setPasskeyLogin(!!config.passkey_login)
+      setPasskeyConfigured(!!config.passkey_configured)
     } catch (err: unknown) {
       // ignore
     }
@@ -351,6 +365,22 @@ export default function AdminPage(): React.ReactElement {
     } catch (err: unknown) {
       setRequireMfa(!value)
       toast.error(getApiErrorMessage(err, t('common.error')))
+    }
+  }
+
+  const handleSaveWebauthn = async () => {
+    setSavingWebauthn(true)
+    try {
+      await authApi.updateAppSettings({
+        webauthn_rp_id: webauthnRpId.trim(),
+        webauthn_origins: webauthnOrigins.trim(),
+      })
+      await loadAppConfig()
+      toast.success(t('common.saved'))
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
+    } finally {
+      setSavingWebauthn(false)
     }
   }
 
@@ -459,6 +489,8 @@ export default function AdminPage(): React.ReactElement {
   }
 
   const handleSaveUser = async () => {
+    if (!editingUser) return
+    setSavingUser(true)
     try {
       const payload: { username?: string; email?: string; role: string; password?: string } = {
         username: editForm.username.trim() || undefined,
@@ -468,6 +500,7 @@ export default function AdminPage(): React.ReactElement {
       if (editForm.password.trim()) {
         if (editForm.password.trim().length < 8) {
           toast.error(t('settings.passwordTooShort'))
+          setSavingUser(false)
           return
         }
         payload.password = editForm.password.trim()
@@ -478,6 +511,8 @@ export default function AdminPage(): React.ReactElement {
       toast.success(t('admin.toast.userUpdated'))
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('admin.toast.updateError')))
+    } finally {
+      setSavingUser(false)
     }
   }
 
@@ -493,6 +528,16 @@ export default function AdminPage(): React.ReactElement {
       toast.success(t('admin.toast.userDeleted'))
     } catch (err: unknown) {
       toast.error(getApiErrorMessage(err, t('admin.toast.deleteError')))
+    }
+  }
+
+  const handleResetPasskeys = async (user) => {
+    if (!confirm(t('admin.passkey.resetConfirm', { name: user.username }))) return
+    try {
+      const result = await adminApi.resetUserPasskeys(user.id)
+      toast.success(t('admin.passkey.resetDone', { count: result.deleted ?? 0 }))
+    } catch (err: unknown) {
+      toast.error(getApiErrorMessage(err, t('common.error')))
     }
   }
 
@@ -678,6 +723,15 @@ export default function AdminPage(): React.ReactElement {
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
+                              {passkeyLogin && (
+                                <button
+                                  onClick={() => handleResetPasskeys(u)}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                  title={t('admin.passkey.resetHint')}
+                                >
+                                  <KeyRound className="w-4 h-4" />
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteUser(u)}
                                 disabled={u.id === currentUser?.id}
@@ -1217,6 +1271,71 @@ export default function AdminPage(): React.ReactElement {
                   </button>
                 </div>
               </div>
+              {/* Passkey / WebAuthn Configuration */}
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h2 className="font-semibold text-slate-900">{t('admin.passkey.title')}</h2>
+                  <p className="text-xs text-slate-400 mt-1">{t('admin.passkey.cardHint')}</p>
+                </div>
+                <div className="p-6 space-y-5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">{t('admin.passkey.login')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t('admin.passkey.loginHint')}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAuthSetting('passkey_login', !passkeyLogin, setPasskeyLogin)}
+                      className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${passkeyLogin ? 'bg-content' : 'bg-edge'}`}
+                      style={{ background: passkeyLogin ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                    >
+                      <span
+                        className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
+                        style={{ transform: passkeyLogin ? 'translateX(20px)' : 'translateX(0)' }}
+                      />
+                    </button>
+                  </div>
+
+                  {passkeyLogin && !passkeyConfigured && (
+                    <p className="flex items-start gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                      <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                      {t('admin.passkey.notConfigured')}
+                    </p>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.passkey.rpId')}</label>
+                    <p className="text-xs text-slate-400 mb-1.5">{t('admin.passkey.rpIdHint')}</p>
+                    <input
+                      type="text"
+                      value={webauthnRpId}
+                      onChange={e => setWebauthnRpId(e.target.value)}
+                      placeholder="trek.example.org"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">{t('admin.passkey.origins')}</label>
+                    <p className="text-xs text-slate-400 mb-1.5">{t('admin.passkey.originsHint')}</p>
+                    <input
+                      type="text"
+                      value={webauthnOrigins}
+                      onChange={e => setWebauthnOrigins(e.target.value)}
+                      placeholder="https://trek.example.org"
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={handleSaveWebauthn}
+                    disabled={savingWebauthn}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
+                  >
+                    {savingWebauthn ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                    {t('common.save')}
+                  </button>
+                </div>
+              </div>
+
               {/* Danger Zone */}
               <div className="bg-white rounded-xl border border-red-200 overflow-hidden">
                 <div className="px-6 py-4 border-b border-red-100 bg-red-50">
@@ -1609,6 +1728,8 @@ export default function AdminPage(): React.ReactElement {
 
           {activeTab === 'defaults' && <DefaultUserSettingsTab />}
 
+          {activeTab === 'route-discovery' && <RouteDiscoveryPanel />}
+
           {activeTab === 'dev-notifications' && <DevNotificationsPanel />}
           </PageSidebar>
         </div>
@@ -1698,7 +1819,8 @@ export default function AdminPage(): React.ReactElement {
             </button>
             <button
               onClick={handleSaveUser}
-              className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 text-white rounded-lg"
+              disabled={savingUser}
+              className="px-4 py-2 text-sm bg-slate-900 hover:bg-slate-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t('common.save')}
             </button>

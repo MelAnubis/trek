@@ -19,6 +19,7 @@ import {
   importNaverList,
   searchPlaceImage,
   type KmlImportOptions,
+  type ListImportOptions,
 } from '../services/placeService';
 import { onPlaceCreated, onPlaceUpdated, onPlaceDeleted } from '../services/journeyService';
 
@@ -130,11 +131,12 @@ router.post('/import/google-list', authenticate, requireTripAccess, async (req: 
     return res.status(403).json({ error: 'No permission' });
 
   const { tripId } = req.params;
-  const { url } = req.body;
+  const { url, enrich } = req.body;
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL is required' });
 
   try {
-    const result = await importGoogleList(tripId, url);
+    const opts: ListImportOptions = { enrich: enrich === true, userId: authReq.user.id, lang: req.query.lang as string | undefined };
+    const result = await importGoogleList(tripId, url, opts);
 
     if ('error' in result) {
       return res.status(result.status).json({ error: result.error });
@@ -156,11 +158,12 @@ router.post('/import/naver-list', authenticate, requireTripAccess, async (req: R
   if (!checkPermission('place_edit', authReq.user.role, authReq.trip!.user_id, authReq.user.id, authReq.trip!.user_id !== authReq.user.id))
     return res.status(403).json({ error: 'No permission' });
   const { tripId } = req.params;
-  const { url } = req.body;
+  const { url, enrich } = req.body;
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'URL is required' });
 
   try {
-    const result = await importNaverList(tripId, url);
+    const opts: ListImportOptions = { enrich: enrich === true, userId: authReq.user.id, lang: req.query.lang as string | undefined };
+    const result = await importNaverList(tripId, url, opts);
 
     if ('error' in result) {
       return res.status(result.status).json({ error: result.error });

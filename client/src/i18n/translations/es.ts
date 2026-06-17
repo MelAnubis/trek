@@ -447,6 +447,7 @@ const es: Record<string, string> = {
   'login.username': 'Usuario',
   'login.oidc.registrationDisabled': 'El registro está desactivado. Contacta con tu administrador.',
   'login.oidc.noEmail': 'No se recibió ningún correo del proveedor.',
+  'login.oidc.emailNotVerified': 'El proveedor no ha verificado la dirección de correo.',
   'login.mfaTitle': 'Autenticación de dos factores',
   'login.mfaSubtitle': 'Introduce el código de 6 dígitos de tu app de autenticación.',
   'login.mfaCodeLabel': 'Código de verificación',
