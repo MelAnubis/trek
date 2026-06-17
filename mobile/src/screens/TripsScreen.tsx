@@ -106,7 +106,7 @@ export function TripsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  container: { flex: 1, backgroundColor: '#F5F0E8' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

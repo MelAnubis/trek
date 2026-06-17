@@ -99,7 +99,7 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  container: { flex: 1, backgroundColor: '#F5F0E8' },
 
   banner: {
     backgroundColor: COLORS.bg,
