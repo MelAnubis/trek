@@ -205,6 +205,7 @@ export default function AdminPage(): React.ReactElement {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+  const [showEditUser, setShowEditUser] = useState<boolean>(false)
   const [editForm, setEditForm] = useState<{ username: string; email: string; role: string; password: string }>({ username: '', email: '', role: 'user', password: '' })
   const [savingUser, setSavingUser] = useState(false)
   const [showCreateUser, setShowCreateUser] = useState<boolean>(false)
@@ -486,6 +487,7 @@ export default function AdminPage(): React.ReactElement {
   const handleEditUser = (user) => {
     setEditingUser(user)
     setEditForm({ username: user.username, email: user.email, role: user.role, password: '' })
+    setShowEditUser(true)
   }
 
   const handleSaveUser = async () => {
@@ -507,6 +509,7 @@ export default function AdminPage(): React.ReactElement {
       }
       const data = await adminApi.updateUser(editingUser.id, payload)
       setUsers(prev => prev.map(u => u.id === editingUser.id ? data.user : u))
+      setShowEditUser(false)
       setEditingUser(null)
       toast.success(t('admin.toast.userUpdated'))
     } catch (err: unknown) {
@@ -717,6 +720,7 @@ export default function AdminPage(): React.ReactElement {
                           <td className="px-5 py-3">
                             <div className="flex items-center gap-2 justify-end">
                               <button
+                                type="button"
                                 onClick={() => handleEditUser(u)}
                                 className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
                                 title={t('admin.editUser')}
@@ -1805,14 +1809,15 @@ export default function AdminPage(): React.ReactElement {
 
       {/* Edit user modal */}
       <Modal
-        isOpen={!!editingUser}
-        onClose={() => setEditingUser(null)}
+        isOpen={showEditUser}
+        onClose={() => { setShowEditUser(false); setEditingUser(null) }}
         title={t('admin.editUser')}
         size="sm"
         footer={
           <div className="flex gap-3 justify-end">
             <button
-              onClick={() => setEditingUser(null)}
+              type="button"
+              onClick={() => { setShowEditUser(false); setEditingUser(null) }}
               className="px-4 py-2 text-sm text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50"
             >
               {t('common.cancel')}
