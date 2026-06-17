@@ -321,6 +321,28 @@ export function RecordScreen() {
     ]);
   };
 
+  // These hooks MUST be declared before any early returns (Rules of Hooks)
+  const takePhoto = useCallback(async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') { Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.'); return; }
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false });
+    if (result.canceled || !result.assets[0]) return;
+    const uri = result.assets[0].uri;
+    const current = _pts[_pts.length - 1];
+    if (current) {
+      _photos.push({ lat: current.lat, lng: current.lng, time: new Date().toISOString(), uri });
+    }
+    setLastPhoto(uri);
+    setTimeout(() => setLastPhoto(null), 3000);
+  }, []);
+
+  const reCenter = useCallback(async () => {
+    try {
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+      webViewRef.current?.postMessage(JSON.stringify({ type: 'locate', lat: loc.coords.latitude, lng: loc.coords.longitude }));
+    } catch {}
+  }, []);
+
   // ── Idle ─────────────────────────────────────────────────────────────────
   if (state === 'idle') {
     return (
@@ -448,27 +470,6 @@ export function RecordScreen() {
       </KeyboardAvoidingView>
     );
   }
-
-  const takePhoto = useCallback(async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Permiso denegado', 'Se necesita acceso a la cámara.'); return; }
-    const result = await ImagePicker.launchCameraAsync({ quality: 0.7, allowsEditing: false });
-    if (result.canceled || !result.assets[0]) return;
-    const uri = result.assets[0].uri;
-    const current = _pts[_pts.length - 1];
-    if (current) {
-      _photos.push({ lat: current.lat, lng: current.lng, time: new Date().toISOString(), uri });
-    }
-    setLastPhoto(uri);
-    setTimeout(() => setLastPhoto(null), 3000);
-  }, []);
-
-  const reCenter = useCallback(async () => {
-    try {
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      webViewRef.current?.postMessage(JSON.stringify({ type: 'locate', lat: loc.coords.latitude, lng: loc.coords.longitude }));
-    } catch {}
-  }, []);
 
   // ── Recording / Paused ───────────────────────────────────────────────────
   return (
