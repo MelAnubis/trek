@@ -510,6 +510,7 @@ const id: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Nama pengguna',
   'login.oidc.registrationDisabled': 'Pendaftaran dinonaktifkan. Hubungi administrator kamu.',
   'login.oidc.noEmail': 'Tidak ada email yang diterima dari penyedia.',
+  'login.oidc.emailNotVerified': 'Alamat email tidak diverifikasi oleh penyedia.',
   'login.oidc.tokenFailed': 'Autentikasi gagal.',
   'login.oidc.invalidState': 'Sesi tidak valid. Coba lagi.',
   'login.demoFailed': 'Login demo gagal',

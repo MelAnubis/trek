@@ -507,6 +507,7 @@ const zhTw: Record<string, string> = {
   'login.username': '使用者名稱',
   'login.oidc.registrationDisabled': '註冊已關閉。請聯絡管理員。',
   'login.oidc.noEmail': '未從提供商獲取到郵箱。',
+  'login.oidc.emailNotVerified': '提供商未驗證該郵箱地址。',
   'login.mfaTitle': '雙因素認證',
   'login.mfaSubtitle': '請輸入身份驗證器應用中的 6 位驗證碼。',
   'login.mfaCodeLabel': '驗證碼',

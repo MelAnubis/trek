@@ -561,6 +561,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Username',
   'login.oidc.registrationDisabled': 'Registration is disabled. Contact your administrator.',
   'login.oidc.noEmail': 'No email received from provider.',
+  'login.oidc.emailNotVerified': 'Email address is not verified by the provider.',
   'login.oidc.tokenFailed': 'Authentication failed.',
   'login.oidc.invalidState': 'Invalid session. Please try again.',
   'login.demoFailed': 'Demo login failed',

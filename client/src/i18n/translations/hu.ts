@@ -448,6 +448,7 @@ const hu: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Felhasználónév',
   'login.oidc.registrationDisabled': 'A regisztráció le van tiltva. Lépj kapcsolatba az adminisztrátorral.',
   'login.oidc.noEmail': 'Nem érkezett e-mail a szolgáltatótól.',
+  'login.oidc.emailNotVerified': 'Az e-mail-cím nincs megerősítve a szolgáltató által.',
   'login.oidc.tokenFailed': 'Hitelesítés sikertelen.',
   'login.oidc.invalidState': 'Érvénytelen munkamenet. Kérjük, próbáld újra.',
   'login.demoFailed': 'Demo bejelentkezés sikertelen',

@@ -453,6 +453,7 @@ const ar: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'اسم المستخدم',
   'login.oidc.registrationDisabled': 'التسجيل معطّل. تواصل مع المسؤول.',
   'login.oidc.noEmail': 'لم يتم استلام بريد إلكتروني من المزوّد.',
+  'login.oidc.emailNotVerified': 'عنوان البريد الإلكتروني غير موثّق من قِبل المزوّد.',
   'login.oidc.tokenFailed': 'فشلت المصادقة.',
   'login.oidc.invalidState': 'جلسة غير صالحة. حاول مرة أخرى.',
   'login.demoFailed': 'فشل الدخول إلى العرض التجريبي',

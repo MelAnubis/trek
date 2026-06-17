@@ -28,7 +28,10 @@ export function extractToken(req: Request): string | null {
  */
 export function verifyJwtAndLoadUser(token: string): User | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number; pv?: number };
+    const decoded = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] }) as { id: number; pv?: number; purpose?: string };
+    // Reject purpose-scoped tokens (e.g. mfa_login). Session tokens never
+    // carry a `purpose` field; any token that does must not grant a session.
+    if (decoded.purpose !== undefined) return null;
     const row = db.prepare(
       'SELECT id, username, email, role, password_version FROM users WHERE id = ?'
     ).get(decoded.id) as (User & { password_version?: number }) | undefined;
