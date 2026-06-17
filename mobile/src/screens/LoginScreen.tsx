@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   KeyboardAvoidingView, Platform, ActivityIndicator, ScrollView, Alert,
+  ImageBackground,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '@/store/authStore';
 import { COLORS } from '@/theme/colors';
 import { BASE_URL_KEY } from '@/api/client';
+
+const BRAND_BG = require('../../assets/brand-bg.png');
 
 export function LoginScreen() {
   const insets = useSafeAreaInsets();
@@ -45,13 +48,15 @@ export function LoginScreen() {
 
   if (isLoading) {
     return (
-      <View style={styles.splash}>
-        <View style={styles.splashLogo}>
-          <Ionicons name="bicycle" size={42} color={COLORS.accent} />
+      <ImageBackground source={BRAND_BG} style={styles.splash} resizeMode="cover">
+        <View style={styles.splashOverlay}>
+          <View style={styles.splashLogo}>
+            <Ionicons name="bicycle" size={42} color={COLORS.accent} />
+          </View>
+          <Text style={styles.splashName}>trekwanderer</Text>
+          <ActivityIndicator color={COLORS.accent} size="large" style={{ marginTop: 40 }} />
         </View>
-        <Text style={styles.splashName}>trekwanderer</Text>
-        <ActivityIndicator color={COLORS.accent} size="large" style={{ marginTop: 40 }} />
-      </View>
+      </ImageBackground>
     );
   }
 
@@ -65,14 +70,20 @@ export function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        {/* ── Brand header ── */}
-        <View style={[styles.hero, { paddingTop: insets.top + 32 }]}>
-          <View style={styles.logoBadge}>
-            <Ionicons name="bicycle" size={36} color={COLORS.accent} />
+        {/* ── Brand header with background image ── */}
+        <ImageBackground
+          source={BRAND_BG}
+          style={styles.hero}
+          resizeMode="cover"
+        >
+          <View style={[styles.heroOverlay, { paddingTop: insets.top + 32 }]}>
+            <View style={styles.logoBadge}>
+              <Ionicons name="bicycle" size={36} color={COLORS.accent} />
+            </View>
+            <Text style={styles.appName}>trekwanderer</Text>
+            <Text style={styles.tagline}>Viaja. Explora. Descubre.</Text>
           </View>
-          <Text style={styles.appName}>trekwanderer</Text>
-          <Text style={styles.tagline}>Viaja. Explora. Descubre.</Text>
-        </View>
+        </ImageBackground>
 
         {/* ── Form ── */}
         <View style={[styles.form, { paddingBottom: insets.bottom + 32 }]}>
@@ -151,7 +162,10 @@ export function LoginScreen() {
 const styles = StyleSheet.create({
   splash: {
     flex: 1,
-    backgroundColor: COLORS.bg,
+  },
+  splashOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(13,43,29,0.72)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -176,11 +190,17 @@ const styles = StyleSheet.create({
   },
 
   hero: {
-    backgroundColor: COLORS.bg,
     alignItems: 'center',
     paddingBottom: 44,
     borderBottomLeftRadius: 36,
     borderBottomRightRadius: 36,
+    overflow: 'hidden',
+  },
+  heroOverlay: {
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: 44,
+    backgroundColor: 'rgba(13,43,29,0.60)',
   },
   logoBadge: {
     width: 80,

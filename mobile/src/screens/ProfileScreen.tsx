@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, ImageBackground } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '@/store/authStore';
 import { useTripStore } from '@/store/tripStore';
 import { COLORS } from '@/theme/colors';
+
+const BRAND_BG = require('../../assets/brand-bg.png');
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -29,16 +31,18 @@ export function ProfileScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Dark header banner */}
-      <View style={[styles.banner, { paddingTop: insets.top + 28 }]}>
-        <View style={styles.avatarRing}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
+      {/* Dark header banner with brand background */}
+      <ImageBackground source={BRAND_BG} style={styles.bannerBg} resizeMode="cover">
+        <View style={[styles.bannerOverlay, { paddingTop: insets.top + 28 }]}>
+          <View style={styles.avatarRing}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{user?.username?.[0]?.toUpperCase() ?? '?'}</Text>
+            </View>
           </View>
+          <Text style={styles.name}>{user?.username ?? 'Usuario'}</Text>
+          <Text style={styles.email}>{user?.email ?? ''}</Text>
         </View>
-        <Text style={styles.name}>{user?.username ?? 'Usuario'}</Text>
-        <Text style={styles.email}>{user?.email ?? ''}</Text>
-      </View>
+      </ImageBackground>
 
       {/* Floating stats card */}
       <View style={styles.statsCard}>
@@ -101,12 +105,15 @@ export function ProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F0E8' },
 
-  banner: {
-    backgroundColor: COLORS.bg,
-    alignItems: 'center',
-    paddingBottom: 36,
+  bannerBg: {
     borderBottomLeftRadius: 32,
     borderBottomRightRadius: 32,
+    overflow: 'hidden',
+  },
+  bannerOverlay: {
+    alignItems: 'center',
+    paddingBottom: 36,
+    backgroundColor: 'rgba(13,43,29,0.65)',
   },
   avatarRing: {
     padding: 3,
