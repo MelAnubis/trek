@@ -1411,15 +1411,26 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
         {activeTab === 'gpx' && (
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 18, padding: '14px 22px', marginBottom: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Tracks GPX
-                </h2>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
-                  Sube y gestiona los tracks GPX de este viaje en bicicleta
-                </p>
-              </div>
+            <div style={{ padding: '20px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }} className="max-md:!px-4 max-md:!pt-4">
+              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+                Tracks GPX
+              </h2>
+              <button
+                onClick={() => navigate(`/navigate?tripId=${tripId}`)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '7px 14px', borderRadius: 10,
+                  background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
+                  color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                  fontFamily: 'inherit', transition: 'background 0.15s',
+                  flexShrink: 0,
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
+                Grabar ruta
+              </button>
             </div>
             <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
               <GpxManager
