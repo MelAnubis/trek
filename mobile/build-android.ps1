@@ -40,9 +40,19 @@ if ($content -eq $patched) {
 
 # --- 3. Clear cached JS bundle to force fresh bundle ---
 Write-Host "[3/5] Clearing cached JS bundle..." -ForegroundColor Cyan
-$bundleCache = "$ROOT\android\app\build\generated"
-if (Test-Path $bundleCache) {
-    Remove-Item -Recurse -Force $bundleCache
+$foldersToClean = @(
+    "$ROOT\android\app\build\intermediates\assets",
+    "$ROOT\android\app\build\intermediates\merged_assets",
+    "$ROOT\android\app\build\generated"
+)
+$cleaned = $false
+foreach ($folder in $foldersToClean) {
+    if (Test-Path $folder) {
+        Remove-Item -Recurse -Force $folder
+        $cleaned = $true
+    }
+}
+if ($cleaned) {
     Write-Host "  Bundle cache cleared" -ForegroundColor Green
 } else {
     Write-Host "  No cache to clear" -ForegroundColor Yellow
