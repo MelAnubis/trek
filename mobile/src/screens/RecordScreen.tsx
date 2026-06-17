@@ -538,12 +538,14 @@ export function RecordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F9FAFB' },
+  container: { flex: 1, backgroundColor: COLORS.cream },
   header: {
-    paddingHorizontal: 20, paddingBottom: 12, paddingTop: 8,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: COLORS.border,
+    paddingHorizontal: 20, paddingBottom: 16, paddingTop: 10,
+    backgroundColor: COLORS.bg,
+    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 6,
   },
-  headerTitle: { ...TYPE.h2, color: COLORS.text },
+  headerTitle: { ...TYPE.h2, color: COLORS.textInverse },
   idleContent: { padding: 20 },
   recordCard: {
     backgroundColor: COLORS.bg, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 28,

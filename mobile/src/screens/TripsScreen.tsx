@@ -70,10 +70,10 @@ export function TripsScreen() {
   ), [navigation]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <View style={styles.header}>
+    <View style={styles.container}>
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View>
-          <Text style={styles.headerEyebrow}>Trek Wanderer</Text>
+          <Text style={styles.headerEyebrow}>trekwanderer</Text>
           <Text style={styles.headerTitle}>Mis viajes</Text>
         </View>
         {trips.length > 0 && (
@@ -112,20 +112,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingBottom: 14,
-    paddingTop: 10,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingBottom: 18,
+    backgroundColor: COLORS.bg,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  headerEyebrow: { fontSize: 11, fontWeight: '700', color: COLORS.primary, letterSpacing: 0.8, marginBottom: 2 },
-  headerTitle: { ...TYPE.h2, color: COLORS.text },
+  headerEyebrow: { fontSize: 11, fontWeight: '700', color: COLORS.accent, letterSpacing: 1, marginBottom: 3 },
+  headerTitle: { ...TYPE.h2, color: COLORS.textInverse },
   headerBadge: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.accent,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -137,7 +136,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingTop: 18 },
 
   card: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.card,
     borderRadius: 20,
     marginBottom: 16,
     overflow: 'hidden',
