@@ -1,4 +1,9 @@
-import * as Speech from 'expo-speech';
+// expo-speech is a native module — it requires expo prebuild --clean to be registered.
+// We use a defensive require so the app doesn't crash if the native module is missing.
+let _Speech: { speak: (text: string, opts?: object) => void } | null = null;
+try {
+  _Speech = require('expo-speech');
+} catch {}
 
 let _muted = false;
 let _lastKmAnnounced = -1;
@@ -15,7 +20,9 @@ export function resetVoiceState() {
 }
 
 function speak(text: string) {
-  Speech.speak(text, { language: 'es-ES', rate: 0.95 });
+  try {
+    _Speech?.speak(text, { language: 'es-ES', rate: 0.95 });
+  } catch {}
 }
 
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
@@ -34,6 +41,6 @@ export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
   const km = Math.floor(distDoneM / 1000);
   if (km > 0 && km > _lastKmAnnounced) {
     _lastKmAnnounced = km;
-    speak(`Kilómetro ${km}`);
+    speak(`Kilometro ${km}`);
   }
 }
