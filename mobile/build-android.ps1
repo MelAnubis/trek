@@ -1,8 +1,11 @@
 # Trek Android - build release APK + install on device
-# Run from the mobile\ directory after: git pull && npm install
-# For native module changes (adding expo-* packages): also run npx expo prebuild --clean first
 #
-# Usage:  .\build-android.ps1
+# ALWAYS run these two commands, in this order:
+#   git pull
+#   .\build-android.ps1
+#
+# (git pull updates this script itself before it runs)
+# For native module changes (adding expo-* packages): also run npx expo prebuild --clean first
 
 $ErrorActionPreference = "Stop"
 $ROOT = $PSScriptRoot
