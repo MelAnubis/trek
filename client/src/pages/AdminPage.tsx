@@ -1835,8 +1835,10 @@ export default function AdminPage(): React.ReactElement {
         {editingUser && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.username')}</label>
+              <label htmlFor="edit-user-username" className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.username')}</label>
               <input
+                id="edit-user-username"
+                name="username"
                 type="text"
                 value={editForm.username}
                 onChange={e => setEditForm(f => ({ ...f, username: e.target.value }))}
@@ -1844,8 +1846,10 @@ export default function AdminPage(): React.ReactElement {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('common.email')}</label>
+              <label htmlFor="edit-user-email" className="block text-sm font-medium text-slate-700 mb-1.5">{t('common.email')}</label>
               <input
+                id="edit-user-email"
+                name="email"
                 type="email"
                 value={editForm.email}
                 onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
@@ -1853,8 +1857,10 @@ export default function AdminPage(): React.ReactElement {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.newPassword')} <span className="text-slate-400 font-normal">({t('admin.newPasswordHint')})</span></label>
+              <label htmlFor="edit-user-password" className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.newPassword')} <span className="text-slate-400 font-normal">({t('admin.newPasswordHint')})</span></label>
               <input
+                id="edit-user-password"
+                name="new-password"
                 type="password"
                 value={editForm.password}
                 onChange={e => setEditForm(f => ({ ...f, password: e.target.value }))}
