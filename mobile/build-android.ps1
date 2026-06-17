@@ -38,24 +38,14 @@ if ($content -eq $patched) {
     Write-Host "  Kotlin pinned to 2.0.21" -ForegroundColor Green
 }
 
-# --- 3. Clear cached JS bundle to force fresh bundle ---
-Write-Host "[3/5] Clearing cached JS bundle..." -ForegroundColor Cyan
-$foldersToClean = @(
-    "$ROOT\android\app\build\intermediates\assets",
-    "$ROOT\android\app\build\intermediates\merged_assets",
-    "$ROOT\android\app\build\generated"
-)
-$cleaned = $false
-foreach ($folder in $foldersToClean) {
-    if (Test-Path $folder) {
-        Remove-Item -Recurse -Force $folder
-        $cleaned = $true
-    }
-}
-if ($cleaned) {
-    Write-Host "  Bundle cache cleared" -ForegroundColor Green
+# --- 3. Wipe app build output to force full JS rebundle ---
+Write-Host "[3/5] Clearing app build output..." -ForegroundColor Cyan
+$appBuild = "$ROOT\android\app\build"
+if (Test-Path $appBuild) {
+    Remove-Item -Recurse -Force $appBuild
+    Write-Host "  app\build wiped" -ForegroundColor Green
 } else {
-    Write-Host "  No cache to clear" -ForegroundColor Yellow
+    Write-Host "  Nothing to clear" -ForegroundColor Yellow
 }
 
 # --- 4. Build ---
