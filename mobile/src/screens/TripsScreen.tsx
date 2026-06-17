@@ -169,17 +169,17 @@ const styles = StyleSheet.create({
   titleRow: {
     paddingHorizontal: 20,
     paddingTop: 2,
-    paddingBottom: 16,
+    paddingBottom: 10,
     backgroundColor: COLORS.cream,
   },
-  pageTitle: { fontSize: 30, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
+  pageTitle: { fontSize: 26, fontWeight: '800', color: COLORS.text, letterSpacing: -0.5 },
 
-  list: { paddingHorizontal: 16, paddingBottom: 24 },
+  list: { paddingHorizontal: 14, paddingBottom: 20, paddingTop: 4 },
 
   // Card with image (full-bleed)
   card: {
-    borderRadius: 18,
-    marginBottom: 14,
+    borderRadius: 16,
+    marginBottom: 10,
     overflow: 'hidden',
     shadowColor: '#000',
     shadowOpacity: 0.12,
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     elevation: 5,
   },
-  cardImage: { width: '100%', height: 210 },
+  cardImage: { width: '100%', height: 160 },
   cardImageStyle: { borderRadius: 18 },
   cardOverlay: {
     flex: 1,
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
   // Card without image
   cardNoImage: {
     backgroundColor: '#FFFFFF',
-    height: 150,
+    height: 110,
   },
   cardNoImageBg: {
     position: 'absolute',

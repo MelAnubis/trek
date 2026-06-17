@@ -349,14 +349,9 @@ export function RecordScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Grabar ruta</Text>
+          <Text style={styles.headerSub}>GPS · funciona con pantalla apagada</Text>
         </View>
         <ScrollView contentContainerStyle={styles.idleContent}>
-          <View style={styles.recordCard}>
-            <Text style={styles.recordCardIcon}>📍</Text>
-            <Text style={styles.recordCardTitle}>Nueva grabación GPS</Text>
-            <Text style={styles.recordCardSub}>Funciona con pantalla apagada</Text>
-          </View>
-
           <Text style={styles.sectionLabel}>TIPO DE ACTIVIDAD</Text>
           <View style={styles.activityRow}>
             {ACTIVITIES.map((a) => (
@@ -374,7 +369,11 @@ export function RecordScreen() {
             ))}
           </View>
 
-          <Text style={styles.sectionLabel}>ASOCIAR A UN VIAJE (opcional)</Text>
+          <TouchableOpacity style={styles.startBtn} onPress={startRecording} activeOpacity={0.85}>
+            <Text style={styles.startBtnText}>⏺  Iniciar grabación</Text>
+          </TouchableOpacity>
+
+          <Text style={[styles.sectionLabel, { marginTop: 28 }]}>ASOCIAR A UN VIAJE (opcional)</Text>
           {trips.length === 0 ? (
             <Text style={styles.noTrips}>Sin viajes disponibles</Text>
           ) : (
@@ -391,10 +390,6 @@ export function RecordScreen() {
               </TouchableOpacity>
             ))
           )}
-
-          <TouchableOpacity style={styles.startBtn} onPress={startRecording} activeOpacity={0.85}>
-            <Text style={styles.startBtnText}>⏺  Iniciar grabación</Text>
-          </TouchableOpacity>
         </ScrollView>
       </View>
     );
@@ -540,19 +535,14 @@ export function RecordScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.cream },
   header: {
-    paddingHorizontal: 20, paddingBottom: 16, paddingTop: 10,
+    paddingHorizontal: 20, paddingBottom: 12, paddingTop: 10,
     backgroundColor: COLORS.bg,
-    borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+    borderBottomLeftRadius: 20, borderBottomRightRadius: 20,
     shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 10, elevation: 6,
   },
   headerTitle: { ...TYPE.h2, color: COLORS.textInverse },
+  headerSub: { fontSize: 12, color: 'rgba(245,240,232,0.45)', fontWeight: '500', marginTop: 2 },
   idleContent: { padding: 20 },
-  recordCard: {
-    backgroundColor: COLORS.bg, borderRadius: 16, padding: 24, alignItems: 'center', marginBottom: 28,
-  },
-  recordCardIcon: { fontSize: 40, marginBottom: 8 },
-  recordCardTitle: { ...TYPE.h3, color: '#fff', marginBottom: 4 },
-  recordCardSub: { ...TYPE.body, color: 'rgba(255,255,255,0.6)' },
   sectionLabel: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 10, marginTop: 4, letterSpacing: 0.8 },
   noTrips: { ...TYPE.body, color: COLORS.textMuted, marginBottom: 16 },
   tripRow: {
@@ -566,11 +556,12 @@ const styles = StyleSheet.create({
   tripRowName: { ...TYPE.label, color: COLORS.text, flex: 1 },
   checkmark: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
   startBtn: {
-    backgroundColor: COLORS.primaryDark, borderRadius: 14, paddingVertical: 16,
-    alignItems: 'center', marginTop: 24,
-    shadowColor: COLORS.primary, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4,
+    backgroundColor: COLORS.primaryDark, borderRadius: 16, paddingVertical: 18,
+    alignItems: 'center', marginTop: 16,
+    shadowColor: COLORS.primaryDark, shadowOpacity: 0.45, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  startBtnText: { ...TYPE.h3, color: '#fff', fontSize: 16 },
+  startBtnText: { ...TYPE.h3, color: '#fff', fontSize: 17, letterSpacing: 0.2 },
   summaryCard: {
     backgroundColor: '#FFFFFF', borderRadius: 16, padding: 20, marginBottom: 24,
     shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, elevation: 3,
