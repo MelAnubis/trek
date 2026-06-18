@@ -28,6 +28,7 @@ export interface OidcTokenResponse {
 export interface OidcUserInfo {
   sub: string;
   email?: string;
+  email_verified?: boolean;
   name?: string;
   preferred_username?: string;
   groups?: string[];
@@ -359,6 +360,11 @@ export function findOrCreateUser(
   config: OidcConfig,
   inviteToken?: string,
 ): { user: User } | { error: string } {
+  // Reject explicitly unverified emails. When the claim is absent we give
+  // the benefit of the doubt (some providers, e.g. GitHub, never send it).
+  if (userInfo.email_verified === false) {
+    return { error: 'email_not_verified' };
+  }
   const email = userInfo.email!.trim().toLowerCase();
   const name = userInfo.name || userInfo.preferred_username || email.split('@')[0];
   const sub = userInfo.sub;

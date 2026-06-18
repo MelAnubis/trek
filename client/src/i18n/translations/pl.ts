@@ -415,6 +415,7 @@ const pl: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Nazwa użytkownika',
   'login.oidc.registrationDisabled': 'Rejestracja jest wyłączona. Skontaktuj się z administratorem.',
   'login.oidc.noEmail': 'Nie otrzymano e-maila od dostawcy.',
+  'login.oidc.emailNotVerified': 'Adres e-mail nie został zweryfikowany przez dostawcę.',
   'login.oidc.tokenFailed': 'Nie udało się uwierzytelnić.',
   'login.oidc.invalidState': 'Nieprawidłowa sesja. Spróbuj ponownie.',
   'login.demoFailed': 'Nie udało się zalogować do wersji demonstracyjnej',

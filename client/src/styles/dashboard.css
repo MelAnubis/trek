@@ -374,7 +374,7 @@
 .trek-dash .seg button.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh-xs); }
 
 /* ----------------- trips grid ----------------- */
-.trek-dash .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-bottom: 56px; transition: all 0.3s ease; }
+.trek-dash .trips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 40px; transition: all 0.3s ease; }
 .trek-dash .trips.list-view { grid-template-columns: 1fr; gap: 12px; }
 .trek-dash .trips.list-view .trip-card { display: grid; grid-template-columns: 520px 1fr; gap: 0; height: auto; }
 .trek-dash .trips.list-view .trip-cover { border-radius: var(--r-lg) 0 0 var(--r-lg); height: 100px; aspect-ratio: unset; }
@@ -397,7 +397,7 @@
   border-color: oklch(0.8 0.01 70 / .8);
 }
 .dark .trek-dash .trip-card:hover { border-color: oklch(1 0 0 / .2); }
-.trek-dash .trip-cover { position: relative; aspect-ratio: 4 / 3; overflow: hidden; }
+.trek-dash .trip-cover { position: relative; aspect-ratio: 16 / 9; overflow: hidden; }
 .trek-dash .trip-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s cubic-bezier(.2,.7,.2,1); }
 .trek-dash .trip-card:hover .trip-cover img { transform: scale(1.04); }
 .trek-dash .trip-cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, oklch(0 0 0 / 0) 40%, oklch(0 0 0 / .55) 100%); }
@@ -421,25 +421,25 @@
 }
 .trek-dash .trip-action-btn:hover { background: oklch(1 0 0 / .3); }
 .trek-dash .trip-action-btn svg { width: 16px; height: 16px; }
-.trek-dash .trip-cover-content { position: absolute; left: 18px; right: 18px; bottom: 16px; z-index: 1; color: #fff; }
-.trek-dash .trip-name { font-size: 26px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.05; margin: 0; }
+.trek-dash .trip-cover-content { position: absolute; left: 14px; right: 14px; bottom: 12px; z-index: 1; color: #fff; }
+.trek-dash .trip-name { font-size: 18px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.1; margin: 0; }
 .trek-dash .trip-where { margin-top: 4px; font-size: 13px; opacity: .85; display: flex; align-items: center; gap: 6px; }
 .trek-dash .trip-where svg { width: 12px; height: 12px; opacity: .8; }
-.trek-dash .trip-body { padding: 18px 20px 20px; }
-.trek-dash .trip-dates { font-size: 13px; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 14px; font-weight: 500; }
+.trek-dash .trip-body { padding: 12px 16px 14px; }
+.trek-dash .trip-dates { font-size: 12px; color: var(--ink); display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 10px; font-weight: 500; }
 .trek-dash .trip-dates .date-num { font-size: 13px; font-weight: 400; color: var(--ink-3); }
 .trek-dash .trip-dates .date-arrow { display: inline-flex; align-items: center; justify-content: center; opacity: 0.4; margin: 0 2px; line-height: 1; }
 .trek-dash .trip-dates .date-arrow svg { width: 11px; height: 11px; display: block; }
-.trek-dash .trip-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding-top: 14px; border-top: 1px solid var(--line); }
-.trek-dash .trip-meta div { display: flex; flex-direction: column; gap: 3px; text-align: center; }
-.trek-dash .trip-meta .n { font-size: 17px; font-weight: 600; letter-spacing: -0.02em; }
-.trek-dash .trip-meta .k { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
+.trek-dash .trip-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding-top: 10px; border-top: 1px solid var(--line); }
+.trek-dash .trip-meta div { display: flex; flex-direction: column; gap: 2px; text-align: center; }
+.trek-dash .trip-meta .n { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.trek-dash .trip-meta .k { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-3); font-weight: 500; }
 .trek-dash .add-trip-card {
   border-radius: var(--r-xl); border: 1.5px dashed var(--line-2);
   background: var(--glass-bg); display: grid; place-items: center;
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   box-shadow: var(--glass-highlight);
-  text-align: center; padding: 32px; cursor: pointer; min-height: 240px;
+  text-align: center; padding: 24px; cursor: pointer; min-height: 180px;
   transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s, border-color .3s, color .15s;
 }
 .trek-dash .add-trip-card:hover {

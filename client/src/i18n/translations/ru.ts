@@ -448,6 +448,7 @@ const ru: Record<string, string> = {
   'login.username': 'Имя пользователя',
   'login.oidc.registrationDisabled': 'Регистрация отключена. Обратитесь к администратору.',
   'login.oidc.noEmail': 'Провайдер не предоставил адрес эл. почты.',
+  'login.oidc.emailNotVerified': 'Адрес эл. почты не подтверждён провайдером.',
   'login.mfaTitle': 'Двухфакторная аутентификация',
   'login.mfaSubtitle': 'Введите 6-значный код из приложения-аутентификатора.',
   'login.mfaCodeLabel': 'Код подтверждения',

@@ -448,6 +448,7 @@ const zh: Record<string, string> = {
   'login.username': '用户名',
   'login.oidc.registrationDisabled': '注册已关闭。请联系管理员。',
   'login.oidc.noEmail': '未从提供商获取到邮箱。',
+  'login.oidc.emailNotVerified': '提供商未验证该邮箱地址。',
   'login.mfaTitle': '双因素认证',
   'login.mfaSubtitle': '请输入身份验证器应用中的 6 位验证码。',
   'login.mfaCodeLabel': '验证码',

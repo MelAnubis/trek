@@ -1,4 +1,5 @@
 import React, { useEffect, useCallback, useRef } from 'react'
+import ReactDOM from 'react-dom'
 import { X } from 'lucide-react'
 
 const sizeClasses: Record<string, string> = {
@@ -48,7 +49,7 @@ export default function Modal({
 
   if (!isOpen) return null
 
-  return (
+  return ReactDOM.createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
       style={{
@@ -118,6 +119,7 @@ export default function Modal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
