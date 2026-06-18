@@ -214,6 +214,39 @@ export default function DisplaySettingsTab(): React.ReactElement {
         </div>
       </div>
 
+      {/* Default Currency */}
+      <div>
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.defaultCurrency') || 'Moneda por defecto'}</label>
+        <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+          {[
+            { value: 'EUR', label: '€ EUR' },
+            { value: 'USD', label: '$ USD' },
+            { value: 'GBP', label: '£ GBP' },
+            { value: 'JPY', label: '¥ JPY' },
+            { value: 'CHF', label: 'Fr CHF' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              onClick={async () => {
+                try { await updateSetting('default_currency', opt.value) }
+                catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+              }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                border: (settings.default_currency || 'EUR') === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                background: (settings.default_currency || 'EUR') === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                color: 'var(--text-primary)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Route Calculation */}
       <div>
         <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.routeCalculation')}</label>

@@ -148,7 +148,7 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
-          outputs: type=image,name=mauriceboe/trek,push-by-digest=true,name-canonical=true,push=true
+          outputs: type=image,name=melanubis066/trek-wanderer,push-by-digest=true,name-canonical=true,push=true
           no-cache: true
           build-args: |
             APP_VERSION=${{ needs.version-bump.outputs.version }}
@@ -193,28 +193,13 @@ jobs:
         working-directory: /tmp/digests
         run: |
           VERSION="${{ needs.version-bump.outputs.version }}"
-          mapfile -t digests < <(printf 'mauriceboe/trek@sha256:%s\n' *)
+          mapfile -t digests < <(printf 'melanubis066/trek-wanderer@sha256:%s\n' *)
           MAJOR_TAG="$(echo "$VERSION" | cut -d. -f1)"
           docker buildx imagetools create \
-            -t "mauriceboe/trek:latest" \
-            -t "mauriceboe/trek:$MAJOR_TAG" \
-            -t "mauriceboe/trek:$VERSION" \
+            -t "melanubis066/trek-wanderer:latest" \
+            -t "melanubis066/trek-wanderer:$MAJOR_TAG" \
+            -t "melanubis066/trek-wanderer:$VERSION" \
             "${digests[@]}"
 
       - name: Inspect manifest
-        run: docker buildx imagetools inspect mauriceboe/trek:latest
-
-  release-helm:
-    runs-on: ubuntu-latest
-    needs: version-bump
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: main
-
-      - name: Publish Helm chart
-        uses: stefanprodan/helm-gh-pages@v1.7.0
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          charts_dir: charts
+        run: docker buildx imagetools inspect melanubis066/trek-wanderer:latest

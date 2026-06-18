@@ -55,22 +55,16 @@ function networkBadge(network: string) {
   )
 }
 
+function badge(label: string, bg: string, border: string, color: string) {
+  return <span style={{ background: bg, border: `1px solid ${border}`, color, fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>{label}</span>
+}
+
 function sourceBadge(source?: string) {
-  if (!source || source === 'osm') return (
-    <span style={{ background: '#64748b22', border: '1px solid #64748b', color: '#64748b', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
-      OSM
-    </span>
-  )
-  if (source === 'wmt_cycling') return (
-    <span style={{ background: '#22c55e22', border: '1px solid #22c55e', color: '#16a34a', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
-      🚴 WMT
-    </span>
-  )
-  if (source === 'wmt_hiking') return (
-    <span style={{ background: '#f59e0b22', border: '1px solid #f59e0b', color: '#d97706', fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>
-      🥾 WMT
-    </span>
-  )
+  if (!source || source === 'osm') return badge('OSM', '#64748b22', '#64748b', '#64748b')
+  if (source === 'wmt_cycling') return badge('🚴 WMT', '#22c55e22', '#22c55e', '#16a34a')
+  if (source === 'wmt_hiking') return badge('🥾 WMT', '#f59e0b22', '#f59e0b', '#d97706')
+  if (source === 'komoot') return badge('🟠 Komoot', '#f9731622', '#f97316', '#c2410c')
+  if (source === 'url') return badge('🔗 URL', '#8b5cf622', '#8b5cf6', '#7c3aed')
   return null
 }
 
@@ -179,7 +173,7 @@ export default function RouteDiscoveryPanel() {
           tripType,
         }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         // Server cache expired — re-fetch GPX to re-warm cache, then retry once
         if (!_retried && (data.error || '').includes('GPX not loaded')) {
@@ -210,10 +204,13 @@ export default function RouteDiscoveryPanel() {
       const res = await fetch('/api/admin/route-discovery/fetch-gpx', {
         method: 'POST', credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ osmId: route.osmId, source: route.source || 'osm' }),
+        body: JSON.stringify({
+          osmId: route.osmId, source: route.source || 'osm',
+          ...(route.source === 'url' && route.website ? { gpxUrl: route.website } : {}),
+        }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Error loading GPX')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Error loading GPX (${res.status})`)
       const enriched = { ...route, points: data.points, distanceKm: data.distanceKm, loadingGpx: false }
       setRoutes(prev => prev.map(r => r.osmId === route.osmId ? enriched : r))
       return enriched
@@ -296,10 +293,12 @@ export default function RouteDiscoveryPanel() {
               value={queryText}
               onChange={e => setQueryText(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSearch()}
-              placeholder="Ej: EuroVelo, Camino de Santiago, Via Verde…"
+              placeholder="Nombre, URL de Komoot, URL de colección Komoot o URL directa a GPX…"
               className="w-full px-4 py-2.5 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
             />
-            <p className="text-xs text-slate-400 mt-1.5">Busca en Waymarked Trails (ciclismo + senderismo). Resultados incluyen elevación.</p>
+            <p className="text-xs text-slate-400 mt-1.5">
+              Busca en Waymarked Trails · Pega una URL de tour/colección de Komoot · O cualquier URL directa a un fichero GPX
+            </p>
           </div>
         ) : (
           /* Browse mode */
@@ -376,7 +375,7 @@ export default function RouteDiscoveryPanel() {
         >
           {searching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
           {searching
-            ? (mode === 'search' ? 'Buscando en Waymarked Trails…' : 'Buscando en OpenStreetMap…')
+            ? (mode === 'search' ? 'Buscando…' : 'Buscando en OpenStreetMap…')
             : 'Buscar rutas'}
         </button>
 
@@ -451,7 +450,7 @@ export default function RouteDiscoveryPanel() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-semibold text-slate-900 text-sm truncate">{route.name}</span>
-                        {networkBadge(route.network)}
+                        {route.network ? networkBadge(route.network) : null}
                         {sourceBadge(route.source)}
                         {route.ref && <span className="text-xs text-slate-500 font-mono">{route.ref}</span>}
                         {hasEle && (
@@ -514,8 +513,9 @@ export default function RouteDiscoveryPanel() {
                       {route.loadingGpx && (
                         <div className="flex items-center gap-2 text-slate-500">
                           <Loader2 size={13} className="animate-spin" />
-                          {(route.source || 'osm').startsWith('wmt')
-                            ? 'Cargando geometría desde Waymarked Trails…'
+                          {route.source?.startsWith('wmt') ? 'Cargando desde Waymarked Trails…'
+                            : route.source === 'komoot' ? 'Cargando desde Komoot…'
+                            : route.source === 'url' ? 'Descargando GPX desde URL…'
                             : 'Cargando geometría desde OSM…'}
                         </div>
                       )}
@@ -572,7 +572,7 @@ export default function RouteDiscoveryPanel() {
         <div className="text-center py-12 text-slate-400">
           <Route size={40} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">Configura los filtros y pulsa "Buscar rutas"</p>
-          <p className="text-xs mt-1 opacity-70">O usa "Buscar por nombre" para buscar en Waymarked Trails con elevación</p>
+          <p className="text-xs mt-1 opacity-70">O usa "Buscar por nombre" para buscar en WMT, Komoot o cualquier URL GPX</p>
         </div>
       )}
     </div>

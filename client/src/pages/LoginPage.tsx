@@ -111,6 +111,7 @@ export default function LoginPage(): React.ReactElement {
       const errorMessages: Record<string, string> = {
         registration_disabled: t('login.oidc.registrationDisabled'),
         no_email: t('login.oidc.noEmail'),
+        email_not_verified: t('login.oidc.emailNotVerified'),
         token_failed: t('login.oidc.tokenFailed'),
         invalid_state: t('login.oidc.invalidState'),
       }

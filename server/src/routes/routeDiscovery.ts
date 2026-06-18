@@ -8,8 +8,9 @@ router.use(authenticate, adminOnly);
 
 const OVERPASS_MIRRORS = [
   'https://overpass-api.de/api/interpreter',
+  'https://lz4.overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
-  'https://maps.mail.ru/osm/tools/overpass/api/interpreter',
+  'https://overpass.openstreetmap.fr/api/interpreter',
 ];
 
 const COUNTRY_BBOXES: Record<string, string> = {
@@ -132,6 +133,263 @@ async function fetchWmtPoints(osmId: number, sport: string): Promise<{ lat: numb
   } finally { clearTimeout(tid); }
 }
 
+// ── Komoot integration ────────────────────────────────────────────────────────
+
+function parseKomootUrl(input: string): { type: 'tour' | 'collection'; id: string } | null {
+  const s = input.trim();
+  const collM = s.match(/komoot\.[a-z]+(?:\/[a-z-]+)?\/collection\/(\d+)/i);
+  if (collM) return { type: 'collection', id: collM[1] };
+  // Covers /tour/, /t/, /smarttour/, /highlight/ and API paths like /tours/12345
+  const tourM = s.match(/komoot\.[a-z]+(?:\/[a-z-]+)?\/(?:tour|t|smarttour|highlight)s?\/(\d+)/i)
+    ?? s.match(/\/tours?\/(\d{6,})/i);
+  if (tourM) return { type: 'tour', id: tourM[1] };
+  if (/^\d{6,15}$/.test(s)) return { type: 'tour', id: s };
+  return null;
+}
+
+function hashUrl(url: string): number {
+  let h = 5381;
+  for (let i = 0; i < url.length; i++) { h = (((h << 5) + h) + url.charCodeAt(i)) & 0x7fffffff; }
+  return h || 1;
+}
+
+// Extract __NEXT_DATA__ JSON from a Komoot HTML page
+function extractKomootPageData(html: string): any | null {
+  const m = html.match(/<script id="__NEXT_DATA__" type="application\/json">([\s\S]*?)<\/script>/);
+  if (!m) return null;
+  try { return JSON.parse(m[1]); } catch { return null; }
+}
+
+// Recursively search a Komoot __NEXT_DATA__ object for an array of GPS coordinates
+function findGpsCoords(obj: any, depth = 0): { lat: number; lng: number; ele: number | null }[] | null {
+  if (depth > 8 || obj == null) return null;
+  if (Array.isArray(obj)) {
+    if (obj.length >= 10 && typeof obj[0]?.lat === 'number' && typeof obj[0]?.lng === 'number') {
+      return obj.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? p.ele ?? null }));
+    }
+    for (const item of obj.slice(0, 10)) {
+      const r = findGpsCoords(item, depth + 1);
+      if (r) return r;
+    }
+  } else if (typeof obj === 'object') {
+    for (const key of ['items', 'coordinates', 'points', 'waypoints', 'track']) {
+      if (obj[key]) { const r = findGpsCoords(obj[key], depth + 1); if (r) return r; }
+    }
+    for (const key of Object.keys(obj)) {
+      const r = findGpsCoords(obj[key], depth + 1);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+
+async function fetchKomootTourInfo(tourId: string): Promise<{ name: string; distanceKm: number; description: string | null }> {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
+      signal: ctrl.signal,
+    });
+    if (r.ok) {
+      const d = await r.json();
+      return { name: d.name || `Komoot ${tourId}`, distanceKm: Math.round((d.distance || 0) / 100) / 10, description: d.summary || null };
+    }
+  } catch { /* fall through to page */ } finally { clearTimeout(tid); }
+
+  const r2 = await fetch(`https://www.komoot.com/tour/${tourId}`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+  });
+  if (!r2.ok) throw new Error(`Komoot tour ${tourId} not accessible (${r2.status})`);
+  const json = extractKomootPageData(await r2.text());
+  const tour = json?.props?.pageProps?.tour ?? json?.props?.pageProps?.serverProps?.page?.tour;
+  if (!tour) throw new Error('Komoot: tour data not found in page');
+  return { name: tour.name || `Komoot ${tourId}`, distanceKm: Math.round((tour.distance || 0) / 100) / 10, description: tour.summary || null };
+}
+
+async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: number; ele: number | null }[]> {
+  // Try API with coordinates embedded
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), 30000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}?_embedded=coordinates`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
+      signal: ctrl.signal,
+    });
+    if (r.ok) {
+      const d = await r.json();
+      const items: any[] = d?._embedded?.coordinates?.items ?? [];
+      if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
+      // Try recursive search in case the structure is different
+      const found = findGpsCoords(d);
+      if (found && found.length >= 10) return found;
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid); }
+
+  // Try GPX export endpoint (requires auth on private tours)
+  const ctrl2 = new AbortController();
+  const tid2 = setTimeout(() => ctrl2.abort(), 30000);
+  try {
+    const r = await fetch(`https://api.komoot.de/v007/tours/${tourId}/export.gpx`, {
+      headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml' },
+      signal: ctrl2.signal,
+    });
+    if (r.ok) {
+      const text = await r.text();
+      // Only parse if response is actually XML, not an auth redirect page
+      if (text.trim().startsWith('<') && text.includes('<trkpt')) {
+        const pts = parseGpxPoints(text);
+        if (pts.length >= 10) return pts;
+      }
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid2); }
+
+  // Page scraping: extract __NEXT_DATA__ coordinates via recursive search
+  const ctrl3 = new AbortController();
+  const tid3 = setTimeout(() => ctrl3.abort(), 30000);
+  try {
+    const r = await fetch(`https://www.komoot.com/tour/${tourId}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible)', Accept: 'text/html' },
+      signal: ctrl3.signal,
+    });
+    if (r.ok) {
+      const json = extractKomootPageData(await r.text());
+      if (json) {
+        const found = findGpsCoords(json);
+        if (found && found.length >= 10) return found;
+      }
+    }
+  } catch { /* fall through */ } finally { clearTimeout(tid3); }
+
+  throw new Error('Komoot requiere cuenta para descargar la geometría. Descarga el GPX desde komoot.com y pégalo como URL directa.');
+}
+
+// Recursively search for an array of Komoot tour objects (each has numeric id + tour field)
+function findCollectionTours(obj: any, depth = 0): any[] | null {
+  if (depth > 12 || obj == null) return null;
+  if (Array.isArray(obj)) {
+    if (obj.length >= 1) {
+      const first = obj[0];
+      if (typeof first?.id === 'number' &&
+          (first?.name != null || first?.sport != null || first?.distance != null || first?.difficulty != null)) {
+        return obj;
+      }
+    }
+    for (const item of obj.slice(0, 20)) {
+      const r = findCollectionTours(item, depth + 1);
+      if (r) return r;
+    }
+  } else if (typeof obj === 'object') {
+    for (const key of ['items', 'tours', 'results', 'content', 'data', 'pages']) {
+      if (obj[key]) { const r = findCollectionTours(obj[key], depth + 1); if (r) return r; }
+    }
+    for (const key of Object.keys(obj)) {
+      const r = findCollectionTours(obj[key], depth + 1);
+      if (r) return r;
+    }
+  }
+  return null;
+}
+
+function toTourEntry(t: any, idx: number) {
+  return { osmId: Number(t.id), name: t.name || `Komoot tour ${idx + 1}`, distanceKm: t.distance ? Math.round(t.distance / 100) / 10 : null };
+}
+
+// Scan raw HTML for Komoot /tour/{id} links — works even on CSR/App Router pages
+function extractTourIdsFromHtml(html: string): string[] {
+  const re = /\/(?:tour|t)\/(\d{6,15})/g;
+  const ids = new Set<string>();
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html)) !== null) ids.add(m[1]);
+  return [...ids];
+}
+
+async function fetchKomootCollection(collectionId: string): Promise<{ osmId: number; name: string; distanceKm: number | null }[]> {
+  // Try API endpoints (embedded + paginated)
+  for (const apiUrl of [
+    `https://api.komoot.de/v007/collections/${collectionId}?_embedded=tours`,
+    `https://api.komoot.de/v007/collections/${collectionId}/tours?page=0&limit=50`,
+  ]) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const r = await fetch(apiUrl, {
+        headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/hal+json, application/json' },
+        signal: ctrl.signal,
+      });
+      if (r.ok) {
+        const d = await r.json();
+        const items = findCollectionTours(d);
+        console.log(`[route-discovery komoot-collection] API ${apiUrl} → found=${items?.length ?? 0}`);
+        if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+      } else {
+        console.warn(`[route-discovery komoot-collection] API ${apiUrl} → ${r.status}`);
+      }
+    } catch (e: any) {
+      console.warn(`[route-discovery komoot-collection] API error: ${e.message}`);
+    } finally { clearTimeout(tid); }
+  }
+
+  // Page scraping: __NEXT_DATA__ recursive search, then HTML link extraction
+  for (const pageUrl of [
+    `https://www.komoot.com/collection/${collectionId}`,
+    `https://www.komoot.com/es/collection/${collectionId}`,
+  ]) {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 30000);
+    try {
+      const r = await fetch(pageUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+          Accept: 'text/html',
+        },
+        signal: ctrl.signal,
+      });
+      if (!r.ok) { console.warn(`[route-discovery komoot-collection] page ${pageUrl} → ${r.status}`); continue; }
+      const html = await r.text();
+
+      // Try __NEXT_DATA__ recursive search
+      const json = extractKomootPageData(html);
+      if (json) {
+        const items = findCollectionTours(json);
+        console.log(`[route-discovery komoot-collection] __NEXT_DATA__ at ${pageUrl} → found=${items?.length ?? 0}`);
+        if (items && items.length > 0) return items.slice(0, 50).map(toTourEntry);
+      } else {
+        console.warn(`[route-discovery komoot-collection] no __NEXT_DATA__ at ${pageUrl}`);
+      }
+
+      // Last resort: scan HTML for /tour/{id} links (reliable even on App Router / CSR pages)
+      const tourIds = extractTourIdsFromHtml(html);
+      console.log(`[route-discovery komoot-collection] HTML link scan at ${pageUrl} → ${tourIds.length} IDs`);
+      if (tourIds.length > 0) {
+        // Fetch names in parallel (up to 10 concurrent, best-effort)
+        const CONCURRENCY = 10;
+        const named: { osmId: number; name: string; distanceKm: number | null }[] = [];
+        const ids = tourIds.slice(0, 50);
+        for (let i = 0; i < ids.length; i += CONCURRENCY) {
+          const batch = ids.slice(i, i + CONCURRENCY);
+          const results = await Promise.allSettled(batch.map(async id => {
+            try {
+              const info = await fetchKomootTourInfo(id);
+              return { osmId: Number(id), name: info.name, distanceKm: info.distanceKm };
+            } catch {
+              return { osmId: Number(id), name: `Komoot ${id}`, distanceKm: null };
+            }
+          }));
+          for (const r of results) {
+            if (r.status === 'fulfilled') named.push(r.value);
+          }
+        }
+        if (named.length > 0) return named;
+      }
+    } catch (e: any) {
+      console.warn(`[route-discovery komoot-collection] page error: ${e.message}`);
+    } finally { clearTimeout(tid); }
+  }
+
+  throw new Error('Komoot: no se encontraron tours en la colección. Comprueba que la URL es correcta y que la colección es pública.');
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -232,11 +490,50 @@ function collectWayIds(relation: any, elementMap: Map<string, any>, visited = ne
   return ids;
 }
 
+// ── OSRM road-snap ────────────────────────────────────────────────────────────
+// When a route only has sparse waypoints (e.g. one node per town), call OSRM
+// cycling profile to calculate the actual road path between them.
+// Chunks into segments of ≤80 waypoints to stay within URL limits.
+const OSRM_CYCLING = 'https://router.project-osrm.org/route/v1/cycling';
+
+async function snapToRoads(pts: { lat: number; lng: number }[]): Promise<{ lat: number; lng: number }[] | null> {
+  if (pts.length < 2) return null;
+  const CHUNK = 80;
+  const out: { lat: number; lng: number }[] = [];
+  for (let i = 0; i < pts.length - 1; i += CHUNK - 1) {
+    const chunk = pts.slice(i, i + CHUNK);
+    if (chunk.length < 2) break;
+    const coordStr = chunk.map(p => `${p.lng},${p.lat}`).join(';');
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const r = await fetch(
+        `${OSRM_CYCLING}/${coordStr}?overview=full&geometries=geojson`,
+        { headers: { 'User-Agent': 'TrekWanderer/1.0' }, signal: ctrl.signal },
+      );
+      if (!r.ok) { console.warn(`[route-discovery osrm] ${r.status}`); return null; }
+      const data = await r.json();
+      if (data.code !== 'Ok') { console.warn('[route-discovery osrm] code:', data.code); return null; }
+      const coords: [number, number][] = data.routes?.[0]?.geometry?.coordinates ?? [];
+      if (coords.length < 2) return null;
+      // Skip first point on subsequent chunks (already added as last point of prev chunk)
+      const startIdx = out.length === 0 ? 0 : 1;
+      for (let j = startIdx; j < coords.length; j++) out.push({ lat: coords[j][1], lng: coords[j][0] });
+    } catch (e: any) {
+      console.warn('[route-discovery osrm] failed:', e.message);
+      return null;
+    } finally {
+      clearTimeout(tid);
+    }
+  }
+  return out.length >= 10 ? out : null;
+}
+
 async function overpassQuery(query: string): Promise<any> {
   let lastError = '';
   for (const url of OVERPASS_MIRRORS) {
     const controller = new AbortController();
-    const tid = setTimeout(() => controller.abort(), 330000);
+    const tid = setTimeout(() => controller.abort(), 65000);
     try {
       const r = await fetch(url, {
         method: 'POST',
@@ -290,13 +587,59 @@ router.post('/search', async (req: Request, res: Response) => {
 
   prunCache();
 
-  // Text-search mode: query Waymarked Trails (cycling + hiking)
+  // Text-search mode
   if (query && typeof query === 'string' && query.trim().length >= 2) {
+    const q = query.trim();
+
+    // ── Komoot URL / ID ────────────────────────────────────────────────────────
+    const komoot = parseKomootUrl(q);
+    if (komoot) {
+      try {
+        let routes: any[];
+        if (komoot.type === 'collection') {
+          const tours = await fetchKomootCollection(komoot.id);
+          routes = tours.map(t => ({
+            osmId: t.osmId, name: t.name, network: '', ref: null,
+            distance: t.distanceKm, website: `https://www.komoot.com/tour/${t.osmId}`,
+            description: null, wikipedia: null, operator: null, colour: null,
+            hasMinInfo: true, source: 'komoot',
+          }));
+        } else {
+          const info = await fetchKomootTourInfo(komoot.id);
+          routes = [{
+            osmId: Number(komoot.id), name: info.name, network: '', ref: null,
+            distance: info.distanceKm, website: `https://www.komoot.com/tour/${komoot.id}`,
+            description: info.description, wikipedia: null, operator: null, colour: null,
+            hasMinInfo: true, source: 'komoot',
+          }];
+        }
+        console.log(`[route-discovery search] komoot ${komoot.type}=${komoot.id} → ${routes.length} results`);
+        return res.json({ routes, total: routes.length, page: 1, pageSize: PAGE_SIZE, totalPages: 1 });
+      } catch (e: any) {
+        console.error('[route-discovery search komoot]', e.message);
+        return res.status(502).json({ error: e.message });
+      }
+    }
+
+    // ── Direct GPX URL ─────────────────────────────────────────────────────────
+    if (/^https?:\/\//i.test(q)) {
+      const urlName = (() => { try { return new URL(q).pathname.split('/').filter(Boolean).pop()?.replace(/\.gpx$/i, '').replace(/[-_+]/g, ' ').trim() || 'Ruta GPX'; } catch { return 'Ruta GPX'; } })();
+      return res.json({
+        routes: [{
+          osmId: hashUrl(q), name: urlName, network: '', ref: null,
+          distance: null, website: q, description: null,
+          wikipedia: null, operator: null, colour: null, hasMinInfo: true, source: 'url',
+        }],
+        total: 1, page: 1, pageSize: PAGE_SIZE, totalPages: 1,
+      });
+    }
+
+    // ── Waymarked Trails text search ───────────────────────────────────────────
     try {
-      const allRoutes = await wmtSearch(query.trim());
+      const allRoutes = await wmtSearch(q);
       const pageNum = Math.max(1, Number(page));
       const start = (pageNum - 1) * PAGE_SIZE;
-      console.log(`[route-discovery search] wmt query="${query.trim()}" → ${allRoutes.length} results`);
+      console.log(`[route-discovery search] wmt query="${q}" → ${allRoutes.length} results`);
       return res.json({
         routes: allRoutes.slice(start, start + PAGE_SIZE),
         total: allRoutes.length,
@@ -405,7 +748,12 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
     const sport = source.slice(4);
     try {
       const rawPoints = await fetchWmtPoints(Number(osmId), sport);
-      if (rawPoints.length < 10) return res.status(422).json({ error: 'Insufficient WMT geometry' });
+      const rawDistKm = calcDistanceKm(rawPoints);
+      // Require ≥2 pts/km — WMT sometimes returns only waypoint nodes (1 per town),
+      // giving straight lines when rendered. Fall through to Overpass for denser geometry.
+      if (rawPoints.length < Math.max(10, rawDistKm * 2)) {
+        throw new Error(`WMT GPX too sparse (${rawPoints.length} pts for ${rawDistKm.toFixed(0)} km) — falling back to Overpass`);
+      }
       const points = await enrichMissingElevation(rawPoints);
       const distanceKm = calcDistanceKm(points);
       gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
@@ -418,10 +766,52 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
     }
   }
 
+  // ── Komoot source ─────────────────────────────────────────────────────────
+  if (source === 'komoot') {
+    try {
+      const rawPoints = await fetchKomootPoints(String(osmId));
+      const points = await enrichMissingElevation(rawPoints);
+      const distanceKm = calcDistanceKm(points);
+      gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+      const hasEle = points.some(p => p.ele != null);
+      console.log(`[route-discovery fetch-gpx] komoot id=${osmId} pts=${points.length} dist=${distanceKm}km ele=${hasEle}`);
+      return res.json({ points, distanceKm, pointCount: points.length, hasElevation: hasEle });
+    } catch (e: any) {
+      console.error('[route-discovery fetch-gpx komoot]', e.message);
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
+  // ── Direct GPX URL source ─────────────────────────────────────────────────
+  if (source === 'url') {
+    const gpxUrl = req.body.gpxUrl as string;
+    if (!gpxUrl) return res.status(400).json({ error: 'gpxUrl required for source=url' });
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 30000);
+      let r: Response;
+      try {
+        r = await fetch(gpxUrl, { headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' }, signal: ctrl.signal });
+      } finally { clearTimeout(tid); }
+      if (!r.ok) return res.status(502).json({ error: `URL fetch failed: ${r.status}` });
+      const rawPoints = parseGpxPoints(await r.text());
+      if (rawPoints.length < 10) return res.status(422).json({ error: 'GPX insuficiente o inaccesible desde URL' });
+      const points = await enrichMissingElevation(rawPoints);
+      const distanceKm = calcDistanceKm(points);
+      gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
+      const hasEle = points.some(p => p.ele != null);
+      console.log(`[route-discovery fetch-gpx] url pts=${points.length} dist=${distanceKm}km`);
+      return res.json({ points, distanceKm, pointCount: points.length, hasElevation: hasEle });
+    } catch (e: any) {
+      console.error('[route-discovery fetch-gpx url]', e.message);
+      return res.status(502).json({ error: e.message });
+    }
+  }
+
   // ── OSM Overpass source (default + WMT fallback) ──────────────────────────
   const osmCacheKey = source.startsWith('wmt_') ? `osm:${osmId}` : cacheKey;
 
-  const overpassQry = `[out:json][timeout:300];
+  const overpassQry = `[out:json][timeout:55];
 relation(${osmId});
 (._; >>;);
 out body qt;`;
@@ -490,10 +880,26 @@ out body qt;`;
     if (raw.length < 10) return res.status(422).json({ error: 'Insufficient geometry' });
 
     const rawDistanceKm = calcDistanceKm(raw);
+    const rawDensity = raw.length / rawDistanceKm; // pts per km
+
+    // If Overpass only returned sparse waypoints (< 2 pts/km), snap them to the actual
+    // road network via OSRM so the track follows real roads instead of straight lines.
+    let workingPts = raw;
+    if (rawDensity < 2 && raw.length <= 500) {
+      console.log(`[route-discovery fetch-gpx] sparse geometry (${raw.length} pts, ${rawDensity.toFixed(2)} pts/km) — trying OSRM snap`);
+      const snapped = await snapToRoads(raw);
+      if (snapped) {
+        console.log(`[route-discovery fetch-gpx] OSRM snap: ${raw.length} → ${snapped.length} pts`);
+        workingPts = snapped;
+      } else {
+        console.warn('[route-discovery fetch-gpx] OSRM snap failed, keeping sparse Overpass geometry');
+      }
+    }
+
     // Only simplify extreme tracks (>30 000pts) to avoid losing elevation data
-    const simplified = raw.length > 30000
-      ? simplifyPoints(raw, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
-      : raw;
+    const simplified = workingPts.length > 30000
+      ? simplifyPoints(workingPts, Math.max(0.00005, rawDistanceKm / (20000 * 111)))
+      : workingPts;
     const points = await enrichMissingElevation(
       simplified.map(p => ({ ...p, ele: (p as any).ele ?? null }))
     );
@@ -503,7 +909,7 @@ out body qt;`;
     gpxCache.set(cacheKey, { points, distanceKm, cachedAt: Date.now() });
     if (osmCacheKey !== cacheKey) gpxCache.set(osmCacheKey, { points, distanceKm, cachedAt: Date.now() });
 
-    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts simplified=${simplified.length}pts dist=${distanceKm}km`);
+    console.log(`[route-discovery fetch-gpx] osmId=${osmId} raw=${raw.length}pts final=${points.length}pts dist=${distanceKm}km`);
     res.json({ points, distanceKm, pointCount: points.length, rawPointCount: raw.length });
   } catch (e: any) {
     console.error('[route-discovery fetch-gpx]', e.message);

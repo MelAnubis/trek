@@ -448,6 +448,7 @@ const it: Record<string, string | { name: string; category: string }[]> = {
   'login.username': 'Nome utente',
   'login.oidc.registrationDisabled': 'La registrazione è disabilitata. Contatta il tuo amministratore.',
   'login.oidc.noEmail': 'Nessuna email ricevuta dal provider.',
+  'login.oidc.emailNotVerified': 'L\'indirizzo email non è verificato dal provider.',
   'login.oidc.tokenFailed': 'Autenticazione fallita.',
   'login.oidc.invalidState': 'Sessione non valida. Riprova.',
   'login.demoFailed': 'Accesso demo fallito',
