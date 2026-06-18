@@ -39,23 +39,3 @@ export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
     speak(`Kilometro ${km}`);
   }
 }
-
-export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
-  if (_muted || totalDistM <= 0) return;
-  const remaining = totalDistM - distDoneM;
-  if (!_announcedArrival && remaining >= 0 && remaining < 30) {
-    _announcedArrival = true;
-    speak('Has llegado a tu destino');
-    return;
-  }
-  if (!_announced500 && remaining > 0 && remaining <= 500) {
-    _announced500 = true;
-    speak('Quinientos metros para llegar al destino');
-    return;
-  }
-  const km = Math.floor(distDoneM / 1000);
-  if (km > 0 && km > _lastKmAnnounced) {
-    _lastKmAnnounced = km;
-    speak(`Kilometro ${km}`);
-  }
-}
