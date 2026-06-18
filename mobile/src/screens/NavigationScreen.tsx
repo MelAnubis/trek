@@ -14,7 +14,7 @@ import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
 import {
-  checkVoiceAnnouncements, resetVoiceState, setVoiceMuted,
+  checkVoiceAnnouncements, resetVoiceState, setVoiceMuted, announceVoice,
 } from '@/utils/voiceNavigation';
 import { hasCachedTiles, getTilesDir } from '@/utils/offlineTiles';
 
@@ -202,6 +202,12 @@ export function NavigationScreen() {
     resetVoiceState();
     startTimeRef.current = Date.now();
     timerRef.current = setInterval(() => setElapsedMs(Date.now() - startTimeRef.current), 1000);
+
+    // Announce navigation start
+    const distText = totalDist >= 1000
+      ? `${(totalDist / 1000).toFixed(1)} kilómetros`
+      : `${Math.round(totalDist)} metros`;
+    announceVoice(`Navegación iniciada. Distancia total: ${distText}`);
 
     locationSub.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.BestForNavigation, timeInterval: 1500, distanceInterval: 3 },

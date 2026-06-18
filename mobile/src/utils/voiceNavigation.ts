@@ -25,6 +25,11 @@ function speak(text: string) {
   } catch {}
 }
 
+export function announceVoice(text: string) {
+  if (_muted) return;
+  speak(text);
+}
+
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
   if (_muted || totalDistM <= 0) return;
   const remaining = totalDistM - distDoneM;
