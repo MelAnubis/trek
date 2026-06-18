@@ -8,8 +8,8 @@
     "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D2B1E"
+      "resizeMode": "cover",
+      "backgroundColor": "#132B1D"
     },
     "assetBundlePatterns": ["**/*"],
     "ios": {
@@ -23,7 +23,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0D2B1E"
+        "backgroundColor": "#132B1D"
       },
       "package": "com.trek.wanderer",
       "permissions": [

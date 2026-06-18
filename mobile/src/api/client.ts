@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const BASE_URL_KEY = 'trek_server_url';
 export const TOKEN_KEY = 'trek_token';
@@ -11,8 +11,8 @@ export const api = axios.create({
 
 api.interceptors.request.use(async (config) => {
   const [url, token] = await Promise.all([
-    SecureStore.getItemAsync(BASE_URL_KEY),
-    SecureStore.getItemAsync(TOKEN_KEY),
+    AsyncStorage.getItem(BASE_URL_KEY),
+    AsyncStorage.getItem(TOKEN_KEY),
   ]);
   if (url) config.baseURL = url;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -23,8 +23,7 @@ api.interceptors.response.use(
   (res) => res,
   async (error) => {
     if (error.response?.status === 401) {
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      // authStore will react to token removal
+      await AsyncStorage.removeItem(TOKEN_KEY);
     }
     return Promise.reject(error);
   }
