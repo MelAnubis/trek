@@ -431,6 +431,8 @@ const MemoMarker = memo(function MemoMarker({
   )
 })
 
+const FALLBACK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
 export const MapView = memo(function MapView({
   places = [],
   dayPlaces = [],
@@ -618,6 +620,21 @@ export const MapView = memo(function MapView({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768
   const locationButtonBottom = 'calc(var(--bottom-nav-h, 84px) + 12px)'
 
+  // Track the active tile URL separately so we can fall back to CartoDB when
+  // the configured source is blocked (e.g. OSM 403 policy errors).
+  const [activeTileUrl, setActiveTileUrl] = useState(tileUrl)
+  const tileErrorCountRef = useRef(0)
+  useEffect(() => {
+    setActiveTileUrl(tileUrl)
+    tileErrorCountRef.current = 0
+  }, [tileUrl])
+  const onTileError = useCallback(() => {
+    tileErrorCountRef.current++
+    if (tileErrorCountRef.current >= 3 && activeTileUrl !== FALLBACK_TILE_URL) {
+      setActiveTileUrl(FALLBACK_TILE_URL)
+    }
+  }, [activeTileUrl])
+
   return (
     <>
     <div className="w-full h-full relative">
@@ -630,13 +647,14 @@ export const MapView = memo(function MapView({
       style={{ background: '#e5e7eb' }}
     >
       <TileLayer
-        url={tileUrl}
+        url={activeTileUrl}
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         maxZoom={19}
         keepBuffer={8}
         updateWhenZooming={false}
         updateWhenIdle={true}
         referrerPolicy="strict-origin-when-cross-origin"
+        eventHandlers={{ tileerror: onTileError }}
       />
 
       <MapController center={center} zoom={zoom} />

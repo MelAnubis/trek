@@ -26,6 +26,14 @@ export const MAX_TILES = Math.floor((50 * 1024) / AVG_TILE_KB) // ≈ 3413
 const DEFAULT_TILE_URL =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
+// OSM tile servers block bulk app requests per their usage policy and return
+// 403 "Access blocked" images that get cached as valid tiles, poisoning the
+// offline cache. Prefetch is skipped for these hosts.
+const BLOCKED_PREFETCH_HOSTS = ['tile.openstreetmap.org', 'tile.openstreetmap.de']
+function isBlockedForPrefetch(url: string): boolean {
+  return BLOCKED_PREFETCH_HOSTS.some(h => url.includes(h))
+}
+
 const SUBDOMAINS = ['a', 'b', 'c', 'd']
 let _subIdx = 0
 function nextSubdomain(): string {
@@ -139,6 +147,7 @@ export async function prefetchTiles(
 ): Promise<number> {
   if (!navigator.onLine) return 0
   if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) return 0
+  if (isBlockedForPrefetch(tileUrlTemplate)) return 0
 
   let fetched = 0
 
