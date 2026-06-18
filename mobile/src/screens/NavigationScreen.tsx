@@ -72,14 +72,15 @@ function buildNavHtml(points: GpxPoint[], nearestIdx: number, tilesDir = ''): st
   const escapedDir = tilesDir.replace(/'/g, "\\'");
   const tileLayerJs = `
 var TILES_DIR='${escapedDir}';
+var CARTO_S=['a','b','c','d'];var _si=0;
+function cartoUrl(z,x,y){var s=CARTO_S[_si++%4];return'https://'+s+'.basemaps.cartocdn.com/rastertiles/voyager/'+z+'/'+x+'/'+y+'.png';}
 var HybridTile=L.TileLayer.extend({createTile:function(c,done){
   var t=document.createElement('img');t.setAttribute('role','presentation');
   var local=TILES_DIR?TILES_DIR+c.z+'/'+c.x+'/'+c.y+'.png':null;
-  var remote='https://tile.openstreetmap.org/'+c.z+'/'+c.x+'/'+c.y+'.png';
   var usedR=false;
   t.onload=function(){done(null,t);};
-  t.onerror=function(){if(!usedR){usedR=true;t.src=remote;}else{done(new Error(),t);}};
-  t.src=local||remote;return t;
+  t.onerror=function(){if(!usedR){usedR=true;t.src=cartoUrl(c.z,c.x,c.y);}else{done(new Error(),t);}};
+  t.src=local||cartoUrl(c.z,c.x,c.y);return t;
 }});
 new HybridTile('',{maxZoom:19}).addTo(map);`;
 

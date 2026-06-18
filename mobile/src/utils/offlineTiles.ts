@@ -1,6 +1,12 @@
 import * as FileSystem from 'expo-file-system';
 
-const OSM_URL = 'https://tile.openstreetmap.org';
+// CartoDB Voyager — no API key required, allows app usage without OSM restrictions
+const CARTO_SUBDOMAINS = ['a', 'b', 'c', 'd'];
+let _subIdx = 0;
+function tileUrl(z: number, x: number, y: number): string {
+  const s = CARTO_SUBDOMAINS[_subIdx++ % CARTO_SUBDOMAINS.length];
+  return `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}.png`;
+}
 
 export function getTilesDir(): string {
   return `${FileSystem.documentDirectory}tiles/`;
@@ -64,7 +70,7 @@ export async function downloadTiles(
           const info = await FileSystem.getInfoAsync(dest);
           if (!info.exists) {
             await FileSystem.makeDirectoryAsync(tileDir, { intermediates: true }).catch(() => {});
-            await FileSystem.downloadAsync(`${OSM_URL}/${z}/${x}/${y}.png`, dest);
+            await FileSystem.downloadAsync(tileUrl(z, x, y), dest);
           }
         } catch {}
         done++;
