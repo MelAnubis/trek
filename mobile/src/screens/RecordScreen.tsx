@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Location from 'expo-location';
@@ -148,6 +149,7 @@ export function RecordScreen() {
   const [state, setState] = useState<RecordState>('idle');
   const [activityType, setActivityType] = useState<ActivityType>('hiking');
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [trackName, setTrackName] = useState('');
   const [distanceM, setDistanceM] = useState(0);
   const [elevGain, setElevGain] = useState(0);
@@ -164,6 +166,12 @@ export function RecordScreen() {
   const lastEleRef = useRef<number | null>(null);
   const distRef = useRef(0);
   const gainRef = useRef(0);
+
+  useEffect(() => {
+    if (trips.length > 0 && !selectedTrip) {
+      setSelectedTrip(trips[0]);
+    }
+  }, [trips]);
 
   useEffect(() => {
     fetchTrips();
@@ -373,22 +381,40 @@ export function RecordScreen() {
             <Text style={styles.startBtnText}>⏺  Iniciar grabación</Text>
           </TouchableOpacity>
 
-          <Text style={[styles.sectionLabel, { marginTop: 28 }]}>ASOCIAR A UN VIAJE (opcional)</Text>
+          <Text style={[styles.sectionLabel, { marginTop: 28 }]}>GUARDAR EN</Text>
           {trips.length === 0 ? (
             <Text style={styles.noTrips}>Sin viajes disponibles</Text>
           ) : (
-            trips.map((trip) => (
+            <View>
               <TouchableOpacity
-                key={trip.id}
-                style={[styles.tripRow, selectedTrip?.id === trip.id && styles.tripRowSelected]}
-                onPress={() => setSelectedTrip((prev) => prev?.id === trip.id ? null : trip)}
-                activeOpacity={0.75}
+                style={styles.dropdown}
+                onPress={() => setDropdownOpen((v) => !v)}
+                activeOpacity={0.8}
               >
-                <View style={[styles.tripDot, { backgroundColor: selectedTrip?.id === trip.id ? COLORS.primary : COLORS.border }]} />
-                <Text style={styles.tripRowName} numberOfLines={1}>{trip.name}</Text>
-                {selectedTrip?.id === trip.id && <Text style={styles.checkmark}>✓</Text>}
+                <Ionicons name="map-outline" size={16} color={COLORS.primary} />
+                <Text style={styles.dropdownText} numberOfLines={1}>
+                  {selectedTrip?.name ?? 'Seleccionar viaje'}
+                </Text>
+                <Ionicons name={dropdownOpen ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textMuted} />
               </TouchableOpacity>
-            ))
+              {dropdownOpen && (
+                <View style={styles.dropdownList}>
+                  {trips.map((trip) => (
+                    <TouchableOpacity
+                      key={trip.id}
+                      style={[styles.dropdownItem, selectedTrip?.id === trip.id && styles.dropdownItemActive]}
+                      onPress={() => { setSelectedTrip(trip); setDropdownOpen(false); }}
+                      activeOpacity={0.75}
+                    >
+                      <Text style={[styles.dropdownItemText, selectedTrip?.id === trip.id && styles.dropdownItemTextActive]} numberOfLines={1}>
+                        {trip.name}
+                      </Text>
+                      {selectedTrip?.id === trip.id && <Ionicons name="checkmark" size={15} color={COLORS.primary} />}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            </View>
           )}
         </ScrollView>
       </View>
@@ -433,18 +459,38 @@ export function RecordScreen() {
             />
 
             <Text style={[styles.sectionLabel, { marginTop: 20 }]}>GUARDAR EN VIAJE</Text>
-            {trips.map((trip) => (
-              <TouchableOpacity
-                key={trip.id}
-                style={[styles.tripRow, selectedTrip?.id === trip.id && styles.tripRowSelected]}
-                onPress={() => setSelectedTrip(trip)}
-                activeOpacity={0.75}
-              >
-                <View style={[styles.tripDot, { backgroundColor: selectedTrip?.id === trip.id ? COLORS.primary : COLORS.border }]} />
-                <Text style={styles.tripRowName} numberOfLines={1}>{trip.name}</Text>
-                {selectedTrip?.id === trip.id && <Text style={styles.checkmark}>✓</Text>}
-              </TouchableOpacity>
-            ))}
+            {trips.length > 0 && (
+              <View>
+                <TouchableOpacity
+                  style={styles.dropdown}
+                  onPress={() => setDropdownOpen((v) => !v)}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="map-outline" size={16} color={COLORS.primary} />
+                  <Text style={styles.dropdownText} numberOfLines={1}>
+                    {selectedTrip?.name ?? 'Seleccionar viaje'}
+                  </Text>
+                  <Ionicons name={dropdownOpen ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.textMuted} />
+                </TouchableOpacity>
+                {dropdownOpen && (
+                  <View style={styles.dropdownList}>
+                    {trips.map((trip) => (
+                      <TouchableOpacity
+                        key={trip.id}
+                        style={[styles.dropdownItem, selectedTrip?.id === trip.id && styles.dropdownItemActive]}
+                        onPress={() => { setSelectedTrip(trip); setDropdownOpen(false); }}
+                        activeOpacity={0.75}
+                      >
+                        <Text style={[styles.dropdownItemText, selectedTrip?.id === trip.id && styles.dropdownItemTextActive]} numberOfLines={1}>
+                          {trip.name}
+                        </Text>
+                        {selectedTrip?.id === trip.id && <Ionicons name="checkmark" size={15} color={COLORS.primary} />}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
 
             <TouchableOpacity
               style={[styles.startBtn, saving && { opacity: 0.6 }]}
@@ -543,18 +589,27 @@ const styles = StyleSheet.create({
   headerTitle: { ...TYPE.h2, color: COLORS.textInverse },
   headerSub: { fontSize: 12, color: 'rgba(245,240,232,0.45)', fontWeight: '500', marginTop: 2 },
   idleContent: { padding: 20 },
-  sectionLabel: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 10, marginTop: 4, letterSpacing: 0.8 },
+  sectionLabel: { ...TYPE.caption, color: COLORS.textMuted, marginBottom: 8, marginTop: 4, letterSpacing: 0.8 },
   noTrips: { ...TYPE.body, color: COLORS.textMuted, marginBottom: 16 },
-  tripRow: {
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF',
-    borderRadius: 12, padding: 14, marginBottom: 8, gap: 12,
-    borderWidth: 1.5, borderColor: 'transparent',
+  dropdown: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: '#FFFFFF', borderRadius: 12, padding: 14,
+    borderWidth: 1.5, borderColor: COLORS.border,
     shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 4, elevation: 1,
   },
-  tripRowSelected: { borderColor: COLORS.primary },
-  tripDot: { width: 10, height: 10, borderRadius: 5 },
-  tripRowName: { ...TYPE.label, color: COLORS.text, flex: 1 },
-  checkmark: { fontSize: 16, color: COLORS.primary, fontWeight: '700' },
+  dropdownText: { flex: 1, fontSize: 15, fontWeight: '600', color: COLORS.text },
+  dropdownList: {
+    backgroundColor: '#FFFFFF', borderRadius: 12, marginTop: 4,
+    borderWidth: 1.5, borderColor: COLORS.border, overflow: 'hidden',
+  },
+  dropdownItem: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 14, paddingVertical: 13,
+    borderBottomWidth: 1, borderBottomColor: COLORS.border,
+  },
+  dropdownItemActive: { backgroundColor: `${COLORS.primary}0F` },
+  dropdownItemText: { fontSize: 14, color: COLORS.text, flex: 1 },
+  dropdownItemTextActive: { color: COLORS.primaryDark, fontWeight: '700' },
   startBtn: {
     backgroundColor: COLORS.primaryDark, borderRadius: 16, paddingVertical: 18,
     alignItems: 'center', marginTop: 16,
