@@ -52,6 +52,16 @@ export async function hasCachedTiles(): Promise<boolean> {
   }
 }
 
+export async function clearTileCache(): Promise<void> {
+  try {
+    const dir = getTilesDir();
+    const info = await FileSystem.getInfoAsync(dir);
+    if (info.exists) {
+      await FileSystem.deleteAsync(dir, { idempotent: true });
+    }
+  } catch {}
+}
+
 export async function downloadTiles(
   tiles: Array<{ z: number; x: number; y: number }>,
   onProgress?: (done: number, total: number) => void

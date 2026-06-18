@@ -14,7 +14,7 @@ import type { Day, GpxTrack } from '@/types';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
-import { tilesForBbox, downloadTiles, hasCachedTiles } from '@/utils/offlineTiles';
+import { tilesForBbox, downloadTiles, hasCachedTiles, clearTileCache } from '@/utils/offlineTiles';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'TripDetail'>;
@@ -191,6 +191,7 @@ export function TripDetailScreen() {
       }
       const buf = 0.05;
       const tiles = tilesForBbox(minLat - buf, minLng - buf, maxLat + buf, maxLng + buf);
+      await clearTileCache();
       await downloadTiles(tiles, (done, total) => setDownloadProgress(Math.round((done / total) * 100)));
       setOfflineReady(true);
       Alert.alert('Descarga completa', `${tiles.length} teselas descargadas para uso offline.`);
