@@ -17,7 +17,9 @@ export function resetVoiceState() {
 function speak(text: string) {
   try {
     Speech.speak(text, { language: 'es-ES', rate: 0.95 });
-  } catch {}
+  } catch {
+    try { Speech.speak(text, { rate: 0.95 }); } catch {}
+  }
 }
 
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {

@@ -219,11 +219,12 @@ export function NavigationScreen() {
           const done = distanceFromStart(prev, idx);
           setDistanceDone(done);
           setDistanceLeft(totalDist - done);
-          checkVoiceAnnouncements(done, totalDist);
           const doneCoords = prev.slice(0, idx + 1).map((p) => [p.lat, p.lng]);
           webViewRef.current?.postMessage(JSON.stringify({ type: 'update', done: doneCoords }));
           return prev;
         });
+        const done = distanceFromStart(points, nearestIdxRef.current);
+        checkVoiceAnnouncements(done, totalDist);
       }
     );
   }, [totalDist]);
