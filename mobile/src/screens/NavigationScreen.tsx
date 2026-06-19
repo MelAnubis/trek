@@ -14,7 +14,7 @@ import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
 import {
-  checkVoiceAnnouncements, resetVoiceState, setVoiceMuted,
+  announceNavigationStart, checkVoiceAnnouncements, resetVoiceState, setVoiceMuted,
 } from '@/utils/voiceNavigation';
 import { hasCachedTiles, getTilesDir } from '@/utils/offlineTiles';
 
@@ -201,6 +201,7 @@ export function NavigationScreen() {
     if (status !== 'granted') return;
     setStarted(true);
     resetVoiceState();
+    announceNavigationStart(totalDist);
     startTimeRef.current = Date.now();
     timerRef.current = setInterval(() => setElapsedMs(Date.now() - startTimeRef.current), 1000);
 

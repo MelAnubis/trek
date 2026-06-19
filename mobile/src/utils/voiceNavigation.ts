@@ -22,6 +22,12 @@ function speak(text: string) {
   }
 }
 
+export function announceNavigationStart(totalDistM: number) {
+  if (_muted) return;
+  const km = (totalDistM / 1000).toFixed(1);
+  speak(`Navegación iniciada. Distancia total: ${km} kilómetros`);
+}
+
 export function checkVoiceAnnouncements(distDoneM: number, totalDistM: number) {
   if (_muted || totalDistM <= 0) return;
   const remaining = totalDistM - distDoneM;
