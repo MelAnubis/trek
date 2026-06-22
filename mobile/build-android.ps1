@@ -8,8 +8,13 @@ $ErrorActionPreference = "Stop"
 $ROOT = $PSScriptRoot
 $ADB  = "C:\Users\ortiz\AppData\Local\Android\Sdk\platform-tools\adb.exe"
 
+# Use the 64-bit JDK bundled with Android Studio (avoids 32-bit JRE heap limit)
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+$env:PATH = "$env:JAVA_HOME\bin;" + $env:PATH
+
 Write-Host ""
 Write-Host "=== Trek Wanderer Android Build ===" -ForegroundColor Cyan
+Write-Host "  Java: $(& java -version 2>&1 | Select-String 'version')" -ForegroundColor DarkGray
 
 # --- 0. Pull latest code ---
 Write-Host "[0/6] Pulling latest code..." -ForegroundColor Cyan
