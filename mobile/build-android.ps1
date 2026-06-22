@@ -14,7 +14,6 @@ $env:PATH = "$env:JAVA_HOME\bin;" + $env:PATH
 
 Write-Host ""
 Write-Host "=== Trek Wanderer Android Build ===" -ForegroundColor Cyan
-Write-Host "  Java: $(& java -version 2>&1 | Select-String 'version')" -ForegroundColor DarkGray
 
 # --- 0. Pull latest code ---
 Write-Host "[0/6] Pulling latest code..." -ForegroundColor Cyan
