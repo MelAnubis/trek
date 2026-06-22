@@ -100,38 +100,98 @@ L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo
 var coords=[];
 var polyline=L.polyline(coords,{color:'${COLORS.primary}',weight:5}).addTo(map);
 var userMarker=L.circleMarker([${initLat},${initLng}],{radius:10,fillColor:'#2563EB',color:'#fff',weight:3,fillOpacity:1}).addTo(map);
-window.addEventListener('message',function(e){
-  var d=JSON.parse(e.data);
-  if(d.type==='locate'){
-    map.setView([d.lat,d.lng],16);
-    userMarker.setLatLng([d.lat,d.lng]);
-  }
-  if(d.type==='point'){
-    coords.push([d.lat,d.lng]);
-    polyline.setLatLngs(coords);
-    userMarker.setLatLng([d.lat,d.lng]);
-    map.setView([d.lat,d.lng],16);
-  }
-  if(d.type==='reset'){
-    coords=[];polyline.setLatLngs(coords);
-  }
-});
+function handleRNMessage(e){
+  try{
+    var d=JSON.parse(e.data);
+    if(d.type==='locate'){
+      map.setView([d.lat,d.lng],16);
+      userMarker.setLatLng([d.lat,d.lng]);
+    }
+    if(d.type==='point'){
+      coords.push([d.lat,d.lng]);
+      polyline.setLatLngs(coords);
+      userMarker.setLatLng([d.lat,d.lng]);
+      map.setView([d.lat,d.lng],16);
+    }
+    if(d.type==='reset'){
+      coords=[];polyline.setLatLngs(coords);
+    }
+  }catch(err){}
+}
+// Android dispatches to document; iOS dispatches to window
+window.addEventListener('message',handleRNMessage);
+document.addEventListener('message',handleRNMessage);
 </script>
 </body></html>`;
 }
 
 function buildGpx(points: RecordedPoint[], photos: PhotoWaypoint[], name: string, activityType: ActivityType = 'hiking'): string {
+  const safeName = name.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+
   const wpts = photos.map((w, i) =>
     `  <wpt lat="${w.lat.toFixed(7)}" lon="${w.lng.toFixed(7)}">\n    <name>Foto ${i + 1}</name>\n    <time>${w.time}</time>\n  </wpt>`
   ).join('\n');
-  const trkpts = points.map((p) => {
+
+  const trkpts = points.map((p, i) => {
+    const prev = i > 0 ? points[i - 1] : null;
     const ele = p.ele != null ? `\n        <ele>${p.ele.toFixed(1)}</ele>` : '';
-    return `      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">${ele}\n        <time>${p.time}</time>\n      </trkpt>`;
+
+    const extLines: string[] = [];
+    if (p.speed != null && p.speed >= 0) {
+      extLines.push(`          <gpxtpx:speed>${p.speed.toFixed(3)}</gpxtpx:speed>`);
+    }
+    if (prev && prev.ele != null && p.ele != null) {
+      const horizDist = haversineM(prev.lat, prev.lng, p.lat, p.lng);
+      if (horizDist >= 1) {
+        const grade = ((p.ele - prev.ele) / horizDist) * 100;
+        extLines.push(`          <trek:grade>${grade.toFixed(1)}</trek:grade>`);
+      }
+    }
+
+    const extBlock = extLines.length > 0
+      ? `\n        <extensions>\n          <gpxtpx:TrackPointExtension>\n${extLines.join('\n')}\n          </gpxtpx:TrackPointExtension>\n        </extensions>`
+      : '';
+
+    return `      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">${ele}\n        <time>${p.time}</time>${extBlock}\n      </trkpt>`;
   }).join('\n');
+
+  // Summary stats for metadata block
+  let totalDistM = 0;
+  let elevGainM = 0, elevLossM = 0;
+  for (let i = 1; i < points.length; i++) {
+    totalDistM += haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
+    if (points[i].ele != null && points[i - 1].ele != null) {
+      const diff = points[i].ele! - points[i - 1].ele!;
+      if (diff > 0) elevGainM += diff; else elevLossM -= diff;
+    }
+  }
+  const validSpeeds = points.map(p => p.speed).filter((s): s is number => s != null && s >= 0);
+  const avgSpeedMs = validSpeeds.length > 0 ? validSpeeds.reduce((a, b) => a + b, 0) / validSpeeds.length : 0;
+  const maxSpeedMs = validSpeeds.length > 0 ? Math.max(...validSpeeds) : 0;
+
+  const metadata = `  <metadata>
+    <name>${safeName}</name>
+    ${points[0] ? `<time>${points[0].time}</time>` : ''}
+    <extensions>
+      <trek:stats>
+        <trek:distance_m>${totalDistM.toFixed(1)}</trek:distance_m>
+        <trek:elevation_gain_m>${elevGainM.toFixed(1)}</trek:elevation_gain_m>
+        <trek:elevation_loss_m>${elevLossM.toFixed(1)}</trek:elevation_loss_m>
+        <trek:avg_speed_ms>${avgSpeedMs.toFixed(3)}</trek:avg_speed_ms>
+        <trek:max_speed_ms>${maxSpeedMs.toFixed(3)}</trek:max_speed_ms>
+        <trek:activity>${activityType}</trek:activity>
+      </trek:stats>
+    </extensions>
+  </metadata>`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" creator="Trek Mobile" xmlns="http://www.topografix.com/GPX/1/1">
+<gpx version="1.1" creator="Trek Mobile"
+  xmlns="http://www.topografix.com/GPX/1/1"
+  xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1"
+  xmlns:trek="http://trek.app/gpx/1/0">
+${metadata}
 ${wpts ? wpts + '\n' : ''}  <trk>
-    <name>${name.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</name>
+    <name>${safeName}</name>
     <type>${activityType}</type>
     <trkseg>
 ${trkpts}
