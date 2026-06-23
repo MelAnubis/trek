@@ -17,7 +17,7 @@ Write-Host "=== Trek Wanderer Android Build ===" -ForegroundColor Cyan
 
 # --- 0. Pull latest code ---
 Write-Host "[0/6] Pulling latest code..." -ForegroundColor Cyan
-git -C $ROOT pull
+git -C $ROOT pull origin claude/pensive-feynman-hq1m8i
 if ($LASTEXITCODE -ne 0) {
     Write-Host "  git pull failed - continuing anyway" -ForegroundColor Yellow
 }
