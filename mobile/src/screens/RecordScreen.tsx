@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
@@ -17,6 +18,7 @@ import { useTripStore } from '@/store/tripStore';
 import type { Trip } from '@/types';
 import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
+import { ElevationChart, ElevPoint } from '@/components/ElevationChart';
 
 const BG_TASK = 'trek-gps-recording';
 const AUTO_PAUSE_SPEED_MS = 0.5;    // m/s (~1.8 km/h) — por debajo = parado
@@ -205,10 +207,26 @@ ${trkpts}
 </gpx>`;
 }
 
+// GPS options helper — avoids duplicating the object in start/resume/notif-update
+function gpsOptions(notifBody: string): Parameters<typeof Location.startLocationUpdatesAsync>[1] {
+  return {
+    accuracy: Location.Accuracy.BestForNavigation,
+    timeInterval: 3000,
+    distanceInterval: 5,
+    showsBackgroundLocationIndicator: true,
+    foregroundService: {
+      notificationTitle: 'Trek Wanderer',
+      notificationBody: notifBody,
+      notificationColor: COLORS.primary,
+    },
+  };
+}
+
 // ── Component ──────────────────────────────────────────────────────────────
 
 export function RecordScreen() {
   const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
   const { trips, fetchTrips } = useTripStore();
 
   const [state, setState] = useState<RecordState>('idle');
@@ -218,7 +236,12 @@ export function RecordScreen() {
   const [trackName, setTrackName] = useState('');
   const [distanceM, setDistanceM] = useState(0);
   const [elevGain, setElevGain] = useState(0);
+  const [elevLoss, setElevLoss] = useState(0);
   const [speed, setSpeed] = useState(0);
+  const [maxSpeed, setMaxSpeed] = useState(0);
+  const [avgSpeed, setAvgSpeed] = useState(0);
+  const [minAlt, setMinAlt] = useState<number | null>(null);
+  const [maxAlt, setMaxAlt] = useState<number | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [saving, setSaving] = useState(false);
   const [mapHtml, setMapHtml] = useState('');
@@ -226,12 +249,19 @@ export function RecordScreen() {
 
   const webViewRef = useRef<WebView>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const notifTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef(0);
   const pausedMsRef = useRef(0);
   const lastEleRef = useRef<number | null>(null);
   const distRef = useRef(0);
   const gainRef = useRef(0);
-  // Feature: auto-pause & battery
+  const lossRef = useRef(0);
+  const maxSpeedRef = useRef(0);
+  const speedSumRef = useRef(0);
+  const speedCountRef = useRef(0);
+  const minAltRef = useRef<number | null>(null);
+  const maxAltRef = useRef<number | null>(null);
+  // Auto-pause & battery
   const lastMovedAtRef = useRef<number>(Date.now());
   const autoPauseFiredRef = useRef(false);
   const batteryAlertShownRef = useRef(false);
@@ -262,6 +292,7 @@ export function RecordScreen() {
     return () => {
       _onNewPoint = null;
       stopTimer();
+      stopNotifTimer();
       Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
       KeepAwake.deactivateKeepAwake();
     };
@@ -310,20 +341,47 @@ export function RecordScreen() {
     pausedMsRef.current = Date.now() - startTimeRef.current;
   };
 
+  // Updates the foreground-service notification with live stats every 60 s
+  const startNotifTimer = () => {
+    notifTimerRef.current = setInterval(async () => {
+      if (!isRecordingRef.current) return;
+      const elapsed = formatTime(Date.now() - startTimeRef.current);
+      const dist = formatDist(distRef.current);
+      try {
+        await Location.startLocationUpdatesAsync(BG_TASK,
+          gpsOptions(`📍 ${dist}  ⬆ +${Math.round(gainRef.current)} m  ⏱ ${elapsed}`));
+      } catch {}
+    }, 60_000);
+  };
+
+  const stopNotifTimer = () => {
+    if (notifTimerRef.current) { clearInterval(notifTimerRef.current); notifTimerRef.current = null; }
+  };
+
   const handleNewPoint = useCallback((pt: RecordedPoint) => {
     const prev = _pts[_pts.length - 2]; // -1 is current pt, -2 is previous
     if (prev) {
       const d = haversineM(prev.lat, prev.lng, pt.lat, pt.lng);
       distRef.current += d;
       setDistanceM(distRef.current);
-      if (pt.ele != null && lastEleRef.current != null && pt.ele > lastEleRef.current) {
-        gainRef.current += pt.ele - lastEleRef.current;
-        setElevGain(gainRef.current);
+      if (pt.ele != null && lastEleRef.current != null) {
+        const diff = pt.ele - lastEleRef.current;
+        if (diff > 0) { gainRef.current += diff; setElevGain(gainRef.current); }
+        else if (diff < 0) { lossRef.current -= diff; setElevLoss(lossRef.current); }
       }
     }
-    if (pt.ele != null) lastEleRef.current = pt.ele;
-    if (pt.speed != null) {
+    if (pt.ele != null) {
+      lastEleRef.current = pt.ele;
+      if (minAltRef.current === null || pt.ele < minAltRef.current) { minAltRef.current = pt.ele; setMinAlt(pt.ele); }
+      if (maxAltRef.current === null || pt.ele > maxAltRef.current) { maxAltRef.current = pt.ele; setMaxAlt(pt.ele); }
+    }
+    if (pt.speed != null && pt.speed >= 0) {
       setSpeed(pt.speed);
+      speedSumRef.current += pt.speed;
+      speedCountRef.current++;
+      setAvgSpeed(speedSumRef.current / speedCountRef.current);
+      if (pt.speed > maxSpeedRef.current) { maxSpeedRef.current = pt.speed; setMaxSpeed(pt.speed); }
+      // Auto-pause detection
       if (pt.speed >= AUTO_PAUSE_SPEED_MS) {
         lastMovedAtRef.current = Date.now();
       } else if (!autoPauseFiredRef.current && Date.now() - lastMovedAtRef.current > AUTO_PAUSE_DELAY_MS) {
@@ -349,7 +407,13 @@ export function RecordScreen() {
     _photos = [];
     distRef.current = 0;
     gainRef.current = 0;
+    lossRef.current = 0;
     lastEleRef.current = null;
+    maxSpeedRef.current = 0;
+    speedSumRef.current = 0;
+    speedCountRef.current = 0;
+    minAltRef.current = null;
+    maxAltRef.current = null;
     pausedMsRef.current = 0;
     lastMovedAtRef.current = Date.now();
     autoPauseFiredRef.current = false;
@@ -357,37 +421,28 @@ export function RecordScreen() {
     isRecordingRef.current = true;
     _onNewPoint = handleNewPoint;
 
-    setDistanceM(0);
-    setElevGain(0);
+    setDistanceM(0); setElevGain(0); setElevLoss(0);
+    setMaxSpeed(0); setAvgSpeed(0); setMinAlt(null); setMaxAlt(null);
     setElapsedMs(0);
     setState('recording');
     await KeepAwake.activateKeepAwakeAsync();
     startTimer();
+    startNotifTimer();
 
     webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
-    // Center on current position immediately
     try {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
       webViewRef.current?.postMessage(JSON.stringify({ type: 'locate', lat: loc.coords.latitude, lng: loc.coords.longitude }));
     } catch {}
 
-    await Location.startLocationUpdatesAsync(BG_TASK, {
-      accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 3000,
-      distanceInterval: 5,
-      showsBackgroundLocationIndicator: true,
-      foregroundService: {
-        notificationTitle: 'Trek Wanderer',
-        notificationBody: 'Grabando tu ruta GPS…',
-        notificationColor: COLORS.primary,
-      },
-    });
+    await Location.startLocationUpdatesAsync(BG_TASK, gpsOptions('Grabando tu ruta GPS…'));
   }, [handleNewPoint]);
 
   const pause = async () => {
     await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
     _onNewPoint = null;
     stopTimer();
+    stopNotifTimer();
     isRecordingRef.current = false;
     KeepAwake.deactivateKeepAwake();
     setState('paused');
@@ -401,23 +456,15 @@ export function RecordScreen() {
     await KeepAwake.activateKeepAwakeAsync();
     setState('recording');
     startTimer();
-    await Location.startLocationUpdatesAsync(BG_TASK, {
-      accuracy: Location.Accuracy.BestForNavigation,
-      timeInterval: 3000,
-      distanceInterval: 5,
-      showsBackgroundLocationIndicator: true,
-      foregroundService: {
-        notificationTitle: 'Trek Wanderer',
-        notificationBody: 'Grabando tu ruta GPS…',
-        notificationColor: COLORS.primary,
-      },
-    });
+    startNotifTimer();
+    await Location.startLocationUpdatesAsync(BG_TASK, gpsOptions('Grabando tu ruta GPS…'));
   }, [handleNewPoint]);
 
   const stop = async () => {
     await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
     _onNewPoint = null;
     stopTimer();
+    stopNotifTimer();
     isRecordingRef.current = false;
     KeepAwake.deactivateKeepAwake();
     const now = new Date();
@@ -576,6 +623,15 @@ export function RecordScreen() {
 
   // ── Done ─────────────────────────────────────────────────────────────────
   if (state === 'done') {
+    // Build elevation profile from recorded points
+    const elevPoints: ElevPoint[] = [];
+    let cumDist = 0;
+    for (let i = 0; i < _pts.length; i++) {
+      if (_pts[i].ele == null) continue;
+      if (i > 0) cumDist += haversineM(_pts[i - 1].lat, _pts[i - 1].lng, _pts[i].lat, _pts[i].lng);
+      elevPoints.push({ dist: cumDist, ele: _pts[i].ele! });
+    }
+
     return (
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -584,6 +640,7 @@ export function RecordScreen() {
           </View>
           <ScrollView contentContainerStyle={styles.idleContent} keyboardShouldPersistTaps="handled">
             <View style={styles.summaryCard}>
+              {/* Row 1: distancia | tiempo | desnivel+ */}
               <View style={styles.summaryRow}>
                 <View style={styles.summaryStat}>
                   <Text style={styles.summaryValue}>{formatDist(distanceM)}</Text>
@@ -597,9 +654,55 @@ export function RecordScreen() {
                 <View style={styles.summaryDiv} />
                 <View style={styles.summaryStat}>
                   <Text style={styles.summaryValue}>{`+${Math.round(elevGain)} m`}</Text>
-                  <Text style={styles.summaryLabel}>desnivel</Text>
+                  <Text style={styles.summaryLabel}>desnivel ↑</Text>
                 </View>
               </View>
+              <View style={styles.summaryDivH} />
+              {/* Row 2: vel. media | vel. máx | desnivel- */}
+              <View style={styles.summaryRow}>
+                <View style={styles.summaryStat}>
+                  <Text style={styles.summaryValue}>{`${(avgSpeed * 3.6).toFixed(1)}`}</Text>
+                  <Text style={styles.summaryLabel}>km/h med.</Text>
+                </View>
+                <View style={styles.summaryDiv} />
+                <View style={styles.summaryStat}>
+                  <Text style={styles.summaryValue}>{`${(maxSpeed * 3.6).toFixed(1)}`}</Text>
+                  <Text style={styles.summaryLabel}>km/h máx.</Text>
+                </View>
+                <View style={styles.summaryDiv} />
+                <View style={styles.summaryStat}>
+                  <Text style={styles.summaryValue}>{`-${Math.round(elevLoss)} m`}</Text>
+                  <Text style={styles.summaryLabel}>desnivel ↓</Text>
+                </View>
+              </View>
+              {/* Row 3: altitud mín/máx (solo si hay datos de elevación) */}
+              {minAlt != null && maxAlt != null && (
+                <>
+                  <View style={styles.summaryDivH} />
+                  <View style={styles.summaryRow}>
+                    <View style={styles.summaryStat}>
+                      <Text style={styles.summaryValue}>{`${Math.round(minAlt)} m`}</Text>
+                      <Text style={styles.summaryLabel}>alt. mín.</Text>
+                    </View>
+                    <View style={styles.summaryDiv} />
+                    <View style={styles.summaryStat}>
+                      <Text style={styles.summaryValue}>{`${Math.round(maxAlt)} m`}</Text>
+                      <Text style={styles.summaryLabel}>alt. máx.</Text>
+                    </View>
+                    <View style={styles.summaryDiv} />
+                    <View style={styles.summaryStat}>
+                      <Text style={styles.summaryValue}>{_pts.length}</Text>
+                      <Text style={styles.summaryLabel}>puntos GPS</Text>
+                    </View>
+                  </View>
+                </>
+              )}
+              {/* Elevation chart */}
+              {elevPoints.length >= 2 && (
+                <View style={styles.chartWrap}>
+                  <ElevationChart points={elevPoints} width={screenWidth - 80} height={90} />
+                </View>
+              )}
             </View>
 
             <Text style={styles.sectionLabel}>NOMBRE DE LA RUTA</Text>
@@ -779,6 +882,8 @@ const styles = StyleSheet.create({
   summaryValue: { ...TYPE.h3, color: COLORS.text },
   summaryLabel: { ...TYPE.caption, color: COLORS.textMuted, marginTop: 2 },
   summaryDiv: { width: 1, height: 40, backgroundColor: COLORS.border },
+  summaryDivH: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
+  chartWrap: { marginTop: 12, alignItems: 'center' },
   nameInput: {
     backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: COLORS.border,
     borderRadius: 12, paddingHorizontal: 16, paddingVertical: 14,
