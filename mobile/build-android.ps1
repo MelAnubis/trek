@@ -46,6 +46,21 @@ Write-Host "[3/6] Creating local.properties..." -ForegroundColor Cyan
     "sdk.dir=C\:\\Users\\ortiz\\AppData\\Local\\Android\\Sdk`n"
 )
 
+# Patch gradle.properties: compile Kotlin in-process (no daemon) to avoid
+# "Could not connect to Kotlin compile daemon" on Windows
+$gradleProps = "$ROOT\android\gradle.properties"
+$propsContent = [System.IO.File]::ReadAllText($gradleProps)
+if ($propsContent -notmatch 'kotlin\.compiler\.execution\.strategy') {
+    [System.IO.File]::AppendAllText($gradleProps,
+        "`n# Compile Kotlin in-process — avoids daemon connection failures on Windows`n" +
+        "kotlin.compiler.execution.strategy=in-process`n" +
+        "kotlin.daemon.jvm.options=-Xmx1024m`n"
+    )
+    Write-Host "  Kotlin in-process compilation enabled" -ForegroundColor Green
+} else {
+    Write-Host "  Kotlin strategy already set" -ForegroundColor DarkGray
+}
+
 # --- 4. Pin Kotlin to 2.0.21 (prebuild may reset it) ---
 Write-Host "[4/6] Pinning Kotlin to 2.0.21..." -ForegroundColor Cyan
 $buildGradle = "$ROOT\android\build.gradle"
