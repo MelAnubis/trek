@@ -25,6 +25,8 @@ if ($LASTEXITCODE -ne 0) {
 # --- 1. Install JS dependencies ---
 Write-Host "[1/6] Installing JS dependencies..." -ForegroundColor Cyan
 Push-Location $ROOT
+# Resolve correct SDK-compatible versions for new packages, then install all
+npx expo install expo-battery expo-keep-awake
 npm install --prefer-offline
 if ($LASTEXITCODE -ne 0) { Pop-Location; Write-Host "npm install failed" -ForegroundColor Red; exit 1 }
 Pop-Location
