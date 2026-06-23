@@ -364,16 +364,43 @@ export function RecordScreen() {
     if (_pts.length < 2) { Alert.alert('Ruta muy corta', 'Necesitas al menos 2 puntos grabados.'); return; }
     setSaving(true);
     try {
+      // 1. Upload GPX track
       const gpx = buildGpx(_pts, _photos, trackName || 'Ruta grabada', activityType);
-      const path = `${FileSystem.cacheDirectory}trek_track.gpx`;
-      await FileSystem.writeAsStringAsync(path, gpx, { encoding: FileSystem.EncodingType.UTF8 });
-      const formData = new FormData();
-      formData.append('gpx', { uri: path, type: 'application/gpx+xml', name: 'trek_track.gpx' } as any);
-      await api.post(`/api/trips/${selectedTrip.id}/gpx/upload`, formData, {
+      const gpxPath = `${FileSystem.cacheDirectory}trek_track.gpx`;
+      await FileSystem.writeAsStringAsync(gpxPath, gpx, { encoding: FileSystem.EncodingType.UTF8 });
+      const gpxForm = new FormData();
+      gpxForm.append('gpx', { uri: gpxPath, type: 'application/gpx+xml', name: 'trek_track.gpx' } as any);
+      await api.post(`/api/trips/${selectedTrip.id}/gpx/upload`, gpxForm, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      Alert.alert('¡Guardado!', `Ruta añadida al viaje "${selectedTrip.name}".`, [
-        { text: 'OK', onPress: () => { _pts = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
+
+      // 2. Upload photos as trip files so they appear in the trip's file manager
+      let photosFailed = 0;
+      for (let i = 0; i < _photos.length; i++) {
+        const photo = _photos[i];
+        try {
+          const ext = photo.uri.split('.').pop()?.toLowerCase() || 'jpg';
+          const mime = ext === 'jpg' ? 'image/jpeg' : `image/${ext}`;
+          const filename = `ruta_foto_${i + 1}.${ext}`;
+          const time = new Date(photo.time).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+          const description = `${trackName || 'Ruta'} · ${time} · ${photo.lat.toFixed(5)}, ${photo.lng.toFixed(5)}`;
+          const photoForm = new FormData();
+          photoForm.append('file', { uri: photo.uri, type: mime, name: filename } as any);
+          photoForm.append('description', description);
+          await api.post(`/api/trips/${selectedTrip.id}/files`, photoForm, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        } catch {
+          photosFailed++;
+        }
+      }
+
+      const photoMsg = _photos.length > 0
+        ? ` y ${_photos.length - photosFailed} foto${_photos.length - photosFailed !== 1 ? 's' : ''}${photosFailed > 0 ? ` (${photosFailed} fallaron)` : ''}`
+        : '';
+
+      Alert.alert('¡Guardado!', `Ruta${photoMsg} añadida al viaje "${selectedTrip.name}".`, [
+        { text: 'OK', onPress: () => { _pts = []; _photos = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
       ]);
     } catch (e: any) {
       Alert.alert('Error al guardar', e?.response?.data?.error ?? e?.message ?? 'Error desconocido');
@@ -385,7 +412,7 @@ export function RecordScreen() {
   const discard = () => {
     Alert.alert('Descartar ruta', '¿Seguro?', [
       { text: 'Cancelar', style: 'cancel' },
-      { text: 'Descartar', style: 'destructive', onPress: () => { _pts = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
+      { text: 'Descartar', style: 'destructive', onPress: () => { _pts = []; _photos = []; setState('idle'); setDistanceM(0); setElevGain(0); setElapsedMs(0); } },
     ]);
   };
 
