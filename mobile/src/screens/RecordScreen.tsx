@@ -10,6 +10,8 @@ import * as Location from 'expo-location';
 import * as TaskManager from 'expo-task-manager';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import * as KeepAwake from 'expo-keep-awake';
+import * as Battery from 'expo-battery';
 import { api } from '@/api/client';
 import { useTripStore } from '@/store/tripStore';
 import type { Trip } from '@/types';
@@ -17,6 +19,9 @@ import { COLORS } from '@/theme/colors';
 import { TYPE } from '@/theme/typography';
 
 const BG_TASK = 'trek-gps-recording';
+const AUTO_PAUSE_SPEED_MS = 0.5;    // m/s (~1.8 km/h) — por debajo = parado
+const AUTO_PAUSE_DELAY_MS = 120_000; // 2 minutos sin movimiento → auto-pausa
+const BATTERY_WARN_LEVEL = 0.20;     // 20%
 
 type RecordState = 'idle' | 'recording' | 'paused' | 'done';
 type ActivityType = 'hiking' | 'cycling' | 'mountain_biking' | 'running';
@@ -226,6 +231,12 @@ export function RecordScreen() {
   const lastEleRef = useRef<number | null>(null);
   const distRef = useRef(0);
   const gainRef = useRef(0);
+  // Feature: auto-pause & battery
+  const lastMovedAtRef = useRef<number>(Date.now());
+  const autoPauseFiredRef = useRef(false);
+  const batteryAlertShownRef = useRef(false);
+  const isRecordingRef = useRef(false);
+  const autoPauseFnRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (trips.length > 0 && !selectedTrip) {
@@ -252,7 +263,41 @@ export function RecordScreen() {
       _onNewPoint = null;
       stopTimer();
       Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
+      KeepAwake.deactivateKeepAwake();
     };
+  }, []);
+
+  // Auto-pause: register the fn in a ref so handleNewPoint ([] deps) can call it safely
+  useEffect(() => {
+    autoPauseFnRef.current = () => {
+      Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
+      _onNewPoint = null;
+      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+      pausedMsRef.current = Date.now() - startTimeRef.current;
+      isRecordingRef.current = false;
+      KeepAwake.deactivateKeepAwake();
+      setState('paused');
+      Alert.alert(
+        'Pausa automática',
+        'Sin movimiento durante 2 minutos. La grabación se ha pausado.',
+        [{ text: 'OK' }],
+      );
+    };
+  }, []);
+
+  // Battery warning during recording
+  useEffect(() => {
+    const sub = Battery.addBatteryLevelListener(({ batteryLevel }) => {
+      if (batteryLevel <= BATTERY_WARN_LEVEL && !batteryAlertShownRef.current && isRecordingRef.current) {
+        batteryAlertShownRef.current = true;
+        Alert.alert(
+          'Batería baja',
+          `Batería al ${Math.round(batteryLevel * 100)}%. La grabación continúa pero el GPS puede verse afectado.`,
+          [{ text: 'Entendido' }],
+        );
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const startTimer = () => {
@@ -277,7 +322,15 @@ export function RecordScreen() {
       }
     }
     if (pt.ele != null) lastEleRef.current = pt.ele;
-    if (pt.speed != null) setSpeed(pt.speed);
+    if (pt.speed != null) {
+      setSpeed(pt.speed);
+      if (pt.speed >= AUTO_PAUSE_SPEED_MS) {
+        lastMovedAtRef.current = Date.now();
+      } else if (!autoPauseFiredRef.current && Date.now() - lastMovedAtRef.current > AUTO_PAUSE_DELAY_MS) {
+        autoPauseFiredRef.current = true;
+        autoPauseFnRef.current?.();
+      }
+    }
     webViewRef.current?.postMessage(JSON.stringify({ type: 'point', lat: pt.lat, lng: pt.lng }));
   }, []);
 
@@ -298,12 +351,17 @@ export function RecordScreen() {
     gainRef.current = 0;
     lastEleRef.current = null;
     pausedMsRef.current = 0;
+    lastMovedAtRef.current = Date.now();
+    autoPauseFiredRef.current = false;
+    batteryAlertShownRef.current = false;
+    isRecordingRef.current = true;
     _onNewPoint = handleNewPoint;
 
     setDistanceM(0);
     setElevGain(0);
     setElapsedMs(0);
     setState('recording');
+    await KeepAwake.activateKeepAwakeAsync();
     startTimer();
 
     webViewRef.current?.postMessage(JSON.stringify({ type: 'reset' }));
@@ -330,11 +388,17 @@ export function RecordScreen() {
     await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
     _onNewPoint = null;
     stopTimer();
+    isRecordingRef.current = false;
+    KeepAwake.deactivateKeepAwake();
     setState('paused');
   };
 
   const resume = useCallback(async () => {
     _onNewPoint = handleNewPoint;
+    lastMovedAtRef.current = Date.now();
+    autoPauseFiredRef.current = false;
+    isRecordingRef.current = true;
+    await KeepAwake.activateKeepAwakeAsync();
     setState('recording');
     startTimer();
     await Location.startLocationUpdatesAsync(BG_TASK, {
@@ -354,6 +418,8 @@ export function RecordScreen() {
     await Location.stopLocationUpdatesAsync(BG_TASK).catch(() => {});
     _onNewPoint = null;
     stopTimer();
+    isRecordingRef.current = false;
+    KeepAwake.deactivateKeepAwake();
     const now = new Date();
     setTrackName(`Ruta ${now.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })} ${now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`);
     setState('done');
