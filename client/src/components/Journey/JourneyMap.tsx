@@ -172,7 +172,8 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     const defaultTile = dark
       ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
       : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-    L.tileLayer(mapTileUrl || defaultTile, {
+    const fallbackTile = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+    const tileLayer = L.tileLayer(mapTileUrl || defaultTile, {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       referrerPolicy: 'strict-origin-when-cross-origin',
@@ -182,7 +183,16 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       // updates and keep a larger ring of off-screen tiles ready.
       updateWhenIdle: false,
       keepBuffer: 4,
-    } as any).addTo(map)
+    } as any)
+    let tileErrorCount = 0
+    tileLayer.on('tileerror', () => {
+      tileErrorCount++
+      if (tileErrorCount >= 3 && (tileLayer as any)._url !== fallbackTile) {
+        tileLayer.setUrl(fallbackTile)
+        tileErrorCount = 0
+      }
+    })
+    tileLayer.addTo(map)
 
     const items = buildMarkerItems(entries)
     itemsRef.current = items
