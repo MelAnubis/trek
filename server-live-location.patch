@@ -1,0 +1,295 @@
+diff --git a/docker-compose.yml b/docker-compose.yml
+index d5e021a6..9ff28c7b 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -24,7 +24,7 @@ services:
+       - ALLOWED_ORIGINS=https://trekwanderer.info:446,https://www.trekwanderer.info:446,https://rodadas.info:446,https://www.rodadas.info:446,https://localhost:446
+       - FORCE_HTTPS=true
+       - TRUST_PROXY=1
+-      - APP_URL=https://trekwanderer.info:446
++      - APP_URL=https://www.trekwanderer.info:446
+       - ONEDRIVE_CLIENT_ID=${ONEDRIVE_CLIENT_ID}
+       - ONEDRIVE_CLIENT_SECRET=${ONEDRIVE_CLIENT_SECRET}
+       - ONEDRIVE_REDIRECT_URI=${ONEDRIVE_REDIRECT_URI}
+diff --git a/server/src/app.ts b/server/src/app.ts
+index aae676ff..fffb0008 100644
+--- a/server/src/app.ts
++++ b/server/src/app.ts
+@@ -41,6 +41,7 @@ import memoriesRoutes from './routes/memories/unified';
+ import photoRoutes from './routes/photos';
+ import notificationRoutes from './routes/notifications';
+ import shareRoutes from './routes/share';
++import liveLocationRoutes from './routes/liveLocation';
+ import journeyRoutes from './routes/journey';
+ import journeyPublicRoutes from './routes/journeyPublic';
+ import gpxTracksRoutes from './routes/gpxTracks';
+@@ -398,6 +399,7 @@ export function createApp(): express.Application {
+   app.use('/api/backup', backupRoutes);
+   app.use('/api/notifications', notificationRoutes);
+   app.use('/api', shareRoutes);
++  app.use('/api', liveLocationRoutes);
+ 
+   // OAuth 2.1 — public endpoints
+   // Gate: 404 when MCP addon is disabled (M2 — prevents feature fingerprinting)
+diff --git a/server/src/db/migrations.ts b/server/src/db/migrations.ts
+index 7bd8fe00..c3928584 100644
+--- a/server/src/db/migrations.ts
++++ b/server/src/db/migrations.ts
+@@ -2455,6 +2455,41 @@ function runMigrations(db: Database.Database): void {
+         INSERT OR IGNORE INTO app_settings (key, value) VALUES ('passkey_login', 'false');
+       `);
+     },
++    // Migration: live location sharing (public link, no trip required) + track history
++    () => {
++      db.exec(`
++        CREATE TABLE IF NOT EXISTS live_locations (
++          id INTEGER PRIMARY KEY AUTOINCREMENT,
++          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
++          token TEXT NOT NULL UNIQUE,
++          label TEXT,
++          active INTEGER NOT NULL DEFAULT 1,
++          last_lat REAL,
++          last_lng REAL,
++          last_accuracy REAL,
++          last_speed REAL,
++          last_altitude REAL,
++          last_recorded_at DATETIME,
++          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
++          stopped_at DATETIME,
++          expires_at DATETIME
++        );
++        CREATE INDEX IF NOT EXISTS idx_live_locations_user ON live_locations(user_id);
++        CREATE INDEX IF NOT EXISTS idx_live_locations_token ON live_locations(token);
++        CREATE TABLE IF NOT EXISTS live_location_points (
++          id INTEGER PRIMARY KEY AUTOINCREMENT,
++          share_id INTEGER NOT NULL REFERENCES live_locations(id) ON DELETE CASCADE,
++          lat REAL NOT NULL,
++          lng REAL NOT NULL,
++          accuracy REAL,
++          altitude REAL,
++          speed REAL,
++          recorded_at DATETIME NOT NULL,
++          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
++        );
++        CREATE INDEX IF NOT EXISTS idx_live_location_points_share ON live_location_points(share_id, recorded_at);
++      `);
++    },
+   ];
+ 
+   if (currentVersion < migrations.length) {
+diff --git a/server/src/routes/liveLocation.ts b/server/src/routes/liveLocation.ts
+new file mode 100644
+index 00000000..df9e5d56
+--- /dev/null
++++ b/server/src/routes/liveLocation.ts
+@@ -0,0 +1,78 @@
++/**
++ * liveLocation.ts — Compartir ubicación en vivo mediante un enlace público
++ *
++ * No depende de ningún Trip: cualquier usuario autenticado puede iniciar un
++ * share y mandar el enlace a quien quiera, sin que esa persona necesite
++ * cuenta en Trek.
++ *
++ * Rutas:
++ *   POST /api/live-location/start        → (auth) crea/reanuda el share, devuelve el token
++ *   POST /api/live-location/stop         → (auth) desactiva el share activo del usuario
++ *   GET  /api/live-location/mine         → (auth) estado del share activo del usuario, si hay
++ *   POST /api/live-location/:token/point → (auth) añade un punto GPS al share
++ *   GET  /api/live-location/:token       → (público) posición actual + track, para el visor
++ */
++import express, { Request, Response } from 'express';
++import { authenticate } from '../middleware/auth';
++import { AuthRequest } from '../types';
++import * as liveLocationService from '../services/liveLocationService';
++
++const router = express.Router();
++
++const MAX_LABEL_LENGTH = 80;
++
++router.post('/live-location/start', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  let { label } = req.body || {};
++  if (label !== undefined) {
++    if (typeof label !== 'string') return res.status(400).json({ error: 'Invalid label' });
++    label = label.trim().slice(0, MAX_LABEL_LENGTH);
++  }
++  const result = liveLocationService.startShare(authReq.user.id, label || undefined);
++  res.status(result.created ? 201 : 200).json(result);
++});
++
++router.post('/live-location/stop', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  liveLocationService.stopShare(authReq.user.id);
++  res.json({ success: true });
++});
++
++router.get('/live-location/mine', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  const mine = liveLocationService.getMine(authReq.user.id);
++  res.json(mine ? { token: mine.token, label: mine.label, expires_at: mine.expires_at } : { token: null });
++});
++
++router.post('/live-location/:token/point', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  const { token } = req.params;
++  const { lat, lng, accuracy, altitude, speed, recorded_at } = req.body || {};
++
++  if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) {
++    return res.status(400).json({ error: 'lat/lng required' });
++  }
++  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
++    return res.status(400).json({ error: 'lat/lng out of range' });
++  }
++
++  const ok = liveLocationService.addPoint(authReq.user.id, token, {
++    lat, lng,
++    accuracy: typeof accuracy === 'number' ? accuracy : null,
++    altitude: typeof altitude === 'number' ? altitude : null,
++    speed: typeof speed === 'number' ? speed : null,
++    recorded_at: typeof recorded_at === 'string' ? recorded_at : undefined,
++  });
++  if (!ok) return res.status(404).json({ error: 'Share not found, not yours, or no longer active' });
++  res.json({ success: true });
++});
++
++// Public — no auth. This is the endpoint the person you share the link with hits.
++router.get('/live-location/:token', (req: Request, res: Response) => {
++  const { token } = req.params;
++  const data = liveLocationService.getPublicStatus(token);
++  if (!data) return res.status(404).json({ error: 'Invalid or expired link' });
++  res.json(data);
++});
++
++export default router;
+diff --git a/server/src/services/liveLocationService.ts b/server/src/services/liveLocationService.ts
+new file mode 100644
+index 00000000..282a6f4e
+--- /dev/null
++++ b/server/src/services/liveLocationService.ts
+@@ -0,0 +1,126 @@
++import { db } from '../db/database';
++import crypto from 'crypto';
++
++const DEFAULT_TTL_HOURS = 24;
++// Cap the number of points returned to a public viewer so a multi-day share
++// doesn't ship megabytes of track history on every poll.
++const MAX_POINTS_RETURNED = 3000;
++
++export interface LiveLocationPoint {
++  lat: number;
++  lng: number;
++  accuracy?: number | null;
++  altitude?: number | null;
++  speed?: number | null;
++  recorded_at?: string; // ISO string; defaults to now if omitted
++}
++
++interface LiveShareRow {
++  id: number;
++  user_id: number;
++  token: string;
++  label: string | null;
++  active: number;
++  last_lat: number | null;
++  last_lng: number | null;
++  last_accuracy: number | null;
++  last_speed: number | null;
++  last_altitude: number | null;
++  last_recorded_at: string | null;
++  created_at: string;
++  stopped_at: string | null;
++  expires_at: string | null;
++}
++
++/**
++ * Starts (or resumes) live location sharing for a user. A user can only
++ * have one active share at a time — calling this again while one is
++ * already active just returns the existing token instead of creating a
++ * second, orphaned share.
++ */
++export function startShare(userId: number, label?: string): { token: string; created: boolean; expires_at: string } {
++  const existing = db.prepare(
++    "SELECT * FROM live_locations WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(userId) as LiveShareRow | undefined;
++  if (existing) {
++    return { token: existing.token, created: false, expires_at: existing.expires_at! };
++  }
++
++  const token = crypto.randomBytes(24).toString('base64url');
++  const expiresAt = new Date(Date.now() + DEFAULT_TTL_HOURS * 60 * 60 * 1000).toISOString();
++  db.prepare(
++    'INSERT INTO live_locations (user_id, token, label, active, expires_at) VALUES (?, ?, ?, 1, ?)'
++  ).run(userId, token, label || null, expiresAt);
++  return { token, created: true, expires_at: expiresAt };
++}
++
++/** Stops the user's active share, if any. Idempotent. */
++export function stopShare(userId: number): void {
++  db.prepare(
++    "UPDATE live_locations SET active = 0, stopped_at = datetime('now') WHERE user_id = ? AND active = 1"
++  ).run(userId);
++}
++
++/** Returns the user's currently active share (for the app to know whether it's already sharing). */
++export function getMine(userId: number): LiveShareRow | null {
++  const row = db.prepare(
++    "SELECT * FROM live_locations WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY id DESC LIMIT 1"
++  ).get(userId) as LiveShareRow | undefined;
++  return row || null;
++}
++
++/**
++ * Appends a GPS point to an active share owned by the given user, and
++ * updates the "last known position" snapshot on the share row itself so
++ * public reads don't need to touch the (potentially large) points table
++ * just to show the current marker.
++ */
++export function addPoint(userId: number, token: string, point: LiveLocationPoint): boolean {
++  const share = db.prepare(
++    "SELECT id FROM live_locations WHERE token = ? AND user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(token, userId) as { id: number } | undefined;
++  if (!share) return false;
++
++  const recordedAt = point.recorded_at || new Date().toISOString();
++  db.prepare(
++    'INSERT INTO live_location_points (share_id, lat, lng, accuracy, altitude, speed, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
++  ).run(share.id, point.lat, point.lng, point.accuracy ?? null, point.altitude ?? null, point.speed ?? null, recordedAt);
++
++  db.prepare(
++    'UPDATE live_locations SET last_lat = ?, last_lng = ?, last_accuracy = ?, last_speed = ?, last_altitude = ?, last_recorded_at = ? WHERE id = ?'
++  ).run(point.lat, point.lng, point.accuracy ?? null, point.speed ?? null, point.altitude ?? null, recordedAt, share.id);
++
++  return true;
++}
++
++/**
++ * Public read for the viewer page — no auth, just the token from the link.
++ * Returns null for an unknown, stopped, or expired share so the viewer can
++ * show a clean "this link is no longer active" state.
++ */
++export function getPublicStatus(token: string): Record<string, unknown> | null {
++  const share = db.prepare(
++    "SELECT * FROM live_locations WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(token) as LiveShareRow | undefined;
++  if (!share) return null;
++
++  const points = db.prepare(
++    'SELECT lat, lng, recorded_at FROM live_location_points WHERE share_id = ? ORDER BY recorded_at ASC LIMIT ?'
++  ).all(share.id, MAX_POINTS_RETURNED) as { lat: number; lng: number; recorded_at: string }[];
++
++  return {
++    active: !!share.active,
++    label: share.label,
++    started_at: share.created_at,
++    stopped_at: share.stopped_at,
++    last_position: share.last_lat != null ? {
++      lat: share.last_lat,
++      lng: share.last_lng,
++      accuracy: share.last_accuracy,
++      speed: share.last_speed,
++      altitude: share.last_altitude,
++      recorded_at: share.last_recorded_at,
++    } : null,
++    track: points,
++  };
++}

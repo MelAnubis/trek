@@ -41,6 +41,7 @@ import memoriesRoutes from './routes/memories/unified';
 import photoRoutes from './routes/photos';
 import notificationRoutes from './routes/notifications';
 import shareRoutes from './routes/share';
+import liveLocationRoutes from './routes/liveLocation';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import gpxTracksRoutes from './routes/gpxTracks';
@@ -398,6 +399,7 @@ export function createApp(): express.Application {
   app.use('/api/backup', backupRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api', shareRoutes);
+  app.use('/api', liveLocationRoutes);
 
   // OAuth 2.1 — public endpoints
   // Gate: 404 when MCP addon is disabled (M2 — prevents feature fingerprinting)

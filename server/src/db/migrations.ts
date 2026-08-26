@@ -2455,6 +2455,41 @@ function runMigrations(db: Database.Database): void {
         INSERT OR IGNORE INTO app_settings (key, value) VALUES ('passkey_login', 'false');
       `);
     },
+    // Migration: live location sharing (public link, no trip required) + track history
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS live_locations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          token TEXT NOT NULL UNIQUE,
+          label TEXT,
+          active INTEGER NOT NULL DEFAULT 1,
+          last_lat REAL,
+          last_lng REAL,
+          last_accuracy REAL,
+          last_speed REAL,
+          last_altitude REAL,
+          last_recorded_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          stopped_at DATETIME,
+          expires_at DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS idx_live_locations_user ON live_locations(user_id);
+        CREATE INDEX IF NOT EXISTS idx_live_locations_token ON live_locations(token);
+        CREATE TABLE IF NOT EXISTS live_location_points (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          share_id INTEGER NOT NULL REFERENCES live_locations(id) ON DELETE CASCADE,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          accuracy REAL,
+          altitude REAL,
+          speed REAL,
+          recorded_at DATETIME NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_live_location_points_share ON live_location_points(share_id, recorded_at);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

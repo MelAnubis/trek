@@ -1,0 +1,856 @@
+diff --git a/client/package-lock.json b/client/package-lock.json
+index f580de26..5f0f20ea 100644
+--- a/client/package-lock.json
++++ b/client/package-lock.json
+@@ -3749,6 +3749,27 @@
+         "tslib": "^2.8.0"
+       }
+     },
++    "node_modules/@testing-library/dom": {
++      "version": "10.4.1",
++      "resolved": "https://registry.npmjs.org/@testing-library/dom/-/dom-10.4.1.tgz",
++      "integrity": "sha512-o4PXJQidqJl82ckFaXUeoAW+XysPLauYI43Abki5hABd853iMhitooc6znOnczgbTYmEP6U6/y1ZyKAIsvMKGg==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true,
++      "dependencies": {
++        "@babel/code-frame": "^7.10.4",
++        "@babel/runtime": "^7.12.5",
++        "@types/aria-query": "^5.0.1",
++        "aria-query": "5.3.0",
++        "dom-accessibility-api": "^0.5.9",
++        "lz-string": "^1.5.0",
++        "picocolors": "1.1.1",
++        "pretty-format": "^27.0.2"
++      },
++      "engines": {
++        "node": ">=18"
++      }
++    },
+     "node_modules/@testing-library/jest-dom": {
+       "version": "6.9.1",
+       "dev": true,
+@@ -3826,6 +3847,14 @@
+         "node": ">=12"
+       }
+     },
++    "node_modules/@types/aria-query": {
++      "version": "5.0.4",
++      "resolved": "https://registry.npmjs.org/@types/aria-query/-/aria-query-5.0.4.tgz",
++      "integrity": "sha512-rfT93uj5s0PRL7EzccGMs3brplhcrghnDoV26NqKhCAS1hVo+WdNsPvE/yb6ilfr5hi2MEk6d5EWJTKdxg8jVw==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true
++    },
+     "node_modules/@types/babel__core": {
+       "version": "7.20.5",
+       "dev": true,
+@@ -4019,12 +4048,10 @@
+     },
+     "node_modules/@types/prop-types": {
+       "version": "15.7.15",
+-      "dev": true,
+       "license": "MIT"
+     },
+     "node_modules/@types/react": {
+       "version": "18.3.28",
+-      "dev": true,
+       "license": "MIT",
+       "dependencies": {
+         "@types/prop-types": "*",
+@@ -5140,7 +5167,6 @@
+     },
+     "node_modules/csstype": {
+       "version": "3.2.3",
+-      "dev": true,
+       "license": "MIT"
+     },
+     "node_modules/d3-array": {
+@@ -5481,6 +5507,14 @@
+       "dev": true,
+       "license": "MIT"
+     },
++    "node_modules/dom-accessibility-api": {
++      "version": "0.5.16",
++      "resolved": "https://registry.npmjs.org/dom-accessibility-api/-/dom-accessibility-api-0.5.16.tgz",
++      "integrity": "sha512-X7BJ2yElsnOJ30pZF4uIIDfBEVgF4XEBxL9Bxhy6dnrm5hkzqmsWHGTiHqRiITNhMyFLyAiWndIJP7Z1NTteDg==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true
++    },
+     "node_modules/dunder-proto": {
+       "version": "1.0.1",
+       "license": "MIT",
+@@ -7364,6 +7398,17 @@
+         "react": "^16.5.1 || ^17.0.0 || ^18.0.0"
+       }
+     },
++    "node_modules/lz-string": {
++      "version": "1.5.0",
++      "resolved": "https://registry.npmjs.org/lz-string/-/lz-string-1.5.0.tgz",
++      "integrity": "sha512-h5bgJWpxJNswbU7qCrV0tIKQCaS3blPDrqKWx+QxzuzL1zGUzij9XCWLrSLsJPu5t+eWA/ycetzYAO5IOMcWAQ==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true,
++      "bin": {
++        "lz-string": "bin/bin.js"
++      }
++    },
+     "node_modules/magic-string": {
+       "version": "0.30.21",
+       "dev": true,
+@@ -8919,6 +8964,44 @@
+         "url": "https://github.com/sponsors/sindresorhus"
+       }
+     },
++    "node_modules/pretty-format": {
++      "version": "27.5.1",
++      "resolved": "https://registry.npmjs.org/pretty-format/-/pretty-format-27.5.1.tgz",
++      "integrity": "sha512-Qb1gy5OrP5+zDf2Bvnzdl3jsTf1qXVMazbvCoKhtKqVs4/YK4ozX4gKQJJVyNe+cajNPn0KoC0MC3FUmaHWEmQ==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true,
++      "dependencies": {
++        "ansi-regex": "^5.0.1",
++        "ansi-styles": "^5.0.0",
++        "react-is": "^17.0.1"
++      },
++      "engines": {
++        "node": "^10.13.0 || ^12.13.0 || ^14.15.0 || >=15.0.0"
++      }
++    },
++    "node_modules/pretty-format/node_modules/ansi-styles": {
++      "version": "5.2.0",
++      "resolved": "https://registry.npmjs.org/ansi-styles/-/ansi-styles-5.2.0.tgz",
++      "integrity": "sha512-Cxwpt2SfTzTtXcfOlzGEee8O+c+MmUgGrNiBcXnuWxuFJHe6a5Hz7qwhwe5OgaSYI0IJvkLqWX1ASG+cJOkEiA==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true,
++      "engines": {
++        "node": ">=10"
++      },
++      "funding": {
++        "url": "https://github.com/chalk/ansi-styles?sponsor=1"
++      }
++    },
++    "node_modules/pretty-format/node_modules/react-is": {
++      "version": "17.0.2",
++      "resolved": "https://registry.npmjs.org/react-is/-/react-is-17.0.2.tgz",
++      "integrity": "sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==",
++      "dev": true,
++      "license": "MIT",
++      "peer": true
++    },
+     "node_modules/prompts": {
+       "version": "2.4.2",
+       "resolved": "https://registry.npmjs.org/prompts/-/prompts-2.4.2.tgz",
+diff --git a/client/src/App.tsx b/client/src/App.tsx
+index 9b017cf3..39a13ae8 100644
+--- a/client/src/App.tsx
++++ b/client/src/App.tsx
+@@ -17,6 +17,7 @@ import JourneyPage from './pages/JourneyPage'
+ import JourneyDetailPage from './pages/JourneyDetailPage'
+ import JourneyPublicPage from './pages/JourneyPublicPage'
+ import SharedTripPage from './pages/SharedTripPage'
++import LiveLocationPage from './pages/LiveLocationPage'
+ import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
+ import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
+ import NavigationPage from './pages/NavigationPage'
+@@ -219,6 +220,7 @@ export default function App() {
+         <Route path="/" element={<RootRedirect />} />
+         <Route path="/login" element={<LoginPage />} />
+         <Route path="/shared/:token" element={<SharedTripPage />} />
++        <Route path="/live/:token" element={<LiveLocationPage />} />
+         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
+         <Route path="/register" element={<LoginPage />} />
+         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+diff --git a/client/src/api/client.ts b/client/src/api/client.ts
+index fcdc446b..5400dcba 100644
+--- a/client/src/api/client.ts
++++ b/client/src/api/client.ts
+@@ -633,6 +633,16 @@ export const shareApi = {
+   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
+ }
+ 
++export const liveLocationApi = {
++  start: (label?: string) => apiClient.post('/live-location/start', { label }).then(r => r.data),
++  stop: () => apiClient.post('/live-location/stop').then(r => r.data),
++  mine: () => apiClient.get('/live-location/mine').then(r => r.data),
++  sendPoint: (token: string, point: { lat: number; lng: number; accuracy?: number | null; altitude?: number | null; speed?: number | null; recorded_at?: string }) =>
++    apiClient.post(`/live-location/${token}/point`, point).then(r => r.data),
++  // Public — no auth, used by the viewer page.
++  getPublic: (token: string) => apiClient.get(`/live-location/${token}`).then(r => r.data),
++}
++
+ export const notificationsApi = {
+   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
+   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),
+diff --git a/client/src/components/Settings/LiveLocationTab.tsx b/client/src/components/Settings/LiveLocationTab.tsx
+new file mode 100644
+index 00000000..bfd9c2c0
+--- /dev/null
++++ b/client/src/components/Settings/LiveLocationTab.tsx
+@@ -0,0 +1,105 @@
++/**
++ * Pestaña de Settings para compartir la ubicación en vivo mediante un
++ * enlace público — no depende de ningún Trip, cualquiera con el enlace
++ * puede ver dónde estás sin necesitar cuenta en Trek.
++ */
++import React, { useState } from 'react'
++import { MapPinned, Copy, Check, Square, Play } from 'lucide-react'
++import Section from './Section'
++import { useLiveLocationShare } from '../../hooks/useLiveLocationShare'
++
++export default function LiveLocationTab(): React.ReactElement {
++  const { sharing, loading, shareUrl, error, start, stop } = useLiveLocationShare()
++  const [copied, setCopied] = useState(false)
++  const [starting, setStarting] = useState(false)
++
++  async function handleStart() {
++    setStarting(true)
++    await start()
++    setStarting(false)
++  }
++
++  async function handleCopy() {
++    if (!shareUrl) return
++    try {
++      await navigator.clipboard.writeText(shareUrl)
++      setCopied(true)
++      setTimeout(() => setCopied(false), 2000)
++    } catch { /* clipboard permission denied — the link is still selectable/visible */ }
++  }
++
++  async function handleNativeShare() {
++    if (!shareUrl) return
++    // navigator.share funciona dentro del WebView de Capacitor en Android
++    // y abre el selector nativo (WhatsApp, SMS, etc.) sin depender de un
++    // plugin adicional.
++    if (navigator.share) {
++      try { await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl }) } catch { /* usuario canceló */ }
++    } else {
++      handleCopy()
++    }
++  }
++
++  return (
++    <Section title="Ubicación en vivo" icon={MapPinned}>
++      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
++        Comparte un enlace para que cualquiera pueda ver dónde estás en tiempo real, sin necesitar cuenta en Trek.
++        El enlace deja de funcionar 24 horas después de crearlo, o en cuanto pulses "Dejar de compartir".
++      </p>
++
++      {error && (
++        <div className="text-sm rounded-lg px-3 py-2" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}>
++          {error}
++        </div>
++      )}
++
++      {!loading && !sharing && (
++        <button
++          onClick={handleStart}
++          disabled={starting}
++          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
++          style={{ background: 'var(--accent)', color: 'white', opacity: starting ? 0.6 : 1 }}
++        >
++          <Play className="w-4 h-4" />
++          {starting ? 'Iniciando…' : 'Compartir mi ubicación'}
++        </button>
++      )}
++
++      {!loading && sharing && shareUrl && (
++        <div className="space-y-3">
++          <div
++            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
++            style={{ background: 'var(--glass-bg-subtle)', border: '1px solid var(--glass-border-inner)', color: 'var(--text-primary)' }}
++          >
++            <span className="flex-1 truncate">{shareUrl}</span>
++            <button onClick={handleCopy} aria-label="Copiar enlace" style={{ color: 'var(--text-secondary)' }}>
++              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
++            </button>
++          </div>
++
++          <div className="flex gap-2">
++            <button
++              onClick={handleNativeShare}
++              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium"
++              style={{ background: 'var(--accent)', color: 'white' }}
++            >
++              Compartir enlace
++            </button>
++            <button
++              onClick={stop}
++              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
++              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
++            >
++              <Square className="w-3.5 h-3.5" />
++              Dejar de compartir
++            </button>
++          </div>
++
++          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
++            Se sigue enviando tu posición mientras la app esté abierta (en primer o segundo plano).
++          </p>
++        </div>
++      )}
++    </Section>
++  )
++}
+diff --git a/client/src/hooks/useLiveLocationShare.ts b/client/src/hooks/useLiveLocationShare.ts
+new file mode 100644
+index 00000000..6a062cd3
+--- /dev/null
++++ b/client/src/hooks/useLiveLocationShare.ts
+@@ -0,0 +1,88 @@
++/**
++ * useLiveLocationShare — arranca/para el compartir de ubicación en vivo.
++ *
++ * Envuelve nativeGeoService (que ya gestiona el foreground service en Android
++ * vía @capacitor-community/background-geolocation) y manda los puntos al
++ * backend a un ritmo limitado, para no saturar el servidor ni la batería.
++ */
++import { useCallback, useEffect, useRef, useState } from 'react'
++import { nativeGeoService, type NativeGeoPosition } from '../services/nativeGeoService'
++import { liveLocationApi } from '../api/client'
++
++// No mandes un punto nuevo si el anterior se envió hace menos de esto,
++// aunque el GPS dispare eventos más seguido (el distanceFilter de
++// nativeGeoService ya filtra por distancia; esto filtra por tiempo).
++const MIN_SEND_INTERVAL_MS = 8_000
++
++export function useLiveLocationShare() {
++  const [sharing, setSharing] = useState(false)
++  const [loading, setLoading] = useState(true)
++  const [token, setToken] = useState<string | null>(null)
++  const [error, setError] = useState<string | null>(null)
++  const lastSentAtRef = useRef(0)
++  const tokenRef = useRef<string | null>(null)
++
++  // On mount, check if there's already an active share (e.g. app was closed
++  // and reopened while sharing was still on).
++  useEffect(() => {
++    liveLocationApi.mine()
++      .then(res => {
++        if (res.token) {
++          tokenRef.current = res.token
++          setToken(res.token)
++          setSharing(true)
++          // Resume feeding the GPS watcher into the existing share.
++          nativeGeoService.start(handleLocation, handleError)
++        }
++      })
++      .catch(() => { /* not fatal — just means we start from a clean state */ })
++      .finally(() => setLoading(false))
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [])
++
++  const handleError = useCallback((message: string) => {
++    setError(message)
++  }, [])
++
++  const handleLocation = useCallback((pos: NativeGeoPosition) => {
++    const shareToken = tokenRef.current
++    if (!shareToken) return
++    const now = Date.now()
++    if (now - lastSentAtRef.current < MIN_SEND_INTERVAL_MS) return
++    lastSentAtRef.current = now
++    liveLocationApi.sendPoint(shareToken, {
++      lat: pos.lat,
++      lng: pos.lng,
++      accuracy: pos.accuracy,
++      altitude: pos.altitude,
++      speed: pos.speed,
++      recorded_at: new Date(pos.timestamp).toISOString(),
++    }).catch(() => { /* a dropped point isn't worth surfacing to the user */ })
++  }, [])
++
++  const start = useCallback(async (label?: string) => {
++    setError(null)
++    try {
++      const res = await liveLocationApi.start(label)
++      tokenRef.current = res.token
++      setToken(res.token)
++      setSharing(true)
++      lastSentAtRef.current = 0
++      await nativeGeoService.start(handleLocation, handleError)
++    } catch {
++      setError('No se pudo iniciar el compartir ubicación')
++    }
++  }, [handleLocation, handleError])
++
++  const stop = useCallback(async () => {
++    await nativeGeoService.stop()
++    tokenRef.current = null
++    setToken(null)
++    setSharing(false)
++    try { await liveLocationApi.stop() } catch { /* best effort */ }
++  }, [])
++
++  const shareUrl = token ? `${window.location.origin}/live/${token}` : null
++
++  return { sharing, loading, token, shareUrl, error, start, stop }
++}
+diff --git a/client/src/pages/LiveLocationPage.tsx b/client/src/pages/LiveLocationPage.tsx
+new file mode 100644
+index 00000000..45f9dbc1
+--- /dev/null
++++ b/client/src/pages/LiveLocationPage.tsx
+@@ -0,0 +1,114 @@
++import { useState, useEffect, useRef } from 'react'
++import { useParams } from 'react-router-dom'
++import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
++import L from 'leaflet'
++import { liveLocationApi } from '../api/client'
++
++// Refresco de la posición para quien ve el enlace — no es websocket,
++// es sondeo simple cada pocos segundos (igual de "en vivo" para el caso
++// de uso, y mucho más sencillo de mantener).
++const POLL_INTERVAL_MS = 6_000
++
++interface TrackPoint { lat: number; lng: number; recorded_at: string }
++interface LiveStatus {
++  active: boolean
++  label: string | null
++  started_at: string
++  stopped_at: string | null
++  last_position: { lat: number; lng: number; accuracy: number | null; speed: number | null; recorded_at: string } | null
++  track: TrackPoint[]
++}
++
++const markerIcon = L.divIcon({
++  className: '',
++  iconSize: [22, 22],
++  iconAnchor: [11, 11],
++  html: `<div style="width:22px;height:22px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>`,
++})
++
++function RecenterOnUpdate({ lat, lng }: { lat: number; lng: number }) {
++  const map = useMap()
++  const first = useRef(true)
++  useEffect(() => {
++    map.setView([lat, lng], first.current ? 15 : map.getZoom())
++    first.current = false
++  }, [lat, lng, map])
++  return null
++}
++
++export default function LiveLocationPage() {
++  const { token } = useParams<{ token: string }>()
++  const [data, setData] = useState<LiveStatus | null>(null)
++  const [notFound, setNotFound] = useState(false)
++
++  useEffect(() => {
++    if (!token) return
++    let cancelled = false
++    const poll = () => {
++      liveLocationApi.getPublic(token)
++        .then((res: LiveStatus) => { if (!cancelled) setData(res) })
++        .catch(() => { if (!cancelled) setNotFound(true) })
++    }
++    poll()
++    const id = setInterval(poll, POLL_INTERVAL_MS)
++    return () => { cancelled = true; clearInterval(id) }
++  }, [token])
++
++  if (notFound) {
++    return (
++      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
++        <div style={{ textAlign: 'center', padding: 40 }}>
++          <div style={{ fontSize: 48, marginBottom: 16 }}>📍</div>
++          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>Este enlace ya no está activo</h1>
++          <p style={{ color: '#6b7280', marginTop: 8 }}>Puede haber caducado o la persona que lo compartió lo ha detenido.</p>
++        </div>
++      </div>
++    )
++  }
++
++  if (!data) {
++    return (
++      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
++        <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#111827', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
++        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
++      </div>
++    )
++  }
++
++  const pos = data.last_position
++  const polyline = data.track.map(p => [p.lat, p.lng]) as [number, number][]
++
++  return (
++    <div style={{ position: 'fixed', inset: 0 }}>
++      <div style={{
++        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
++        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
++        padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
++        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
++      }}>
++        <div>
++          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{data.label || 'Ubicación en vivo'}</div>
++          {pos && <div style={{ fontSize: 12, color: '#6b7280' }}>Última actualización: {new Date(pos.recorded_at).toLocaleTimeString()}</div>}
++        </div>
++        {!data.active && (
++          <span style={{ fontSize: 12, fontWeight: 600, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 10px', borderRadius: 999 }}>
++            Dejó de compartir
++          </span>
++        )}
++      </div>
++
++      {pos ? (
++        <MapContainer center={[pos.lat, pos.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
++          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
++          {polyline.length > 1 && <Polyline positions={polyline} pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.7 }} />}
++          <Marker position={[pos.lat, pos.lng]} icon={markerIcon} />
++          <RecenterOnUpdate lat={pos.lat} lng={pos.lng} />
++        </MapContainer>
++      ) : (
++        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6b7280' }}>
++          Esperando la primera posición…
++        </div>
++      )}
++    </div>
++  )
++}
+diff --git a/client/src/pages/SettingsPage.tsx b/client/src/pages/SettingsPage.tsx
+index 1648babe..7943a50d 100644
+--- a/client/src/pages/SettingsPage.tsx
++++ b/client/src/pages/SettingsPage.tsx
+@@ -1,6 +1,6 @@
+ import React, { useState, useEffect } from 'react'
+ import { useSearchParams } from 'react-router-dom'
+-import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
++import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info, MapPinned } from 'lucide-react'
+ import { useTranslation } from '../i18n'
+ import { authApi } from '../api/client'
+ import { useAddonStore } from '../store/addonStore'
+@@ -13,6 +13,7 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
+ import AccountTab from '../components/Settings/AccountTab'
+ import AboutTab from '../components/Settings/AboutTab'
+ import OfflineTab from '../components/Settings/OfflineTab'
++import LiveLocationTab from '../components/Settings/LiveLocationTab'
+ 
+ export default function SettingsPage(): React.ReactElement {
+   const { t } = useTranslation()
+@@ -46,6 +47,7 @@ export default function SettingsPage(): React.ReactElement {
+       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
+       : []),
+     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
++    { id: 'location', label: 'Ubicación en vivo', icon: MapPinned },
+     { id: 'account', label: t('settings.tabs.account'), icon: User },
+     ...(appVersion
+       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
+@@ -91,6 +93,7 @@ export default function SettingsPage(): React.ReactElement {
+             {activeTab === 'notifications' && <NotificationsTab />}
+             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
+             {activeTab === 'offline' && <OfflineTab />}
++            {activeTab === 'location' && <LiveLocationTab />}
+             {activeTab === 'account' && <AccountTab />}
+             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
+           </PageSidebar>
+diff --git a/docker-compose.yml b/docker-compose.yml
+index d5e021a6..9ff28c7b 100644
+--- a/docker-compose.yml
++++ b/docker-compose.yml
+@@ -24,7 +24,7 @@ services:
+       - ALLOWED_ORIGINS=https://trekwanderer.info:446,https://www.trekwanderer.info:446,https://rodadas.info:446,https://www.rodadas.info:446,https://localhost:446
+       - FORCE_HTTPS=true
+       - TRUST_PROXY=1
+-      - APP_URL=https://trekwanderer.info:446
++      - APP_URL=https://www.trekwanderer.info:446
+       - ONEDRIVE_CLIENT_ID=${ONEDRIVE_CLIENT_ID}
+       - ONEDRIVE_CLIENT_SECRET=${ONEDRIVE_CLIENT_SECRET}
+       - ONEDRIVE_REDIRECT_URI=${ONEDRIVE_REDIRECT_URI}
+diff --git a/mobile/src/screens/LoginScreen.tsx b/mobile/src/screens/LoginScreen.tsx
+index edbdebf8..9e44d799 100644
+--- a/mobile/src/screens/LoginScreen.tsx
++++ b/mobile/src/screens/LoginScreen.tsx
+@@ -17,7 +17,7 @@ export function LoginScreen() {
+   const insets = useSafeAreaInsets();
+   const { login, init, isLoading } = useAuthStore();
+ 
+-  const [serverUrl, setServerUrl] = useState('');
++  const [serverUrl, setServerUrl] = useState('https://www.trekwanderer.info:446');
+   const [email, setEmail] = useState('');
+   const [password, setPassword] = useState('');
+   const [loading, setLoading] = useState(false);
+diff --git a/server/src/app.ts b/server/src/app.ts
+index aae676ff..fffb0008 100644
+--- a/server/src/app.ts
++++ b/server/src/app.ts
+@@ -41,6 +41,7 @@ import memoriesRoutes from './routes/memories/unified';
+ import photoRoutes from './routes/photos';
+ import notificationRoutes from './routes/notifications';
+ import shareRoutes from './routes/share';
++import liveLocationRoutes from './routes/liveLocation';
+ import journeyRoutes from './routes/journey';
+ import journeyPublicRoutes from './routes/journeyPublic';
+ import gpxTracksRoutes from './routes/gpxTracks';
+@@ -398,6 +399,7 @@ export function createApp(): express.Application {
+   app.use('/api/backup', backupRoutes);
+   app.use('/api/notifications', notificationRoutes);
+   app.use('/api', shareRoutes);
++  app.use('/api', liveLocationRoutes);
+ 
+   // OAuth 2.1 — public endpoints
+   // Gate: 404 when MCP addon is disabled (M2 — prevents feature fingerprinting)
+diff --git a/server/src/db/migrations.ts b/server/src/db/migrations.ts
+index 7bd8fe00..c3928584 100644
+--- a/server/src/db/migrations.ts
++++ b/server/src/db/migrations.ts
+@@ -2455,6 +2455,41 @@ function runMigrations(db: Database.Database): void {
+         INSERT OR IGNORE INTO app_settings (key, value) VALUES ('passkey_login', 'false');
+       `);
+     },
++    // Migration: live location sharing (public link, no trip required) + track history
++    () => {
++      db.exec(`
++        CREATE TABLE IF NOT EXISTS live_locations (
++          id INTEGER PRIMARY KEY AUTOINCREMENT,
++          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
++          token TEXT NOT NULL UNIQUE,
++          label TEXT,
++          active INTEGER NOT NULL DEFAULT 1,
++          last_lat REAL,
++          last_lng REAL,
++          last_accuracy REAL,
++          last_speed REAL,
++          last_altitude REAL,
++          last_recorded_at DATETIME,
++          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
++          stopped_at DATETIME,
++          expires_at DATETIME
++        );
++        CREATE INDEX IF NOT EXISTS idx_live_locations_user ON live_locations(user_id);
++        CREATE INDEX IF NOT EXISTS idx_live_locations_token ON live_locations(token);
++        CREATE TABLE IF NOT EXISTS live_location_points (
++          id INTEGER PRIMARY KEY AUTOINCREMENT,
++          share_id INTEGER NOT NULL REFERENCES live_locations(id) ON DELETE CASCADE,
++          lat REAL NOT NULL,
++          lng REAL NOT NULL,
++          accuracy REAL,
++          altitude REAL,
++          speed REAL,
++          recorded_at DATETIME NOT NULL,
++          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
++        );
++        CREATE INDEX IF NOT EXISTS idx_live_location_points_share ON live_location_points(share_id, recorded_at);
++      `);
++    },
+   ];
+ 
+   if (currentVersion < migrations.length) {
+diff --git a/server/src/routes/liveLocation.ts b/server/src/routes/liveLocation.ts
+new file mode 100644
+index 00000000..df9e5d56
+--- /dev/null
++++ b/server/src/routes/liveLocation.ts
+@@ -0,0 +1,78 @@
++/**
++ * liveLocation.ts — Compartir ubicación en vivo mediante un enlace público
++ *
++ * No depende de ningún Trip: cualquier usuario autenticado puede iniciar un
++ * share y mandar el enlace a quien quiera, sin que esa persona necesite
++ * cuenta en Trek.
++ *
++ * Rutas:
++ *   POST /api/live-location/start        → (auth) crea/reanuda el share, devuelve el token
++ *   POST /api/live-location/stop         → (auth) desactiva el share activo del usuario
++ *   GET  /api/live-location/mine         → (auth) estado del share activo del usuario, si hay
++ *   POST /api/live-location/:token/point → (auth) añade un punto GPS al share
++ *   GET  /api/live-location/:token       → (público) posición actual + track, para el visor
++ */
++import express, { Request, Response } from 'express';
++import { authenticate } from '../middleware/auth';
++import { AuthRequest } from '../types';
++import * as liveLocationService from '../services/liveLocationService';
++
++const router = express.Router();
++
++const MAX_LABEL_LENGTH = 80;
++
++router.post('/live-location/start', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  let { label } = req.body || {};
++  if (label !== undefined) {
++    if (typeof label !== 'string') return res.status(400).json({ error: 'Invalid label' });
++    label = label.trim().slice(0, MAX_LABEL_LENGTH);
++  }
++  const result = liveLocationService.startShare(authReq.user.id, label || undefined);
++  res.status(result.created ? 201 : 200).json(result);
++});
++
++router.post('/live-location/stop', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  liveLocationService.stopShare(authReq.user.id);
++  res.json({ success: true });
++});
++
++router.get('/live-location/mine', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  const mine = liveLocationService.getMine(authReq.user.id);
++  res.json(mine ? { token: mine.token, label: mine.label, expires_at: mine.expires_at } : { token: null });
++});
++
++router.post('/live-location/:token/point', authenticate, (req: Request, res: Response) => {
++  const authReq = req as AuthRequest;
++  const { token } = req.params;
++  const { lat, lng, accuracy, altitude, speed, recorded_at } = req.body || {};
++
++  if (typeof lat !== 'number' || typeof lng !== 'number' || Number.isNaN(lat) || Number.isNaN(lng)) {
++    return res.status(400).json({ error: 'lat/lng required' });
++  }
++  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
++    return res.status(400).json({ error: 'lat/lng out of range' });
++  }
++
++  const ok = liveLocationService.addPoint(authReq.user.id, token, {
++    lat, lng,
++    accuracy: typeof accuracy === 'number' ? accuracy : null,
++    altitude: typeof altitude === 'number' ? altitude : null,
++    speed: typeof speed === 'number' ? speed : null,
++    recorded_at: typeof recorded_at === 'string' ? recorded_at : undefined,
++  });
++  if (!ok) return res.status(404).json({ error: 'Share not found, not yours, or no longer active' });
++  res.json({ success: true });
++});
++
++// Public — no auth. This is the endpoint the person you share the link with hits.
++router.get('/live-location/:token', (req: Request, res: Response) => {
++  const { token } = req.params;
++  const data = liveLocationService.getPublicStatus(token);
++  if (!data) return res.status(404).json({ error: 'Invalid or expired link' });
++  res.json(data);
++});
++
++export default router;
+diff --git a/server/src/services/liveLocationService.ts b/server/src/services/liveLocationService.ts
+new file mode 100644
+index 00000000..282a6f4e
+--- /dev/null
++++ b/server/src/services/liveLocationService.ts
+@@ -0,0 +1,126 @@
++import { db } from '../db/database';
++import crypto from 'crypto';
++
++const DEFAULT_TTL_HOURS = 24;
++// Cap the number of points returned to a public viewer so a multi-day share
++// doesn't ship megabytes of track history on every poll.
++const MAX_POINTS_RETURNED = 3000;
++
++export interface LiveLocationPoint {
++  lat: number;
++  lng: number;
++  accuracy?: number | null;
++  altitude?: number | null;
++  speed?: number | null;
++  recorded_at?: string; // ISO string; defaults to now if omitted
++}
++
++interface LiveShareRow {
++  id: number;
++  user_id: number;
++  token: string;
++  label: string | null;
++  active: number;
++  last_lat: number | null;
++  last_lng: number | null;
++  last_accuracy: number | null;
++  last_speed: number | null;
++  last_altitude: number | null;
++  last_recorded_at: string | null;
++  created_at: string;
++  stopped_at: string | null;
++  expires_at: string | null;
++}
++
++/**
++ * Starts (or resumes) live location sharing for a user. A user can only
++ * have one active share at a time — calling this again while one is
++ * already active just returns the existing token instead of creating a
++ * second, orphaned share.
++ */
++export function startShare(userId: number, label?: string): { token: string; created: boolean; expires_at: string } {
++  const existing = db.prepare(
++    "SELECT * FROM live_locations WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(userId) as LiveShareRow | undefined;
++  if (existing) {
++    return { token: existing.token, created: false, expires_at: existing.expires_at! };
++  }
++
++  const token = crypto.randomBytes(24).toString('base64url');
++  const expiresAt = new Date(Date.now() + DEFAULT_TTL_HOURS * 60 * 60 * 1000).toISOString();
++  db.prepare(
++    'INSERT INTO live_locations (user_id, token, label, active, expires_at) VALUES (?, ?, ?, 1, ?)'
++  ).run(userId, token, label || null, expiresAt);
++  return { token, created: true, expires_at: expiresAt };
++}
++
++/** Stops the user's active share, if any. Idempotent. */
++export function stopShare(userId: number): void {
++  db.prepare(
++    "UPDATE live_locations SET active = 0, stopped_at = datetime('now') WHERE user_id = ? AND active = 1"
++  ).run(userId);
++}
++
++/** Returns the user's currently active share (for the app to know whether it's already sharing). */
++export function getMine(userId: number): LiveShareRow | null {
++  const row = db.prepare(
++    "SELECT * FROM live_locations WHERE user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now')) ORDER BY id DESC LIMIT 1"
++  ).get(userId) as LiveShareRow | undefined;
++  return row || null;
++}
++
++/**
++ * Appends a GPS point to an active share owned by the given user, and
++ * updates the "last known position" snapshot on the share row itself so
++ * public reads don't need to touch the (potentially large) points table
++ * just to show the current marker.
++ */
++export function addPoint(userId: number, token: string, point: LiveLocationPoint): boolean {
++  const share = db.prepare(
++    "SELECT id FROM live_locations WHERE token = ? AND user_id = ? AND active = 1 AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(token, userId) as { id: number } | undefined;
++  if (!share) return false;
++
++  const recordedAt = point.recorded_at || new Date().toISOString();
++  db.prepare(
++    'INSERT INTO live_location_points (share_id, lat, lng, accuracy, altitude, speed, recorded_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
++  ).run(share.id, point.lat, point.lng, point.accuracy ?? null, point.altitude ?? null, point.speed ?? null, recordedAt);
++
++  db.prepare(
++    'UPDATE live_locations SET last_lat = ?, last_lng = ?, last_accuracy = ?, last_speed = ?, last_altitude = ?, last_recorded_at = ? WHERE id = ?'
++  ).run(point.lat, point.lng, point.accuracy ?? null, point.speed ?? null, point.altitude ?? null, recordedAt, share.id);
++
++  return true;
++}
++
++/**
++ * Public read for the viewer page — no auth, just the token from the link.
++ * Returns null for an unknown, stopped, or expired share so the viewer can
++ * show a clean "this link is no longer active" state.
++ */
++export function getPublicStatus(token: string): Record<string, unknown> | null {
++  const share = db.prepare(
++    "SELECT * FROM live_locations WHERE token = ? AND (expires_at IS NULL OR expires_at > datetime('now'))"
++  ).get(token) as LiveShareRow | undefined;
++  if (!share) return null;
++
++  const points = db.prepare(
++    'SELECT lat, lng, recorded_at FROM live_location_points WHERE share_id = ? ORDER BY recorded_at ASC LIMIT ?'
++  ).all(share.id, MAX_POINTS_RETURNED) as { lat: number; lng: number; recorded_at: string }[];
++
++  return {
++    active: !!share.active,
++    label: share.label,
++    started_at: share.created_at,
++    stopped_at: share.stopped_at,
++    last_position: share.last_lat != null ? {
++      lat: share.last_lat,
++      lng: share.last_lng,
++      accuracy: share.last_accuracy,
++      speed: share.last_speed,
++      altitude: share.last_altitude,
++      recorded_at: share.last_recorded_at,
++    } : null,
++    track: points,
++  };
++}
