@@ -12,6 +12,7 @@ export default function LiveLocationTab(): React.ReactElement {
   const { sharing, loading, shareUrl, error, start, stop } = useLiveLocationShare()
   const [copied, setCopied] = useState(false)
   const [shareFailed, setShareFailed] = useState(false)
+  const [debugMessage, setDebugMessage] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
 
   async function handleStart() {
@@ -27,12 +28,14 @@ export default function LiveLocationTab(): React.ReactElement {
       setShareFailed(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch {
+    } catch (e) {
       // Portapapeles bloqueado (sin permiso en el WebView) — el enlace sigue
       // visible/seleccionable arriba, pero avisamos para que no parezca que
       // el botón no hizo nada.
+      console.error('[LiveLocationTab] clipboard.writeText falló', e)
+      setDebugMessage(`Portapapeles: ${e instanceof Error ? e.message : String(e)}`)
       setShareFailed(true)
-      setTimeout(() => setShareFailed(false), 3000)
+      setTimeout(() => setShareFailed(false), 5000)
     }
   }
 
@@ -50,13 +53,18 @@ export default function LiveLocationTab(): React.ReactElement {
         url: shareUrl,
         dialogTitle: 'Compartir ubicación en vivo',
       })
+      setDebugMessage(null)
       return
     } catch (e) {
       // El usuario canceló el selector — no es un fallo, no hagas nada.
       const message = e instanceof Error ? e.message : String(e)
       if (/cancel/i.test(message)) return
       // Cualquier otro fallo (API no soportada, plugin bloqueado, etc.):
-      // cae a copiar el enlace en vez de quedarse en silencio.
+      // lo dejamos visible y cae a copiar el enlace en vez de quedarse en
+      // silencio — así un fallo real se puede diagnosticar en vez de
+      // parecer que el botón "no hace nada".
+      console.error('[LiveLocationTab] Share.share falló', e)
+      setDebugMessage(`Compartir: ${message}`)
     }
     await handleCopy()
   }
@@ -119,6 +127,12 @@ export default function LiveLocationTab(): React.ReactElement {
           {shareFailed && (
             <p className="text-xs" style={{ color: '#ef4444' }}>
               No se pudo compartir ni copiar el enlace automáticamente. Selecciónalo arriba y cópialo a mano.
+            </p>
+          )}
+
+          {debugMessage && (
+            <p className="text-xs font-mono break-all" style={{ color: 'var(--text-muted)' }}>
+              {debugMessage}
             </p>
           )}
 
