@@ -633,6 +633,16 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
+export const liveLocationApi = {
+  start: (label?: string) => apiClient.post('/live-location/start', { label }).then(r => r.data),
+  stop: () => apiClient.post('/live-location/stop').then(r => r.data),
+  mine: () => apiClient.get('/live-location/mine').then(r => r.data),
+  sendPoint: (token: string, point: { lat: number; lng: number; accuracy?: number | null; altitude?: number | null; speed?: number | null; recorded_at?: string }) =>
+    apiClient.post(`/live-location/${token}/point`, point).then(r => r.data),
+  // Public — no auth, used by the viewer page.
+  getPublic: (token: string) => apiClient.get(`/live-location/${token}`).then(r => r.data),
+}
+
 export const notificationsApi = {
   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),

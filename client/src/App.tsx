@@ -17,6 +17,7 @@ import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
 import JourneyPublicPage from './pages/JourneyPublicPage'
 import SharedTripPage from './pages/SharedTripPage'
+import LiveLocationPage from './pages/LiveLocationPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
@@ -219,6 +220,7 @@ export default function App() {
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/shared/:token" element={<SharedTripPage />} />
+        <Route path="/live/:token" element={<LiveLocationPage />} />
         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
         <Route path="/register" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
