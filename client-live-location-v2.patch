@@ -1,0 +1,402 @@
+diff --git a/client/src/App.tsx b/client/src/App.tsx
+index 9b017cf3..39a13ae8 100644
+--- a/client/src/App.tsx
++++ b/client/src/App.tsx
+@@ -17,6 +17,7 @@ import JourneyPage from './pages/JourneyPage'
+ import JourneyDetailPage from './pages/JourneyDetailPage'
+ import JourneyPublicPage from './pages/JourneyPublicPage'
+ import SharedTripPage from './pages/SharedTripPage'
++import LiveLocationPage from './pages/LiveLocationPage'
+ import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
+ import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
+ import NavigationPage from './pages/NavigationPage'
+@@ -219,6 +220,7 @@ export default function App() {
+         <Route path="/" element={<RootRedirect />} />
+         <Route path="/login" element={<LoginPage />} />
+         <Route path="/shared/:token" element={<SharedTripPage />} />
++        <Route path="/live/:token" element={<LiveLocationPage />} />
+         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
+         <Route path="/register" element={<LoginPage />} />
+         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+diff --git a/client/src/api/client.ts b/client/src/api/client.ts
+index fcdc446b..5400dcba 100644
+--- a/client/src/api/client.ts
++++ b/client/src/api/client.ts
+@@ -633,6 +633,16 @@ export const shareApi = {
+   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
+ }
+ 
++export const liveLocationApi = {
++  start: (label?: string) => apiClient.post('/live-location/start', { label }).then(r => r.data),
++  stop: () => apiClient.post('/live-location/stop').then(r => r.data),
++  mine: () => apiClient.get('/live-location/mine').then(r => r.data),
++  sendPoint: (token: string, point: { lat: number; lng: number; accuracy?: number | null; altitude?: number | null; speed?: number | null; recorded_at?: string }) =>
++    apiClient.post(`/live-location/${token}/point`, point).then(r => r.data),
++  // Public — no auth, used by the viewer page.
++  getPublic: (token: string) => apiClient.get(`/live-location/${token}`).then(r => r.data),
++}
++
+ export const notificationsApi = {
+   getPreferences: () => apiClient.get('/notifications/preferences').then(r => r.data),
+   updatePreferences: (prefs: Record<string, Record<string, boolean>>) => apiClient.put('/notifications/preferences', prefs).then(r => r.data),
+diff --git a/client/src/components/Settings/LiveLocationTab.tsx b/client/src/components/Settings/LiveLocationTab.tsx
+new file mode 100644
+index 00000000..bfd9c2c0
+--- /dev/null
++++ b/client/src/components/Settings/LiveLocationTab.tsx
+@@ -0,0 +1,105 @@
++/**
++ * Pestaña de Settings para compartir la ubicación en vivo mediante un
++ * enlace público — no depende de ningún Trip, cualquiera con el enlace
++ * puede ver dónde estás sin necesitar cuenta en Trek.
++ */
++import React, { useState } from 'react'
++import { MapPinned, Copy, Check, Square, Play } from 'lucide-react'
++import Section from './Section'
++import { useLiveLocationShare } from '../../hooks/useLiveLocationShare'
++
++export default function LiveLocationTab(): React.ReactElement {
++  const { sharing, loading, shareUrl, error, start, stop } = useLiveLocationShare()
++  const [copied, setCopied] = useState(false)
++  const [starting, setStarting] = useState(false)
++
++  async function handleStart() {
++    setStarting(true)
++    await start()
++    setStarting(false)
++  }
++
++  async function handleCopy() {
++    if (!shareUrl) return
++    try {
++      await navigator.clipboard.writeText(shareUrl)
++      setCopied(true)
++      setTimeout(() => setCopied(false), 2000)
++    } catch { /* clipboard permission denied — the link is still selectable/visible */ }
++  }
++
++  async function handleNativeShare() {
++    if (!shareUrl) return
++    // navigator.share funciona dentro del WebView de Capacitor en Android
++    // y abre el selector nativo (WhatsApp, SMS, etc.) sin depender de un
++    // plugin adicional.
++    if (navigator.share) {
++      try { await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl }) } catch { /* usuario canceló */ }
++    } else {
++      handleCopy()
++    }
++  }
++
++  return (
++    <Section title="Ubicación en vivo" icon={MapPinned}>
++      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
++        Comparte un enlace para que cualquiera pueda ver dónde estás en tiempo real, sin necesitar cuenta en Trek.
++        El enlace deja de funcionar 24 horas después de crearlo, o en cuanto pulses "Dejar de compartir".
++      </p>
++
++      {error && (
++        <div className="text-sm rounded-lg px-3 py-2" style={{ color: '#ef4444', background: 'rgba(239,68,68,0.08)' }}>
++          {error}
++        </div>
++      )}
++
++      {!loading && !sharing && (
++        <button
++          onClick={handleStart}
++          disabled={starting}
++          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
++          style={{ background: 'var(--accent)', color: 'white', opacity: starting ? 0.6 : 1 }}
++        >
++          <Play className="w-4 h-4" />
++          {starting ? 'Iniciando…' : 'Compartir mi ubicación'}
++        </button>
++      )}
++
++      {!loading && sharing && shareUrl && (
++        <div className="space-y-3">
++          <div
++            className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm"
++            style={{ background: 'var(--glass-bg-subtle)', border: '1px solid var(--glass-border-inner)', color: 'var(--text-primary)' }}
++          >
++            <span className="flex-1 truncate">{shareUrl}</span>
++            <button onClick={handleCopy} aria-label="Copiar enlace" style={{ color: 'var(--text-secondary)' }}>
++              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
++            </button>
++          </div>
++
++          <div className="flex gap-2">
++            <button
++              onClick={handleNativeShare}
++              className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium"
++              style={{ background: 'var(--accent)', color: 'white' }}
++            >
++              Compartir enlace
++            </button>
++            <button
++              onClick={stop}
++              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium"
++              style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
++            >
++              <Square className="w-3.5 h-3.5" />
++              Dejar de compartir
++            </button>
++          </div>
++
++          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
++            Se sigue enviando tu posición mientras la app esté abierta (en primer o segundo plano).
++          </p>
++        </div>
++      )}
++    </Section>
++  )
++}
+diff --git a/client/src/hooks/useLiveLocationShare.ts b/client/src/hooks/useLiveLocationShare.ts
+new file mode 100644
+index 00000000..6a062cd3
+--- /dev/null
++++ b/client/src/hooks/useLiveLocationShare.ts
+@@ -0,0 +1,88 @@
++/**
++ * useLiveLocationShare — arranca/para el compartir de ubicación en vivo.
++ *
++ * Envuelve nativeGeoService (que ya gestiona el foreground service en Android
++ * vía @capacitor-community/background-geolocation) y manda los puntos al
++ * backend a un ritmo limitado, para no saturar el servidor ni la batería.
++ */
++import { useCallback, useEffect, useRef, useState } from 'react'
++import { nativeGeoService, type NativeGeoPosition } from '../services/nativeGeoService'
++import { liveLocationApi } from '../api/client'
++
++// No mandes un punto nuevo si el anterior se envió hace menos de esto,
++// aunque el GPS dispare eventos más seguido (el distanceFilter de
++// nativeGeoService ya filtra por distancia; esto filtra por tiempo).
++const MIN_SEND_INTERVAL_MS = 8_000
++
++export function useLiveLocationShare() {
++  const [sharing, setSharing] = useState(false)
++  const [loading, setLoading] = useState(true)
++  const [token, setToken] = useState<string | null>(null)
++  const [error, setError] = useState<string | null>(null)
++  const lastSentAtRef = useRef(0)
++  const tokenRef = useRef<string | null>(null)
++
++  // On mount, check if there's already an active share (e.g. app was closed
++  // and reopened while sharing was still on).
++  useEffect(() => {
++    liveLocationApi.mine()
++      .then(res => {
++        if (res.token) {
++          tokenRef.current = res.token
++          setToken(res.token)
++          setSharing(true)
++          // Resume feeding the GPS watcher into the existing share.
++          nativeGeoService.start(handleLocation, handleError)
++        }
++      })
++      .catch(() => { /* not fatal — just means we start from a clean state */ })
++      .finally(() => setLoading(false))
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [])
++
++  const handleError = useCallback((message: string) => {
++    setError(message)
++  }, [])
++
++  const handleLocation = useCallback((pos: NativeGeoPosition) => {
++    const shareToken = tokenRef.current
++    if (!shareToken) return
++    const now = Date.now()
++    if (now - lastSentAtRef.current < MIN_SEND_INTERVAL_MS) return
++    lastSentAtRef.current = now
++    liveLocationApi.sendPoint(shareToken, {
++      lat: pos.lat,
++      lng: pos.lng,
++      accuracy: pos.accuracy,
++      altitude: pos.altitude,
++      speed: pos.speed,
++      recorded_at: new Date(pos.timestamp).toISOString(),
++    }).catch(() => { /* a dropped point isn't worth surfacing to the user */ })
++  }, [])
++
++  const start = useCallback(async (label?: string) => {
++    setError(null)
++    try {
++      const res = await liveLocationApi.start(label)
++      tokenRef.current = res.token
++      setToken(res.token)
++      setSharing(true)
++      lastSentAtRef.current = 0
++      await nativeGeoService.start(handleLocation, handleError)
++    } catch {
++      setError('No se pudo iniciar el compartir ubicación')
++    }
++  }, [handleLocation, handleError])
++
++  const stop = useCallback(async () => {
++    await nativeGeoService.stop()
++    tokenRef.current = null
++    setToken(null)
++    setSharing(false)
++    try { await liveLocationApi.stop() } catch { /* best effort */ }
++  }, [])
++
++  const shareUrl = token ? `${window.location.origin}/live/${token}` : null
++
++  return { sharing, loading, token, shareUrl, error, start, stop }
++}
+diff --git a/client/src/pages/LiveLocationPage.tsx b/client/src/pages/LiveLocationPage.tsx
+new file mode 100644
+index 00000000..45f9dbc1
+--- /dev/null
++++ b/client/src/pages/LiveLocationPage.tsx
+@@ -0,0 +1,114 @@
++import { useState, useEffect, useRef } from 'react'
++import { useParams } from 'react-router-dom'
++import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet'
++import L from 'leaflet'
++import { liveLocationApi } from '../api/client'
++
++// Refresco de la posición para quien ve el enlace — no es websocket,
++// es sondeo simple cada pocos segundos (igual de "en vivo" para el caso
++// de uso, y mucho más sencillo de mantener).
++const POLL_INTERVAL_MS = 6_000
++
++interface TrackPoint { lat: number; lng: number; recorded_at: string }
++interface LiveStatus {
++  active: boolean
++  label: string | null
++  started_at: string
++  stopped_at: string | null
++  last_position: { lat: number; lng: number; accuracy: number | null; speed: number | null; recorded_at: string } | null
++  track: TrackPoint[]
++}
++
++const markerIcon = L.divIcon({
++  className: '',
++  iconSize: [22, 22],
++  iconAnchor: [11, 11],
++  html: `<div style="width:22px;height:22px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>`,
++})
++
++function RecenterOnUpdate({ lat, lng }: { lat: number; lng: number }) {
++  const map = useMap()
++  const first = useRef(true)
++  useEffect(() => {
++    map.setView([lat, lng], first.current ? 15 : map.getZoom())
++    first.current = false
++  }, [lat, lng, map])
++  return null
++}
++
++export default function LiveLocationPage() {
++  const { token } = useParams<{ token: string }>()
++  const [data, setData] = useState<LiveStatus | null>(null)
++  const [notFound, setNotFound] = useState(false)
++
++  useEffect(() => {
++    if (!token) return
++    let cancelled = false
++    const poll = () => {
++      liveLocationApi.getPublic(token)
++        .then((res: LiveStatus) => { if (!cancelled) setData(res) })
++        .catch(() => { if (!cancelled) setNotFound(true) })
++    }
++    poll()
++    const id = setInterval(poll, POLL_INTERVAL_MS)
++    return () => { cancelled = true; clearInterval(id) }
++  }, [token])
++
++  if (notFound) {
++    return (
++      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
++        <div style={{ textAlign: 'center', padding: 40 }}>
++          <div style={{ fontSize: 48, marginBottom: 16 }}>📍</div>
++          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>Este enlace ya no está activo</h1>
++          <p style={{ color: '#6b7280', marginTop: 8 }}>Puede haber caducado o la persona que lo compartió lo ha detenido.</p>
++        </div>
++      </div>
++    )
++  }
++
++  if (!data) {
++    return (
++      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
++        <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#111827', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
++        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
++      </div>
++    )
++  }
++
++  const pos = data.last_position
++  const polyline = data.track.map(p => [p.lat, p.lng]) as [number, number][]
++
++  return (
++    <div style={{ position: 'fixed', inset: 0 }}>
++      <div style={{
++        position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000,
++        background: 'rgba(255,255,255,0.95)', backdropFilter: 'blur(8px)',
++        padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
++        boxShadow: '0 1px 4px rgba(0,0,0,0.1)',
++      }}>
++        <div>
++          <div style={{ fontWeight: 700, fontSize: 15, color: '#111827' }}>{data.label || 'Ubicación en vivo'}</div>
++          {pos && <div style={{ fontSize: 12, color: '#6b7280' }}>Última actualización: {new Date(pos.recorded_at).toLocaleTimeString()}</div>}
++        </div>
++        {!data.active && (
++          <span style={{ fontSize: 12, fontWeight: 600, color: '#ef4444', background: 'rgba(239,68,68,0.1)', padding: '4px 10px', borderRadius: 999 }}>
++            Dejó de compartir
++          </span>
++        )}
++      </div>
++
++      {pos ? (
++        <MapContainer center={[pos.lat, pos.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
++          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
++          {polyline.length > 1 && <Polyline positions={polyline} pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.7 }} />}
++          <Marker position={[pos.lat, pos.lng]} icon={markerIcon} />
++          <RecenterOnUpdate lat={pos.lat} lng={pos.lng} />
++        </MapContainer>
++      ) : (
++        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6b7280' }}>
++          Esperando la primera posición…
++        </div>
++      )}
++    </div>
++  )
++}
+diff --git a/client/src/pages/SettingsPage.tsx b/client/src/pages/SettingsPage.tsx
+index 1648babe..7943a50d 100644
+--- a/client/src/pages/SettingsPage.tsx
++++ b/client/src/pages/SettingsPage.tsx
+@@ -1,6 +1,6 @@
+ import React, { useState, useEffect } from 'react'
+ import { useSearchParams } from 'react-router-dom'
+-import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
++import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info, MapPinned } from 'lucide-react'
+ import { useTranslation } from '../i18n'
+ import { authApi } from '../api/client'
+ import { useAddonStore } from '../store/addonStore'
+@@ -13,6 +13,7 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
+ import AccountTab from '../components/Settings/AccountTab'
+ import AboutTab from '../components/Settings/AboutTab'
+ import OfflineTab from '../components/Settings/OfflineTab'
++import LiveLocationTab from '../components/Settings/LiveLocationTab'
+ 
+ export default function SettingsPage(): React.ReactElement {
+   const { t } = useTranslation()
+@@ -46,6 +47,7 @@ export default function SettingsPage(): React.ReactElement {
+       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
+       : []),
+     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
++    { id: 'location', label: 'Ubicación en vivo', icon: MapPinned },
+     { id: 'account', label: t('settings.tabs.account'), icon: User },
+     ...(appVersion
+       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
+@@ -91,6 +93,7 @@ export default function SettingsPage(): React.ReactElement {
+             {activeTab === 'notifications' && <NotificationsTab />}
+             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
+             {activeTab === 'offline' && <OfflineTab />}
++            {activeTab === 'location' && <LiveLocationTab />}
+             {activeTab === 'account' && <AccountTab />}
+             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
+           </PageSidebar>

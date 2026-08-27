@@ -1,0 +1,92 @@
+diff --git a/client/src/hooks/useLiveLocationShare.ts b/client/src/hooks/useLiveLocationShare.ts
+index 6a062cd3..e6629058 100644
+--- a/client/src/hooks/useLiveLocationShare.ts
++++ b/client/src/hooks/useLiveLocationShare.ts
+@@ -1,19 +1,45 @@
+ /**
+  * useLiveLocationShare — arranca/para el compartir de ubicación en vivo.
+  *
+- * Envuelve nativeGeoService (que ya gestiona el foreground service en Android
+- * vía @capacitor-community/background-geolocation) y manda los puntos al
+- * backend a un ritmo limitado, para no saturar el servidor ni la batería.
++ * Usa la geolocalización estándar del navegador (no el plugin nativo de
++ * grabación de rutas) porque esta app carga su JS en vivo desde el
++ * servidor, y manda los puntos al backend a un ritmo limitado para no
++ * saturar el servidor ni la batería.
+  */
+ import { useCallback, useEffect, useRef, useState } from 'react'
+-import { nativeGeoService, type NativeGeoPosition } from '../services/nativeGeoService'
+ import { liveLocationApi } from '../api/client'
+ 
+ // No mandes un punto nuevo si el anterior se envió hace menos de esto,
+-// aunque el GPS dispare eventos más seguido (el distanceFilter de
+-// nativeGeoService ya filtra por distancia; esto filtra por tiempo).
++// aunque el GPS dispare eventos más seguido.
+ const MIN_SEND_INTERVAL_MS = 8_000
+ 
++// Geolocalización estándar del navegador — funciona en cualquier WebView,
++// incluida esta app (que carga su JS en vivo desde el servidor, por lo que
++// no puede usar el plugin nativo @capacitor-community/background-geolocation:
++// ese plugin solo existe dentro del paquete nativo compilado, no en una
++// página web servida por HTTP). A cambio, solo actualiza mientras la app
++// esté abierta en primer o segundo plano — asumido y ya documentado en la UI.
++let watchId: number | null = null
++function startBrowserGeo(onLocation: (pos: { lat: number; lng: number; accuracy: number | null; altitude: number | null; speed: number | null; timestamp: number }) => void, onError: (message: string) => void) {
++  if (watchId !== null) return
++  if (!navigator.geolocation) { onError('Este navegador no soporta geolocalización'); return }
++  watchId = navigator.geolocation.watchPosition(
++    (pos) => onLocation({
++      lat: pos.coords.latitude,
++      lng: pos.coords.longitude,
++      accuracy: pos.coords.accuracy ?? null,
++      altitude: pos.coords.altitude ?? null,
++      speed: pos.coords.speed ?? null,
++      timestamp: pos.timestamp,
++    }),
++    (err) => onError(err.message),
++    { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 }
++  )
++}
++function stopBrowserGeo() {
++  if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null }
++}
++
+ export function useLiveLocationShare() {
+   const [sharing, setSharing] = useState(false)
+   const [loading, setLoading] = useState(true)
+@@ -31,8 +57,7 @@ export function useLiveLocationShare() {
+           tokenRef.current = res.token
+           setToken(res.token)
+           setSharing(true)
+-          // Resume feeding the GPS watcher into the existing share.
+-          nativeGeoService.start(handleLocation, handleError)
++          startBrowserGeo(handleLocation, handleError)
+         }
+       })
+       .catch(() => { /* not fatal — just means we start from a clean state */ })
+@@ -44,7 +69,7 @@ export function useLiveLocationShare() {
+     setError(message)
+   }, [])
+ 
+-  const handleLocation = useCallback((pos: NativeGeoPosition) => {
++  const handleLocation = useCallback((pos: { lat: number; lng: number; accuracy: number | null; altitude: number | null; speed: number | null; timestamp: number }) => {
+     const shareToken = tokenRef.current
+     if (!shareToken) return
+     const now = Date.now()
+@@ -68,14 +93,14 @@ export function useLiveLocationShare() {
+       setToken(res.token)
+       setSharing(true)
+       lastSentAtRef.current = 0
+-      await nativeGeoService.start(handleLocation, handleError)
++      startBrowserGeo(handleLocation, handleError)
+     } catch {
+       setError('No se pudo iniciar el compartir ubicación')
+     }
+   }, [handleLocation, handleError])
+ 
+   const stop = useCallback(async () => {
+-    await nativeGeoService.stop()
++    stopBrowserGeo()
+     tokenRef.current = null
+     setToken(null)
+     setSharing(false)

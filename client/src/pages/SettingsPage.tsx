@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info } from 'lucide-react'
+import { Settings, Palette, Map, Bell, Plug, CloudOff, User, Info, MapPinned } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { authApi } from '../api/client'
 import { useAddonStore } from '../store/addonStore'
@@ -13,6 +13,7 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
 import OfflineTab from '../components/Settings/OfflineTab'
+import LiveLocationTab from '../components/Settings/LiveLocationTab'
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
@@ -46,6 +47,7 @@ export default function SettingsPage(): React.ReactElement {
       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
       : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
+    { id: 'location', label: 'Ubicación en vivo', icon: MapPinned },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
     ...(appVersion
       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
@@ -91,6 +93,7 @@ export default function SettingsPage(): React.ReactElement {
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
             {activeTab === 'offline' && <OfflineTab />}
+            {activeTab === 'location' && <LiveLocationTab />}
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
           </PageSidebar>
