@@ -11,6 +11,7 @@ import { useLiveLocationShare } from '../../hooks/useLiveLocationShare'
 export default function LiveLocationTab(): React.ReactElement {
   const { sharing, loading, shareUrl, error, start, stop } = useLiveLocationShare()
   const [copied, setCopied] = useState(false)
+  const [shareFailed, setShareFailed] = useState(false)
   const [starting, setStarting] = useState(false)
 
   async function handleStart() {
@@ -23,9 +24,16 @@ export default function LiveLocationTab(): React.ReactElement {
     if (!shareUrl) return
     try {
       await navigator.clipboard.writeText(shareUrl)
+      setShareFailed(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* clipboard permission denied — the link is still selectable/visible */ }
+    } catch {
+      // Portapapeles bloqueado (sin permiso en el WebView) — el enlace sigue
+      // visible/seleccionable arriba, pero avisamos para que no parezca que
+      // el botón no hizo nada.
+      setShareFailed(true)
+      setTimeout(() => setShareFailed(false), 3000)
+    }
   }
 
   async function handleNativeShare() {
@@ -34,10 +42,17 @@ export default function LiveLocationTab(): React.ReactElement {
     // y abre el selector nativo (WhatsApp, SMS, etc.) sin depender de un
     // plugin adicional.
     if (navigator.share) {
-      try { await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl }) } catch { /* usuario canceló */ }
-    } else {
-      handleCopy()
+      try {
+        await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl })
+        return
+      } catch (e) {
+        // El usuario canceló el selector nativo — no es un fallo, no hagas nada.
+        if (e instanceof DOMException && e.name === 'AbortError') return
+        // Cualquier otro fallo (API no soportada de verdad, plugin bloqueado,
+        // etc.): cae a copiar el enlace en vez de quedarse en silencio.
+      }
     }
+    await handleCopy()
   }
 
   return (
@@ -83,7 +98,7 @@ export default function LiveLocationTab(): React.ReactElement {
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium"
               style={{ background: 'var(--accent)', color: 'white' }}
             >
-              Compartir enlace
+              {copied ? '¡Enlace copiado!' : 'Compartir enlace'}
             </button>
             <button
               onClick={stop}
@@ -94,6 +109,12 @@ export default function LiveLocationTab(): React.ReactElement {
               Dejar de compartir
             </button>
           </div>
+
+          {shareFailed && (
+            <p className="text-xs" style={{ color: '#ef4444' }}>
+              No se pudo compartir ni copiar el enlace automáticamente. Selecciónalo arriba y cópialo a mano.
+            </p>
+          )}
 
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Se sigue enviando tu posición mientras la app esté abierta (en primer o segundo plano).
