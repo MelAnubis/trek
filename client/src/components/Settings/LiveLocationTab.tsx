@@ -38,19 +38,25 @@ export default function LiveLocationTab(): React.ReactElement {
 
   async function handleNativeShare() {
     if (!shareUrl) return
-    // navigator.share funciona dentro del WebView de Capacitor en Android
-    // y abre el selector nativo (WhatsApp, SMS, etc.) sin depender de un
-    // plugin adicional.
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl })
-        return
-      } catch (e) {
-        // El usuario canceló el selector nativo — no es un fallo, no hagas nada.
-        if (e instanceof DOMException && e.name === 'AbortError') return
-        // Cualquier otro fallo (API no soportada de verdad, plugin bloqueado,
-        // etc.): cae a copiar el enlace en vez de quedarse en silencio.
-      }
+    try {
+      // @capacitor/share abre el selector nativo de Android (WhatsApp, SMS,
+      // email, etc.) vía Intent.ACTION_SEND. navigator.share del WebView es
+      // poco fiable (falta o falla en muchas builds de Android System
+      // WebView), así que este plugin es el que de verdad abre algo dentro
+      // de la app nativa; en el navegador/PWA usa navigator.share por debajo.
+      const { Share } = await import('@capacitor/share')
+      await Share.share({
+        title: 'Mi ubicación en vivo',
+        url: shareUrl,
+        dialogTitle: 'Compartir ubicación en vivo',
+      })
+      return
+    } catch (e) {
+      // El usuario canceló el selector — no es un fallo, no hagas nada.
+      const message = e instanceof Error ? e.message : String(e)
+      if (/cancel/i.test(message)) return
+      // Cualquier otro fallo (API no soportada, plugin bloqueado, etc.):
+      // cae a copiar el enlace en vez de quedarse en silencio.
     }
     await handleCopy()
   }
