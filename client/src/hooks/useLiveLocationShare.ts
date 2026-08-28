@@ -1,31 +1,31 @@
 /**
  * useLiveLocationShare — arranca/para el compartir de ubicación en vivo.
  *
- * Igual que la grabación de rutas (ver useNavigation.ts): usa la
- * geolocalización estándar del navegador para el primer plano, y además,
- * dentro de la app nativa (Capacitor), arranca en paralelo el plugin
- * @capacitor-community/background-geolocation para que el GPS siga activo
- * con la pantalla apagada o la app en segundo plano — el bridge nativo de
- * Capacitor (window.Capacitor) está disponible sin importar si la página
- * se sirve empaquetada o en vivo desde el servidor (server.url), así que
- * el plugin funciona igual en ambos casos.
+ * Usa la misma fuente dual que "Navegar / Grabar ruta" (ver useNavigation.ts):
+ * geolocalización estándar del navegador en paralelo con el plugin nativo
+ * @capacitor-community/background-geolocation dentro de la app Android, para
+ * que el GPS siga activo con la pantalla apagada o la app en segundo plano.
  *
- * Sin esto, watchPosition del navegador se suspende en cuanto Android pone
- * la WebView en segundo plano; al volver a primer plano llega un único
- * punto muy alejado en el tiempo del anterior, y el mapa dibuja una línea
- * recta larga entre ambos en vez del recorrido real.
+ * A diferencia de grabar una ruta (que guarda cada punto aceptado
+ * localmente, sin coste de red), aquí cada punto aceptado se manda al
+ * servidor. Enviar "el primero que llegue" cada pocos segundos deja que un
+ * fix malo de la fuente nativa (red/caché, con apenas movimiento) le gane la
+ * carrera a uno bueno del navegador y se quede pisando la posición mostrada
+ * — que es justo lo que hacía que el trazo pareciera "no moverse". En vez de
+ * eso, cada punto aceptado actualiza solo la última posición conocida, y un
+ * temporizador aparte manda periódicamente la más reciente: así siempre se
+ * comparte el mejor dato disponible en cada momento, venga de donde venga.
  *
  * Los puntos se filtran (mala precisión, jitter en parada, saltos
- * imposibles) antes de enviarse, y se limita el ritmo de envío para no
- * saturar el servidor ni la batería.
+ * imposibles) antes de aceptarse.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { liveLocationApi } from '../api/client'
 import { nativeGeoService, type NativeGeoPosition } from '../services/nativeGeoService'
 
-// No mandes un punto nuevo si el anterior se envió hace menos de esto,
-// aunque el GPS dispare eventos más seguido.
-const MIN_SEND_INTERVAL_MS = 8_000
+// Ritmo de envío al servidor — no tiene que ver con la frecuencia del GPS,
+// solo con cada cuánto se manda la última posición conocida.
+const SEND_INTERVAL_MS = 8_000
 
 function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
   const R = 6371000
@@ -61,37 +61,22 @@ export function useLiveLocationShare() {
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const lastSentAtRef = useRef(0)
   const tokenRef = useRef<string | null>(null)
-  // Último punto aceptado (no necesariamente enviado) — para filtrar jitter y saltos de GPS.
+  // Último punto aceptado (filtrado) — referencia para detectar jitter y saltos.
   const lastAcceptedRef = useRef<{ lat: number; lng: number; timestamp: number } | null>(null)
+  // Posición más reciente pendiente de enviar (o ya enviada, se reenvía como
+  // "sigo aquí" mientras no llegue una mejor).
+  const latestPositionRef = useRef<NativeGeoPosition | null>(null)
+  const hasSentFirstRef = useRef(false)
+  const sendTimerRef = useRef<number | null>(null)
 
   const handleError = useCallback((message: string) => {
     setError(message)
   }, [])
 
-  const handleLocation = useCallback((pos: NativeGeoPosition) => {
+  const sendPosition = useCallback((pos: NativeGeoPosition) => {
     const shareToken = tokenRef.current
     if (!shareToken) return
-
-    // Descarta fixes de mala precisión — es lo que hace que el trazo parezca "muy malo".
-    if (pos.accuracy > 50) return
-
-    const last = lastAcceptedRef.current
-    if (last) {
-      const dist = haversineM(last.lat, last.lng, pos.lat, pos.lng)
-      const dt = (pos.timestamp - last.timestamp) / 1000
-      // Ignora jitter en parada (< 3 m en menos de 4 s)
-      if (dist < 3 && dt < 4) return
-      // Descarta saltos imposibles (> 300 km/h) — típicos de un GPS "recuperando" señal
-      // tras estar en segundo plano, que son los que dibujan la línea recta larga.
-      if (dt > 0 && dist / dt > 85) return
-    }
-    lastAcceptedRef.current = { lat: pos.lat, lng: pos.lng, timestamp: pos.timestamp }
-
-    const now = Date.now()
-    if (now - lastSentAtRef.current < MIN_SEND_INTERVAL_MS) return
-    lastSentAtRef.current = now
     liveLocationApi.sendPoint(shareToken, {
       lat: pos.lat,
       lng: pos.lng,
@@ -102,6 +87,33 @@ export function useLiveLocationShare() {
     }).catch(() => { /* a dropped point isn't worth surfacing to the user */ })
   }, [])
 
+  const handleLocation = useCallback((pos: NativeGeoPosition) => {
+    if (!tokenRef.current) return
+
+    // Descarta fixes de mala precisión.
+    if (pos.accuracy > 50) return
+
+    const last = lastAcceptedRef.current
+    if (last) {
+      const dist = haversineM(last.lat, last.lng, pos.lat, pos.lng)
+      const dt = (pos.timestamp - last.timestamp) / 1000
+      // Ignora jitter en parada (< 3 m en menos de 4 s)
+      if (dist < 3 && dt < 4) return
+      // Descarta saltos imposibles (> 300 km/h) — típicos de un fix de red
+      // "recuperando" tras estar en segundo plano.
+      if (dt > 0 && dist / dt > 85) return
+    }
+    lastAcceptedRef.current = { lat: pos.lat, lng: pos.lng, timestamp: pos.timestamp }
+    latestPositionRef.current = pos
+
+    // El primer punto de la sesión se manda al momento — si esperáramos al
+    // temporizador, el enlace tardaría hasta 8 s en mostrar algo.
+    if (!hasSentFirstRef.current) {
+      hasSentFirstRef.current = true
+      sendPosition(pos)
+    }
+  }, [sendPosition])
+
   const startAllGeo = useCallback(() => {
     startBrowserGeo(handleLocation, handleError)
     // En la app nativa, mantiene el GPS activo (foreground service) aunque
@@ -109,11 +121,20 @@ export function useLiveLocationShare() {
     if (nativeGeoService.isNative()) {
       nativeGeoService.start(handleLocation, () => { /* plugin nativo opcional */ })
     }
-  }, [handleLocation, handleError])
+    if (sendTimerRef.current === null) {
+      sendTimerRef.current = window.setInterval(() => {
+        if (latestPositionRef.current) sendPosition(latestPositionRef.current)
+      }, SEND_INTERVAL_MS)
+    }
+  }, [handleLocation, handleError, sendPosition])
 
   const stopAllGeo = useCallback(() => {
     stopBrowserGeo()
     nativeGeoService.stop()
+    if (sendTimerRef.current !== null) {
+      clearInterval(sendTimerRef.current)
+      sendTimerRef.current = null
+    }
   }, [])
 
   // On mount, check if there's already an active share (e.g. app was closed
@@ -140,8 +161,9 @@ export function useLiveLocationShare() {
       tokenRef.current = res.token
       setToken(res.token)
       setSharing(true)
-      lastSentAtRef.current = 0
       lastAcceptedRef.current = null
+      latestPositionRef.current = null
+      hasSentFirstRef.current = false
       startAllGeo()
     } catch {
       setError('No se pudo iniciar el compartir ubicación')
