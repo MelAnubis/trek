@@ -226,6 +226,27 @@ function TilePicker({ current, onChange }: { current: TileKey; onChange: (k: Til
   )
 }
 
+// El Android WebView suspende el GPS con la pantalla apagada o la app en
+// segundo plano; al reanudar, el punto siguiente puede llegar minutos
+// después del anterior. Unirlos con una línea recta dibujaría un tramo que
+// nunca se recorrió, así que se corta el trazo cuando el hueco es mayor que
+// esto y cada tramo se pinta como una polilínea aparte.
+const GAP_MS = 60_000
+
+function splitOnGaps(points: RecordedPoint[]): [number, number][][] {
+  const segments: [number, number][][] = []
+  let current: [number, number][] = []
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0 && points[i].timestamp - points[i - 1].timestamp > GAP_MS) {
+      segments.push(current)
+      current = []
+    }
+    current.push([points[i].lat, points[i].lng])
+  }
+  if (current.length > 0) segments.push(current)
+  return segments
+}
+
 interface Props {
   position: GeoPosition | null
   trackPoints: TrackPoint[]           // GPX track to follow (orange)
@@ -251,7 +272,7 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       : [40.4168, -3.7038] // Madrid fallback
 
   const trackLatLngs: [number, number][] = trackPoints.map(p => [p.lat, p.lng])
-  const recordedLatLngs: [number, number][] = recordedPoints.map(p => [p.lat, p.lng])
+  const recordedSegments = splitOnGaps(recordedPoints)
   const tile = TILE_LAYERS[tileKey]
 
   return (
@@ -303,14 +324,16 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
         />
       )}
 
-      {/* Live recording track */}
-      {recordedLatLngs.length > 1 && (
+      {/* Live recording track — un tramo por segmento, para no dibujar una
+          línea recta sobre huecos de GPS (pantalla apagada, sin cobertura). */}
+      {recordedSegments.map((segment, i) => segment.length > 1 && (
         <Polyline
-          positions={recordedLatLngs}
+          key={i}
+          positions={segment}
           pathOptions={{ color: '#22d96e', weight: 4, opacity: 0.9 }}
           interactive={false}
         />
-      )}
+      ))}
 
       {/* Nav photo pins */}
       {navPhotos?.map(p => <PhotoMarker key={p.id} photo={p} />)}

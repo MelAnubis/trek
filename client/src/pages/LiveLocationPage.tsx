@@ -26,6 +26,27 @@ const markerIcon = L.divIcon({
   html: `<div style="width:22px;height:22px;border-radius:50%;background:#3b82f6;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>`,
 })
 
+// El GPS en Android se suspende con la pantalla apagada o la app en segundo
+// plano; al reanudar, el siguiente punto puede llegar minutos después del
+// anterior. Unirlos con una línea recta dibujaría un tramo que nunca se
+// recorrió, así que se corta el trazo en huecos grandes y cada tramo se
+// pinta como una polilínea aparte.
+const GAP_MS = 5 * 60_000
+
+function splitOnGaps(points: TrackPoint[]): [number, number][][] {
+  const segments: [number, number][][] = []
+  let current: [number, number][] = []
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0 && Date.parse(points[i].recorded_at) - Date.parse(points[i - 1].recorded_at) > GAP_MS) {
+      segments.push(current)
+      current = []
+    }
+    current.push([points[i].lat, points[i].lng])
+  }
+  if (current.length > 0) segments.push(current)
+  return segments
+}
+
 function RecenterOnUpdate({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap()
   const first = useRef(true)
@@ -76,7 +97,7 @@ export default function LiveLocationPage() {
   }
 
   const pos = data.last_position
-  const polyline = data.track.map(p => [p.lat, p.lng]) as [number, number][]
+  const segments = splitOnGaps(data.track)
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
@@ -100,7 +121,9 @@ export default function LiveLocationPage() {
       {pos ? (
         <MapContainer center={[pos.lat, pos.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-          {polyline.length > 1 && <Polyline positions={polyline} pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.7 }} />}
+          {segments.map((segment, i) => segment.length > 1 && (
+            <Polyline key={i} positions={segment} pathOptions={{ color: '#3b82f6', weight: 4, opacity: 0.7 }} />
+          ))}
           <Marker position={[pos.lat, pos.lng]} icon={markerIcon} />
           <RecenterOnUpdate lat={pos.lat} lng={pos.lng} />
         </MapContainer>

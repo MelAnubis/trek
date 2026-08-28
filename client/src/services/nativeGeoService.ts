@@ -33,6 +33,38 @@ function isCapacitor(): boolean {
 
 // ── Native (Capacitor) path ───────────────────────────────────────────────────
 
+// Local Android-only plugin (client/android/app/src/main/java/com/trek/wanderer/
+// BackgroundLocationHelperPlugin.java) — not an npm package, so it's registered
+// by name via @capacitor/core. Requests ACCESS_BACKGROUND_LOCATION and the
+// battery-optimization exemption, neither of which
+// @capacitor-community/background-geolocation asks for on its own.
+interface BackgroundLocationHelperPlugin {
+  checkBackgroundPermission(): Promise<{ granted: boolean }>
+  requestBackgroundPermission(): Promise<{ granted: boolean }>
+  isIgnoringBatteryOptimizations(): Promise<{ ignoring: boolean }>
+  requestIgnoreBatteryOptimizations(): Promise<void>
+}
+
+let _hardeningRequested = false
+
+async function requestBackgroundLocationHardening(): Promise<void> {
+  if (_hardeningRequested) return
+  _hardeningRequested = true
+  try {
+    const { registerPlugin } = await import('@capacitor/core')
+    const helper = registerPlugin<BackgroundLocationHelperPlugin>('BackgroundLocationHelper')
+
+    const bg = await helper.checkBackgroundPermission()
+    if (!bg.granted) await helper.requestBackgroundPermission()
+
+    const battery = await helper.isIgnoringBatteryOptimizations()
+    if (!battery.ignoring) await helper.requestIgnoreBatteryOptimizations()
+  } catch {
+    // Best effort — an old APK without this native plugin, or a device that
+    // rejects one of these prompts, shouldn't stop tracking from starting.
+  }
+}
+
 let _bgGeoStarted = false
 let _nativeCallbackId: string | null = null
 
@@ -51,6 +83,16 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
         return
       }
     }
+
+    // @capacitor-community/background-geolocation only ever asks for
+    // "while using the app" location. That alone doesn't guarantee GPS
+    // keeps running with the screen off: Android also wants
+    // ACCESS_BACKGROUND_LOCATION ("Allow all the time") and, on most OEM
+    // builds, an exemption from battery optimization — otherwise the
+    // foreground service gets killed the moment the screen locks, which is
+    // exactly what shows up as "se corta al apagar la pantalla". Best
+    // effort: prompt for both, but never block tracking if the user says no.
+    await requestBackgroundLocationHardening()
 
     await BackgroundGeolocation.addWatcher(
       {

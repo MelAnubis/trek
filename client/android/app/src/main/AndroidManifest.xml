@@ -51,6 +51,11 @@
     <!-- Keep CPU alive while recording -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Lets the app prompt to be exempted from battery optimization, so
+         the background-location foreground service isn't killed with the
+         screen off. -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+
     <!-- Camera for geotagged photos -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
