@@ -11,6 +11,8 @@ import { useLiveLocationShare } from '../../hooks/useLiveLocationShare'
 export default function LiveLocationTab(): React.ReactElement {
   const { sharing, loading, shareUrl, error, start, stop } = useLiveLocationShare()
   const [copied, setCopied] = useState(false)
+  const [shareFailed, setShareFailed] = useState(false)
+  const [debugMessage, setDebugMessage] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
 
   async function handleStart() {
@@ -23,21 +25,48 @@ export default function LiveLocationTab(): React.ReactElement {
     if (!shareUrl) return
     try {
       await navigator.clipboard.writeText(shareUrl)
+      setShareFailed(false)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch { /* clipboard permission denied — the link is still selectable/visible */ }
+    } catch (e) {
+      // Portapapeles bloqueado (sin permiso en el WebView) — el enlace sigue
+      // visible/seleccionable arriba, pero avisamos para que no parezca que
+      // el botón no hizo nada.
+      console.error('[LiveLocationTab] clipboard.writeText falló', e)
+      setDebugMessage(`Portapapeles: ${e instanceof Error ? e.message : String(e)}`)
+      setShareFailed(true)
+      setTimeout(() => setShareFailed(false), 5000)
+    }
   }
 
   async function handleNativeShare() {
     if (!shareUrl) return
-    // navigator.share funciona dentro del WebView de Capacitor en Android
-    // y abre el selector nativo (WhatsApp, SMS, etc.) sin depender de un
-    // plugin adicional.
-    if (navigator.share) {
-      try { await navigator.share({ title: 'Mi ubicación en vivo', url: shareUrl }) } catch { /* usuario canceló */ }
-    } else {
-      handleCopy()
+    try {
+      // @capacitor/share abre el selector nativo de Android (WhatsApp, SMS,
+      // email, etc.) vía Intent.ACTION_SEND. navigator.share del WebView es
+      // poco fiable (falta o falla en muchas builds de Android System
+      // WebView), así que este plugin es el que de verdad abre algo dentro
+      // de la app nativa; en el navegador/PWA usa navigator.share por debajo.
+      const { Share } = await import('@capacitor/share')
+      await Share.share({
+        title: 'Mi ubicación en vivo',
+        url: shareUrl,
+        dialogTitle: 'Compartir ubicación en vivo',
+      })
+      setDebugMessage(null)
+      return
+    } catch (e) {
+      // El usuario canceló el selector — no es un fallo, no hagas nada.
+      const message = e instanceof Error ? e.message : String(e)
+      if (/cancel/i.test(message)) return
+      // Cualquier otro fallo (API no soportada, plugin bloqueado, etc.):
+      // lo dejamos visible y cae a copiar el enlace en vez de quedarse en
+      // silencio — así un fallo real se puede diagnosticar en vez de
+      // parecer que el botón "no hace nada".
+      console.error('[LiveLocationTab] Share.share falló', e)
+      setDebugMessage(`Compartir: ${message}`)
     }
+    await handleCopy()
   }
 
   return (
@@ -83,7 +112,7 @@ export default function LiveLocationTab(): React.ReactElement {
               className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium"
               style={{ background: 'var(--accent)', color: 'white' }}
             >
-              Compartir enlace
+              {copied ? '¡Enlace copiado!' : 'Compartir enlace'}
             </button>
             <button
               onClick={stop}
@@ -94,6 +123,18 @@ export default function LiveLocationTab(): React.ReactElement {
               Dejar de compartir
             </button>
           </div>
+
+          {shareFailed && (
+            <p className="text-xs" style={{ color: '#ef4444' }}>
+              No se pudo compartir ni copiar el enlace automáticamente. Selecciónalo arriba y cópialo a mano.
+            </p>
+          )}
+
+          {debugMessage && (
+            <p className="text-xs font-mono break-all" style={{ color: 'var(--text-muted)' }}>
+              {debugMessage}
+            </p>
+          )}
 
           <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
             Se sigue enviando tu posición mientras la app esté abierta (en primer o segundo plano).
