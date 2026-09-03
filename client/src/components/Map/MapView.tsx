@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo, useCallback, createElement, memo } from 'react'
 import DOM from 'react-dom'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, Circle, useMap, Tooltip, Popup } from 'react-leaflet'
 import MarkerClusterGroup from 'react-leaflet-cluster'
 import L from 'leaflet'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
@@ -458,6 +458,9 @@ export const MapView = memo(function MapView({
   pois = [] as Poi[],
   onPoiClick,
   onViewportChange,
+  gpxTracks = [] as any[],
+  onAssignTrackDay,
+  selectedDayId = null,
 }: any) {
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
@@ -611,6 +614,62 @@ export const MapView = memo(function MapView({
     } catch { return [] }
   }), [places])
 
+  // Multiple GPX tracks overlay — lets a trip with several uploaded tracks
+  // show all of them at once on the Plan map, each in its own color, so the
+  // user can plan days by eye across tracks rather than seeing only one.
+  const multiGpxTracks = useMemo(
+    () => (gpxTracks as any[]).filter(t => t.points && t.points.length > 1),
+    [gpxTracks]
+  )
+  const multiGpxPolylines = useMemo(() => multiGpxTracks.map(track => {
+    const positions = track.points
+      .filter((p: any) => p.lat != null && p.lng != null)
+      .map((p: any) => [p.lat, p.lng] as [number, number])
+    if (positions.length < 2) return null
+    const isSelected = selectedDayId != null && track.day_id === selectedDayId
+    return (
+      <Polyline
+        key={`multi-gpx-${track.id}`}
+        positions={positions}
+        color={track.color || '#3b82f6'}
+        weight={isSelected ? 5 : 3}
+        opacity={isSelected ? 0.95 : 0.55}
+        dashArray={track.day_id ? undefined : '1 6'}
+      >
+        <Tooltip sticky direction="top" opacity={0.9}>
+          {track.track_name}{track.dayLabel ? ` · ${track.dayLabel}` : ' · sin día asignado'}
+        </Tooltip>
+        {onAssignTrackDay && (
+          <Popup>
+            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{track.track_name}</div>
+            {selectedDayId != null && track.day_id !== selectedDayId && (
+              <button
+                onClick={() => onAssignTrackDay(track.id, selectedDayId)}
+                style={{
+                  fontSize: 11, padding: '4px 8px', borderRadius: 6, border: 'none',
+                  background: track.color || '#3b82f6', color: '#fff', cursor: 'pointer',
+                }}
+              >
+                Asignar día seleccionado a este track
+              </button>
+            )}
+            {track.day_id != null && (
+              <button
+                onClick={() => onAssignTrackDay(track.id, null)}
+                style={{
+                  fontSize: 11, padding: '4px 8px', borderRadius: 6, border: 'none',
+                  background: 'transparent', color: '#64748b', cursor: 'pointer', marginTop: 4,
+                }}
+              >
+                Quitar asignación de día
+              </button>
+            )}
+          </Popup>
+        )}
+      </Polyline>
+    )
+  }).filter(Boolean), [multiGpxTracks, selectedDayId, onAssignTrackDay])
+
   const TooltipOverlay = hoveredPlace && tooltipPos && !isTouchDevice
   const CatIcon = TooltipOverlay ? getCategoryIcon(hoveredPlace.category_icon) : null
 
@@ -700,6 +759,9 @@ export const MapView = memo(function MapView({
 
       {/* GPX imported route geometries */}
       {gpxPolylines}
+
+      {/* All uploaded GPX tracks for this trip, each in its own color */}
+      {multiGpxPolylines}
 
       <ReservationOverlay
         reservations={visibleReservations}

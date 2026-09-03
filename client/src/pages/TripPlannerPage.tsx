@@ -52,6 +52,10 @@ import ElevationDetail, { type GpxTrack } from '../components/Elevation/Elevatio
 import { useAirtrailConnection } from '../hooks/useAirtrailConnection'
 import AirTrailImportModal from '../components/Planner/AirTrailImportModal'
 
+// Same palette as GpxManager's TRACK_COLORS, so a track looks the same
+// color on the GPX tab and on the Plan map.
+const GPX_TRACK_COLORS = ['#22d96e', '#38bdf8', '#f59e0b', '#a78bfa', '#f87171', '#34d399']
+
 function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number; packingItems: PackingItem[]; todoItems: TodoItem[] }) {
   const [subTab, setSubTab] = useState<'packing' | 'todo'>(() => {
     return (sessionStorage.getItem(`trip-lists-subtab-${tripId}`) as 'packing' | 'todo') || 'packing'
@@ -495,6 +499,31 @@ export default function TripPlannerPage(): React.ReactElement | null {
     return gpxTracksWithPoints.find((t: any) => t.is_active !== 0 && !t.day_id) || null
   }, [isCycling, selectedDayId, gpxTracksWithPoints])
   const { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments } as any, selectedDayId, activeGpxTrack)
+
+  // All tracks for the trip, colored consistently with the GPX tab, so the
+  // Plan map can show every track at once instead of only the active one.
+  // The currently-active track is excluded here since it's already drawn
+  // via `route` above (highlighted blue line).
+  const gpxTracksForMap = React.useMemo(() => {
+    if (!isCycling) return []
+    return gpxTracksWithPoints
+      .filter((t: any) => t.id !== activeGpxTrack?.id && (t.day_id != null || t.is_active !== 0))
+      .map((t: any, i: number) => ({ ...t, color: GPX_TRACK_COLORS[i % GPX_TRACK_COLORS.length] }))
+  }, [isCycling, gpxTracksWithPoints, activeGpxTrack])
+
+  const assignTrackDay = React.useCallback(async (trackId: number, dayId: number | null) => {
+    if (!tripId) return
+    try {
+      await fetch(`/api/trips/${tripId}/gpx/${trackId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ day_id: dayId }),
+      })
+      setGpxTracks(prev => prev.map((t: any) => t.id === trackId ? { ...t, day_id: dayId } : t))
+      setGpxTracksWithPoints(prev => prev.map((t: any) => t.id === trackId ? { ...t, day_id: dayId } : t))
+    } catch { /* silent — matches GpxManager's own error handling for this action */ }
+  }, [tripId])
 
   const handleSelectDay = useCallback((dayId, skipFit) => {
     const changed = dayId !== selectedDayId
@@ -993,6 +1022,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
               onPoiClick={openAddPlaceFromPoi}
               onViewportChange={poi.onViewportChange}
               onMapReady={setGlMap}
+              gpxTracks={gpxTracksForMap}
+              onAssignTrackDay={assignTrackDay}
+              selectedDayId={selectedDayId}
             />
 
 

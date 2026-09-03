@@ -55,6 +55,9 @@ interface Props {
   onPoiClick?: (poi: Poi) => void
   onViewportChange?: (bbox: { south: number; west: number; north: number; east: number }) => void
   onMapReady?: (map: mapboxgl.Map | null) => void
+  gpxTracks?: any[]
+  onAssignTrackDay?: (trackId: number, dayId: number | null) => void
+  selectedDayId?: number | null
 }
 
 function createMarkerElement(place: Place & { category_color?: string; category_icon?: string }, photoUrl: string | null, orderNumbers: number[] | null, selected: boolean): HTMLDivElement {
@@ -170,6 +173,9 @@ export function MapViewGL({
   onPoiClick,
   onViewportChange,
   onMapReady,
+  gpxTracks = [],
+  onAssignTrackDay,
+  selectedDayId = null,
 }: Props) {
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
@@ -192,6 +198,11 @@ export function MapViewGL({
   const poiMarkersRef = useRef<mapboxgl.Marker[]>([])
   // Single reusable hover popup shared by planned places and POI markers.
   const popupRef = useRef<mapboxgl.Popup | null>(null)
+  const trackPopupRef = useRef<mapboxgl.Popup | null>(null)
+  const onAssignTrackDayRef = useRef(onAssignTrackDay)
+  onAssignTrackDayRef.current = onAssignTrackDay
+  const selectedDayIdRef = useRef(selectedDayId)
+  selectedDayIdRef.current = selectedDayId
   const onPoiClickRef = useRef(onPoiClick)
   onPoiClickRef.current = onPoiClick
   const onViewportChangeRef = useRef(onViewportChange)
@@ -225,6 +236,13 @@ export function MapViewGL({
       closeOnClick: false,
       offset: 18,
       maxWidth: '240px',
+      className: 'trek-map-popup',
+    })
+    trackPopupRef.current = new mapboxgl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      offset: 12,
+      maxWidth: '260px',
       className: 'trek-map-popup',
     })
     onMapReadyRef.current?.(map)
@@ -282,6 +300,60 @@ export function MapViewGL({
             'line-opacity': 0.75,
           },
           layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+      // Multiple uploaded GPX tracks — shown all at once (not just the one
+      // active for the selected day) so the user can plan days using
+      // several tracks at a glance, each in its own color.
+      if (!map.getSource('trip-multi-gpx')) {
+        map.addSource('trip-multi-gpx', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } })
+        map.addLayer({
+          id: 'trip-multi-gpx-line',
+          type: 'line',
+          source: 'trip-multi-gpx',
+          paint: {
+            'line-color': ['coalesce', ['get', 'color'], '#3b82f6'],
+            'line-width': ['coalesce', ['get', 'width'], 3],
+            'line-opacity': ['coalesce', ['get', 'opacity'], 0.55],
+            'line-dasharray': ['case', ['get', 'hasDay'], ['literal', [1, 0]], ['literal', [1, 2]]],
+          },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+        map.on('mouseenter', 'trip-multi-gpx-line', () => { map.getCanvas().style.cursor = 'pointer' })
+        map.on('mouseleave', 'trip-multi-gpx-line', () => { map.getCanvas().style.cursor = '' })
+        map.on('click', 'trip-multi-gpx-line', (e) => {
+          const f = e.features?.[0]
+          if (!f) return
+          const props = f.properties as any
+          const trackId = Number(props.trackId)
+          const trackDayId = props.dayId != null && props.dayId !== '' ? Number(props.dayId) : null
+          const container = document.createElement('div')
+          container.style.fontSize = '12px'
+          const title = document.createElement('div')
+          title.style.fontWeight = '600'
+          title.style.marginBottom = '6px'
+          title.textContent = props.trackName || 'Track'
+          container.appendChild(title)
+          const cb = onAssignTrackDayRef.current
+          const selDay = selectedDayIdRef.current
+          if (cb && selDay != null && trackDayId !== selDay) {
+            const btn = document.createElement('button')
+            btn.textContent = 'Asignar día seleccionado a este track'
+            btn.style.cssText = `font-size:11px;padding:4px 8px;border-radius:6px;border:none;background:${props.color || '#3b82f6'};color:#fff;cursor:pointer;`
+            btn.onclick = () => { cb(trackId, selDay); trackPopupRef.current?.remove() }
+            container.appendChild(btn)
+          }
+          if (cb && trackDayId != null) {
+            const btn2 = document.createElement('button')
+            btn2.textContent = 'Quitar asignación de día'
+            btn2.style.cssText = 'font-size:11px;padding:4px 8px;border-radius:6px;border:none;background:transparent;color:#64748b;cursor:pointer;margin-top:4px;display:block;'
+            btn2.onclick = () => { cb(trackId, null); trackPopupRef.current?.remove() }
+            container.appendChild(btn2)
+          }
+          trackPopupRef.current
+            ?.setLngLat(e.lngLat)
+            .setDOMContent(container)
+            .addTo(map)
         })
       }
       // Signal that sources/layers are attached so overlay effects can
@@ -568,6 +640,35 @@ export function MapViewGL({
     })
     src.setData({ type: 'FeatureCollection', features })
   }, [places])
+
+  // Update multi-track GPX geojson — one feature per uploaded track, all
+  // rendered simultaneously; the track assigned to the selected day (if any)
+  // is drawn thicker and fully opaque, the rest stay dimmed for reference.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const src = map.getSource('trip-multi-gpx') as mapboxgl.GeoJSONSource | undefined
+    if (!src) return
+    const features = (gpxTracks as any[]).flatMap(track => {
+      const pts = (track.points || []).filter((p: any) => p.lat != null && p.lng != null)
+      if (pts.length < 2) return []
+      const isSelected = selectedDayId != null && track.day_id === selectedDayId
+      return [{
+        type: 'Feature' as const,
+        properties: {
+          trackId: track.id,
+          trackName: track.track_name,
+          dayId: track.day_id ?? '',
+          hasDay: track.day_id != null,
+          color: track.color || '#3b82f6',
+          width: isSelected ? 5 : 3,
+          opacity: isSelected ? 0.95 : 0.55,
+        },
+        geometry: { type: 'LineString' as const, coordinates: pts.map((p: any) => [p.lng, p.lat]) },
+      }]
+    })
+    src.setData({ type: 'FeatureCollection', features })
+  }, [gpxTracks, selectedDayId, mapReady])
 
   // Reservation overlay — mirrors the Leaflet ReservationOverlay: great-
   // circle arcs for flights/cruises, straight lines for trains/cars,
