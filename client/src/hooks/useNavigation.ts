@@ -255,11 +255,24 @@ export function useNavigation() {
       }))
     }
 
-    // Always use navigator.geolocation.watchPosition — it works in both the
-    // browser PWA and the Capacitor WebView (Chrome WebView supports it natively).
-    // The BackgroundGeolocation plugin is tried in parallel for background tracking
-    // on Android, but recording never depends on it succeeding.
-    const startBrowserWatch = () => {
+    // IMPORTANT: navigator.geolocation.watchPosition (the browser Geolocation
+    // API used by the WebView) gets suspended by the WebView engine itself as
+    // soon as the page isn't visible — screen off or app backgrounded — no
+    // matter what Android permissions or foreground services exist, because
+    // that suspension happens inside the WebView's renderer, not the OS
+    // process scheduler. That's exactly why the recorded track and the live
+    // position used to turn into straight lines while the phone was locked.
+    //
+    // On native Android we therefore rely EXCLUSIVELY on the
+    // @capacitor-community/background-geolocation plugin, which runs its own
+    // foreground service and talks to Android's location APIs directly,
+    // independent of WebView visibility. The plain browser watch is only
+    // used as a fallback in the web/PWA build, where no native plugin exists.
+    if (nativeGeoService.isNative()) {
+      nativeGeoService.start(handlePos, (err) => {
+        setGeoRecordingError(`GPS en segundo plano no disponible: ${err}. Revisa que el permiso de ubicación esté en "Permitir todo el tiempo".`)
+      })
+    } else {
       recordWatchRef.current = navigator.geolocation.watchPosition(
         pos => handlePos({
           lat: pos.coords.latitude,
@@ -278,15 +291,6 @@ export function useNavigation() {
         },
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       )
-    }
-
-    startBrowserWatch()
-
-    // On native Capacitor also start the background plugin so GPS keeps running
-    // when the screen turns off. Failures are intentionally ignored — the
-    // browser watchPosition above is the source of truth.
-    if (nativeGeoService.isNative()) {
-      nativeGeoService.start(handlePos, () => { /* background plugin optional */ })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 

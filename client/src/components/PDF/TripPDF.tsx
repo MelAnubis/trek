@@ -133,6 +133,26 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   //retrieve accommodations for the trip to display on the day sections and prefetch their photos if needed
   const accommodations = await accommodationsApi.list(trip.id);
 
+  // GPX distance/elevation per day — a day can have more than one track
+  // assigned (e.g. an alternate route), so totals are summed across all
+  // tracks pinned to that day. Only relevant for cycling/trekking trips.
+  const gpxStatsByDay: Record<number, { distKm: number; gain: number; loss: number }> = {}
+  if (trip?.trip_type === 'cycling' || trip?.trip_type === 'trekking') {
+    try {
+      const res = await fetch(`/api/trips/${trip.id}/gpx`, { credentials: 'include' })
+      const tracks = res.ok ? await res.json() : []
+      for (const track of tracks as any[]) {
+        if (track.day_id == null) continue
+        const entry = gpxStatsByDay[track.day_id] || { distKm: 0, gain: 0, loss: 0 }
+        entry.distKm += parseFloat(track.total_distance) || 0
+        entry.gain += parseFloat(track.total_elevation_gain) || 0
+        entry.loss += parseFloat(track.total_elevation_loss) || 0
+        gpxStatsByDay[track.day_id] = entry
+      }
+    } catch { /* PDF still generates fine without GPX stats */ }
+  }
+  const fmtKm = (km: number) => km >= 10 ? `${Math.round(km)} km` : `${Math.round(km * 10) / 10} km`
+
   // Pre-fetch place photos from Google
   const photoMap = await fetchPlacePhotos(assignments)
 
@@ -330,6 +350,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
           <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
           <span class="day-title">${escHtml(day.title || tr('dayplan.dayN', { n: day.day_number }))}</span>
           ${day.date ? `<span class="day-date">${shortDate(day.date, loc)}</span>` : ''}
+          ${gpxStatsByDay[day.id] ? `<span class="day-gpx-stats">${fmtKm(gpxStatsByDay[day.id].distKm)}${gpxStatsByDay[day.id].gain > 0 ? ` · ↑${Math.round(gpxStatsByDay[day.id].gain)}m` : ''}${gpxStatsByDay[day.id].loss > 0 ? ` ↓${Math.round(gpxStatsByDay[day.id].loss)}m` : ''}</span>` : ''}
           ${cost ? `<span class="day-cost">${cost}</span>` : ''}
         </div>
         <div class="day-body">${accommodationsHtml}${itemsHtml}</div>
@@ -414,6 +435,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   .day-title { font-size: 13px; font-weight: 600; color: #fff; flex: 1; }
   .day-date  { font-size: 9px; color: rgba(255,255,255,0.45); }
   .day-cost  { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.65); }
+  .day-gpx-stats { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.12); border-radius: 4px; padding: 2px 6px; flex-shrink: 0; white-space: nowrap; }
   .day-body  { padding: 12px 28px 6px; }
 
   /* accommodation info */

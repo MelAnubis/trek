@@ -116,11 +116,16 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
     } catch (e: any) { setError(e.message) }
   }
 
-  const splitByDays = async (trackId: number) => {
-    if (!confirm('Esto dividirá el GPX en etapas según los lugares de cada día y eliminará las etapas anteriores. ¿Continuar?')) return
+  const splitByDays = async (trackId: number, excludeDayIds: number[]) => {
+    const excludedNote = excludeDayIds.length > 0 ? ` (excluyendo ${excludeDayIds.length} día(s))` : ''
+    if (!confirm(`Esto dividirá el GPX en etapas según los lugares de cada día${excludedNote} y eliminará las etapas anteriores. ¿Continuar?`)) return
     setSplitting(true); setError(null)
     try {
-      const result = await apiFetch(`${API_BASE}/trips/${tripId}/gpx/${trackId}/split-by-days`, { method: 'POST' })
+      const result = await apiFetch(`${API_BASE}/trips/${tripId}/gpx/${trackId}/split-by-days`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excludeDayIds }),
+      })
       setError(null)
       await load()
       alert(result.message)
@@ -229,7 +234,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     onToggle={() => toggleActive(track)}
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
-                    onSplit={days.length > 0 ? () => splitByDays(track.id) : undefined}
+                    onSplit={days.length > 0 ? (exclude: number[]) => splitByDays(track.id, exclude) : undefined}
                     onWizard={() => openWizard(track)}
                     splitting={splitting}
                   />
@@ -283,7 +288,7 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
   onToggle: () => void
   onDelete: () => void
   onAssignDay: (dayId: number | null) => void
-  onSplit?: () => void
+  onSplit?: (excludeDayIds: number[]) => void
   onWizard?: () => void
   splitting?: boolean
 }) {
@@ -292,6 +297,8 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
   const gain    = parseFloat(track.total_elevation_gain) || 0
   const loss    = parseFloat(track.total_elevation_loss) || 0
   const [showDayPicker, setShowDayPicker] = useState(false)
+  const [showSplitPicker, setShowSplitPicker] = useState(false)
+  const [excludeDayIds, setExcludeDayIds] = useState<Set<number>>(new Set())
   const navigate = useNavigate()
 
   return (
@@ -353,9 +360,10 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
 
           {/* Split by days (automatic) */}
           {onSplit && (
-            <button title="Dividir por días automáticamente (según lugares asignados)" onClick={onSplit} disabled={splitting}
-              style={{ background: 'none', border: 'none', cursor: splitting ? 'wait' : 'pointer',
-                       padding: 4, borderRadius: 6, color: '#64748b' }}>
+            <button title="Dividir por días automáticamente (según lugares asignados)"
+              onClick={() => { setShowSplitPicker(p => !p); setShowDayPicker(false) }} disabled={splitting}
+              style={{ background: showSplitPicker ? color + '30' : 'none', border: 'none', cursor: splitting ? 'wait' : 'pointer',
+                       padding: 4, borderRadius: 6, color: showSplitPicker ? color : '#64748b' }}>
               {splitting
                 ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
                 : <Calendar size={15} />}
@@ -412,6 +420,53 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
               </button>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Split-by-days picker: choose which days to leave out of the split
+          (e.g. a rest day, or a day already covered by another track) */}
+      {showSplitPicker && onSplit && (
+        <div style={{
+          borderTop: '1px solid var(--border-primary, #2d3f55)',
+          padding: '8px 12px', background: 'var(--bg-tertiary, #1a2535)',
+        }}>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 6, fontWeight: 600 }}>
+            Días a excluir de la división (no tendrán etapa):
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+            {days.map(day => {
+              const excluded = excludeDayIds.has(day.id)
+              return (
+                <button
+                  key={day.id}
+                  onClick={() => setExcludeDayIds(prev => {
+                    const next = new Set(prev)
+                    if (next.has(day.id)) next.delete(day.id); else next.add(day.id)
+                    return next
+                  })}
+                  style={{
+                    padding: '3px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11,
+                    border: excluded ? '1.5px solid #ef4444' : '1.5px solid var(--border-primary, #2d3f55)',
+                    background: excluded ? '#ef444420' : 'var(--bg-secondary, #253547)',
+                    color: excluded ? '#ef4444' : 'var(--text-secondary, #94a3b8)',
+                    textDecoration: excluded ? 'line-through' : 'none',
+                  }}
+                >
+                  {day.title || `Día ${day.day_number || day.id}`}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            onClick={() => { onSplit(Array.from(excludeDayIds)); setShowSplitPicker(false) }}
+            disabled={splitting}
+            style={{
+              fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 6, border: 'none',
+              background: color, color: '#fff', cursor: splitting ? 'wait' : 'pointer',
+            }}
+          >
+            Dividir ({days.length - excludeDayIds.size} día(s))
+          </button>
         </div>
       )}
     </div>

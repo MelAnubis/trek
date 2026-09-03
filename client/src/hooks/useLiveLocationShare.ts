@@ -106,20 +106,29 @@ export function useLiveLocationShare() {
     lastAcceptedRef.current = { lat: pos.lat, lng: pos.lng, timestamp: pos.timestamp }
     latestPositionRef.current = pos
 
-    // El primer punto de la sesión se manda al momento — si esperáramos al
-    // temporizador, el enlace tardaría hasta 8 s en mostrar algo.
-    if (!hasSentFirstRef.current) {
-      hasSentFirstRef.current = true
-      sendPosition(pos)
-    }
+    // Send every accepted point immediately rather than only the first one.
+    // The periodic timer below is a "still here" heartbeat for when no new
+    // fix has arrived, but it's a JS setInterval — Android can throttle
+    // those once the app is backgrounded/screen off — so genuinely new
+    // positions must not depend on it firing on schedule.
+    if (!hasSentFirstRef.current) hasSentFirstRef.current = true
+    sendPosition(pos)
   }, [sendPosition])
 
   const startAllGeo = useCallback(() => {
-    startBrowserGeo(handleLocation, handleError)
-    // En la app nativa, mantiene el GPS activo (foreground service) aunque
-    // la pantalla se apague o la app pase a segundo plano.
+    // Same reasoning as useNavigation's recording watch: on native Android,
+    // navigator.geolocation.watchPosition gets suspended by the WebView
+    // itself once the screen turns off or the app is backgrounded — that
+    // suspension happens inside the WebView engine, so no permission or
+    // foreground service fixes it. The background-geolocation plugin runs
+    // its own foreground service against Android's location APIs directly
+    // and keeps delivering fixes regardless of WebView visibility, so it's
+    // the only source used natively. The browser watch remains the only
+    // option in the web/PWA build.
     if (nativeGeoService.isNative()) {
-      nativeGeoService.start(handleLocation, () => { /* plugin nativo opcional */ })
+      nativeGeoService.start(handleLocation, (err) => handleError(`GPS en segundo plano no disponible: ${err}`))
+    } else {
+      startBrowserGeo(handleLocation, handleError)
     }
     if (sendTimerRef.current === null) {
       sendTimerRef.current = window.setInterval(() => {

@@ -644,6 +644,12 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
   const authReq = req as AuthRequest;
   const tripId  = authReq.params.id;
   const trackId = req.params.trackId;
+  // Days the user explicitly does not want to use as split boundaries
+  // (e.g. a rest day, or a day already covered by another track). Their
+  // places are skipped entirely when building the day-by-day stages.
+  const excludeDayIds: Set<number> = new Set(
+    Array.isArray(req.body?.excludeDayIds) ? req.body.excludeDayIds.map((id: any) => Number(id)) : []
+  );
 
   try {
     const track = db.prepare(
@@ -657,10 +663,10 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       return res.status(400).json({ error: 'Track has insufficient points' });
     }
 
-    const days = db.prepare(
+    const days = (db.prepare(
       `SELECT d.id, d.date, d.title, d.day_number
        FROM days d WHERE d.trip_id = ? ORDER BY d.date ASC, d.day_number ASC`
-    ).all(tripId) as any[];
+    ).all(tripId) as any[]).filter(d => !excludeDayIds.has(Number(d.id)));
 
     if (days.length === 0) {
       return res.status(400).json({ error: 'No days found for this trip' });
