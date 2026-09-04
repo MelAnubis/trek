@@ -769,6 +769,8 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       title: string;
       startLat: number; startLng: number;
       endLat: number; endLng: number;
+      boundarySource: string;
+      boundaryName: string;
     }[] = [];
     const skippedNoPlaces: string[] = [];
     const usedWaypointFallback: string[] = [];
@@ -791,6 +793,8 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
           title,
           startLat: last.lat, startLng: last.lng,
           endLat:   last.lat, endLng:   last.lng,
+          boundarySource: 'place',
+          boundaryName: last.name || '(sin nombre)',
         });
         continue;
       }
@@ -806,6 +810,8 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
           title,
           startLat: wp.lat, startLng: wp.lng,
           endLat:   wp.lat, endLng:   wp.lng,
+          boundarySource: 'waypoint',
+          boundaryName: wp.name,
         });
         usedWaypointFallback.push(`${title} → ${wp.name}`);
         continue;
@@ -833,6 +839,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     const created: any[] = [];
     let searchFrom = 0;
     const skippedDegenerate: string[] = [];
+    const debugInfo: any[] = [];
 
     db.prepare(
       'DELETE FROM gpx_tracks WHERE trip_id = ? AND day_id IS NOT NULL'
@@ -875,6 +882,17 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
       if (endIdx <= startIdx) endIdx = Math.min(startIdx + 1, allPoints.length - 1);
 
+      const matchDist = Math.round(haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng));
+      debugInfo.push({
+        day: day.title,
+        boundarySource: day.boundarySource,
+        boundaryName: day.boundaryName,
+        boundaryLatLng: [day.endLat, day.endLng],
+        startIdx, endIdx, windowEnd,
+        matchedLatLng: [allPoints[endIdx].lat, allPoints[endIdx].lng],
+        matchDistM: matchDist,
+      });
+
       const slice = allPoints.slice(startIdx, endIdx + 1);
       if (slice.length < 2) { skippedDegenerate.push(day.title); continue; }
 
@@ -905,6 +923,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       skippedNoPlaces,
       skippedDegenerate,
       usedWaypointFallback,
+      debug: debugInfo,
       tracks: created.map(t => ({ ...t, points: undefined, points_json: undefined, waypoints_json: undefined })),
     });
   } catch (e: any) {

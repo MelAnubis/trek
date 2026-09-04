@@ -128,7 +128,16 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
       })
       setError(null)
       await load()
-      alert(result.message)
+      // eslint-disable-next-line no-console
+      console.table((result.debug || []).map((d: any) => ({
+        día: d.day,
+        fuente: d.boundarySource,
+        destino: d.boundaryName,
+        'punto encontrado': `${d.matchedLatLng[0].toFixed(4)}, ${d.matchedLatLng[1].toFixed(4)}`,
+        'distancia (m)': d.matchDistM,
+        startIdx: d.startIdx, endIdx: d.endIdx, windowEnd: d.windowEnd,
+      })))
+      alert(result.message + '\n\n(Detalle de cada corte en la consola del navegador — F12 → Console)')
     } catch (e: any) { setError(e.message) }
     finally { setSplitting(false) }
   }
