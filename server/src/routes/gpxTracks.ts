@@ -713,6 +713,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       startLat: number; startLng: number;
       endLat: number; endLng: number;
     }[] = [];
+    const skippedNoPlaces: string[] = [];
 
     for (const day of days) {
       const places = db.prepare(
@@ -731,6 +732,13 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
           startLat: last.lat, startLng: last.lng,
           endLat:   last.lat, endLng:   last.lng,
         });
+      } else {
+        // Sin ningún lugar con coordenadas asignado a este día no hay un
+        // "final de etapa" al que enganchar el corte — el día se queda sin
+        // track propio. Lo reportamos explícitamente en vez de saltarlo en
+        // silencio, para que se pueda diagnosticar por qué salen menos
+        // etapas de las esperadas.
+        skippedNoPlaces.push(day.title || `Día ${day.day_number || day.id}`);
       }
     }
 
@@ -748,6 +756,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
     const created: any[] = [];
     let searchFrom = 0;
+    const skippedDegenerate: string[] = [];
 
     db.prepare(
       'DELETE FROM gpx_tracks WHERE trip_id = ? AND day_id IS NOT NULL'
@@ -768,13 +777,21 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
       const startIdx = findBoundaryIdx(allPoints, day.startLat, day.startLng, searchFrom, windowEnd);
 
+      // Si el día vuelve al mismo punto de partida (rutas en bucle que
+      // salen y regresan al mismo lugar), buscar "el más cercano" desde el
+      // propio inicio encontraría el propio inicio (distancia ≈0) y la
+      // etapa saldría vacía. Forzamos un avance mínimo antes de buscar el
+      // punto de regreso.
+      const minGap = Math.max(1, Math.floor(avgChunk * 0.3));
+      const endSearchFrom = Math.min(startIdx + minGap, allPoints.length - 1);
+
       let endIdx: number;
       if (i === dayBounds.length - 1) {
         endIdx = allPoints.length - 1;
       } else {
-        endIdx = findBoundaryIdx(allPoints, day.endLat, day.endLng, startIdx, windowEnd);
+        endIdx = findBoundaryIdx(allPoints, day.endLat, day.endLng, endSearchFrom, windowEnd);
         const nextDay = dayBounds[i + 1];
-        const nextStartIdx = findBoundaryIdx(allPoints, nextDay.startLat, nextDay.startLng, startIdx, windowEnd);
+        const nextStartIdx = findBoundaryIdx(allPoints, nextDay.startLat, nextDay.startLng, endSearchFrom, windowEnd);
         const distEnd  = haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng);
         const distNext = haversineM(allPoints[nextStartIdx].lat, allPoints[nextStartIdx].lng, day.endLat, day.endLng);
         endIdx = distEnd <= distNext ? endIdx : nextStartIdx;
@@ -783,7 +800,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       if (endIdx <= startIdx) endIdx = Math.min(startIdx + 1, allPoints.length - 1);
 
       const slice = allPoints.slice(startIdx, endIdx + 1);
-      if (slice.length < 2) continue;
+      if (slice.length < 2) { skippedDegenerate.push(day.title); continue; }
 
       const newId = saveTrack(
         tripId, authReq.user.id,
@@ -798,9 +815,14 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       created.push({ ...saved, points: slice });
     }
 
+    const allSkipped = [...skippedNoPlaces, ...skippedDegenerate];
     res.json({
       success: true,
-      message: `GPX dividido en ${created.length} etapas`,
+      message: allSkipped.length > 0
+        ? `GPX dividido en ${created.length} etapas. Días sin etapa propia: ${allSkipped.join(', ')} (sin lugares con coordenadas, o su tramo del track no se pudo separar del día vecino)`
+        : `GPX dividido en ${created.length} etapas`,
+      skippedNoPlaces,
+      skippedDegenerate,
       tracks: created.map(t => ({ ...t, points: undefined, points_json: undefined, waypoints_json: undefined })),
     });
   } catch (e: any) {
