@@ -129,11 +129,12 @@ function buildProfile(track: GpxTrack): Profile | null {
 
   const eles = data.map(d => d.ele)
 
-  // Max slope: use 95th-percentile of absolute slopes to exclude GPS outliers.
-  // Raw max always picks the single worst noisy reading; P95 gives a realistic worst climb.
-  const absSlopes = data.map(d => Math.abs(d.slope)).filter(s => s > 0).sort((a, b) => a - b)
-  const p95 = absSlopes.length > 0 ? absSlopes[Math.floor(absSlopes.length * 0.95)] : 0
-  const maxSlope = Math.round(p95)
+  // Max slope: true max of the already-smoothed (200 m window) slopes.
+  // The distance-based smoothing above already removes GPS noise, so clipping
+  // further to a percentile would make "Pend. máx." read lower than a slope
+  // value shown for an individual point in the same chart.
+  const absSlopes = data.map(d => Math.abs(d.slope))
+  const maxSlope = absSlopes.length > 0 ? Math.round(Math.max(...absSlopes)) : 0
 
   // Gain / loss: use stored server values (computed with threshold-hysteresis + smoothing).
   // Only fall back to local cumulative sum if track object lacks those fields.
