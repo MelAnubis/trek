@@ -331,7 +331,7 @@ function nearestPointIdx(
 // duplicándola en vez de saltar a una búsqueda global — así una ruta
 // circular no puede "enganchar" una vuelta muy posterior solo porque quede
 // más cerca en línea recta.
-const FAR_FALLBACK_THRESHOLD_M = 5000;
+const FAR_FALLBACK_THRESHOLD_M = 10000;
 function findBoundaryIdx(
   points: { lat: number; lng: number }[],
   lat: number,
