@@ -319,10 +319,19 @@ function nearestPointIdx(
 
 // Como nearestPointIdx, pero primero prueba dentro de una ventana acotada
 // (para no saltar a una vuelta posterior de una ruta circular) y solo si no
-// hay nada razonablemente cerca dentro de ella, amplía la búsqueda al resto
-// del track — así seguimos encontrando el punto correcto cuando el lugar
-// del día está a más de unos pocos metros de la ruta grabada.
-const FAR_FALLBACK_THRESHOLD_M = 1000;
+// hay nada razonablemente cerca dentro de ella, la amplía — de forma
+// progresiva, nunca directamente a "todo el track" — para seguir
+// encontrando el punto correcto cuando el lugar del día está a varios
+// kilómetros de la ruta grabada (un alojamiento en un pueblo cercano, no
+// justo en el camino).
+//
+// El umbral es generoso (5 km) a propósito: es habitual que el lugar de
+// una etapa (hotel, pueblo) no esté literalmente sobre el track. Solo si de
+// verdad no hay nada ni remotamente cerca se amplía la ventana, y siempre
+// duplicándola en vez de saltar a una búsqueda global — así una ruta
+// circular no puede "enganchar" una vuelta muy posterior solo porque quede
+// más cerca en línea recta.
+const FAR_FALLBACK_THRESHOLD_M = 5000;
 function findBoundaryIdx(
   points: { lat: number; lng: number }[],
   lat: number,
@@ -330,11 +339,13 @@ function findBoundaryIdx(
   startFrom: number,
   windowEnd: number
 ): number {
-  const windowed = nearestPointIdx(points, lat, lng, startFrom, windowEnd);
-  if (windowed.dist <= FAR_FALLBACK_THRESHOLD_M || windowEnd >= points.length) {
-    return windowed.idx;
+  let end = windowEnd;
+  let best = nearestPointIdx(points, lat, lng, startFrom, end);
+  while (best.dist > FAR_FALLBACK_THRESHOLD_M && end < points.length) {
+    end = Math.min(points.length, end + (end - startFrom || 1));
+    best = nearestPointIdx(points, lat, lng, startFrom, end);
   }
-  return nearestPointIdx(points, lat, lng, startFrom).idx;
+  return best.idx;
 }
 
 // ── Compute stats for a slice of points (used by split-by-days) ──────────────
