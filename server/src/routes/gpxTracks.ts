@@ -256,6 +256,50 @@ function parseGpxBuffer(raw: string): {
 // `endBound` a una ventana razonable alrededor de donde debería caer el
 // punto, y solo ampliar la búsqueda si de verdad no hay nada cerca dentro de
 // esa ventana.
+// Normaliza un nombre de lugar para comparar sin acentos ni mayúsculas.
+function normName(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+// Distancia de Levenshtein simple, para tolerar pequeñas erratas de tecleo
+// (p.ej. "Campodron" vs "Camprodon").
+function levenshtein(a: string, b: string): number {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) dp[0][j] = j;
+  for (let i = 1; i <= a.length; i++) {
+    for (let j = 1; j <= b.length; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[a.length][b.length];
+}
+// Busca, entre los waypoints del propio track GPX, el que mejor encaje con
+// el nombre de destino del día (extraído del título "X a Y" → "Y", o el
+// título completo si no sigue ese patrón). Sirve de respaldo cuando el día
+// no tiene ningún "lugar" del itinerario con coordenadas.
+function findWaypointForDay(
+  waypoints: { lat: number; lng: number; name: string }[],
+  dayTitle: string
+): { lat: number; lng: number; name: string } | null {
+  if (waypoints.length === 0 || !dayTitle) return null;
+  const parts = dayTitle.split(/\s+a\s+/i);
+  const target = normName(parts.length > 1 ? parts[parts.length - 1] : dayTitle);
+  if (!target) return null;
+  let best: { lat: number; lng: number; name: string } | null = null;
+  let bestScore = Infinity;
+  for (const wp of waypoints) {
+    const wn = normName(wp.name || '');
+    if (!wn) continue;
+    if (wn === target || wn.includes(target) || target.includes(wn)) return wp;
+    const dist = levenshtein(wn, target);
+    const score = dist / Math.max(wn.length, target.length);
+    if (score < bestScore) { bestScore = score; best = wp; }
+  }
+  // Tolerancia: hasta ~30% de caracteres distintos (erratas menores)
+  return bestScore <= 0.3 ? best : null;
+}
+
 function nearestPointIdx(
   points: { lat: number; lng: number }[],
   lat: number,
@@ -697,6 +741,8 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     if (allPoints.length < 2) {
       return res.status(400).json({ error: 'Track has insufficient points' });
     }
+    const trackWaypoints: { lat: number; lng: number; name: string }[] =
+      JSON.parse(track.waypoints_json || '[]');
 
     const days = (db.prepare(
       `SELECT d.id, d.date, d.title, d.day_number
@@ -714,6 +760,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       endLat: number; endLng: number;
     }[] = [];
     const skippedNoPlaces: string[] = [];
+    const usedWaypointFallback: string[] = [];
 
     for (const day of days) {
       const places = db.prepare(
@@ -724,22 +771,40 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
          ORDER BY a.order_index ASC`
       ).all(day.id) as any[];
 
+      const title = day.title || `Día ${day.day_number || day.id}`;
+
       if (places.length >= 1) {
         const last = places[places.length - 1];
         dayBounds.push({
           dayId:    day.id,
-          title:    day.title || `Día ${day.day_number || day.id}`,
+          title,
           startLat: last.lat, startLng: last.lng,
           endLat:   last.lat, endLng:   last.lng,
         });
-      } else {
-        // Sin ningún lugar con coordenadas asignado a este día no hay un
-        // "final de etapa" al que enganchar el corte — el día se queda sin
-        // track propio. Lo reportamos explícitamente en vez de saltarlo en
-        // silencio, para que se pueda diagnosticar por qué salen menos
-        // etapas de las esperadas.
-        skippedNoPlaces.push(day.title || `Día ${day.day_number || day.id}`);
+        continue;
       }
+
+      // Sin ningún lugar del itinerario con coordenadas: probamos con los
+      // waypoints que trae el propio GPX (habitual en rutas descargadas,
+      // uno por etapa), buscando el que coincide con el nombre del día
+      // (p.ej. título "Girona a Olot" → waypoint "Olot").
+      const wp = findWaypointForDay(trackWaypoints, title);
+      if (wp) {
+        dayBounds.push({
+          dayId:    day.id,
+          title,
+          startLat: wp.lat, startLng: wp.lng,
+          endLat:   wp.lat, endLng:   wp.lng,
+        });
+        usedWaypointFallback.push(`${title} → ${wp.name}`);
+        continue;
+      }
+
+      // Ni lugar del itinerario ni waypoint del track: no hay dónde
+      // enganchar el corte, así que este día se queda sin track propio.
+      // Lo reportamos explícitamente en vez de saltarlo en silencio, para
+      // poder diagnosticar por qué salen menos etapas de las esperadas.
+      skippedNoPlaces.push(title);
     }
 
     for (let i = 1; i < dayBounds.length; i++) {
@@ -816,13 +881,19 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     }
 
     const allSkipped = [...skippedNoPlaces, ...skippedDegenerate];
+    const parts = [`GPX dividido en ${created.length} etapas`];
+    if (usedWaypointFallback.length > 0) {
+      parts.push(`Usados waypoints del GPX para días sin lugar propio: ${usedWaypointFallback.join(', ')}`);
+    }
+    if (allSkipped.length > 0) {
+      parts.push(`Días sin etapa propia: ${allSkipped.join(', ')} (ni lugar del itinerario ni waypoint del GPX con nombre parecido, o su tramo no se pudo separar del día vecino)`);
+    }
     res.json({
       success: true,
-      message: allSkipped.length > 0
-        ? `GPX dividido en ${created.length} etapas. Días sin etapa propia: ${allSkipped.join(', ')} (sin lugares con coordenadas, o su tramo del track no se pudo separar del día vecino)`
-        : `GPX dividido en ${created.length} etapas`,
+      message: parts.join('. '),
       skippedNoPlaces,
       skippedDegenerate,
+      usedWaypointFallback,
       tracks: created.map(t => ({ ...t, points: undefined, points_json: undefined, waypoints_json: undefined })),
     });
   } catch (e: any) {
