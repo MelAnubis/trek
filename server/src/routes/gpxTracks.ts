@@ -275,17 +275,13 @@ function levenshtein(a: string, b: string): number {
   return dp[a.length][b.length];
 }
 // Busca, entre los waypoints del propio track GPX, el que mejor encaje con
-// el nombre de destino del día (extraído del título "X a Y" → "Y", o el
-// título completo si no sigue ese patrón). Sirve de respaldo cuando el día
-// no tiene ningún "lugar" del itinerario con coordenadas.
-function findWaypointForDay(
+// una frase (nombre de pueblo), con tolerancia a erratas de tecleo.
+function findWaypointMatch(
   waypoints: { lat: number; lng: number; name: string }[],
-  dayTitle: string
+  phrase: string
 ): { lat: number; lng: number; name: string } | null {
-  if (waypoints.length === 0 || !dayTitle) return null;
-  const parts = dayTitle.split(/\s+a\s+/i);
-  const target = normName(parts.length > 1 ? parts[parts.length - 1] : dayTitle);
-  if (!target) return null;
+  const target = normName(phrase);
+  if (waypoints.length === 0 || !target) return null;
   let best: { lat: number; lng: number; name: string } | null = null;
   let bestScore = Infinity;
   for (const wp of waypoints) {
@@ -298,6 +294,30 @@ function findWaypointForDay(
   }
   // Tolerancia: hasta ~30% de caracteres distintos (erratas menores)
   return bestScore <= 0.3 ? best : null;
+}
+// El destino del día (extraído del título "X a Y" → "Y", o el título
+// completo si no sigue ese patrón). Sirve de respaldo cuando el día no
+// tiene ningún "lugar" del itinerario con coordenadas.
+function findWaypointForDay(
+  waypoints: { lat: number; lng: number; name: string }[],
+  dayTitle: string
+): { lat: number; lng: number; name: string } | null {
+  if (!dayTitle) return null;
+  const parts = dayTitle.split(/\s+a\s+/i);
+  return findWaypointMatch(waypoints, parts.length > 1 ? parts[parts.length - 1] : dayTitle);
+}
+// El origen del día (la parte "X" antes de " a Y" del título). Se usa solo
+// para el Día 1, para saber dónde empieza de verdad la ruta del usuario
+// cuando el GPX es un bucle cerrado grabado empezando en otro punto
+// distinto (ver más abajo).
+function findWaypointForOrigin(
+  waypoints: { lat: number; lng: number; name: string }[],
+  dayTitle: string
+): { lat: number; lng: number; name: string } | null {
+  if (!dayTitle) return null;
+  const parts = dayTitle.split(/\s+a\s+/i);
+  if (parts.length < 2) return null;
+  return findWaypointMatch(waypoints, parts[0]);
 }
 
 function nearestPointIdx(
@@ -828,13 +848,41 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       dayBounds[i].startLat = dayBounds[i - 1].endLat;
       dayBounds[i].startLng = dayBounds[i - 1].endLng;
     }
-    if (dayBounds.length > 0) {
-      dayBounds[0].startLat = allPoints[0].lat;
-      dayBounds[0].startLng = allPoints[0].lng;
-    }
     if (dayBounds.length === 0) {
       return res.status(400).json({ error: 'No days have places with coordinates' });
     }
+
+    // Si el GPX es un bucle cerrado (empieza y acaba prácticamente en el
+    // mismo sitio — habitual en rutas circulares tipo Pirinexus), el punto
+    // donde alguien empezó a GRABAR no tiene por qué coincidir con dónde el
+    // usuario empieza su viaje. Si eso pasa, el resto de días puede quedar
+    // "antes" que el día 1 dentro del array grabado, y como solo buscamos
+    // hacia delante, esos días nunca se encuentran.
+    //
+    // Solución: si el título del día 1 sigue el patrón "Origen a Destino" y
+    // "Origen" coincide con un waypoint del track, rotamos el array de
+    // puntos para que empiece ahí — convirtiendo el bucle en una secuencia
+    // lineal que sí sigue el orden real del viaje del usuario.
+    let workingPoints = allPoints;
+    const trackIsLoop = allPoints.length > 1 &&
+      haversineM(
+        allPoints[0].lat, allPoints[0].lng,
+        allPoints[allPoints.length - 1].lat, allPoints[allPoints.length - 1].lng
+      ) < 500;
+    let rotatedFrom: { name: string; km: number } | null = null;
+    if (trackIsLoop) {
+      const originWp = findWaypointForOrigin(trackWaypoints, dayBounds[0].title);
+      if (originWp) {
+        const rIdx = nearestPointIdx(allPoints, originWp.lat, originWp.lng, 0, allPoints.length).idx;
+        if (rIdx > 0 && rIdx < allPoints.length - 1) {
+          workingPoints = [...allPoints.slice(rIdx), ...allPoints.slice(0, rIdx)];
+          rotatedFrom = { name: originWp.name, km: 0 };
+        }
+      }
+    }
+
+    dayBounds[0].startLat = workingPoints[0].lat;
+    dayBounds[0].startLng = workingPoints[0].lng;
 
     const created: any[] = [];
     let searchFrom = 0;
@@ -854,11 +902,11 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       // ejemplo, una ruta circular que vuelve a pasar cerca del mismo
       // pueblo) salte varias etapas de golpe hacia una vuelta posterior.
       const remainingDays = dayBounds.length - i;
-      const remainingPoints = allPoints.length - searchFrom;
+      const remainingPoints = workingPoints.length - searchFrom;
       const avgChunk = Math.max(1, Math.floor(remainingPoints / remainingDays));
-      const windowEnd = Math.min(allPoints.length, searchFrom + avgChunk * 3);
+      const windowEnd = Math.min(workingPoints.length, searchFrom + avgChunk * 3);
 
-      const startIdx = findBoundaryIdx(allPoints, day.startLat, day.startLng, searchFrom, windowEnd);
+      const startIdx = findBoundaryIdx(workingPoints, day.startLat, day.startLng, searchFrom, windowEnd);
 
       // Si el día vuelve al mismo punto de partida (rutas en bucle que
       // salen y regresan al mismo lugar), buscar "el más cercano" desde el
@@ -866,34 +914,34 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       // etapa saldría vacía. Forzamos un avance mínimo antes de buscar el
       // punto de regreso.
       const minGap = Math.max(1, Math.floor(avgChunk * 0.3));
-      const endSearchFrom = Math.min(startIdx + minGap, allPoints.length - 1);
+      const endSearchFrom = Math.min(startIdx + minGap, workingPoints.length - 1);
 
       let endIdx: number;
       if (i === dayBounds.length - 1) {
-        endIdx = allPoints.length - 1;
+        endIdx = workingPoints.length - 1;
       } else {
-        endIdx = findBoundaryIdx(allPoints, day.endLat, day.endLng, endSearchFrom, windowEnd);
+        endIdx = findBoundaryIdx(workingPoints, day.endLat, day.endLng, endSearchFrom, windowEnd);
         const nextDay = dayBounds[i + 1];
-        const nextStartIdx = findBoundaryIdx(allPoints, nextDay.startLat, nextDay.startLng, endSearchFrom, windowEnd);
-        const distEnd  = haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng);
-        const distNext = haversineM(allPoints[nextStartIdx].lat, allPoints[nextStartIdx].lng, day.endLat, day.endLng);
+        const nextStartIdx = findBoundaryIdx(workingPoints, nextDay.startLat, nextDay.startLng, endSearchFrom, windowEnd);
+        const distEnd  = haversineM(workingPoints[endIdx].lat, workingPoints[endIdx].lng, day.endLat, day.endLng);
+        const distNext = haversineM(workingPoints[nextStartIdx].lat, workingPoints[nextStartIdx].lng, day.endLat, day.endLng);
         endIdx = distEnd <= distNext ? endIdx : nextStartIdx;
       }
 
-      if (endIdx <= startIdx) endIdx = Math.min(startIdx + 1, allPoints.length - 1);
+      if (endIdx <= startIdx) endIdx = Math.min(startIdx + 1, workingPoints.length - 1);
 
-      const matchDist = Math.round(haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng));
+      const matchDist = Math.round(haversineM(workingPoints[endIdx].lat, workingPoints[endIdx].lng, day.endLat, day.endLng));
       debugInfo.push({
         day: day.title,
         boundarySource: day.boundarySource,
         boundaryName: day.boundaryName,
         boundaryLatLng: [day.endLat, day.endLng],
         startIdx, endIdx, windowEnd,
-        matchedLatLng: [allPoints[endIdx].lat, allPoints[endIdx].lng],
+        matchedLatLng: [workingPoints[endIdx].lat, workingPoints[endIdx].lng],
         matchDistM: matchDist,
       });
 
-      const slice = allPoints.slice(startIdx, endIdx + 1);
+      const slice = workingPoints.slice(startIdx, endIdx + 1);
       if (slice.length < 2) { skippedDegenerate.push(day.title); continue; }
 
       const newId = saveTrack(
@@ -911,6 +959,9 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
     const allSkipped = [...skippedNoPlaces, ...skippedDegenerate];
     const parts = [`GPX dividido en ${created.length} etapas`];
+    if (rotatedFrom) {
+      parts.push(`Track circular: reordenado para empezar en "${rotatedFrom.name}" (origen del Día 1)`);
+    }
     if (usedWaypointFallback.length > 0) {
       parts.push(`Usados waypoints del GPX para días sin lugar propio: ${usedWaypointFallback.join(', ')}`);
     }
@@ -923,6 +974,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       skippedNoPlaces,
       skippedDegenerate,
       usedWaypointFallback,
+      rotatedFrom,
       debug: debugInfo,
       tracks: created.map(t => ({ ...t, points: undefined, points_json: undefined, waypoints_json: undefined })),
     });
