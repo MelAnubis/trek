@@ -243,25 +243,54 @@ function parseGpxBuffer(raw: string): {
 
 // ── Find nearest point index in GPX ──────────────────────────────────────────
 // Encuentra el índice del punto del track más cercano a (lat, lng), buscando
-// solo desde `startFrom` en adelante (los tracks son secuenciales, así que no
-// tiene sentido volver atrás). Siempre completa el escaneo hasta el final en
-// vez de cortar en el primer punto "suficientemente cerca": si el lugar del
-// día no coincide exactamente con ningún punto grabado (lo habitual — un
-// hotel unos metros de la carretera, GPS con deriva, etc.), necesitamos el
-// mínimo global, no el primer candidato razonable.
+// desde `startFrom` hasta `endBound` (exclusivo). Los tracks son
+// secuenciales, así que nunca se busca hacia atrás. Devuelve también la
+// distancia al mejor punto encontrado, para que quien llama decida si merece
+// la pena ampliar la búsqueda.
+//
+// IMPORTANTE: en una ruta circular o con tramos que se repiten (p.ej. el
+// Pirinexus, que en 8 etapas pasa varias veces cerca de las mismas zonas),
+// una búsqueda sin límite hasta el final del track puede "saltar" a una
+// vuelta posterior del bucle que por casualidad quede más cerca en línea
+// recta, tragándose varias etapas de golpe. Por eso quien llama debe acotar
+// `endBound` a una ventana razonable alrededor de donde debería caer el
+// punto, y solo ampliar la búsqueda si de verdad no hay nada cerca dentro de
+// esa ventana.
 function nearestPointIdx(
   points: { lat: number; lng: number }[],
   lat: number,
   lng: number,
-  startFrom = 0
-): number {
+  startFrom = 0,
+  endBound = points.length
+): { idx: number; dist: number } {
   let best = startFrom;
   let bestDist = Infinity;
-  for (let i = startFrom; i < points.length; i++) {
+  const upper = Math.min(endBound, points.length);
+  for (let i = startFrom; i < upper; i++) {
     const d = haversineM(points[i].lat, points[i].lng, lat, lng);
     if (d < bestDist) { bestDist = d; best = i; }
   }
-  return best;
+  return { idx: best, dist: bestDist };
+}
+
+// Como nearestPointIdx, pero primero prueba dentro de una ventana acotada
+// (para no saltar a una vuelta posterior de una ruta circular) y solo si no
+// hay nada razonablemente cerca dentro de ella, amplía la búsqueda al resto
+// del track — así seguimos encontrando el punto correcto cuando el lugar
+// del día está a más de unos pocos metros de la ruta grabada.
+const FAR_FALLBACK_THRESHOLD_M = 1000;
+function findBoundaryIdx(
+  points: { lat: number; lng: number }[],
+  lat: number,
+  lng: number,
+  startFrom: number,
+  windowEnd: number
+): number {
+  const windowed = nearestPointIdx(points, lat, lng, startFrom, windowEnd);
+  if (windowed.dist <= FAR_FALLBACK_THRESHOLD_M || windowEnd >= points.length) {
+    return windowed.idx;
+  }
+  return nearestPointIdx(points, lat, lng, startFrom).idx;
 }
 
 // ── Compute stats for a slice of points (used by split-by-days) ──────────────
@@ -727,15 +756,25 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     for (let i = 0; i < dayBounds.length; i++) {
       const day = dayBounds[i];
 
-      const startIdx = nearestPointIdx(allPoints, day.startLat, day.startLng, searchFrom);
+      // Ventana de búsqueda proporcional al track que queda por repartir
+      // entre los días que quedan. x3 de margen para admitir días más
+      // cortos/largos que la media, sin permitir que un lugar ambiguo (por
+      // ejemplo, una ruta circular que vuelve a pasar cerca del mismo
+      // pueblo) salte varias etapas de golpe hacia una vuelta posterior.
+      const remainingDays = dayBounds.length - i;
+      const remainingPoints = allPoints.length - searchFrom;
+      const avgChunk = Math.max(1, Math.floor(remainingPoints / remainingDays));
+      const windowEnd = Math.min(allPoints.length, searchFrom + avgChunk * 3);
+
+      const startIdx = findBoundaryIdx(allPoints, day.startLat, day.startLng, searchFrom, windowEnd);
 
       let endIdx: number;
       if (i === dayBounds.length - 1) {
         endIdx = allPoints.length - 1;
       } else {
-        endIdx = nearestPointIdx(allPoints, day.endLat, day.endLng, startIdx);
+        endIdx = findBoundaryIdx(allPoints, day.endLat, day.endLng, startIdx, windowEnd);
         const nextDay = dayBounds[i + 1];
-        const nextStartIdx = nearestPointIdx(allPoints, nextDay.startLat, nextDay.startLng, startIdx);
+        const nextStartIdx = findBoundaryIdx(allPoints, nextDay.startLat, nextDay.startLng, startIdx, windowEnd);
         const distEnd  = haversineM(allPoints[endIdx].lat, allPoints[endIdx].lng, day.endLat, day.endLng);
         const distNext = haversineM(allPoints[nextStartIdx].lat, allPoints[nextStartIdx].lng, day.endLat, day.endLng);
         endIdx = distEnd <= distNext ? endIdx : nextStartIdx;
