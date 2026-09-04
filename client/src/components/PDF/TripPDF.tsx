@@ -149,7 +149,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         entry.loss += parseFloat(track.total_elevation_loss) || 0
         gpxStatsByDay[track.day_id] = entry
       }
-    } catch { /* PDF still generates fine without GPX stats */ }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('No se pudieron cargar los tracks GPX para el PDF, se genera sin km/desnivel:', e)
+    }
   }
   const fmtKm = (km: number) => km >= 10 ? `${Math.round(km)} km` : `${Math.round(km * 10) / 10} km`
 

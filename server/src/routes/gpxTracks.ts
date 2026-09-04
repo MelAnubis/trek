@@ -242,6 +242,13 @@ function parseGpxBuffer(raw: string): {
 }
 
 // ── Find nearest point index in GPX ──────────────────────────────────────────
+// Encuentra el índice del punto del track más cercano a (lat, lng), buscando
+// solo desde `startFrom` en adelante (los tracks son secuenciales, así que no
+// tiene sentido volver atrás). Siempre completa el escaneo hasta el final en
+// vez de cortar en el primer punto "suficientemente cerca": si el lugar del
+// día no coincide exactamente con ningún punto grabado (lo habitual — un
+// hotel unos metros de la carretera, GPS con deriva, etc.), necesitamos el
+// mínimo global, no el primer candidato razonable.
 function nearestPointIdx(
   points: { lat: number; lng: number }[],
   lat: number,
@@ -253,7 +260,6 @@ function nearestPointIdx(
   for (let i = startFrom; i < points.length; i++) {
     const d = haversineM(points[i].lat, points[i].lng, lat, lng);
     if (d < bestDist) { bestDist = d; best = i; }
-    if (d < 50 && i > startFrom + 10) break;
   }
   return best;
 }
