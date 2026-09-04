@@ -55,18 +55,32 @@ function haversineM(la1: number, lo1: number, la2: number, lo2: number): number 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// ── Elevation smoothing (simple moving average, window = 7 points) ────────────
+// ── Elevation smoothing (moving average over a fixed distance window) ────────
 // Reduces GPS vertical noise before computing gain/loss.
+//
+// Windowing by point COUNT (as before) is unreliable: point density varies a
+// lot within a single track (e.g. dense while resting/walking slowly on a
+// flat stretch, sparse while moving fast on a climb). A 7-point window can
+// span 100+ m on a sparse climb but only 10-15 m on a dense flat stretch —
+// far too short to average out GPS vertical noise there, which then gets
+// counted as real up/down and inflates both gain and loss. Windowing by
+// distance instead gives consistent noise rejection regardless of point
+// density.
 function smoothElevation(
-  pts: { ele: number | null }[],
-  window = 7,
+  pts: { lat: number; lng: number; ele: number | null }[],
+  halfWindowM = 50,
 ): (number | null)[] {
-  const half = Math.floor(window / 2);
+  const cumDistM: number[] = [0];
+  for (let i = 1; i < pts.length; i++) {
+    cumDistM.push(cumDistM[i - 1] + haversineM(pts[i - 1].lat, pts[i - 1].lng, pts[i].lat, pts[i].lng));
+  }
+  let lo = 0, hi = 0;
   return pts.map((_, i) => {
-    const start = Math.max(0, i - half);
-    const end   = Math.min(pts.length - 1, i + half);
-    const vals  = [];
-    for (let j = start; j <= end; j++) {
+    while (lo < i && cumDistM[i] - cumDistM[lo] > halfWindowM) lo++;
+    if (hi < i) hi = i;
+    while (hi < pts.length - 1 && cumDistM[hi + 1] - cumDistM[i] <= halfWindowM) hi++;
+    const vals: number[] = [];
+    for (let j = lo; j <= hi; j++) {
       if (pts[j].ele != null) vals.push(pts[j].ele as number);
     }
     return vals.length > 0 ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
@@ -79,12 +93,13 @@ function smoothElevation(
 //  1. Threshold-hysteresis: lastSmoothedEle only updates when the threshold
 //     IS crossed — this prevents noise from resetting the baseline on every
 //     point and causing tiny fluctuations to be counted.
-//  2. Elevation smoothed with a 7-point moving average before computing gain/loss.
+//  2. Elevation smoothed with a distance-based (±50 m) moving average before
+//     computing gain/loss, so noise rejection doesn't depend on point density.
 //  3. Threshold raised from 2 m to 5 m to better match typical GPS vertical
 //     accuracy (3–5 m RMS).
 //
 function computeElevationStats(
-  pts: { ele: number | null }[],
+  pts: { lat: number; lng: number; ele: number | null }[],
 ): { gain: number; loss: number; max: number | null; min: number | null } {
   const ELE_THRESHOLD = 5; // metres — raised from 2 m to reduce GPS noise
   const smoothed = smoothElevation(pts);
