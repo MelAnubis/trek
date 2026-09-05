@@ -125,7 +125,7 @@ function projectWaypoints(
   return deduped
 }
 
-function buildProfile(track: GpxTrack): Profile | null {
+function buildProfile(track: GpxTrack, tripPlaces?: { lat: number | null; lng: number | null; name: string }[]): Profile | null {
   const pts = (track.points || []).filter((p: any) => p.ele != null && p.lat != null)
   if (pts.length < 2) return null
 
@@ -192,6 +192,10 @@ function buildProfile(track: GpxTrack): Profile | null {
     gain = Math.round(gain); loss = Math.round(loss)
   }
 
+  const geoTripPlaces = (tripPlaces || [])
+    .filter((p): p is { lat: number; lng: number; name: string } => p.lat != null && p.lng != null && !!p.name)
+  const allMarkerSources = [...(track.waypoints || []), ...geoTripPlaces]
+
   return {
     data,
     minEle:    Math.min(...eles),
@@ -200,7 +204,7 @@ function buildProfile(track: GpxTrack): Profile | null {
     gain,
     loss,
     maxSlope,
-    waypointMarkers: projectWaypoints(data, track.waypoints),
+    waypointMarkers: projectWaypoints(data, allMarkerSources),
   }
 }
 
@@ -223,6 +227,10 @@ interface ElevationDetailProps {
   tripId?: number | string
   onIbpUpdated?: (trackId: number, ibp: number) => void
   onTrackUpdated?: (track: GpxTrack) => void
+  // Places already added to the trip's itinerary — used as an extra source of
+  // markers on the elevation chart (town/viewpoint names) for GPX files that
+  // don't carry their own named <wpt> waypoints, which is most of them.
+  places?: { lat: number | null; lng: number | null; name: string }[]
 }
 
 // ── Tooltip ───────────────────────────────────────────────────────────────────
@@ -339,6 +347,7 @@ function TrackDetail({
   tripId,
   onIbpUpdated,
   onTrackUpdated,
+  places,
 }: {
   track: GpxTrack
   color: string
@@ -348,8 +357,9 @@ function TrackDetail({
   tripId?: number | string
   onIbpUpdated?: (trackId: number, ibp: number) => void
   onTrackUpdated?: (track: GpxTrack) => void
+  places?: { lat: number | null; lng: number | null; name: string }[]
 }) {
-  const profile = useMemo(() => buildProfile(track), [track.id, track.total_elevation_gain, (track.points || []).length, (track.waypoints || []).length])
+  const profile = useMemo(() => buildProfile(track, places), [track.id, track.total_elevation_gain, (track.points || []).length, (track.waypoints || []).length, places])
   const [recalculating, setRecalculating] = useState(false)
   const [fetchingEle, setFetchingEle] = useState(false)
 
@@ -658,7 +668,7 @@ function TrackDetail({
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackUpdated }: ElevationDetailProps) {
+export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackUpdated, places }: ElevationDetailProps) {
   const [fitness, setFitness]   = useState(2)
   const [expanded, setExpanded] = useState<Record<number, boolean>>({})
 
@@ -728,6 +738,7 @@ export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackU
           tripId={tripId}
           onIbpUpdated={onIbpUpdated}
           onTrackUpdated={onTrackUpdated}
+          places={places}
         />
       ))}
     </div>
