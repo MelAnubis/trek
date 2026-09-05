@@ -23,7 +23,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const isEditing = !!trip
   const fileRef = useRef(null)
   const toast = useToast()
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const currentUser = useAuthStore(s => s.user)
   const tripRemindersEnabled = useAuthStore(s => s.tripRemindersEnabled)
   const setTripRemindersEnabled = useAuthStore(s => s.setTripRemindersEnabled)
@@ -171,7 +171,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     setSuggestingCover(true)
     setCoverSuggestions([])
     try {
-      const data = await tripsApi.suggestCovers(formData.title.trim())
+      const data = await tripsApi.suggestCovers(formData.title.trim(), language)
       if (!data.photos || data.photos.length === 0) {
         toast.error(t('dashboard.suggestCoverNoResults'))
       } else {

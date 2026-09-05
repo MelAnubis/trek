@@ -344,6 +344,54 @@ interface WikimediaSearchResponse {
   };
 }
 
+interface WikipediaSearchResponse {
+  query?: { search?: { title: string }[] };
+}
+
+interface WikipediaPageImagesResponse {
+  query?: { pages?: Record<string, { title?: string; thumbnail?: { source?: string } }> };
+}
+
+// A Wikipedia article search + lead image is far more reliable for named
+// entities (a specific cycling route, a trail, a landmark) than a raw
+// Wikimedia Commons file search, which only matches files whose own
+// filename/description happens to contain the query text. Article search
+// has real relevance ranking, and most notable places have exactly one
+// canonical lead image.
+async function searchWikipediaCoverImage(query: string, lang: string): Promise<CoverSuggestion[]> {
+  try {
+    const searchParams = new URLSearchParams({
+      action: 'query', format: 'json', list: 'search',
+      srsearch: query, srlimit: '3', origin: '*',
+    });
+    const searchRes = await fetch(`https://${lang}.wikipedia.org/w/api.php?${searchParams}`);
+    if (!searchRes.ok) return [];
+    const searchData = await searchRes.json() as WikipediaSearchResponse;
+    const titles = (searchData.query?.search || []).map(s => s.title);
+    if (titles.length === 0) return [];
+
+    const imgParams = new URLSearchParams({
+      action: 'query', format: 'json',
+      titles: titles.join('|'),
+      prop: 'pageimages', piprop: 'thumbnail', pithumbsize: '1200',
+      origin: '*',
+    });
+    const imgRes = await fetch(`https://${lang}.wikipedia.org/w/api.php?${imgParams}`);
+    if (!imgRes.ok) return [];
+    const imgData = await imgRes.json() as WikipediaPageImagesResponse;
+    return Object.values(imgData.query?.pages || {})
+      .filter(p => p.thumbnail?.source)
+      .map(p => ({
+        url: p.thumbnail!.source!,
+        thumb: p.thumbnail!.source!,
+        attribution: p.title ? `${p.title} / Wikipedia` : 'Wikipedia',
+        source: 'wikimedia' as const,
+      }));
+  } catch {
+    return [];
+  }
+}
+
 // Trip titles routinely contain generic words ("Kyoto Autumn TRIP", "Viaje a
 // Roma") that add noise without helping an image search — Wikimedia Commons
 // in particular indexes file/category names, not natural language, so a
@@ -361,9 +409,11 @@ function cleanCoverQuery(query: string): string {
 
 // Suggest cover images for a trip from its title/destination. Uses the
 // user's own Unsplash key when configured (same key used for place photos);
-// falls back to Wikimedia Commons, which needs no API key, when the user
-// has none configured or Unsplash returns no results.
-export async function searchTripCoverImages(query: string, userId: number): Promise<{ photos: CoverSuggestion[] }> {
+// otherwise tries a Wikipedia article match (reliable for named routes,
+// trails and landmarks — see searchWikipediaCoverImage above), then falls
+// back to a raw Wikimedia Commons file search. None of the Wikimedia steps
+// need an API key.
+export async function searchTripCoverImages(query: string, userId: number, lang = 'en'): Promise<{ photos: CoverSuggestion[] }> {
   const trimmed = cleanCoverQuery(query);
   if (!trimmed) return { photos: [] };
 
@@ -388,11 +438,21 @@ export async function searchTripCoverImages(query: string, userId: number): Prom
         if (photos.length > 0) return { photos };
       }
     } catch {
-      // Fall through to Wikimedia below
+      // Fall through to Wikipedia/Wikimedia below
     }
   }
 
-  // Fallback: Wikimedia Commons — free, no API key.
+  // Wikipedia article search in the user's app language, then a handful of
+  // editions with the broadest coverage of European geography/infrastructure
+  // (many named cycling routes, trails and rail-to-trail paths only have an
+  // article in French or German Wikipedia, regardless of the app's language).
+  const wikiLangs = [...new Set([lang, 'en', 'fr', 'de'])];
+  for (const l of wikiLangs) {
+    const photos = await searchWikipediaCoverImage(trimmed, l);
+    if (photos.length > 0) return { photos };
+  }
+
+  // Last resort: raw Wikimedia Commons file search — free, no API key.
   try {
     const q = encodeURIComponent(`${trimmed} filetype:bitmap`);
     const response = await fetch(

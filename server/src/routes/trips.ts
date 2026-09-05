@@ -121,8 +121,11 @@ router.get('/cover-suggestions', authenticate, async (req: Request, res: Respons
   const authReq = req as AuthRequest;
   const query = typeof req.query.query === 'string' ? req.query.query : '';
   if (!query.trim()) return res.status(400).json({ error: 'query is required' });
+  // Whitelist: only a bare Wikipedia language subdomain code (interpolated into a URL below).
+  const rawLang = typeof req.query.lang === 'string' ? req.query.lang.toLowerCase() : 'en';
+  const lang = /^[a-z]{2,3}(-[a-z]{2,4})?$/.test(rawLang) ? rawLang : 'en';
   try {
-    const result = await searchTripCoverImages(query, authReq.user.id);
+    const result = await searchTripCoverImages(query, authReq.user.id, lang);
     res.json(result);
   } catch {
     res.status(502).json({ error: 'Image search failed' });
