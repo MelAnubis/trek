@@ -3,12 +3,14 @@
  * Módulo de elevación con IBPIndex para Trek
  * Portado desde Bikelog v22 — adaptado a TypeScript + estilo Trek
  */
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
 import {
   ComposedChart, Area, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, ReferenceLine, CartesianGrid, Brush, Bar,
+  ReferenceLine, CartesianGrid, Brush, Bar,
 } from 'recharts'
 import { Mountain, ChevronDown, ChevronUp, Layers, RefreshCw, Download, ArrowDownToLine } from 'lucide-react'
+import { mapsApi } from '../../api/client'
+import { useTranslation } from '../../i18n'
 
 // ── Colores por track ─────────────────────────────────────────────────────────
 const TRACK_COLORS = ['#22d96e', '#38bdf8', '#f59e0b', '#a78bfa', '#f87171', '#34d399']
@@ -89,20 +91,27 @@ interface Profile {
   waypointMarkers: WaypointMarker[]
 }
 
-// Distancia máxima (km) para asociar un waypoint del GPX a un punto del
-// perfil — descarta POIs que no están realmente sobre este track (p.ej.
-// de otra etapa del mismo fichero).
+// Distancia máxima (km) para asociar un punto a otro del perfil.
+// - Los waypoints grabados EN el propio GPX están literalmente sobre la
+//   traza (los graba el mismo GPS que graba el track), así que un radio
+//   estrecho evita enganchar POIs de otra etapa del mismo fichero.
+// - Los lugares que el usuario añade al itinerario suelen marcar el centro
+//   del pueblo/punto de interés, no el punto exacto de la carretera o
+//   camino por el que pasa la ruta (que a menudo bordea la población) — un
+//   radio más amplio es necesario para que sigan enganchando.
 const WAYPOINT_MAX_DIST_KM = 0.3
+const PLACE_MAX_DIST_KM = 2
 
-// Proyecta cada waypoint sobre el punto más cercano del perfil ya calculado,
-// para poder marcarlo en el eje de distancia (km) del gráfico.
-function projectWaypoints(
+// Para cada punto de una lista, busca el más cercano del perfil dentro del
+// radio dado y devuelve el marcador candidato correspondiente.
+function projectCandidates(
   data: ProfilePoint[],
-  waypoints: { lat: number; lng: number; name: string }[] | undefined,
+  points: { lat: number; lng: number; name: string }[] | undefined,
+  maxDistKm: number,
 ): WaypointMarker[] {
-  if (!waypoints || waypoints.length === 0 || data.length === 0) return []
+  if (!points || points.length === 0 || data.length === 0) return []
   const markers: WaypointMarker[] = []
-  for (const wp of waypoints) {
+  for (const wp of points) {
     if (!wp.name || wp.lat == null || wp.lng == null) continue
     let bestIdx = 0
     let bestDist = Infinity
@@ -110,19 +119,62 @@ function projectWaypoints(
       const d = haversineKm(wp.lat, wp.lng, data[i].lat, data[i].lng)
       if (d < bestDist) { bestDist = d; bestIdx = i }
     }
-    if (bestDist <= WAYPOINT_MAX_DIST_KM) {
+    if (bestDist <= maxDistKm) {
       markers.push({ name: wp.name, dist: data[bestIdx].dist, ele: data[bestIdx].ele })
     }
   }
-  // Evita etiquetas duplicadas casi en el mismo km
-  markers.sort((a, b) => a.dist - b.dist)
+  return markers
+}
+
+// Combina candidatos de varias fuentes y evita etiquetas duplicadas casi en
+// el mismo km (p.ej. un waypoint del GPX y un lugar del itinerario con el
+// mismo nombre, cerca uno de otro).
+function dedupeMarkers(markers: WaypointMarker[]): WaypointMarker[] {
+  const sorted = [...markers].sort((a, b) => a.dist - b.dist)
   const deduped: WaypointMarker[] = []
-  for (const m of markers) {
+  for (const m of sorted) {
     const prev = deduped[deduped.length - 1]
     if (prev && Math.abs(prev.dist - m.dist) < 0.15 && prev.name === m.name) continue
     deduped.push(m)
   }
   return deduped
+}
+
+interface PeakCandidate { dist: number; ele: number; lat: number; lng: number }
+
+// Detecta los picos/collados más significativos del perfil (prominencia
+// mínima real, no un simple máximo local de ruido) para poder nombrarlos
+// aunque no haya ningún waypoint ni lugar del itinerario cerca — p.ej. un
+// puerto de montaña que el usuario no ha añadido a su plan.
+function detectPeaks(data: ProfilePoint[], minProminenceM = 80, minSpacingKm = 2, maxPeaks = 3): PeakCandidate[] {
+  if (data.length < 5) return []
+  const candidates: { idx: number; prominence: number }[] = []
+  for (let i = 2; i < data.length - 2; i++) {
+    const e = data[i].ele
+    if (e < data[i - 1].ele || e < data[i + 1].ele || e <= data[i - 2].ele || e <= data[i + 2].ele) continue
+    let leftMin = e
+    for (let j = i - 1; j >= 0; j--) {
+      leftMin = Math.min(leftMin, data[j].ele)
+      if (e - leftMin >= minProminenceM) break
+    }
+    let rightMin = e
+    for (let j = i + 1; j < data.length; j++) {
+      rightMin = Math.min(rightMin, data[j].ele)
+      if (e - rightMin >= minProminenceM) break
+    }
+    const prominence = Math.min(e - leftMin, e - rightMin)
+    if (prominence >= minProminenceM) candidates.push({ idx: i, prominence })
+  }
+  candidates.sort((a, b) => b.prominence - a.prominence)
+  const picked: typeof candidates = []
+  for (const c of candidates) {
+    if (picked.some(p => Math.abs(data[p.idx].dist - data[c.idx].dist) < minSpacingKm)) continue
+    picked.push(c)
+    if (picked.length >= maxPeaks) break
+  }
+  return picked
+    .sort((a, b) => data[a.idx].dist - data[b.idx].dist)
+    .map(p => ({ dist: data[p.idx].dist, ele: data[p.idx].ele, lat: data[p.idx].lat, lng: data[p.idx].lng }))
 }
 
 function buildProfile(track: GpxTrack, tripPlaces?: { lat: number | null; lng: number | null; name: string }[]): Profile | null {
@@ -194,7 +246,10 @@ function buildProfile(track: GpxTrack, tripPlaces?: { lat: number | null; lng: n
 
   const geoTripPlaces = (tripPlaces || [])
     .filter((p): p is { lat: number; lng: number; name: string } => p.lat != null && p.lng != null && !!p.name)
-  const allMarkerSources = [...(track.waypoints || []), ...geoTripPlaces]
+  const waypointMarkers = dedupeMarkers([
+    ...projectCandidates(data, track.waypoints, WAYPOINT_MAX_DIST_KM),
+    ...projectCandidates(data, geoTripPlaces, PLACE_MAX_DIST_KM),
+  ])
 
   return {
     data,
@@ -204,7 +259,7 @@ function buildProfile(track: GpxTrack, tripPlaces?: { lat: number | null; lng: n
     gain,
     loss,
     maxSlope,
-    waypointMarkers: projectWaypoints(data, allMarkerSources),
+    waypointMarkers,
   }
 }
 
@@ -362,6 +417,52 @@ function TrackDetail({
   const profile = useMemo(() => buildProfile(track, places), [track.id, track.total_elevation_gain, (track.points || []).length, (track.waypoints || []).length, places])
   const [recalculating, setRecalculating] = useState(false)
   const [fetchingEle, setFetchingEle] = useState(false)
+  const [autoPeakMarkers, setAutoPeakMarkers] = useState<WaypointMarker[]>([])
+  const { language } = useTranslation()
+  const chartWrapRef = useRef<HTMLDivElement>(null)
+  const [chartContainerWidth, setChartContainerWidth] = useState(600)
+
+  // El ancho del contenedor real (para que el gráfico llene el espacio
+  // disponible cuando no hace falta más, y solo se ensanche —con scroll
+  // horizontal— cuando hay muchos hitos que necesitan más espacio para
+  // leerse sin solaparse).
+  useEffect(() => {
+    const el = chartWrapRef.current
+    if (!el) return
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0]?.contentRect.width
+      if (w) setChartContainerWidth(w)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Nombra automáticamente los picos/puertos más prominentes del track,
+  // aunque no estén añadidos como lugar del itinerario ni como waypoint del
+  // GPX — vía geocoding inverso (OpenStreetMap/Nominatim, sin API key).
+  // Secuencial con pausa entre peticiones para respetar el límite de uso
+  // de Nominatim (máx. ~1 req/s).
+  useEffect(() => {
+    setAutoPeakMarkers([])
+    if (!profile) return
+    const existingDists = profile.waypointMarkers.map(w => w.dist)
+    const peaks = detectPeaks(profile.data).filter(p => !existingDists.some(d => Math.abs(d - p.dist) < 1.5))
+    if (peaks.length === 0) return
+    let cancelled = false
+    void (async () => {
+      const found: WaypointMarker[] = []
+      for (const peak of peaks) {
+        if (cancelled) return
+        try {
+          const res = await mapsApi.reverse(peak.lat, peak.lng, language)
+          if (res?.name) found.push({ name: res.name, dist: peak.dist, ele: peak.ele })
+        } catch { /* ignore — sin nombre para este pico */ }
+        if (!cancelled) setAutoPeakMarkers([...found])
+        await new Promise(r => setTimeout(r, 1100))
+      }
+    })()
+    return () => { cancelled = true }
+  }, [track.id, profile?.data.length])
 
   const handleRecalcIbp = async (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -468,7 +569,8 @@ function TrackDetail({
     )
   }
 
-  const { data, minEle, maxEle, totalDist, gain, loss, maxSlope, waypointMarkers } = profile
+  const { data, minEle, maxEle, totalDist, gain, loss, maxSlope, waypointMarkers: baseWaypointMarkers } = profile
+  const waypointMarkers = dedupeMarkers([...baseWaypointMarkers, ...autoPeakMarkers])
   const ibpOfficial = track.ibp != null
   const ibp = ibpOfficial ? track.ibp! : calcIBP(totalDist, gain, maxSlope)
   const cat = ibpCategory(ibp, fitness)
@@ -476,6 +578,14 @@ function TrackDetail({
   const distStep = totalDist > 50 ? 10 : totalDist > 20 ? 5 : totalDist > 10 ? 2 : 1
   const distTicks: number[] = []
   for (let k = 0; k <= totalDist; k += distStep) distTicks.push(Math.round(k * 10) / 10)
+
+  // Ancho del gráfico: llena el contenedor normalmente, pero se ensancha
+  // (con scroll horizontal) cuando hay hitos que necesitan más separación
+  // entre sí para leerse sin solaparse. Combinado con las filas alternas de
+  // las etiquetas (más abajo), da margen incluso cuando dos hitos caen a
+  // pocos km de distancia.
+  const PX_PER_KM = waypointMarkers.length > 1 ? 30 : 14
+  const chartWidth = Math.max(chartContainerWidth, Math.round(totalDist * PX_PER_KM))
 
   return (
     <div style={{
@@ -586,9 +696,8 @@ function TrackDetail({
           </div>
 
           {/* Elevation + slope chart */}
-          <div style={{ height: 220, marginBottom: 12 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data} margin={{ top: waypointMarkers.length > 0 ? 22 : 5, right: 10, left: 0, bottom: 5 }}>
+          <div ref={chartWrapRef} style={{ height: 220, marginBottom: 12, overflowX: 'auto', overflowY: 'hidden' }}>
+            <ComposedChart width={chartWidth} height={220} data={data} margin={{ top: waypointMarkers.length > 0 ? 36 : 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary, #2d3f55)" opacity={0.5} />
                 <XAxis
                   dataKey="dist"
@@ -646,17 +755,27 @@ function TrackDetail({
                     stroke="#a78bfa"
                     strokeDasharray="4 4"
                     strokeOpacity={0.7}
-                    label={{
-                      value: w.name.length > 16 ? w.name.slice(0, 15) + '…' : w.name,
-                      position: 'top',
-                      fill: '#a78bfa',
-                      fontSize: 9,
-                      fontWeight: 600,
+                    label={(props: any) => {
+                      const { viewBox } = props
+                      if (!viewBox) return <g />
+                      // Filas alternas: dos hitos próximos entre sí no caen en la
+                      // misma línea de texto, así no se solapan aunque el punto
+                      // esté a pocos km de distancia.
+                      const row = i % 2
+                      const y = viewBox.y + (row === 0 ? 10 : 24)
+                      const label = w.name.length > 22 ? w.name.slice(0, 21) + '…' : w.name
+                      return (
+                        <text x={viewBox.x} y={y} fontSize={9} fontWeight={600} fill="#a78bfa" textAnchor="middle">
+                          {label}
+                        </text>
+                      )
                     }}
                   />
                 ))}
               </ComposedChart>
-            </ResponsiveContainer>
+          </div>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #64748b)', textAlign: 'center', marginTop: -8, marginBottom: 4 }}>
+            {waypointMarkers.length > 0 && chartWidth > chartContainerWidth ? '← desliza para ver todo el gráfico →' : null}
           </div>
 
           {/* IBP table */}
