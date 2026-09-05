@@ -1,7 +1,7 @@
 import { normalizeImageFile } from '../../utils/convertHeic'
 import { useState, useEffect, useRef } from 'react'
 import Modal from '../shared/Modal'
-import { Calendar, Camera, X, Clipboard, UserPlus, Bell } from 'lucide-react'
+import { Calendar, Camera, X, Clipboard, UserPlus, Bell, Sparkles } from 'lucide-react'
 import { tripsApi, authApi } from '../../api/client'
 import CustomSelect from '../shared/CustomSelect'
 import { useAuthStore } from '../../store/authStore'
@@ -45,7 +45,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const [isLoading, setIsLoading] = useState(false)
   const [coverPreview, setCoverPreview] = useState(null)
   const [pendingCoverFile, setPendingCoverFile] = useState(null)
+  const [pendingCoverUrl, setPendingCoverUrl] = useState<string | null>(null)
   const [uploadingCover, setUploadingCover] = useState(false)
+  const [suggestingCover, setSuggestingCover] = useState(false)
+  const [coverSuggestions, setCoverSuggestions] = useState<{ url: string; thumb: string; attribution: string; source: string }[]>([])
   const [allUsers, setAllUsers] = useState<{ id: number; username: string }[]>([])
   const [selectedMembers, setSelectedMembers] = useState<number[]>([])
   const [existingMembers, setExistingMembers] = useState<{ id: number; username: string }[]>([])
@@ -129,6 +132,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         } catch {
           // Cover upload failed but trip was created
         }
+      } else if (pendingCoverUrl && result?.trip?.id) {
+        try {
+          await tripsApi.update(result.trip.id, { cover_image: pendingCoverUrl })
+          onCoverUpdate?.(result.trip.id, pendingCoverUrl)
+        } catch {
+          // Cover suggestion failed but trip was created
+        }
       }
       onClose()
     } catch (err: unknown) {
@@ -141,6 +151,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const handleCoverSelect = async (file) => {
     file = await normalizeImageFile(file)
     if (!file) return
+    setPendingCoverUrl(null)
+    setCoverSuggestions([])
     if (isEditing && trip?.id) {
       // Existing trip: upload immediately
       uploadCoverNow(file)
@@ -148,6 +160,45 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       // New trip: stage for upload after creation
       setPendingCoverFile(file)
       setCoverPreview(URL.createObjectURL(file))
+    }
+  }
+
+  const handleSuggestCover = async () => {
+    if (!formData.title.trim()) {
+      toast.error(t('dashboard.suggestCoverTitleRequired'))
+      return
+    }
+    setSuggestingCover(true)
+    setCoverSuggestions([])
+    try {
+      const data = await tripsApi.suggestCovers(formData.title.trim())
+      if (!data.photos || data.photos.length === 0) {
+        toast.error(t('dashboard.suggestCoverNoResults'))
+      } else {
+        setCoverSuggestions(data.photos)
+      }
+    } catch {
+      toast.error(t('dashboard.suggestCoverError'))
+    } finally {
+      setSuggestingCover(false)
+    }
+  }
+
+  const handleSelectSuggestion = async (photo: { url: string }) => {
+    setCoverSuggestions([])
+    setPendingCoverFile(null)
+    if (isEditing && trip?.id) {
+      try {
+        await tripsApi.update(trip.id, { cover_image: photo.url })
+        setCoverPreview(photo.url)
+        onCoverUpdate?.(trip.id, photo.url)
+        toast.success(t('dashboard.coverSaved'))
+      } catch {
+        toast.error(t('dashboard.coverUploadError'))
+      }
+    } else {
+      setPendingCoverUrl(photo.url)
+      setCoverPreview(photo.url)
     }
   }
 
@@ -173,8 +224,10 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   }
 
   const handleRemoveCover = async () => {
-    if (pendingCoverFile) {
+    setCoverSuggestions([])
+    if (pendingCoverFile || pendingCoverUrl) {
       setPendingCoverFile(null)
+      setPendingCoverUrl(null)
       setCoverPreview(null)
       return
     }
@@ -276,6 +329,24 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af' }}>
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
+          )}
+          <button type="button" onClick={handleSuggestCover} disabled={suggestingCover}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, padding: '2px 0', border: 'none', background: 'none', cursor: suggestingCover ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600, color: '#6366f1', fontFamily: 'inherit', opacity: suggestingCover ? 0.6 : 1 }}>
+            <Sparkles size={13} />
+            {suggestingCover ? t('common.loading') : t('dashboard.suggestCover')}
+          </button>
+          {coverSuggestions.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8, paddingBottom: 4 }}>
+              {coverSuggestions.map((photo, i) => (
+                <button key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
+                  title={photo.attribution}
+                  style={{ flexShrink: 0, width: 84, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid transparent', padding: 0, cursor: 'pointer' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}>
+                  <img src={photo.thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </button>
+              ))}
+            </div>
           )}
         </div>}
 

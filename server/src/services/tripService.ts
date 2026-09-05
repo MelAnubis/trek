@@ -324,6 +324,102 @@ export function updateCoverImage(tripId: string | number, coverUrl: string) {
   db.prepare('UPDATE trips SET cover_image=?, updated_at=CURRENT_TIMESTAMP WHERE id=?').run(coverUrl, tripId);
 }
 
+export interface CoverSuggestion {
+  url: string;
+  thumb: string;
+  attribution: string;
+  source: 'unsplash' | 'wikimedia';
+}
+
+interface UnsplashSearchResponse {
+  results?: { urls?: { regular?: string; thumb?: string }; user?: { name?: string } }[];
+  errors?: string[];
+}
+
+interface WikimediaSearchResponse {
+  query?: {
+    pages?: Record<string, {
+      imageinfo?: { url?: string; thumburl?: string; extmetadata?: { Artist?: { value?: string } } }[];
+    }>;
+  };
+}
+
+// Trip titles routinely contain generic words ("Kyoto Autumn TRIP", "Viaje a
+// Roma") that add noise without helping an image search — Wikimedia Commons
+// in particular indexes file/category names, not natural language, so a
+// literal "... Trip" suffix can turn an otherwise-findable query into zero
+// results. Strip them before searching.
+const COVER_QUERY_FILLER_WORDS = [
+  'trip', 'viaje', 'vacation', 'vacaciones', 'holiday', 'holidays',
+  'getaway', 'adventure', 'aventura', 'tour', 'travel', 'excursion', 'excursión', 'journey',
+];
+function cleanCoverQuery(query: string): string {
+  const words = query.split(/\s+/).filter(w => !COVER_QUERY_FILLER_WORDS.includes(w.toLowerCase().replace(/[^\wáéíóúñ]/gi, '')));
+  const cleaned = words.join(' ').trim();
+  return cleaned || query.trim();
+}
+
+// Suggest cover images for a trip from its title/destination. Uses the
+// user's own Unsplash key when configured (same key used for place photos);
+// falls back to Wikimedia Commons, which needs no API key, when the user
+// has none configured or Unsplash returns no results.
+export async function searchTripCoverImages(query: string, userId: number): Promise<{ photos: CoverSuggestion[] }> {
+  const trimmed = cleanCoverQuery(query);
+  if (!trimmed) return { photos: [] };
+
+  const user = db.prepare('SELECT unsplash_api_key FROM users WHERE id = ?').get(userId) as { unsplash_api_key: string | null } | undefined;
+
+  if (user?.unsplash_api_key) {
+    try {
+      const q = encodeURIComponent(trimmed);
+      const response = await fetch(
+        `https://api.unsplash.com/search/photos?query=${q}&per_page=6&orientation=landscape&client_id=${user.unsplash_api_key}`,
+      );
+      if (response.ok) {
+        const data = await response.json() as UnsplashSearchResponse;
+        const photos: CoverSuggestion[] = (data.results || [])
+          .filter(p => p.urls?.regular)
+          .map(p => ({
+            url: p.urls!.regular!,
+            thumb: p.urls!.thumb || p.urls!.regular!,
+            attribution: p.user?.name ? `${p.user.name} / Unsplash` : 'Unsplash',
+            source: 'unsplash' as const,
+          }));
+        if (photos.length > 0) return { photos };
+      }
+    } catch {
+      // Fall through to Wikimedia below
+    }
+  }
+
+  // Fallback: Wikimedia Commons — free, no API key.
+  try {
+    const q = encodeURIComponent(`${trimmed} filetype:bitmap`);
+    const response = await fetch(
+      `https://commons.wikimedia.org/w/api.php?action=query&generator=search&gsrsearch=${q}` +
+      `&gsrlimit=6&gsrnamespace=6&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=1200&format=json&origin=*`,
+    );
+    if (!response.ok) return { photos: [] };
+    const data = await response.json() as WikimediaSearchResponse;
+    const pages = Object.values(data.query?.pages || {});
+    const photos: CoverSuggestion[] = pages
+      .filter(p => p.imageinfo?.[0]?.url)
+      .map(p => {
+        const info = p.imageinfo![0];
+        const artist = (info.extmetadata?.Artist?.value || 'Wikimedia Commons').replace(/<[^>]+>/g, '');
+        return {
+          url: info.url!,
+          thumb: info.thumburl || info.url!,
+          attribution: artist,
+          source: 'wikimedia' as const,
+        };
+      });
+    return { photos };
+  } catch {
+    return { photos: [] };
+  }
+}
+
 export function getTripRaw(tripId: string | number): Trip | undefined {
   return db.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as Trip | undefined;
 }

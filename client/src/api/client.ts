@@ -247,6 +247,7 @@ export const tripsApi = {
   update: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/trips/${id}`, data).then(r => r.data),
   delete: (id: number | string) => apiClient.delete(`/trips/${id}`).then(r => r.data),
   uploadCover: (id: number | string, formData: FormData) => apiClient.post(`/trips/${id}/cover`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
+  suggestCovers: (query: string) => apiClient.get('/trips/cover-suggestions', { params: { query } }).then(r => r.data),
   archive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: true }).then(r => r.data),
   unarchive: (id: number | string) => apiClient.put(`/trips/${id}`, { is_archived: false }).then(r => r.data),
   getMembers: (id: number | string) => apiClient.get(`/trips/${id}/members`).then(r => r.data),

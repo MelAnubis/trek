@@ -20,6 +20,7 @@ import {
   getTripOwner,
   deleteOldCover,
   updateCoverImage,
+  searchTripCoverImages,
   listMembers,
   addMember,
   removeMember,
@@ -112,6 +113,20 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   }
 
   res.status(201).json({ trip });
+});
+
+// ── Cover image suggestions ──────────────────────────────────────────────────
+// Registered before GET /:id so "cover-suggestions" isn't swallowed as an id.
+router.get('/cover-suggestions', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const query = typeof req.query.query === 'string' ? req.query.query : '';
+  if (!query.trim()) return res.status(400).json({ error: 'query is required' });
+  try {
+    const result = await searchTripCoverImages(query, authReq.user.id);
+    res.json(result);
+  } catch {
+    res.status(502).json({ error: 'Image search failed' });
+  }
 });
 
 // ── Get trip ──────────────────────────────────────────────────────────────
