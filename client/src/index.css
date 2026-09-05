@@ -687,6 +687,13 @@ body {
   z-index: 1 !important;
 }
 
+/* ── Atlas basemap dark mode ──────────────────────
+   OpenStreetMap tiles have no free dark variant, so dark mode is faked
+   with a CSS filter on the tile layer only (overlays are unaffected). */
+.atlas-map-container.atlas-dark .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
 /* ── iOS-style map tooltip ─────────────────────── */
 .leaflet-tooltip.map-tooltip {
   background: var(--tooltip-bg);

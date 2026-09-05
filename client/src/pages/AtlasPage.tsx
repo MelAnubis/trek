@@ -7,6 +7,7 @@ import apiClient, { mapsApi } from '../api/client'
 import CustomSelect from '../components/shared/CustomSelect'
 import { Globe, MapPin, Briefcase, Calendar, Flag, ChevronRight, PanelLeftOpen, PanelLeftClose, X, Star, Plus, Trash2, Search } from 'lucide-react'
 import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import type { AtlasPlace, GeoJsonFeatureCollection, TranslationFn } from '../types'
 
 // Convert country code to flag emoji
@@ -298,11 +299,16 @@ export default function AtlasPage(): React.ReactElement {
 
     L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-    const tileUrl = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+    // CARTO's free basemaps.cartocdn.com tiles now require a registered API
+    // key (unregistered requests are served with an "API KEY REQUIRED"
+    // watermark instead of failing outright, which used to leave Atlas
+    // looking broken with no visible error). OpenStreetMap's standard tiles
+    // need no key; dark mode is faked with a CSS filter (see .atlas-dark).
+    const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    const tileSubdomains = ['a', 'b', 'c']
 
     L.tileLayer(tileUrl, {
+      subdomains: tileSubdomains,
       maxZoom: 10,
       keepBuffer: 25,
       updateWhenZooming: true,
@@ -315,13 +321,14 @@ export default function AtlasPage(): React.ReactElement {
 
     // Preload adjacent zoom level tiles
     L.tileLayer(tileUrl, {
+      subdomains: tileSubdomains,
       maxZoom: 10,
       keepBuffer: 10,
       opacity: 0,
       tileSize: 256,
       crossOrigin: true,
       referrerPolicy: 'strict-origin-when-cross-origin',
-    }).addTo(map)
+    } as any).addTo(map)
 
     // Custom pane for region layer — above overlay (z-index 400)
     map.createPane('regionPane')
@@ -778,7 +785,11 @@ export default function AtlasPage(): React.ReactElement {
       <Navbar />
       <div style={{ position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, bottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {/* Map */}
-        <div ref={mapRef} style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? '#1a1a2e' : '#f0f0f0' }} />
+        <div
+          ref={mapRef}
+          className={`atlas-map-container${dark ? ' atlas-dark' : ''}`}
+          style={{ position: 'absolute', inset: 0, zIndex: 1, background: dark ? '#1a1a2e' : '#f0f0f0' }}
+        />
 
         {/* Region tooltip (custom, always on top, ref-controlled to avoid re-renders) */}
         <div ref={regionTooltipRef} style={{
