@@ -37,6 +37,7 @@ interface AtlasData {
   streak?: number
   firstYear?: number
   tripsThisYear?: number
+  tripMarkers?: { id: number; title: string; lat: number; lng: number }[]
 }
 
 interface CountryDetail {
@@ -184,6 +185,7 @@ export default function AtlasPage(): React.ReactElement {
   const [bucketPoiYear, setBucketPoiYear] = useState(0)
   const [bucketTab, setBucketTab] = useState<'stats' | 'bucket'>('stats')
   const bucketMarkersRef = useRef<any>(null)
+  const tripMarkersRef = useRef<any>(null)
 
   const [atlas_country_search, set_atlas_country_search] = useState('')
   const [atlas_country_results, set_atlas_country_results] = useState<{ code: string; label: string }[]>([])
@@ -756,6 +758,32 @@ export default function AtlasPage(): React.ReactElement {
     })
     bucketMarkersRef.current = L.layerGroup(markers).addTo(mapInstance.current)
   }, [bucketList])
+
+  // Render one marker per trip (centroid of its places) so trips are visible
+  // directly on the map, not only after clicking into a country's detail panel.
+  useEffect(() => {
+    if (!mapInstance.current) return
+    if (tripMarkersRef.current) {
+      mapInstance.current.removeLayer(tripMarkersRef.current)
+    }
+    const tripMarkers = data?.tripMarkers || []
+    if (tripMarkers.length === 0) return
+    const markers = tripMarkers.map(tm => {
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:rgba(99,102,241,0.92);box-shadow:0 2px 8px rgba(0,0,0,0.35);border:2px solid white"></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 22],
+      })
+      return L.marker([tm.lat, tm.lng], { icon })
+        .bindTooltip(
+          `<div style="font-size:12px;font-weight:600">${tm.title}</div>`,
+          { className: 'atlas-tooltip', direction: 'top', offset: [0, -20] }
+        )
+        .on('click', () => navigate(`/trips/${tm.id}`))
+    })
+    tripMarkersRef.current = L.layerGroup(markers).addTo(mapInstance.current)
+  }, [data?.tripMarkers])
 
   const loadCountryDetail = async (code: string): Promise<void> => {
     setSelectedCountry(code)

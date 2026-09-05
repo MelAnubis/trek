@@ -331,7 +331,7 @@ export async function getStats(userId: number) {
   if (tripIds.length === 0) {
     const manualCountries = db.prepare('SELECT country_code FROM visited_countries WHERE user_id = ?').all(userId) as { country_code: string }[];
     const countries = manualCountries.map(mc => ({ code: mc.country_code, placeCount: 0, tripCount: 0, firstVisit: null, lastVisit: null }));
-    return { countries, trips: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 } };
+    return { countries, trips: [], tripMarkers: [], stats: { totalTrips: 0, totalPlaces: 0, totalCountries: countries.length, totalDays: 0 } };
   }
 
   const places = getPlacesForTrips(tripIds);
@@ -438,6 +438,18 @@ export async function getStats(userId: number) {
   }
   const firstYear = tripYears.size > 0 ? Math.min(...tripYears) : null;
 
+  // One marker per trip (centroid of its geolocated places), so trips can be
+  // pinned directly on the Atlas map instead of only being reachable via the
+  // per-country detail panel.
+  const tripMarkers: { id: number; title: string; lat: number; lng: number }[] = [];
+  for (const trip of trips) {
+    const tripPlaces = places.filter(p => p.trip_id === trip.id && p.lat != null && p.lng != null);
+    if (tripPlaces.length === 0) continue;
+    const lat = tripPlaces.reduce((sum, p) => sum + p.lat!, 0) / tripPlaces.length;
+    const lng = tripPlaces.reduce((sum, p) => sum + p.lng!, 0) / tripPlaces.length;
+    tripMarkers.push({ id: trip.id, title: trip.title, lat, lng });
+  }
+
   return {
     countries,
     stats: {
@@ -454,6 +466,7 @@ export async function getStats(userId: number) {
     streak,
     firstYear,
     tripsThisYear: trips.filter(t => t.start_date && t.start_date.startsWith(String(currentYear))).length,
+    tripMarkers,
   };
 }
 
