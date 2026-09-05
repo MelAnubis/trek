@@ -72,6 +72,12 @@ interface ProfilePoint {
   lng: number
 }
 
+interface WaypointMarker {
+  name: string
+  dist: number
+  ele: number
+}
+
 interface Profile {
   data: ProfilePoint[]
   minEle: number
@@ -80,6 +86,43 @@ interface Profile {
   gain: number
   loss: number
   maxSlope: number
+  waypointMarkers: WaypointMarker[]
+}
+
+// Distancia máxima (km) para asociar un waypoint del GPX a un punto del
+// perfil — descarta POIs que no están realmente sobre este track (p.ej.
+// de otra etapa del mismo fichero).
+const WAYPOINT_MAX_DIST_KM = 0.3
+
+// Proyecta cada waypoint sobre el punto más cercano del perfil ya calculado,
+// para poder marcarlo en el eje de distancia (km) del gráfico.
+function projectWaypoints(
+  data: ProfilePoint[],
+  waypoints: { lat: number; lng: number; name: string }[] | undefined,
+): WaypointMarker[] {
+  if (!waypoints || waypoints.length === 0 || data.length === 0) return []
+  const markers: WaypointMarker[] = []
+  for (const wp of waypoints) {
+    if (!wp.name || wp.lat == null || wp.lng == null) continue
+    let bestIdx = 0
+    let bestDist = Infinity
+    for (let i = 0; i < data.length; i++) {
+      const d = haversineKm(wp.lat, wp.lng, data[i].lat, data[i].lng)
+      if (d < bestDist) { bestDist = d; bestIdx = i }
+    }
+    if (bestDist <= WAYPOINT_MAX_DIST_KM) {
+      markers.push({ name: wp.name, dist: data[bestIdx].dist, ele: data[bestIdx].ele })
+    }
+  }
+  // Evita etiquetas duplicadas casi en el mismo km
+  markers.sort((a, b) => a.dist - b.dist)
+  const deduped: WaypointMarker[] = []
+  for (const m of markers) {
+    const prev = deduped[deduped.length - 1]
+    if (prev && Math.abs(prev.dist - m.dist) < 0.15 && prev.name === m.name) continue
+    deduped.push(m)
+  }
+  return deduped
 }
 
 function buildProfile(track: GpxTrack): Profile | null {
@@ -157,6 +200,7 @@ function buildProfile(track: GpxTrack): Profile | null {
     gain,
     loss,
     maxSlope,
+    waypointMarkers: projectWaypoints(data, track.waypoints),
   }
 }
 
@@ -171,6 +215,7 @@ export interface GpxTrack {
   min_elevation: number | null
   ibp?: number | null
   points?: { lat: number; lng: number; ele: number | null }[]
+  waypoints?: { lat: number; lng: number; name: string }[]
 }
 
 interface ElevationDetailProps {
@@ -304,7 +349,7 @@ function TrackDetail({
   onIbpUpdated?: (trackId: number, ibp: number) => void
   onTrackUpdated?: (track: GpxTrack) => void
 }) {
-  const profile = useMemo(() => buildProfile(track), [track.id, track.total_elevation_gain, (track.points || []).length])
+  const profile = useMemo(() => buildProfile(track), [track.id, track.total_elevation_gain, (track.points || []).length, (track.waypoints || []).length])
   const [recalculating, setRecalculating] = useState(false)
   const [fetchingEle, setFetchingEle] = useState(false)
 
@@ -413,7 +458,7 @@ function TrackDetail({
     )
   }
 
-  const { data, minEle, maxEle, totalDist, gain, loss, maxSlope } = profile
+  const { data, minEle, maxEle, totalDist, gain, loss, maxSlope, waypointMarkers } = profile
   const ibpOfficial = track.ibp != null
   const ibp = ibpOfficial ? track.ibp! : calcIBP(totalDist, gain, maxSlope)
   const cat = ibpCategory(ibp, fitness)
@@ -533,7 +578,7 @@ function TrackDetail({
           {/* Elevation + slope chart */}
           <div style={{ height: 220, marginBottom: 12 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <ComposedChart data={data} margin={{ top: waypointMarkers.length > 0 ? 22 : 5, right: 10, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border-primary, #2d3f55)" opacity={0.5} />
                 <XAxis
                   dataKey="dist"
@@ -583,6 +628,23 @@ function TrackDetail({
                   stroke="none"
                   maxBarSize={4}
                 />
+                {waypointMarkers.map((w, i) => (
+                  <ReferenceLine
+                    key={`${w.name}-${i}`}
+                    yAxisId="ele"
+                    x={w.dist}
+                    stroke="#a78bfa"
+                    strokeDasharray="4 4"
+                    strokeOpacity={0.7}
+                    label={{
+                      value: w.name.length > 16 ? w.name.slice(0, 15) + '…' : w.name,
+                      position: 'top',
+                      fill: '#a78bfa',
+                      fontSize: 9,
+                      fontWeight: 600,
+                    }}
+                  />
+                ))}
               </ComposedChart>
             </ResponsiveContainer>
           </div>
