@@ -410,7 +410,11 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const poiPillEnabled = useSettingsStore(s => s.settings.map_poi_pill_enabled) !== false
 
   // Opens the add-place form pre-filled from an OSM POI marker click.
-  const openAddPlaceFromPoi = useCallback((poiItem: Poi) => {
+  // Overpass POIs (a church, a viewpoint...) often carry a name but no
+  // proper address — without a locality, the place is unfindable later in
+  // the plan or a printed PDF. Fill the address via reverse geocoding when
+  // the POI itself didn't bring one.
+  const openAddPlaceFromPoi = useCallback(async (poiItem: Poi) => {
     if (!can('place_edit', trip)) return
     setPrefillCoords({
       lat: poiItem.lat,
@@ -421,7 +425,16 @@ export default function TripPlannerPage(): React.ReactElement | null {
     setEditingPlace(null)
     setEditingAssignmentId(null)
     setShowPlaceForm(true)
-  }, [can, trip])
+    if (!poiItem.address) {
+      try {
+        const { mapsApi } = await import('../api/client')
+        const data = await mapsApi.reverse(poiItem.lat, poiItem.lng, language)
+        if (data.address) {
+          setPrefillCoords(prev => prev ? { ...prev, address: data.address } : prev)
+        }
+      } catch { /* best effort */ }
+    }
+  }, [can, trip, language])
 
   const [mapCategoryFilter, setMapCategoryFilter] = useState<Set<string>>(new Set())
   const [mapPlacesFilter, setMapPlacesFilter] = useState<string>('all')
