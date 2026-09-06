@@ -867,6 +867,21 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
       return res.status(400).json({ error: 'No days have places with coordinates' });
     }
 
+    // El origen del Día 1 (la parte "X" de un título "X a Y") no hereda
+    // coordenadas de ningún día anterior, a diferencia de todos los demás.
+    // Se busca primero entre los waypoints del propio GPX y, si no hay
+    // coincidencia allí (habitual: muchas rutas descargadas, p.ej. de
+    // Wikiloc, no traen ningún <wpt> con nombre), entre TODOS los lugares
+    // del propio itinerario — en una ruta circular el origen del Día 1 suele
+    // ser el mismo lugar que el destino del último día (p.ej. el hotel de
+    // salida/llegada), así que puede encontrarse aunque el GPX no traiga
+    // ningún waypoint propio.
+    const allTripPlaces = db.prepare(
+      `SELECT lat, lng, name FROM places WHERE trip_id = ? AND lat IS NOT NULL AND lng IS NOT NULL`
+    ).all(tripId) as { lat: number; lng: number; name: string }[];
+    const originMatch = findWaypointForOrigin(trackWaypoints, dayBounds[0].title)
+      || findWaypointForOrigin(allTripPlaces, dayBounds[0].title);
+
     // Si el GPX es un bucle cerrado (empieza y acaba prácticamente en el
     // mismo sitio — habitual en rutas circulares tipo Pirinexus), el punto
     // donde alguien empezó a GRABAR no tiene por qué coincidir con dónde el
@@ -874,10 +889,9 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
     // "antes" que el día 1 dentro del array grabado, y como solo buscamos
     // hacia delante, esos días nunca se encuentran.
     //
-    // Solución: si el título del día 1 sigue el patrón "Origen a Destino" y
-    // "Origen" coincide con un waypoint del track, rotamos el array de
-    // puntos para que empiece ahí — convirtiendo el bucle en una secuencia
-    // lineal que sí sigue el orden real del viaje del usuario.
+    // Solución: si encontramos el origen del Día 1 (arriba), rotamos el
+    // array de puntos para que empiece ahí — convirtiendo el bucle en una
+    // secuencia lineal que sí sigue el orden real del viaje del usuario.
     let workingPoints = allPoints;
     const trackIsLoop = allPoints.length > 1 &&
       haversineM(
@@ -885,19 +899,27 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
         allPoints[allPoints.length - 1].lat, allPoints[allPoints.length - 1].lng
       ) < 500;
     let rotatedFrom: { name: string; km: number } | null = null;
-    if (trackIsLoop) {
-      const originWp = findWaypointForOrigin(trackWaypoints, dayBounds[0].title);
-      if (originWp) {
-        const rIdx = nearestPointIdx(allPoints, originWp.lat, originWp.lng, 0, allPoints.length).idx;
-        if (rIdx > 0 && rIdx < allPoints.length - 1) {
-          workingPoints = [...allPoints.slice(rIdx), ...allPoints.slice(0, rIdx)];
-          rotatedFrom = { name: originWp.name, km: 0 };
-        }
+    if (trackIsLoop && originMatch) {
+      const rIdx = nearestPointIdx(allPoints, originMatch.lat, originMatch.lng, 0, allPoints.length).idx;
+      if (rIdx > 0 && rIdx < allPoints.length - 1) {
+        workingPoints = [...allPoints.slice(rIdx), ...allPoints.slice(0, rIdx)];
+        rotatedFrom = { name: originMatch.name, km: 0 };
       }
     }
 
-    dayBounds[0].startLat = workingPoints[0].lat;
-    dayBounds[0].startLng = workingPoints[0].lng;
+    // Sin rotación (no es un bucle detectado, o no hubo rotación real): si
+    // aun así tenemos el origen del Día 1, lo dejamos como referencia para
+    // que el bucle de más abajo lo BUSQUE en el track (igual que cualquier
+    // otro día) en vez de asumir a ciegas que el track empieza exactamente
+    // en el primer punto grabado — que es justo lo que fallaba en rutas
+    // donde la grabación no arranca ni un metro exacto en el origen real.
+    if (!rotatedFrom && originMatch) {
+      dayBounds[0].startLat = originMatch.lat;
+      dayBounds[0].startLng = originMatch.lng;
+    } else {
+      dayBounds[0].startLat = workingPoints[0].lat;
+      dayBounds[0].startLng = workingPoints[0].lng;
+    }
 
     const created: any[] = [];
     let searchFrom = 0;
@@ -933,7 +955,18 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
 
       let endIdx: number;
       if (i === dayBounds.length - 1) {
-        endIdx = workingPoints.length - 1;
+        // El último día no tiene "día siguiente" al que saltar por error, así
+        // que puede buscar sin la ventana x3 (hasta el final real del
+        // track). Solo usamos el punto encontrado si de verdad queda más
+        // cerca del destino real que el último punto grabado — si no hay
+        // nada mejor, mantenemos el comportamiento de siempre (todo hasta el
+        // final grabado) para no perder tramo real por una búsqueda que se
+        // haya quedado corta.
+        const candidateIdx = findBoundaryIdx(workingPoints, day.endLat, day.endLng, endSearchFrom, workingPoints.length);
+        const candidateDist = haversineM(workingPoints[candidateIdx].lat, workingPoints[candidateIdx].lng, day.endLat, day.endLng);
+        const literalLastIdx = workingPoints.length - 1;
+        const literalLastDist = haversineM(workingPoints[literalLastIdx].lat, workingPoints[literalLastIdx].lng, day.endLat, day.endLng);
+        endIdx = candidateDist < literalLastDist ? candidateIdx : literalLastIdx;
       } else {
         endIdx = findBoundaryIdx(workingPoints, day.endLat, day.endLng, endSearchFrom, windowEnd);
         const nextDay = dayBounds[i + 1];
