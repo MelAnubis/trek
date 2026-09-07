@@ -11,7 +11,7 @@ import BikepackDrawer from './BikepackDrawer'
 import ReactDOM from 'react-dom'
 import {
   CheckSquare, Square, Trash2, Plus, ChevronDown, ChevronRight,
-  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, Luggage, UserPlus, Package, FolderPlus, Upload,
+  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, Luggage, UserPlus, Package, FolderPlus, Upload, Printer,
 } from 'lucide-react'
 import type { PackingItem } from '../../types'
 
@@ -768,7 +768,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('packing_edit', trip)
   const toast = useToast()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   // Trip members & category assignees
   const [tripMembers, setTripMembers] = useState<TripMember[]>([])
@@ -953,6 +953,27 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
   }, [saveTemplateSignal])
   const csvInputRef = useRef<HTMLInputElement>(null)
   const templateDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Print checklist (by category / by bag)
+  const [showPrintMenu, setShowPrintMenu] = useState(false)
+  const printMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!showPrintMenu) return
+    const handler = (e: MouseEvent) => {
+      if (printMenuRef.current && !printMenuRef.current.contains(e.target as Node)) setShowPrintMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showPrintMenu])
+
+  const handlePrintChecklist = async (groupBy: 'category' | 'bag') => {
+    setShowPrintMenu(false)
+    try {
+      const { downloadPackingListPDF } = await import('../PDF/PackingListPDF')
+      await downloadPackingListPDF({ trip, items, bags, groupBy, t, locale })
+    } catch { toast.error(t('common.error')) }
+  }
 
   useEffect(() => {
     adminApi.packingTemplates().then(d => setAvailableTemplates(d.templates || [])).catch(() => {})
@@ -1159,6 +1180,47 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
               }}>
                 <FolderPlus size={12} /> <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
               </button>
+            )}
+            {inlineHeader && items.length > 0 && (
+              <div ref={printMenuRef} style={{ position: 'relative' }}>
+                <button onClick={() => setShowPrintMenu(v => !v)} style={{
+                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
+                  border: '1px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+                  background: showPrintMenu ? 'var(--text-primary)' : 'var(--bg-card)',
+                  borderColor: showPrintMenu ? 'var(--text-primary)' : 'var(--border-primary)',
+                  color: showPrintMenu ? 'var(--bg-primary)' : 'var(--text-muted)',
+                }}>
+                  <Printer size={12} /> <span className="hidden sm:inline">{t('packing.print')}</span>
+                </button>
+                {showPrintMenu && (
+                  <div style={{
+                    position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 50,
+                    background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 190,
+                  }}>
+                    <button onClick={() => handlePrintChecklist('category')} style={{
+                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                      padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                      background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
+                    }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      {t('packing.printByCategory')}
+                    </button>
+                    {bagTrackingEnabled && bags.length > 0 && (
+                      <button onClick={() => handlePrintChecklist('bag')} style={{
+                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                        padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                        background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
+                      }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                        {t('packing.printByBag')}
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
             )}
             {bagTrackingEnabled && (
               <button onClick={() => setShowBagModal(true)} className="xl:!hidden"

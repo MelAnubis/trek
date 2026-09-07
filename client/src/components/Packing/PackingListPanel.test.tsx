@@ -1390,4 +1390,65 @@ describe('PackingListPanel', () => {
     expect(clickSpy).toHaveBeenCalled();
     clickSpy.mockRestore();
   });
+
+  it('FE-COMP-PACKING-070: print button shows "By category" but not "By bag" when bag tracking is disabled', async () => {
+    const user = userEvent.setup();
+    const items = [buildPackingItem({ name: 'Passport', category: 'Documents' })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    const printBtn = container.querySelector('svg.lucide-printer')?.closest('button');
+    expect(printBtn).toBeTruthy();
+    await user.click(printBtn!);
+
+    expect(await screen.findByText('By category')).toBeInTheDocument();
+    expect(screen.queryByText('By bag')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-071: print button shows "By bag" option when bag tracking is enabled with bags', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.get('/api/admin/bag-tracking', () =>
+        HttpResponse.json({ enabled: true })
+      ),
+      http.get('/api/trips/:id/packing/bags', () =>
+        HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
+      )
+    );
+    const items = [buildPackingItem({ name: 'Charger', category: 'Electronics' })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    await waitFor(() => expect(container.querySelector('svg.lucide-printer')).toBeTruthy());
+    const printBtn = container.querySelector('svg.lucide-printer')?.closest('button');
+    await user.click(printBtn!);
+
+    expect(await screen.findByText('By category')).toBeInTheDocument();
+    expect(screen.getByText('By bag')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-072: clicking "By category" opens the PDF preview overlay', async () => {
+    const user = userEvent.setup();
+    const items = [
+      buildPackingItem({ name: 'Passport', category: 'Documents' }),
+      buildPackingItem({ name: 'Sunscreen', category: 'Toiletries' }),
+    ];
+    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+
+    const printBtn = container.querySelector('svg.lucide-printer')?.closest('button');
+    await user.click(printBtn!);
+    await user.click(await screen.findByText('By category'));
+
+    await waitFor(() => {
+      expect(document.getElementById('pdf-preview-overlay')).toBeInTheDocument();
+    });
+    const iframe = document.querySelector('#pdf-preview-overlay iframe') as HTMLIFrameElement;
+    expect(iframe.srcdoc).toContain('Passport');
+    expect(iframe.srcdoc).toContain('Sunscreen');
+
+    document.getElementById('pdf-preview-overlay')?.remove();
+  });
+
+  it('FE-COMP-PACKING-073: print menu is not shown when there are no items', () => {
+    const { container } = render(<PackingListPanel tripId={1} items={[]} />);
+    expect(container.querySelector('svg.lucide-printer')).toBeFalsy();
+  });
 });
