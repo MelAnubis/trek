@@ -1181,7 +1181,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                 <FolderPlus size={12} /> <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
               </button>
             )}
-            {inlineHeader && items.length > 0 && (
+            {items.length > 0 && (
               <div ref={printMenuRef} style={{ position: 'relative' }}>
                 <button onClick={() => setShowPrintMenu(v => !v)} style={{
                   display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,

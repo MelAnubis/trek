@@ -1451,4 +1451,14 @@ describe('PackingListPanel', () => {
     const { container } = render(<PackingListPanel tripId={1} items={[]} />);
     expect(container.querySelector('svg.lucide-printer')).toBeFalsy();
   });
+
+  it('FE-COMP-PACKING-074: print button is shown even when inlineHeader is false (TripPlannerPage usage)', () => {
+    // TripPlannerPage renders PackingListPanel with inlineHeader={false} and
+    // hosts its own toolbar for Import/Save template/Clear checked — the
+    // print button must not depend on inlineHeader like those do, or it
+    // never appears in the real packing tab.
+    const items = [buildPackingItem({ name: 'Passport', category: 'Documents' })];
+    const { container } = render(<PackingListPanel tripId={1} items={items} inlineHeader={false} />);
+    expect(container.querySelector('svg.lucide-printer')).toBeTruthy();
+  });
 });
