@@ -84,17 +84,25 @@ describe('Bulk import links packing items to their Bikepack source', () => {
     expect(res.body.items[0].bikepack_item_id).toBe(bpItem.id);
   });
 
-  it('BKSYNC-002 — importing without bikepack_item_id leaves the item unlinked', async () => {
+  it('BKSYNC-002 — importing without bikepack_item_id (CSV import) creates and links a new Bikepack item', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/packing/import`)
       .set('Cookie', authCookie(user.id))
-      .send({ items: [{ name: 'Local-only item', category: 'Other' }] });
+      .send({ items: [{ name: 'Botiquín', category: 'Salud', weight_grams: 400, bag: 'Bolsa Cuadro' }] });
 
     expect(res.status).toBe(201);
-    expect(res.body.items[0].bikepack_item_id).toBeFalsy();
+    const newBikepackItemId = res.body.items[0].bikepack_item_id;
+    expect(newBikepackItemId).toBeTruthy();
+
+    const bpItem = testDb.prepare('SELECT * FROM bikepack_items WHERE id = ?').get(newBikepackItemId) as any;
+    expect(bpItem.name).toBe('Botiquín');
+    expect(bpItem.grupo).toBe('Salud');
+    expect(bpItem.peso).toBeCloseTo(0.4);
+    expect(bpItem.loc_c1).toBe('Bolsa Cuadro');
+    expect(Number(bpItem.user_id)).toBe(user.id);
   });
 });
 
@@ -169,24 +177,44 @@ describe('Editing a linked packing item syncs to Bikepack', () => {
     expect(packingItem.checked).toBe(1);
   });
 
-  it('BKSYNC-006 — editing an unlinked (locally-added) item never touches any bikepack_items row', async () => {
+  it('BKSYNC-006 — adding a new item directly in the trip creates its own linked Bikepack item, leaving pre-existing ones untouched', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
-    createBikepackItem(user.id, { name: 'Casco', peso: 0.3 });
+    const preExisting = createBikepackItem(user.id, { name: 'Casco', peso: 0.3 });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/packing`)
       .set('Cookie', authCookie(user.id))
-      .send({ name: 'Local item', category: 'Other' });
+      .send({ name: 'Guantes', category: 'Ropa' });
+    expect(createRes.body.item.bikepack_item_id).toBeTruthy();
+    expect(createRes.body.item.bikepack_item_id).not.toBe(preExisting.id);
 
     await request(app)
       .put(`/api/trips/${trip.id}/packing/${createRes.body.item.id}`)
       .set('Cookie', authCookie(user.id))
-      .send({ weight_grams: 999 });
+      .send({ weight_grams: 120 });
 
-    const bikepackItems = testDb.prepare('SELECT * FROM bikepack_items WHERE user_id = ?').all(user.id) as any[];
-    expect(bikepackItems).toHaveLength(1);
-    expect(bikepackItems[0].peso).toBeCloseTo(0.3);
+    // The pre-existing Bikepack item is untouched by the new item's edits...
+    const unchanged = testDb.prepare('SELECT * FROM bikepack_items WHERE id = ?').get(preExisting.id) as any;
+    expect(unchanged.peso).toBeCloseTo(0.3);
+    // ...while the new item's own linked Bikepack row did pick up the edit.
+    const own = testDb.prepare('SELECT * FROM bikepack_items WHERE id = ?').get(createRes.body.item.bikepack_item_id) as any;
+    expect(own.name).toBe('Guantes');
+    expect(own.grupo).toBe('Ropa');
+    expect(own.peso).toBeCloseTo(0.12);
+  });
+
+  it('BKSYNC-010 — the placeholder item seeded when creating a new category is never linked to Bikepack', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/packing`)
+      .set('Cookie', authCookie(user.id))
+      .send({ name: '...', category: 'Nueva categoría' });
+
+    expect(res.status).toBe(201);
+    expect(res.body.item.bikepack_item_id).toBeFalsy();
   });
 });
 

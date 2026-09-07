@@ -11,6 +11,7 @@ import {
   updateCategoryAssignees as updatePackingCategoryAssignees,
   applyTemplate, saveAsTemplate, bulkImport,
 } from '../../services/packingService';
+import { pushPackingItemToBikepack } from '../../services/bikepackSyncService';
 import {
   safeBroadcast, TOOL_ANNOTATIONS_READONLY, TOOL_ANNOTATIONS_WRITE, TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
@@ -42,7 +43,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, name, category }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const item = createPackingItem(tripId, { name, category: category || 'General' });
+      const item = createPackingItem(tripId, userId, { name, category: category || 'General' });
       safeBroadcast(tripId, 'packing:created', { item });
       return ok({ item });
     }
@@ -110,6 +111,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
       const item = updatePackingItem(tripId, itemId, { name, category }, bodyKeys);
       if (!item) return { content: [{ type: 'text' as const, text: 'Packing item not found.' }], isError: true };
       safeBroadcast(tripId, 'packing:updated', { item });
+      try { pushPackingItemToBikepack(item as any); } catch { /* sync to Bikepack is best-effort */ }
       return ok({ item });
     }
   );
@@ -326,7 +328,7 @@ export function registerPackingTools(server: McpServer, userId: number, scopes: 
     async ({ tripId, items }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      bulkImport(tripId, items);
+      bulkImport(tripId, userId, items);
       safeBroadcast(tripId, 'packing:updated', {});
       return ok({ success: true, count: items.length });
     }

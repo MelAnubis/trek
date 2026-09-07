@@ -220,7 +220,7 @@ describe('bulkImport with bag field', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const result = bulkImport(trip.id, [{ name: 'Shirt', bag: 'Carry-On' }]);
+    const result = bulkImport(trip.id, user.id, [{ name: 'Shirt', bag: 'Carry-On' }]);
 
     expect(result).toHaveLength(1);
     expect(result[0]).toBeDefined();
@@ -237,7 +237,7 @@ describe('bulkImport with bag field', () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
 
-    const result = bulkImport(trip.id, [
+    const result = bulkImport(trip.id, user.id, [
       { name: 'Shirt', bag: 'Carry-On' },
       { name: 'Pants', bag: 'Carry-On' },
     ]);

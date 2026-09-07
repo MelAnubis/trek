@@ -51,7 +51,7 @@ router.post('/import', authenticate, (req: Request, res: Response) => {
 
   if (!Array.isArray(items) || items.length === 0) return res.status(400).json({ error: 'items must be a non-empty array' });
 
-  const created = bulkImport(tripId, items);
+  const created = bulkImport(tripId, authReq.user.id, items);
 
   res.status(201).json({ items: created, count: created.length });
   for (const item of created) {
@@ -72,7 +72,7 @@ router.post('/', authenticate, (req: Request, res: Response) => {
 
   if (!name) return res.status(400).json({ error: 'Item name is required' });
 
-  const item = createItem(tripId, { name, category, checked });
+  const item = createItem(tripId, authReq.user.id, { name, category, checked });
   res.status(201).json({ item });
   broadcast(tripId, 'packing:created', { item }, req.headers['x-socket-id'] as string);
 });

@@ -21,13 +21,29 @@ export function resolveOrCreateBagByName(tripId: string | number, bagName: strin
 
 // ── Items ──────────────────────────────────────────────────────────────────
 
+// Seeded when a new category is created (see PackingListPanel.tsx) — a
+// throwaway placeholder, not real gear, so it shouldn't create Bikepack clutter.
+const PACKING_PLACEHOLDER_NAME = '...';
+
+// Creates the Bikepack master-profile counterpart for a freshly-added trip
+// item, so future edits on either side sync automatically (see
+// bikepackSyncService.ts). Returns null when linking isn't appropriate.
+function createLinkedBikepackItem(userId: number, data: { name: string; category?: string | null; weight_grams?: number | null; quantity?: number; bagName?: string | null }): number | null {
+  if (!data.name || data.name.trim() === PACKING_PLACEHOLDER_NAME) return null;
+  const peso = data.weight_grams != null ? data.weight_grams / 1000 : 0;
+  const qty = data.quantity && data.quantity > 0 ? data.quantity : 1;
+  const result = db.prepare('INSERT INTO bikepack_items (user_id, name, peso, grupo, loc_c1, uds_c1) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(userId, data.name.trim(), peso, data.category?.trim() || 'Accesorios', data.bagName?.trim() || '', qty);
+  return Number(result.lastInsertRowid);
+}
+
 export function listItems(tripId: string | number) {
   return db.prepare(
     'SELECT * FROM packing_items WHERE trip_id = ? ORDER BY sort_order ASC, created_at ASC'
   ).all(tripId);
 }
 
-export function createItem(tripId: string | number, data: { name: string; category?: string; checked?: boolean; quantity?: number }) {
+export function createItem(tripId: string | number, userId: number, data: { name: string; category?: string; checked?: boolean; quantity?: number }) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   const sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
   const qty = Math.max(1, Math.min(999, Number(data.quantity) || 1));
@@ -35,6 +51,11 @@ export function createItem(tripId: string | number, data: { name: string; catego
   const result = db.prepare(
     'INSERT INTO packing_items (trip_id, name, checked, category, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?)'
   ).run(tripId, data.name, data.checked ? 1 : 0, data.category || 'Allgemein', sortOrder, qty);
+
+  const bikepackItemId = createLinkedBikepackItem(userId, { name: data.name, category: data.category, quantity: qty });
+  if (bikepackItemId) {
+    db.prepare('UPDATE packing_items SET bikepack_item_id = ? WHERE id = ?').run(bikepackItemId, result.lastInsertRowid);
+  }
 
   return db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid);
 }
@@ -94,7 +115,7 @@ interface ImportItem {
   bikepack_item_id?: number;
 }
 
-export function bulkImport(tripId: string | number, items: ImportItem[]) {
+export function bulkImport(tripId: string | number, userId: number, items: ImportItem[]) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
@@ -108,7 +129,16 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
       const weight = item.weight_grams != null ? parseInt(String(item.weight_grams)) : null;
       const bagId = resolveOrCreateBagByName(tripId, item.bag);
       const qty = item.quantity && item.quantity > 0 ? parseInt(String(item.quantity)) : 1;
-      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty, item.bikepack_item_id ?? null);
+      const category = item.category?.trim() || 'Other';
+
+      // Items that already carry a bikepack_item_id came from "Importar
+      // desde Bikepack" and are already linked. Everything else (manual
+      // add, CSV import) gets a brand-new Bikepack counterpart created and
+      // linked, so it also shows up in — and stays in sync with — the
+      // user's own master gear list.
+      const bikepackItemId = item.bikepack_item_id ?? createLinkedBikepackItem(userId, { name: item.name, category, weight_grams: weight, quantity: qty, bagName: item.bag });
+
+      const result = stmt.run(tripId, item.name.trim(), checked, category, weight, bagId, sortOrder++, qty, bikepackItemId ?? null);
       created.push(db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid));
     }
   });
