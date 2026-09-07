@@ -4,7 +4,7 @@
  * Con soporte para asignar tracks a días y dividir GPX largo por etapas
  */
 import React, { useState, useEffect, useRef } from 'react'
-import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Calendar, Navigation } from 'lucide-react'
+import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Calendar, Navigation, Download } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import type { GpxTrack } from './ElevationDetail'
 import GpxSplitWizard from './GpxSplitWizard'
@@ -350,6 +350,15 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
           >
             <Navigation size={15} />
           </button>
+
+          {/* Download GPX (para pasarlo a un GPS Garmin y similares) */}
+          <a
+            href={`${API_BASE}/trips/${tripId}/gpx/${track.id}/download`}
+            title="Descargar GPX (para Garmin u otro GPS)"
+            style={{ display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6, color: 'var(--text-tertiary, #64748b)' }}
+          >
+            <Download size={15} />
+          </a>
 
           {/* Assign day */}
           <button title="Asignar a un día" onClick={() => setShowDayPicker(p => !p)}

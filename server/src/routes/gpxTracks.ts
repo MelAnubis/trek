@@ -543,6 +543,42 @@ router.get('/:trackId/points', authenticate, requireTripAccess, (req: Request, r
   }
 });
 
+// ── GET /api/trips/:id/gpx/:trackId/download ─────────────────────────────────
+// Descarga el track como fichero .gpx estándar (GPX 1.1), listo para copiar a
+// un GPS dedicado (Garmin y similares lo importan directamente).
+router.get('/:trackId/download', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const tripId  = (req as AuthRequest).params.id;
+  const trackId = req.params.trackId;
+  try {
+    const track = db.prepare(
+      'SELECT track_name, points_json FROM gpx_tracks WHERE id = ? AND trip_id = ?'
+    ).get(trackId, tripId) as any;
+    if (!track) return res.status(404).json({ error: 'Track not found' });
+
+    const points: { lat: number; lng: number; ele: number | null }[] = JSON.parse(track.points_json || '[]');
+    const escapeXml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const trackName = track.track_name || 'Track';
+    const ptLines = points.map(p =>
+      `      <trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}</trkpt>`
+    );
+    const xml = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<gpx version="1.1" creator="Trek" xmlns="http://www.topografix.com/GPX/1/1">',
+      `  <trk><name>${escapeXml(trackName)}</name><trkseg>`,
+      ...ptLines,
+      '  </trkseg></trk>',
+      '</gpx>',
+    ].join('\n');
+
+    const filename = `${trackName.replace(/[^a-z0-9]/gi, '_')}.gpx`;
+    res.setHeader('Content-Type', 'application/gpx+xml');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(xml);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── POST /api/trips/:id/gpx/upload ───────────────────────────────────────────
 router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'), async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
