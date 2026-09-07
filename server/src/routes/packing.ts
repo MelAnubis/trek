@@ -22,6 +22,7 @@ import {
   updateCategoryAssignees,
   reorderItems,
 } from '../services/packingService';
+import { pushPackingItemToBikepack } from '../services/bikepackSyncService';
 
 const router = express.Router({ mergeParams: true });
 
@@ -107,6 +108,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
 
   res.json({ item: updated });
   broadcast(tripId, 'packing:updated', { item: updated }, req.headers['x-socket-id'] as string);
+  try { pushPackingItemToBikepack(updated as any); } catch { /* sync to Bikepack is best-effort */ }
 });
 
 router.delete('/:id', authenticate, (req: Request, res: Response) => {

@@ -7,6 +7,18 @@ export function verifyTripAccess(tripId: string | number, userId: number) {
   return canAccessTrip(tripId, userId);
 }
 
+// Finds a trip's packing bag by name, creating it if it doesn't exist yet.
+// Returns null for an empty/blank name (item has no bag).
+export function resolveOrCreateBagByName(tripId: string | number, bagName: string | null | undefined): number | null {
+  const name = bagName?.trim();
+  if (!name) return null;
+  const existing = db.prepare('SELECT id FROM packing_bags WHERE trip_id = ? AND name = ?').get(tripId, name) as { id: number } | undefined;
+  if (existing) return existing.id;
+  const bagCount = (db.prepare('SELECT COUNT(*) as c FROM packing_bags WHERE trip_id = ?').get(tripId) as { c: number }).c;
+  const newBag = db.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(tripId, name, BAG_COLORS[bagCount % BAG_COLORS.length]);
+  return Number(newBag.lastInsertRowid);
+}
+
 // ── Items ──────────────────────────────────────────────────────────────────
 
 export function listItems(tripId: string | number) {
@@ -78,13 +90,15 @@ interface ImportItem {
   category?: string;
   weight_grams?: string | number;
   bag?: string;
+  quantity?: number;
+  bikepack_item_id?: number;
 }
 
 export function bulkImport(tripId: string | number, items: ImportItem[]) {
   const maxOrder = db.prepare('SELECT MAX(sort_order) as max FROM packing_items WHERE trip_id = ?').get(tripId) as { max: number | null };
   let sortOrder = (maxOrder.max !== null ? maxOrder.max : -1) + 1;
 
-  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+  const stmt = db.prepare('INSERT INTO packing_items (trip_id, name, checked, category, weight_grams, bag_id, sort_order, quantity, bikepack_item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
   const created: any[] = [];
 
   const insertAll = db.transaction(() => {
@@ -92,23 +106,9 @@ export function bulkImport(tripId: string | number, items: ImportItem[]) {
       if (!item.name?.trim()) continue;
       const checked = item.checked ? 1 : 0;
       const weight = item.weight_grams != null ? parseInt(String(item.weight_grams)) : null;
-
-      // Resolve bag by name if provided
-      let bagId = null;
-      if (item.bag?.trim()) {
-        const bagName = item.bag.trim();
-        const existing = db.prepare('SELECT id FROM packing_bags WHERE trip_id = ? AND name = ?').get(tripId, bagName) as { id: number } | undefined;
-        if (existing) {
-          bagId = existing.id;
-        } else {
-          const bagCount = (db.prepare('SELECT COUNT(*) as c FROM packing_bags WHERE trip_id = ?').get(tripId) as { c: number }).c;
-          const newBag = db.prepare('INSERT INTO packing_bags (trip_id, name, color) VALUES (?, ?, ?)').run(tripId, bagName, BAG_COLORS[bagCount % BAG_COLORS.length]);
-          bagId = newBag.lastInsertRowid;
-        }
-      }
-
+      const bagId = resolveOrCreateBagByName(tripId, item.bag);
       const qty = item.quantity && item.quantity > 0 ? parseInt(String(item.quantity)) : 1;
-      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty);
+      const result = stmt.run(tripId, item.name.trim(), checked, item.category?.trim() || 'Other', weight, bagId, sortOrder++, qty, item.bikepack_item_id ?? null);
       created.push(db.prepare('SELECT * FROM packing_items WHERE id = ?').get(result.lastInsertRowid));
     }
   });

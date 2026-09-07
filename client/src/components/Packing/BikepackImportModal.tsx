@@ -68,6 +68,10 @@ export default function BikepackImportModal({ tripId, onClose, onImported }: Pro
         weight_grams:  item.weight_grams,
         // Enviamos el nombre de la bolsa para que packingService la resuelva
         bag:           item.bag_names.length > 0 ? item.bag_names[0] : undefined,
+        // Enlaza el artículo importado con su origen en Bikepack, para que
+        // los cambios posteriores (nombre, categoría, peso, cantidad, bolsa)
+        // se sincronicen automáticamente en ambos sentidos.
+        bikepack_item_id: item.id,
       }))
 
       await packingApi.bulkImport(tripId, itemsToImport)

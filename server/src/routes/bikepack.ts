@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { db } from '../db/database';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { pushBikepackItemToTrips } from '../services/bikepackSyncService';
 
 const router = express.Router();
 
@@ -168,8 +169,11 @@ router.patch('/items/:id', authenticate, (req: Request, res: Response) => {
   }
   if (!updates.length) return res.status(400).json({ error: 'nothing to update' });
   vals.push(id, userId);
-  db.prepare(`UPDATE bikepack_items SET ${updates.join(',')} WHERE id=? AND user_id=?`).run(...vals);
+  const info = db.prepare(`UPDATE bikepack_items SET ${updates.join(',')} WHERE id=? AND user_id=?`).run(...vals);
   res.json(db.prepare('SELECT * FROM bikepack_items WHERE id=?').get(id));
+  if (info.changes > 0) {
+    try { pushBikepackItemToTrips(id); } catch { /* sync to trips is best-effort */ }
+  }
 });
 
 router.delete('/items/:id', authenticate, (req: Request, res: Response) => {

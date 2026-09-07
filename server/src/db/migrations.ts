@@ -2490,6 +2490,12 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_live_location_points_share ON live_location_points(share_id, recorded_at);
       `);
     },
+    // Link packing_items to the bikepack_items they were imported from, so
+    // edits on either side can stay in sync. ON DELETE SET NULL: deleting the
+    // master Bikepack item only unlinks trip items, it never deletes them.
+    () => {
+      try { db.exec('ALTER TABLE packing_items ADD COLUMN bikepack_item_id INTEGER REFERENCES bikepack_items(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {
