@@ -151,15 +151,16 @@ export function createFile(
   tripId: string | number,
   file: { filename: string; originalname: string; size: number; mimetype: string },
   uploadedBy: number,
-  opts: { place_id?: string | null; reservation_id?: string | null; description?: string | null }
+  opts: { place_id?: string | null; reservation_id?: string | null; budget_item_id?: string | null; description?: string | null }
 ) {
   const result = db.prepare(`
-    INSERT INTO trip_files (trip_id, place_id, reservation_id, filename, original_name, file_size, mime_type, description, uploaded_by)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO trip_files (trip_id, place_id, reservation_id, budget_item_id, filename, original_name, file_size, mime_type, description, uploaded_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId,
     opts.place_id || null,
     opts.reservation_id || null,
+    opts.budget_item_id || null,
     file.filename,
     file.originalname,
     file.size,
@@ -175,18 +176,20 @@ export function createFile(
 export function updateFile(
   id: string | number,
   current: TripFile,
-  updates: { description?: string; place_id?: string | null; reservation_id?: string | null }
+  updates: { description?: string; place_id?: string | null; reservation_id?: string | null; budget_item_id?: string | null }
 ) {
   db.prepare(`
     UPDATE trip_files SET
       description = ?,
       place_id = ?,
-      reservation_id = ?
+      reservation_id = ?,
+      budget_item_id = ?
     WHERE id = ?
   `).run(
     updates.description !== undefined ? updates.description : current.description,
     updates.place_id !== undefined ? (updates.place_id || null) : current.place_id,
     updates.reservation_id !== undefined ? (updates.reservation_id || null) : current.reservation_id,
+    updates.budget_item_id !== undefined ? (updates.budget_item_id || null) : current.budget_item_id,
     id
   );
 

@@ -202,6 +202,7 @@ interface DayPlanSidebarProps {
   onAddBookingToAssignment?: (dayId: number, assignmentId: number) => void
   initialScrollTop?: number
   onScrollTopChange?: (top: number) => void
+  mapTileUrl?: string
 }
 
 const DayPlanSidebar = React.memo(function DayPlanSidebar({
@@ -232,6 +233,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   onAddBookingToAssignment,
   initialScrollTop,
   onScrollTopChange,
+  mapTileUrl,
 }: DayPlanSidebarProps) {
   const toast = useToast()
   const { t, language, locale } = useTranslation()
@@ -879,7 +881,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   notes.map(n => ({ ...n, day_id: Number(dayId) }))
                 )
                 try {
-                  await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale })
+                  await downloadTripPDF({ trip, days, places, assignments, categories, dayNotes: flatNotes, reservations, t, locale, tileUrlTemplate: mapTileUrl })
                 } catch (e) {
                   console.error('PDF error:', e)
                   toast.error(t('dayplan.pdfError') + ': ' + (e?.message || String(e)))

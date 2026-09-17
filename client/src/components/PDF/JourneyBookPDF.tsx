@@ -1,18 +1,14 @@
 // Journey Photo Book PDF — Polarsteps-inspired, magazine-density
 import { marked } from 'marked'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
+import { formatMoney, currencyLocale } from '../../utils/formatters'
+import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
 
-// ── GPX types passed in from the page ─────────────────────────────────────────
-export interface PdfGpxTrack {
-  id: number
-  track_name: string
-  total_distance: number        // km
-  total_elevation_gain: number  // m
-  total_elevation_loss: number  // m
-  max_elevation: number | null  // m
-  min_elevation: number | null  // m
-  ibp?: number | null
-  points: { lat: number; lng: number; ele: number | null }[]
+export type { PdfGpxTrack }
+
+export interface PdfExpenseTotal {
+  currency: string
+  amount: number
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -54,15 +50,6 @@ function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
     groups.get(e.entry_date)!.push(e)
   }
   return groups
-}
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLng = (lng2 - lng1) * Math.PI / 180
-  const a = Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 function renderProscons(entry: JourneyEntry): string {
@@ -226,106 +213,22 @@ function buildRouteCardSvg(entries: JourneyEntry[], tracks: PdfGpxTrack[]): stri
   </svg>`
 }
 
-// ── Elevation profile SVG ─────────────────────────────────────────────────────
-
-function buildElevationSvg(tracks: PdfGpxTrack[]): string {
-  const W = 760, H = 140
-
-  // Build cumulative-distance+elevation series from all tracks
-  const pts: { d: number; e: number }[] = []
-  let cumD = 0
-
-  for (const track of tracks) {
-    const elePts = track.points.filter(p => p.ele != null)
-    if (elePts.length < 2) continue
-    // Sample to ~400 points per track
-    const step = Math.max(1, Math.floor(elePts.length / 400))
-    let prev: typeof elePts[0] | null = null
-    for (let i = 0; i < elePts.length; i += step) {
-      const p = elePts[i]
-      if (prev) cumD += haversineKm(prev.lat, prev.lng, p.lat, p.lng)
-      pts.push({ d: cumD, e: p.ele! })
-      prev = p
-    }
-    // ensure last point is captured
-    const lastP = elePts[elePts.length - 1]
-    if (prev && lastP !== prev) {
-      cumD += haversineKm(prev.lat, prev.lng, lastP.lat, lastP.lng)
-      pts.push({ d: cumD, e: lastP.ele! })
-    }
-  }
-
-  if (pts.length < 2) return ''
-
-  const minE = Math.min(...pts.map(p => p.e))
-  const maxE = Math.max(...pts.map(p => p.e))
-  const maxD = pts[pts.length - 1].d
-  if (maxD === 0) return ''
-
-  const PAD = { t: 16, r: 8, b: 28, l: 46 }
-  const cW = W - PAD.l - PAD.r
-  const cH = H - PAD.t - PAD.b
-  const eRange = maxE - minE || 1
-
-  const px = (d: number) => PAD.l + (d / maxD) * cW
-  const py = (e: number) => PAD.t + (1 - (e - minE) / eRange) * cH
-
-  // Build filled path
-  const linePts = pts.map(p => `${px(p.d).toFixed(1)},${py(p.e).toFixed(1)}`).join(' ')
-  const areaPath = `M${px(0).toFixed(1)},${py(pts[0].e).toFixed(1)} ` +
-    pts.slice(1).map(p => `L${px(p.d).toFixed(1)},${py(p.e).toFixed(1)}`).join(' ') +
-    ` L${px(maxD).toFixed(1)},${(PAD.t + cH).toFixed(1)} L${PAD.l},${(PAD.t + cH).toFixed(1)} Z`
-
-  // Y-axis labels (elevation)
-  const yLabels: string[] = []
-  const nYTicks = 4
-  for (let i = 0; i <= nYTicks; i++) {
-    const e = minE + (eRange * i / nYTicks)
-    const y = py(e)
-    yLabels.push(`<text x="${(PAD.l - 4).toFixed(1)}" y="${(y + 3).toFixed(1)}" text-anchor="end" font-size="7.5" fill="#94a3b8" font-family="Inter,sans-serif">${Math.round(e)}</text>`)
-    yLabels.push(`<line x1="${PAD.l}" y1="${y.toFixed(1)}" x2="${(PAD.l + cW).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#e2e8f0" stroke-width="0.5" stroke-dasharray="3,3"/>`)
-  }
-
-  // X-axis labels (distance)
-  const xLabels: string[] = []
-  const nXTicks = Math.min(8, Math.ceil(maxD))
-  for (let i = 0; i <= nXTicks; i++) {
-    const d = maxD * i / nXTicks
-    const x = px(d)
-    xLabels.push(`<text x="${x.toFixed(1)}" y="${(PAD.t + cH + 14).toFixed(1)}" text-anchor="middle" font-size="7" fill="#94a3b8" font-family="Inter,sans-serif">${d.toFixed(1)}</text>`)
-  }
-
-  // km label
-  xLabels.push(`<text x="${(PAD.l + cW / 2).toFixed(1)}" y="${(H - 1).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#cbd5e1" font-family="Inter,sans-serif">km</text>`)
-  // m label
-  yLabels.push(`<text x="2" y="${(PAD.t + cH / 2).toFixed(1)}" text-anchor="middle" font-size="6.5" fill="#cbd5e1" font-family="Inter,sans-serif" transform="rotate(-90,2,${(PAD.t + cH / 2).toFixed(1)})">m</text>`)
-
-  return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">
-    <defs>
-      <linearGradient id="eleGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#0d9488" stop-opacity="0.45"/>
-        <stop offset="100%" stop-color="#0d9488" stop-opacity="0.04"/>
-      </linearGradient>
-    </defs>
-    <rect width="${W}" height="${H}" fill="white"/>
-    ${yLabels.join('')}
-    ${xLabels.join('')}
-    <path d="${areaPath}" fill="url(#eleGrad)"/>
-    <polyline points="${linePts}" fill="none" stroke="#0d9488" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-    <!-- baseline -->
-    <line x1="${PAD.l}" y1="${(PAD.t + cH).toFixed(1)}" x2="${(PAD.l + cW).toFixed(1)}" y2="${(PAD.t + cH).toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>
-    <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${(PAD.t + cH).toFixed(1)}" stroke="#e2e8f0" stroke-width="1"/>
-  </svg>`
-}
-
 // ── Route page HTML ───────────────────────────────────────────────────────────
 
-function buildRoutePage(
+async function buildRoutePage(
   entries: JourneyEntry[],
   tracks: PdfGpxTrack[],
-): string {
-  const mapSvg = buildRouteCardSvg(entries, tracks)
-  if (!mapSvg) return ''  // no coordinates at all
+  tileUrlTemplate: string,
+  expenses: PdfExpenseTotal[],
+): Promise<string> {
+  // Prefer a real basemap with the track painted over it; fall back to the
+  // vector-only card (no network/canvas, always works) if tiles can't be
+  // rendered in time.
+  const rasterMap = await withTimeout(buildRouteMapImage(entries, tracks, tileUrlTemplate), 15000).catch(() => null)
+  const mapMarkup = rasterMap
+    ? `<img src="${rasterMap}" style="width:100%;height:100%;object-fit:cover;display:block;" />`
+    : buildRouteCardSvg(entries, tracks)
+  if (!mapMarkup) return ''  // no coordinates at all
 
   // Aggregate stats across all tracks
   const totalDist = tracks.reduce((s, t) => s + (t.total_distance || 0), 0)
@@ -340,17 +243,23 @@ function buildRoutePage(
   // Elevation profile SVG (bikes / significant elevation)
   const elevSvg = (hasEle || hasIbp) ? buildElevationSvg(tracks) : ''
 
+  const expensePills = expenses
+    .filter(e => e.amount > 0)
+    .map(e => `<div class="rstat"><div class="rstat-val">${esc(formatMoney(e.amount, e.currency, currencyLocale(e.currency)))}</div><div class="rstat-lbl">Total expenses${expenses.length > 1 ? ` (${esc(e.currency.toUpperCase())})` : ''}</div></div>`)
+    .join('')
+
   const statPills = [
     totalDist > 0  ? `<div class="rstat"><div class="rstat-val">${totalDist.toFixed(1)} km</div><div class="rstat-lbl">Distance</div></div>` : '',
     totalGain > 0  ? `<div class="rstat"><div class="rstat-val">↑ ${Math.round(totalGain).toLocaleString()} m</div><div class="rstat-lbl">Elevation gain</div></div>` : '',
     totalLoss > 0  ? `<div class="rstat"><div class="rstat-val">↓ ${Math.round(totalLoss).toLocaleString()} m</div><div class="rstat-lbl">Elevation loss</div></div>` : '',
     maxEle != null ? `<div class="rstat"><div class="rstat-val">${Math.round(maxEle).toLocaleString()} m</div><div class="rstat-lbl">Max elevation</div></div>` : '',
+    expensePills,
   ].filter(Boolean).join('')
 
   return `
   <div class="route-page">
     <div class="route-section-label">Route Overview</div>
-    <div class="route-map-wrap">${mapSvg}</div>
+    <div class="route-map-wrap">${mapMarkup}</div>
     ${statPills ? `<div class="route-stats">${statPills}</div>` : ''}
     ${elevSvg ? `
     <div class="route-ele-label">Elevation Profile</div>
@@ -361,7 +270,12 @@ function buildRoutePage(
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: PdfGpxTrack[] = []) {
+export async function downloadJourneyBookPDF(
+  journey: JourneyDetail,
+  tracks: PdfGpxTrack[] = [],
+  tileUrlTemplate: string = DEFAULT_TILE_URL,
+  expenses: PdfExpenseTotal[] = [],
+) {
   const entries = (journey.entries || []).filter(e => e.type !== 'skeleton' && e.type !== 'gallery')
   const allPhotos = entries.flatMap(e => e.photos || [])
   const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
@@ -370,7 +284,7 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: Pdf
   const dates = [...grouped.keys()].sort()
 
   // Route page (inserted between TOC and entries)
-  const routePageHtml = buildRoutePage(entries, tracks)
+  const routePageHtml = await buildRoutePage(entries, tracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
   const hasRoutePage = routePageHtml.length > 0
 
   // Build entry pages
@@ -474,6 +388,7 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: Pdf
   }
   .route-map-wrap { flex: 1; min-height: 0; overflow: hidden; border-radius: 10pt; }
   .route-map-wrap svg { width: 100%; height: 100%; object-fit: contain; }
+  .route-map-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .route-stats { display: flex; gap: 24pt; flex-shrink: 0; }
   .rstat { }
   .rstat-val { font-size: 14pt; font-weight: 700; color: #2dd4bf; letter-spacing: -0.02em; }

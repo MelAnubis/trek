@@ -1,22 +1,23 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2, Wallet, Paperclip, ScanLine, Loader2, X, FileText } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import { budgetApi } from '../../api/client'
+import { budgetApi, filesApi } from '../../api/client'
 import { useExchangeRates } from '../../hooks/useExchangeRates'
 import { useIsMobile } from '../../hooks/useIsMobile'
 import { formatMoney, currencyDecimals, currencyLocale } from '../../utils/formatters'
+import { normalizeImageFiles } from '../../utils/convertHeic'
 import Modal from '../shared/Modal'
 import CustomSelect from '../shared/CustomSelect'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import { SYMBOLS, CURRENCIES, SPLIT_COLORS } from './BudgetPanel.constants'
 import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
-import type { BudgetItem } from '../../types'
+import type { BudgetItem, TripFile } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 
 interface CostsPanelProps {
@@ -661,6 +662,16 @@ function SettleHistory({ settlements, fmt, Avatar, name, onUndo, canEdit }: {
   )
 }
 
+// Divides `total` into `n` shares down to the cent, so the shares always sum
+// back to exactly `total` regardless of rounding (e.g. 10.00 / 3 → 3.34/3.33/3.33).
+function splitEqually(total: number, n: number): number[] {
+  if (n <= 0) return []
+  const cents = Math.round(total * 100)
+  const base = Math.floor(cents / n)
+  const remainder = cents - base * n
+  return Array.from({ length: n }, (_, i) => (base + (i < remainder ? 1 : 0)) / 100)
+}
+
 // ── Add / edit expense modal ───────────────────────────────────────────────
 function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
   tripId: number; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; onClose: () => void; onSaved: () => void
@@ -684,14 +695,97 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
   const [saving, setSaving] = useState(false)
 
-  const payersTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
+  // "Paid from a shared kitty": a single total, auto-split equally across
+  // everyone in "split" — no one is individually tracked as the payer, since
+  // it came out of a pot everyone already put into.
+  const [sharedPayment, setSharedPayment] = useState(false)
+  const [sharedTotal, setSharedTotal] = useState('')
+
+  // Receipt / document attachments. Editing an existing item uploads (and
+  // links via budget_item_id) right away; a brand-new item has no id yet, so
+  // picked files are queued and uploaded right after the item is created.
+  const [attachments, setAttachments] = useState<TripFile[]>([])
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+  const [uploadingAttachment, setUploadingAttachment] = useState(false)
+  const [scanning, setScanning] = useState(false)
+  const attachRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editing) return
+    filesApi.list(tripId).then(({ files }: { files: TripFile[] }) => {
+      setAttachments(files.filter(f => f.budget_item_id === editing.id))
+    }).catch(() => {})
+  }, [editing, tripId])
+
+  const uploadAttachment = async (file: File, budgetItemId: number): Promise<TripFile> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('budget_item_id', String(budgetItemId))
+    const { file: uploaded } = await filesApi.upload(tripId, fd)
+    return uploaded
+  }
+
+  const removeAttachment = async (file: TripFile) => {
+    try {
+      await filesApi.delete(tripId, file.id)
+      setAttachments(prev => prev.filter(f => f.id !== file.id))
+    } catch { toast.error(t('common.unknownError')) }
+  }
+
+  // Fire-and-forget: a failed/unconfigured scan just means the traveler
+  // fills the form by hand, same as before this feature existed.
+  const scanReceiptPhoto = async (file: File) => {
+    setScanning(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const { result } = await budgetApi.scanReceipt(tripId, fd)
+      if (result?.name) setName(result.name)
+      if (result?.category) setCat(result.category)
+      if (result?.currency) setCurrency(result.currency)
+      if (result?.expense_date) setDay(result.expense_date)
+      if (result?.total_price != null) {
+        if (sharedPayment) setSharedTotal(String(result.total_price))
+        else setPayers(prev => ({ ...prev, [me]: String(result.total_price) }))
+      }
+    } catch { /* no AI key configured, or scan failed — attach-only is still fine */ }
+    finally { setScanning(false) }
+  }
+
+  const handleAttachFiles = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return
+    const normalized = await normalizeImageFiles(fileList)
+    // Only the first photo of a fresh expense triggers a scan — scanning
+    // several at once would just overwrite each other's prefill.
+    let shouldScan = attachments.length === 0 && pendingFiles.length === 0
+    for (const file of normalized) {
+      if (shouldScan && file.type.startsWith('image/')) {
+        shouldScan = false
+        scanReceiptPhoto(file)
+      }
+      if (editing) {
+        setUploadingAttachment(true)
+        try {
+          const uploaded = await uploadAttachment(file, editing.id)
+          setAttachments(prev => [...prev, uploaded])
+        } catch { toast.error(t('common.unknownError')) } finally { setUploadingAttachment(false) }
+      } else {
+        setPendingFiles(prev => [...prev, file])
+      }
+    }
+  }
+
+  const manualTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
+  const payersTotal = sharedPayment ? (parseFloat(sharedTotal) || 0) : manualTotal
   const each = split.size > 0 ? payersTotal / split.size : 0
   const valid = name.trim().length > 0 && split.size > 0 && payersTotal > 0
 
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = Object.entries(payers).map(([uid, v]) => ({ user_id: Number(uid), amount: parseFloat(v) || 0 })).filter(p => p.amount > 0)
+    const payerList = sharedPayment
+      ? [...split].map((uid, i) => ({ user_id: uid, amount: splitEqually(payersTotal, split.size)[i] })).filter(p => p.amount > 0)
+      : Object.entries(payers).map(([uid, v]) => ({ user_id: Number(uid), amount: parseFloat(v) || 0 })).filter(p => p.amount > 0)
     const data = {
       name: name.trim(), category: cat,
       // Store the actual currency the amounts were entered in; conversion to the
@@ -701,8 +795,14 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
       expense_date: day || null,
     }
     try {
-      if (editing) await updateBudgetItem(tripId, editing.id, data)
-      else await addBudgetItem(tripId, data)
+      if (editing) {
+        await updateBudgetItem(tripId, editing.id, data)
+      } else {
+        const created = await addBudgetItem(tripId, data)
+        for (const file of pendingFiles) {
+          try { await uploadAttachment(file, created.id) } catch { /* non-fatal — expense is saved either way */ }
+        }
+      }
       onSaved()
     } catch { toast.error(t('common.unknownError')) } finally { setSaving(false) }
   }
@@ -728,7 +828,13 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            {sharedPayment ? (
+              <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={sharedTotal}
+                onChange={e => setSharedTotal(e.target.value)}
+                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, padding: '8px 0 8px 6px' }} />
+            ) : (
+              <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            )}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -771,20 +877,39 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
         </div>
 
         <div>
-          <label className={labelCls}>{t('costs.whoPaid')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {people.map(p => (
-              <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10 }}>
-                <span className="text-content" style={{ fontSize: 14, fontWeight: 500 }}>{p.id === me ? t('costs.you') : p.username}</span>
-                <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
-                  <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                  <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={payers[p.id] || ''}
-                    onChange={e => setPayers(prev => ({ ...prev, [p.id]: e.target.value }))}
-                    className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+            <label className={labelCls} style={{ margin: 0 }}>{t('costs.whoPaid')}</label>
+            <button
+              type="button"
+              onClick={() => setSharedPayment(v => {
+                const next = !v
+                if (next && !sharedTotal && manualTotal > 0) setSharedTotal(manualTotal.toFixed(2))
+                return next
+              })}
+              className={sharedPayment ? 'bg-surface-card text-content border' : 'bg-surface-secondary text-content-faint border border-edge'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', borderColor: sharedPayment ? 'var(--text-primary)' : undefined }}
+            >
+              <Wallet size={12} />
+              {t('costs.sharedPayment')}
+            </button>
           </div>
+          {sharedPayment ? (
+            <p className="text-content-faint" style={{ fontSize: 12.5, margin: 0 }}>{t('costs.sharedPaymentHint')}</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {people.map(p => (
+                <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10 }}>
+                  <span className="text-content" style={{ fontSize: 14, fontWeight: 500 }}>{p.id === me ? t('costs.you') : p.username}</span>
+                  <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                    <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
+                    <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={payers[p.id] || ''}
+                      onChange={e => setPayers(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
@@ -806,6 +931,46 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
           </div>
           <div className="text-content-faint" style={{ marginTop: 10, fontSize: 12.5 }}>
             {split.size === 0 ? t('costs.pickSomeone') : t('costs.splitSummary', { count: split.size, amount: sym(currency) + each.toFixed(2) })}
+          </div>
+        </div>
+
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+            <label className={labelCls} style={{ margin: 0 }}>{t('costs.attachments')}</label>
+            {scanning && (
+              <span className="text-content-faint" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11.5 }}>
+                <Loader2 size={12} className="animate-spin" /> {t('costs.scanningReceipt')}
+              </span>
+            )}
+          </div>
+          <input ref={attachRef} type="file" accept="image/*,.pdf" multiple aria-label={t('costs.attachments')} onChange={e => { handleAttachFiles(e.target.files); e.target.value = '' }} className="hidden" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {attachments.map(file => (
+              <div key={file.id} className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 10 }}>
+                {file.mime_type?.startsWith('image/')
+                  ? <img src={file.url} alt="" style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
+                  : <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--surface-input)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><FileText size={14} className="text-content-faint" /></span>}
+                <span className="text-content" style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.original_name}</span>
+                <button type="button" onClick={() => removeAttachment(file)} className="text-content-faint" style={{ background: 'none', border: 0, cursor: 'pointer', display: 'flex', padding: 2 }}><X size={13} /></button>
+              </div>
+            ))}
+            {pendingFiles.map((file, i) => (
+              <div key={i} className="bg-surface-secondary border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderRadius: 10 }}>
+                <span style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--surface-input)', display: 'grid', placeItems: 'center', flexShrink: 0 }}><Paperclip size={13} className="text-content-faint" /></span>
+                <span className="text-content" style={{ fontSize: 12.5, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</span>
+                <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, idx) => idx !== i))} className="text-content-faint" style={{ background: 'none', border: 0, cursor: 'pointer', display: 'flex', padding: 2 }}><X size={13} /></button>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: attachments.length || pendingFiles.length ? 8 : 0, flexWrap: 'wrap' }}>
+            <button type="button" onClick={() => attachRef.current?.click()} disabled={uploadingAttachment}
+              className="bg-surface-secondary text-content-muted border border-edge disabled:opacity-50"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <ScanLine size={13} /> {t('costs.addAttachment')}
+            </button>
+            {attachments.length === 0 && pendingFiles.length === 0 && (
+              <span className="text-content-faint" style={{ fontSize: 11.5 }}>{t('costs.scanReceiptHint')}</span>
+            )}
           </div>
         </div>
       </div>

@@ -509,12 +509,20 @@ export const budgetApi = {
   deleteSettlement: (tripId: number | string, settlementId: number) => apiClient.delete(`/trips/${tripId}/budget/settlements/${settlementId}`).then(r => r.data),
   reorderItems: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/budget/reorder/items`, { orderedIds }).then(r => r.data),
   reorderCategories: (tripId: number | string, orderedCategories: string[]) => apiClient.put(`/trips/${tripId}/budget/reorder/categories`, { orderedCategories }).then(r => r.data),
+  scanReceipt: (tripId: number | string, formData: FormData) => apiClient.post(`/trips/${tripId}/budget/scan-receipt`, formData, {
+    headers: { 'Content-Type': undefined },
+  }).then(r => r.data),
 }
 
 export const filesApi = {
   list: (tripId: number | string, trash?: boolean) => apiClient.get(`/trips/${tripId}/files`, { params: trash ? { trash: 'true' } : {} }).then(r => r.data),
+  // Explicitly unset Content-Type: the apiClient instance otherwise defaults
+  // it to application/json, which — without this override — wins over
+  // axios's own FormData detection and gets sent as-is on a multipart body,
+  // which the server can't parse. Clearing it here lets axios generate the
+  // correct multipart boundary itself.
   upload: (tripId: number | string, formData: FormData) => apiClient.post(`/trips/${tripId}/files`, formData, {
-    headers: { 'Content-Type': 'multipart/form-data' }
+    headers: { 'Content-Type': undefined },
   }).then(r => r.data),
   update: (tripId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/files/${id}`, data).then(r => r.data),
   delete: (tripId: number | string, id: number) => apiClient.delete(`/trips/${tripId}/files/${id}`).then(r => r.data),

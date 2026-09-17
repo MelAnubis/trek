@@ -139,8 +139,8 @@ router.post('/', authenticate, requireTripAccess, demoUploadBlock, upload.single
 
   if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-  const { place_id, description, reservation_id } = req.body;
-  const created = createFile(tripId, req.file, authReq.user.id, { place_id, description, reservation_id });
+  const { place_id, description, reservation_id, budget_item_id } = req.body;
+  const created = createFile(tripId, req.file, authReq.user.id, { place_id, description, reservation_id, budget_item_id });
   res.status(201).json({ file: created });
   broadcast(tripId, 'file:created', { file: created }, req.headers['x-socket-id'] as string);
 });
@@ -149,7 +149,7 @@ router.post('/', authenticate, requireTripAccess, demoUploadBlock, upload.single
 router.put('/:id', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, id } = req.params;
-  const { description, place_id, reservation_id } = req.body;
+  const { description, place_id, reservation_id, budget_item_id } = req.body;
 
   const access = verifyTripAccess(tripId, authReq.user.id);
   if (!access) return res.status(404).json({ error: 'Trip not found' });
@@ -159,7 +159,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   const file = getFileById(id, tripId);
   if (!file) return res.status(404).json({ error: 'File not found' });
 
-  const updated = updateFile(id, file, { description, place_id, reservation_id });
+  const updated = updateFile(id, file, { description, place_id, reservation_id, budget_item_id });
   res.json({ file: updated });
   broadcast(tripId, 'file:updated', { file: updated }, req.headers['x-socket-id'] as string);
 });

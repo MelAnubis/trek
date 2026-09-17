@@ -963,14 +963,19 @@ describe('JourneyDetailPage', () => {
   });
 
   // ── Helper: open settings dialog ────────────────────────────────────────
+  // The "..." button now opens a dropdown menu (Journey Settings / Delete)
+  // instead of the settings dialog directly, so this clicks through it.
   async function openSettingsDialog(user: ReturnType<typeof userEvent.setup>) {
     const heroTitle = screen.getByText('Italy 2026');
     const heroCard = heroTitle.closest('[style]') as HTMLElement;
     const heroButtons = heroCard!.querySelectorAll('button');
     await user.click(heroButtons[heroButtons.length - 1] as HTMLElement);
 
+    const settingsMenuItem = await screen.findByRole('menuitem', { name: 'Journey Settings' });
+    await user.click(settingsMenuItem);
+
     await waitFor(() => {
-      expect(screen.getByText('Journey Settings')).toBeInTheDocument();
+      expect(screen.getByText('Cover Image')).toBeInTheDocument();
     });
   }
 
@@ -1402,6 +1407,25 @@ describe('JourneyDetailPage', () => {
 
       // The ConfirmDialog mock always renders (no isOpen gate).
       // After clicking Delete, the delete-journey confirm message should appear.
+      await waitFor(() => {
+        expect(screen.getByText(/Delete "Italy 2026"\? All entries and photos will be lost\./)).toBeInTheDocument();
+      });
+    });
+
+    it('the "..." menu offers Delete journey directly, without opening Settings first', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+
+      const heroTitle = screen.getByText('Italy 2026');
+      const heroCard = heroTitle.closest('[style]') as HTMLElement;
+      const heroButtons = heroCard!.querySelectorAll('button');
+      await user.click(heroButtons[heroButtons.length - 1] as HTMLElement);
+
+      const deleteMenuItem = await screen.findByRole('menuitem', { name: /delete/i });
+      await user.click(deleteMenuItem);
+
+      // Settings never opened — the confirm dialog appears straight away.
+      expect(screen.queryByText('Cover Image')).not.toBeInTheDocument();
       await waitFor(() => {
         expect(screen.getByText(/Delete "Italy 2026"\? All entries and photos will be lost\./)).toBeInTheDocument();
       });

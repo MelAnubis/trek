@@ -1,10 +1,12 @@
 import express, { Request, Response } from 'express';
-import { authenticate } from '../middleware/auth';
+import multer from 'multer';
+import { authenticate, demoUploadBlock } from '../middleware/auth';
 import { broadcast } from '../websocket';
 import { checkPermission } from '../services/permissions';
 import { AuthRequest } from '../types';
 import { db } from '../db/database';
 import { getRates } from '../services/exchangeRateService';
+import { scanReceipt } from '../services/receiptScanService';
 import {
   verifyTripAccess,
   listBudgetItems,
@@ -24,6 +26,22 @@ import {
 } from '../services/budgetService';
 
 const router = express.Router({ mergeParams: true });
+
+// In-memory upload — the photo is only used for the vision call, never
+// persisted here. If the traveler wants to keep it, the client separately
+// attaches it via the generic trip-files upload endpoint.
+const scanUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!file.mimetype.startsWith('image/')) {
+      const err: Error & { statusCode?: number } = new Error('Only image files are supported');
+      err.statusCode = 400;
+      return cb(err);
+    }
+    cb(null, true);
+  },
+});
 
 router.get('/', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -120,6 +138,42 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   const item = createBudgetItem(tripId, req.body);
   res.status(201).json({ item });
   broadcast(tripId, 'budget:created', { item }, req.headers['x-socket-id'] as string);
+});
+
+router.post('/scan-receipt', authenticate, demoUploadBlock, scanUpload.single('file'), async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { tripId } = req.params;
+
+  const trip = verifyTripAccess(tripId, authReq.user.id);
+  if (!trip) return res.status(404).json({ error: 'Trip not found' });
+  if (!checkPermission('budget_edit', authReq.user.role, trip.user_id, authReq.user.id, trip.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+
+  if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+
+  try {
+    let buffer = req.file.buffer;
+    let mimeType = req.file.mimetype;
+    const isHeic = /heic|heif/i.test(req.file.originalname) || /heic|heif/i.test(mimeType);
+    if (isHeic) {
+      const heicConvert = (await import('heic-convert')).default;
+      const jpeg = await heicConvert({ buffer, format: 'JPEG', quality: 0.9 });
+      buffer = Buffer.from(jpeg);
+      mimeType = 'image/jpeg';
+    }
+    const result = await scanReceipt(buffer, mimeType);
+    res.json({ result });
+  } catch (err: any) {
+    const msg: string = err?.message ?? 'Unknown error';
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'Receipt scanning is not configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
+    }
+    if (msg.includes('Gemini API error') || msg.includes('Claude API error')) {
+      return res.status(502).json({ error: `AI service error: ${msg}` });
+    }
+    console.error('[budget] scan-receipt error:', err);
+    res.status(500).json({ error: 'Failed to scan receipt' });
+  }
 });
 
 router.put('/reorder/items', authenticate, (req: Request, res: Response) => {

@@ -1,8 +1,21 @@
-// FE-COMP-TRIPPDF-001 to FE-COMP-TRIPPDF-010
+// FE-COMP-TRIPPDF-001 to FE-COMP-TRIPPDF-023
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { downloadTripPDF } from './TripPDF'
 import { server } from '../../../tests/helpers/msw/server'
+
+// buildRouteMapImage relies on canvas 2D context, which jsdom doesn't provide
+// (no `canvas` npm package installed here) — it already resolves null fast
+// in that case, but we mock it directly so tests can assert both the
+// "map rendered" and "map gracefully degraded" paths deterministically.
+vi.mock('./gpxDrawing', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./gpxDrawing')>()
+  return {
+    ...actual,
+    buildRouteMapImage: vi.fn(),
+  }
+})
+import { buildRouteMapImage } from './gpxDrawing'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -48,6 +61,9 @@ beforeEach(() => {
       HttpResponse.json({ photoUrl: null })
     ),
   )
+
+  // Default: no raster map (matches real jsdom behavior — no canvas 2D context)
+  vi.mocked(buildRouteMapImage).mockResolvedValue(null)
 })
 
 afterEach(() => {
@@ -290,5 +306,78 @@ describe('downloadTripPDF', () => {
     const iframe = getIframe()
     // The empty-day div should appear (contains the translation key for empty day)
     expect(iframe!.srcdoc).toContain('dayplan.emptyDay')
+  })
+
+  // ── GPX stage elevation profile + route map ──────────────────────────────
+
+  const cyclingTrip = { id: 20, title: 'Alps Cycling Trip', description: null, cover_image: null, trip_type: 'cycling' } as any
+  const dayWithGpx = { id: 50, day_number: 1, title: 'Mountain Stage', date: '2025-07-01' } as any
+
+  const activeTrackSummary = {
+    id: 900,
+    day_id: 50,
+    is_active: true,
+    track_name: 'Stage 1',
+    total_distance: 42.5,
+    total_elevation_gain: 850,
+    total_elevation_loss: 300,
+    max_elevation: 1200,
+    min_elevation: 200,
+  }
+
+  function gpxPoints(n = 20) {
+    return Array.from({ length: n }, (_, i) => ({
+      lat: 45 + i * 0.001,
+      lng: 7 + i * 0.001,
+      ele: 200 + i * 10,
+      time: null,
+    }))
+  }
+
+  it('FE-COMP-TRIPPDF-021: a day with a linked active GPX track gets an elevation section and a map image', async () => {
+    vi.mocked(buildRouteMapImage).mockResolvedValue('data:image/png;base64,FAKEMAPDATA')
+    server.use(
+      http.get('/api/trips/:id/gpx', () => HttpResponse.json([activeTrackSummary])),
+      http.get('/api/trips/:id/gpx/:trackId/points', () => HttpResponse.json({ points: gpxPoints() })),
+    )
+    const args = { ...minimalArgs, trip: cyclingTrip, days: [dayWithGpx] }
+    await downloadTripPDF(args)
+    const iframe = getIframe()
+    // Check for the actual rendered elements (not just the CSS class
+    // selectors, which are always present in the <style> block).
+    expect(iframe!.srcdoc).toContain('<div class="day-gpx-page">')
+    expect(iframe!.srcdoc).toContain('<div class="day-gpx-ele-wrap">')
+    expect(iframe!.srcdoc).toContain('<div class="day-gpx-map-wrap">')
+    expect(iframe!.srcdoc).toContain('FAKEMAPDATA')
+  })
+
+  it('FE-COMP-TRIPPDF-022: a day with no linked GPX track gets no elevation/map section', async () => {
+    server.use(
+      http.get('/api/trips/:id/gpx', () => HttpResponse.json([])),
+    )
+    const args = { ...minimalArgs, trip: cyclingTrip, days: [dayWithGpx] }
+    await downloadTripPDF(args)
+    const iframe = getIframe()
+    expect(iframe!.srcdoc).not.toContain('<div class="day-gpx-page">')
+    expect(iframe!.srcdoc).not.toContain('<div class="day-gpx-map-wrap">')
+    expect(iframe!.srcdoc).not.toContain('<div class="day-gpx-ele-wrap">')
+  })
+
+  it('FE-COMP-TRIPPDF-023: gracefully degrades to elevation-only when the route map fails to render', async () => {
+    vi.mocked(buildRouteMapImage).mockResolvedValue(null)
+    server.use(
+      http.get('/api/trips/:id/gpx', () => HttpResponse.json([activeTrackSummary])),
+      http.get('/api/trips/:id/gpx/:trackId/points', () => HttpResponse.json({ points: gpxPoints() })),
+    )
+    const args = { ...minimalArgs, trip: cyclingTrip, days: [dayWithGpx] }
+    await expect(downloadTripPDF(args)).resolves.not.toThrow()
+    const iframe = getIframe()
+    // Day section still renders fine, with the elevation chart present...
+    expect(iframe!.srcdoc).toContain('<div class="day-gpx-page">')
+    expect(iframe!.srcdoc).toContain('<div class="day-gpx-ele-wrap">')
+    // ...but no map wrapper, since the map failed to render.
+    expect(iframe!.srcdoc).not.toContain('<div class="day-gpx-map-wrap">')
+    // The rest of the day (title etc.) is untouched.
+    expect(iframe!.srcdoc).toContain('Mountain Stage')
   })
 })
