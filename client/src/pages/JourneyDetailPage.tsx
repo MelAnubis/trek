@@ -610,6 +610,14 @@ export default function JourneyDetailPage() {
                           const tracks: any[] = []
                           const expenseByCurrency = new Map<string, number>()
                           for (const trip of (current.trips || [])) {
+                            const dayDateById = new Map<number, string>()
+                            try {
+                              const days: any[] = await fetch(
+                                `/api/trips/${trip.trip_id}/days`,
+                                { credentials: 'include' },
+                              ).then(r => r.ok ? r.json() : [])
+                              for (const d of days) if (d.date) dayDateById.set(d.id, d.date)
+                            } catch { /* ignore per-trip errors */ }
                             try {
                               const list: any[] = await fetch(
                                 `/api/trips/${trip.trip_id}/gpx`,
@@ -621,7 +629,11 @@ export default function JourneyDetailPage() {
                                   `/api/trips/${trip.trip_id}/gpx/${track.id}/points`,
                                   { credentials: 'include' },
                                 ).then(r => r.ok ? r.json() : null)
-                                if (full) tracks.push({ ...track, points: full.points || [] })
+                                if (full) tracks.push({
+                                  ...track,
+                                  points: full.points || [],
+                                  date: track.day_id != null ? (dayDateById.get(track.day_id) || null) : null,
+                                })
                               }
                             } catch { /* ignore per-trip errors */ }
                             try {

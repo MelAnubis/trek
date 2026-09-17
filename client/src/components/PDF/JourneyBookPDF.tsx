@@ -220,6 +220,7 @@ async function buildRoutePage(
   tracks: PdfGpxTrack[],
   tileUrlTemplate: string,
   expenses: PdfExpenseTotal[],
+  label: string = 'Route Overview',
 ): Promise<string> {
   // Prefer a real basemap with the track painted over it; fall back to the
   // vector-only card (no network/canvas, always works) if tiles can't be
@@ -258,7 +259,7 @@ async function buildRoutePage(
 
   return `
   <div class="route-page">
-    <div class="route-section-label">Route Overview</div>
+    <div class="route-section-label">${esc(label)}</div>
     <div class="route-map-wrap">${mapMarkup}</div>
     ${statPills ? `<div class="route-stats">${statPills}</div>` : ''}
     ${elevSvg ? `
@@ -283,15 +284,51 @@ export async function downloadJourneyBookPDF(
   const grouped = groupByDate(entries)
   const dates = [...grouped.keys()].sort()
 
+  // Tracks linked to a specific trip day (matched by date to this journey's
+  // entry days) get their own per-day map + elevation page, right where that
+  // day's entries start — so a multi-day journey shows the right segment on
+  // each day instead of one combined map only visible once, near the start.
+  // Tracks that couldn't be matched to a day (no day_id, or day date doesn't
+  // line up with any entry) fall back into a single top-of-book overview,
+  // same as before day-linking existed.
+  const tracksByDate = new Map<string, PdfGpxTrack[]>()
+  const undatedTracks: PdfGpxTrack[] = []
+  for (const t of tracks) {
+    if (t.date && grouped.has(t.date)) {
+      if (!tracksByDate.has(t.date)) tracksByDate.set(t.date, [])
+      tracksByDate.get(t.date)!.push(t)
+    } else {
+      undatedTracks.push(t)
+    }
+  }
+  const useDayRoutePages = tracksByDate.size > 0
+
   // Route page (inserted between TOC and entries)
-  const routePageHtml = await buildRoutePage(entries, tracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
+  const overviewTracks = useDayRoutePages ? undatedTracks : tracks
+  const routePageHtml = await buildRoutePage(entries, overviewTracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
   const hasRoutePage = routePageHtml.length > 0
+
+  // Per-day route pages, keyed by entry date
+  const dayRoutePages = new Map<string, string>()
+  if (useDayRoutePages) {
+    for (const [date, dayTracks] of tracksByDate) {
+      const di = dates.indexOf(date)
+      const dayEntries = grouped.get(date) || []
+      const html = await buildRoutePage(dayEntries, dayTracks, tileUrlTemplate || DEFAULT_TILE_URL, [], `Day ${di + 1} Route`)
+      if (html) dayRoutePages.set(date, html)
+    }
+  }
 
   // Build entry pages
   const entryPages: string[] = []
   let pageNum = hasRoutePage ? 3 : 2 // cover=1, toc=2, route=3(optional)
   dates.forEach((date, di) => {
     const dayEntries = grouped.get(date)!
+    const dayRouteHtml = dayRoutePages.get(date)
+    if (dayRouteHtml) {
+      pageNum++
+      entryPages.push(dayRouteHtml)
+    }
     dayEntries.forEach((entry, ei) => {
       pageNum++
       const isFirstOfDay = ei === 0
