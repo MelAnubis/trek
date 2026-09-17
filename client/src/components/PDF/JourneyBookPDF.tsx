@@ -1,6 +1,13 @@
 // Journey Photo Book PDF — Polarsteps-inspired, magazine-density
 import { marked } from 'marked'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
+import { formatMoney, currencyLocale } from '../../utils/formatters'
+import { buildTileUrl } from '../../sync/tilePrefetcher'
+
+export interface PdfExpenseTotal {
+  currency: string
+  amount: number
+}
 
 // ── GPX types passed in from the page ─────────────────────────────────────────
 export interface PdfGpxTrack {
@@ -226,6 +233,204 @@ function buildRouteCardSvg(entries: JourneyEntry[], tracks: PdfGpxTrack[]): stri
   </svg>`
 }
 
+// ── Real basemap route image (tiles + track, rendered to a raster PNG) ────────
+// The card above draws the track in isolation with no geographic context. This
+// renders the same track over real map tiles instead, composited onto a
+// <canvas> so it survives the print/srcdoc pipeline as a plain <img>. Falls
+// back to null on any failure (no canvas support, blocked tiles, timeout) so
+// the caller can use the vector-only buildRouteCardSvg above instead.
+
+const TILE_SIZE = 256
+export const DEFAULT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+
+function lngToWorldPx(lng: number, zoom: number): number {
+  return (lng + 180) / 360 * TILE_SIZE * Math.pow(2, zoom)
+}
+
+function latToWorldPx(lat: number, zoom: number): number {
+  const latRad = Math.max(-85.05, Math.min(85.05, lat)) * Math.PI / 180
+  const n = TILE_SIZE * Math.pow(2, zoom)
+  return (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms)
+    promise.then(
+      v => { clearTimeout(timer); resolve(v) },
+      e => { clearTimeout(timer); reject(e) },
+    )
+  })
+}
+
+function loadTileImage(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = url
+  })
+}
+
+async function buildRouteMapImage(
+  entries: JourneyEntry[],
+  tracks: PdfGpxTrack[],
+  tileUrlTemplate: string,
+): Promise<string | null> {
+  const W = 760, H = 380
+
+  const entryCoords = entries.filter(e => (e.location_lat as any) && (e.location_lng as any))
+  const allPts: { lat: number; lng: number }[] = [
+    ...entryCoords.map(e => ({ lat: e.location_lat as unknown as number, lng: e.location_lng as unknown as number })),
+    ...tracks.flatMap(t => t.points.filter((_, i) => i % 5 === 0)),
+  ]
+  if (allPts.length === 0) return null
+
+  try {
+    const canvas = document.createElement('canvas')
+    canvas.width = W
+    canvas.height = H
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return null
+
+    let minLat = Math.min(...allPts.map(p => p.lat))
+    let maxLat = Math.max(...allPts.map(p => p.lat))
+    let minLng = Math.min(...allPts.map(p => p.lng))
+    let maxLng = Math.max(...allPts.map(p => p.lng))
+
+    // Guarantee a minimum span so a single-point journey still shows a real
+    // neighbourhood, not one giant tile.
+    const MIN_SPAN = 0.05
+    if (maxLat - minLat < MIN_SPAN) { const mid = (minLat + maxLat) / 2; minLat = mid - MIN_SPAN / 2; maxLat = mid + MIN_SPAN / 2 }
+    if (maxLng - minLng < MIN_SPAN) { const mid = (minLng + maxLng) / 2; minLng = mid - MIN_SPAN / 2; maxLng = mid + MIN_SPAN / 2 }
+
+    // Pick the highest zoom whose bbox (with a padding margin) still fits the canvas.
+    const PAD = 0.85
+    let zoom = 2
+    for (let z = 17; z >= 1; z--) {
+      const w = lngToWorldPx(maxLng, z) - lngToWorldPx(minLng, z)
+      const h = latToWorldPx(minLat, z) - latToWorldPx(maxLat, z)
+      if (w <= W * PAD && h <= H * PAD) { zoom = z; break }
+    }
+
+    const centerLng = (minLng + maxLng) / 2
+    const centerLat = (minLat + maxLat) / 2
+    const originX = lngToWorldPx(centerLng, zoom) - W / 2
+    const originY = latToWorldPx(centerLat, zoom) - H / 2
+
+    const minTileX = Math.floor(originX / TILE_SIZE)
+    const maxTileX = Math.floor((originX + W) / TILE_SIZE)
+    const minTileY = Math.floor(originY / TILE_SIZE)
+    const maxTileY = Math.floor((originY + H) / TILE_SIZE)
+    const tileCount = (maxTileX - minTileX + 1) * (maxTileY - minTileY + 1)
+    if (tileCount > 60) return null // safety cap, shouldn't happen given PAD/canvas size
+
+    // Neutral fallback background in case some tiles fail to load
+    ctx.fillStyle = '#e9e9e4'
+    ctx.fillRect(0, 0, W, H)
+
+    const maxTile = Math.pow(2, zoom) - 1
+    const loads: Promise<void>[] = []
+    for (let tx = minTileX; tx <= maxTileX; tx++) {
+      for (let ty = minTileY; ty <= maxTileY; ty++) {
+        if (ty < 0 || ty > maxTile) continue
+        const wrappedX = ((tx % (maxTile + 1)) + (maxTile + 1)) % (maxTile + 1)
+        const url = buildTileUrl(tileUrlTemplate, zoom, wrappedX, ty)
+        const tileX = tx, tileY = ty
+        loads.push(
+          withTimeout(loadTileImage(url), 6000).catch(() => null).then(img => {
+            if (img) ctx.drawImage(img, tileX * TILE_SIZE - originX, tileY * TILE_SIZE - originY, TILE_SIZE, TILE_SIZE)
+          }),
+        )
+      }
+    }
+    await Promise.all(loads)
+
+    const project = (lat: number, lng: number) => ({
+      x: lngToWorldPx(lng, zoom) - originX,
+      y: latToWorldPx(lat, zoom) - originY,
+    })
+
+    // Track polylines (glow + main line, same look as the vector fallback)
+    for (const t of tracks) {
+      if (t.points.length === 0) continue
+      const step = Math.max(1, Math.floor(t.points.length / 800))
+      const pts = t.points.filter((_, i) => i % step === 0 || i === t.points.length - 1).map(p => project(p.lat, p.lng))
+      if (pts.length < 2) continue
+      for (const [width, alpha] of [[6, 0.18], [2.5, 1]] as const) {
+        ctx.beginPath()
+        ctx.moveTo(pts[0].x, pts[0].y)
+        for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y)
+        ctx.strokeStyle = `rgba(13,148,136,${alpha})`
+        ctx.lineWidth = width
+        ctx.lineCap = 'round'
+        ctx.lineJoin = 'round'
+        ctx.stroke()
+      }
+    }
+
+    // Dashed entry-to-entry line when there's no GPX track to draw
+    if (tracks.length === 0 && entryCoords.length > 1) {
+      const pts = entryCoords
+        .slice()
+        .sort((a, b) => (a.entry_date || '').localeCompare(b.entry_date || ''))
+        .map(e => project(e.location_lat as any, e.location_lng as any))
+      ctx.beginPath()
+      ctx.moveTo(pts[0].x, pts[0].y)
+      for (const p of pts.slice(1)) ctx.lineTo(p.x, p.y)
+      ctx.strokeStyle = 'rgba(13,148,136,0.85)'
+      ctx.lineWidth = 2
+      ctx.setLineDash([6, 5])
+      ctx.stroke()
+      ctx.setLineDash([])
+    }
+
+    // Start / end markers when GPX tracks are present
+    if (tracks.length > 0 && tracks[0].points.length > 0) {
+      const first = tracks[0].points[0]
+      const lastTrack = tracks[tracks.length - 1]
+      const last = lastTrack.points[lastTrack.points.length - 1]
+      for (const [pt, color] of [[project(first.lat, first.lng), '#22c55e'], [project(last.lat, last.lng), '#ef4444']] as const) {
+        ctx.beginPath(); ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2)
+        ctx.fillStyle = color; ctx.fill()
+        ctx.lineWidth = 1.5; ctx.strokeStyle = 'white'; ctx.stroke()
+      }
+    }
+
+    // Numbered entry markers, sorted by date
+    const sortedEntries = entryCoords.slice().sort((a, b) => (a.entry_date || '').localeCompare(b.entry_date || ''))
+    sortedEntries.forEach((e, i) => {
+      const { x, y } = project(e.location_lat as any, e.location_lng as any)
+      ctx.beginPath(); ctx.arc(x, y, 11, 0, Math.PI * 2)
+      ctx.fillStyle = 'rgba(15,23,42,0.25)'; ctx.fill()
+      ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI * 2)
+      ctx.fillStyle = '#0f172a'; ctx.fill()
+      ctx.lineWidth = 1.5; ctx.strokeStyle = '#2dd4bf'; ctx.stroke()
+      ctx.fillStyle = '#e2e8f0'
+      ctx.font = '700 7.5pt Inter, sans-serif'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      ctx.fillText(String(i + 1), x, y + 0.5)
+    })
+
+    // Attribution (required by tile providers)
+    ctx.font = '600 7pt Inter, sans-serif'
+    ctx.textAlign = 'left'
+    ctx.textBaseline = 'alphabetic'
+    const attribution = tileUrlTemplate.includes('cartocdn') ? '© CARTO © OpenStreetMap contributors' : '© OpenStreetMap contributors'
+    const textW = ctx.measureText(attribution).width
+    ctx.fillStyle = 'rgba(255,255,255,0.75)'
+    ctx.fillRect(0, H - 16, textW + 12, 16)
+    ctx.fillStyle = '#3f3f46'
+    ctx.fillText(attribution, 6, H - 5)
+
+    return canvas.toDataURL('image/png')
+  } catch {
+    return null
+  }
+}
+
 // ── Elevation profile SVG ─────────────────────────────────────────────────────
 
 function buildElevationSvg(tracks: PdfGpxTrack[]): string {
@@ -320,12 +525,20 @@ function buildElevationSvg(tracks: PdfGpxTrack[]): string {
 
 // ── Route page HTML ───────────────────────────────────────────────────────────
 
-function buildRoutePage(
+async function buildRoutePage(
   entries: JourneyEntry[],
   tracks: PdfGpxTrack[],
-): string {
-  const mapSvg = buildRouteCardSvg(entries, tracks)
-  if (!mapSvg) return ''  // no coordinates at all
+  tileUrlTemplate: string,
+  expenses: PdfExpenseTotal[],
+): Promise<string> {
+  // Prefer a real basemap with the track painted over it; fall back to the
+  // vector-only card (no network/canvas, always works) if tiles can't be
+  // rendered in time.
+  const rasterMap = await withTimeout(buildRouteMapImage(entries, tracks, tileUrlTemplate), 15000).catch(() => null)
+  const mapMarkup = rasterMap
+    ? `<img src="${rasterMap}" style="width:100%;height:100%;object-fit:cover;display:block;" />`
+    : buildRouteCardSvg(entries, tracks)
+  if (!mapMarkup) return ''  // no coordinates at all
 
   // Aggregate stats across all tracks
   const totalDist = tracks.reduce((s, t) => s + (t.total_distance || 0), 0)
@@ -340,17 +553,23 @@ function buildRoutePage(
   // Elevation profile SVG (bikes / significant elevation)
   const elevSvg = (hasEle || hasIbp) ? buildElevationSvg(tracks) : ''
 
+  const expensePills = expenses
+    .filter(e => e.amount > 0)
+    .map(e => `<div class="rstat"><div class="rstat-val">${esc(formatMoney(e.amount, e.currency, currencyLocale(e.currency)))}</div><div class="rstat-lbl">Total expenses${expenses.length > 1 ? ` (${esc(e.currency.toUpperCase())})` : ''}</div></div>`)
+    .join('')
+
   const statPills = [
     totalDist > 0  ? `<div class="rstat"><div class="rstat-val">${totalDist.toFixed(1)} km</div><div class="rstat-lbl">Distance</div></div>` : '',
     totalGain > 0  ? `<div class="rstat"><div class="rstat-val">↑ ${Math.round(totalGain).toLocaleString()} m</div><div class="rstat-lbl">Elevation gain</div></div>` : '',
     totalLoss > 0  ? `<div class="rstat"><div class="rstat-val">↓ ${Math.round(totalLoss).toLocaleString()} m</div><div class="rstat-lbl">Elevation loss</div></div>` : '',
     maxEle != null ? `<div class="rstat"><div class="rstat-val">${Math.round(maxEle).toLocaleString()} m</div><div class="rstat-lbl">Max elevation</div></div>` : '',
+    expensePills,
   ].filter(Boolean).join('')
 
   return `
   <div class="route-page">
     <div class="route-section-label">Route Overview</div>
-    <div class="route-map-wrap">${mapSvg}</div>
+    <div class="route-map-wrap">${mapMarkup}</div>
     ${statPills ? `<div class="route-stats">${statPills}</div>` : ''}
     ${elevSvg ? `
     <div class="route-ele-label">Elevation Profile</div>
@@ -361,7 +580,12 @@ function buildRoutePage(
 
 // ── Main export ───────────────────────────────────────────────────────────────
 
-export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: PdfGpxTrack[] = []) {
+export async function downloadJourneyBookPDF(
+  journey: JourneyDetail,
+  tracks: PdfGpxTrack[] = [],
+  tileUrlTemplate: string = DEFAULT_TILE_URL,
+  expenses: PdfExpenseTotal[] = [],
+) {
   const entries = (journey.entries || []).filter(e => e.type !== 'skeleton' && e.type !== 'gallery')
   const allPhotos = entries.flatMap(e => e.photos || [])
   const coverUrl = journey.cover_image ? abs(`/uploads/${journey.cover_image}`) : (allPhotos[0] ? pSrc(allPhotos[0]) : '')
@@ -370,7 +594,7 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: Pdf
   const dates = [...grouped.keys()].sort()
 
   // Route page (inserted between TOC and entries)
-  const routePageHtml = buildRoutePage(entries, tracks)
+  const routePageHtml = await buildRoutePage(entries, tracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
   const hasRoutePage = routePageHtml.length > 0
 
   // Build entry pages
@@ -474,6 +698,7 @@ export async function downloadJourneyBookPDF(journey: JourneyDetail, tracks: Pdf
   }
   .route-map-wrap { flex: 1; min-height: 0; overflow: hidden; border-radius: 10pt; }
   .route-map-wrap svg { width: 100%; height: 100%; object-fit: contain; }
+  .route-map-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .route-stats { display: flex; gap: 24pt; flex-shrink: 0; }
   .rstat { }
   .rstat-val { font-size: 14pt; font-weight: 700; color: #2dd4bf; letter-spacing: -0.02em; }

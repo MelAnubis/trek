@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { useAuthStore } from '../store/authStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n'
 import { journeyApi, authApi, addonsApi, mapsApi } from '../api/client'
 import { addListener, removeListener } from '../api/websocket'
@@ -24,7 +25,7 @@ import {
   UserPlus, Plus, Minus, Calendar, Camera, BookOpen, X, Check, ImagePlus, Trash2, Pencil,
   Laugh, Smile, Meh, Annoyed, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronUp, ChevronDown, Eye, EyeOff,
-  Archive, ArchiveRestore,
+  Archive, ArchiveRestore, Settings as SettingsIcon,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -87,12 +88,74 @@ function photoUrl(p: { photo_id: number }, size: 'thumbnail' | 'original' = 'thu
   return `/api/photos/${p.photo_id}/${size}`
 }
 
+// "..." menu for the journey header — a portal-based dropdown (not clipped by
+// any ancestor's overflow:hidden) so both entry points, Settings and Delete
+// journey, are always reachable in one click.
+function JourneyMoreMenu({ triggerClassName, triggerStyle, iconSize = 14, ariaLabel, onOpenSettings, onDelete }: {
+  triggerClassName: string
+  triggerStyle?: React.CSSProperties
+  iconSize?: number
+  ariaLabel: string
+  onOpenSettings: () => void
+  onDelete: () => void
+}) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const btnRef = useRef<HTMLButtonElement>(null)
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        onClick={() => setOpen(o => !o)}
+        aria-label={ariaLabel}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className={triggerClassName}
+        style={triggerStyle}
+      >
+        <MoreHorizontal size={iconSize} />
+      </button>
+      {open && createPortal(
+        <>
+          <div className="fixed inset-0 z-[199]" onClick={() => setOpen(false)} />
+          <div
+            role="menu"
+            className="fixed z-[200] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg py-1 min-w-[180px]"
+            style={{
+              top: (btnRef.current?.getBoundingClientRect().bottom || 0) + 6,
+              right: window.innerWidth - (btnRef.current?.getBoundingClientRect().right || 0),
+            }}
+          >
+            <button
+              role="menuitem"
+              onClick={() => { setOpen(false); onOpenSettings() }}
+              className="w-full text-left px-3 py-2 text-[13px] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-700 flex items-center gap-2"
+            >
+              <SettingsIcon size={14} /> {t('journey.settings.title')}
+            </button>
+            <button
+              role="menuitem"
+              onClick={() => { setOpen(false); onDelete() }}
+              className="w-full text-left px-3 py-2 text-[13px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+            >
+              <Trash2 size={14} /> {t('journey.settings.delete')}
+            </button>
+          </div>
+        </>,
+        document.body,
+      )}
+    </>
+  )
+}
+
 export default function JourneyDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
   const { t, locale } = useTranslation()
-  const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
+  const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, deleteJourney, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
+  const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
   const mapRef = useRef<JourneyMapHandle>(null)
   const fullMapRef = useRef<JourneyMapHandle>(null)
   const [activeLocationId, setActiveLocationId] = useState<string | null>(null)
@@ -115,6 +178,7 @@ export default function JourneyDetailPage() {
   const [showAddTrip, setShowAddTrip] = useState(false)
   const [unlinkTrip, setUnlinkTrip] = useState<{ trip_id: number; title: string } | null>(null)
   const [showSettings, setShowSettings] = useState(false)
+  const [showDeleteJourneyConfirm, setShowDeleteJourneyConfirm] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)
 
   useEffect(() => {
@@ -146,6 +210,16 @@ export default function JourneyDetailPage() {
     addListener(handler)
     return () => removeListener(handler)
   }, [id])
+
+  const handleDeleteJourney = async () => {
+    if (!current) return
+    try {
+      await deleteJourney(current.id)
+      navigate('/journey')
+    } catch {
+      toast.error(t('journey.settings.failedToDelete'))
+    }
+  }
 
   // scroll sync with map — the sticky map on the right follows whichever
   // entry the user is currently reading in the feed on the left. We use
@@ -450,11 +524,11 @@ export default function JourneyDetailPage() {
           </div>
 
           {canEditJourney ? (
-            <button
-              onClick={() => setShowSettings(true)}
-              aria-label={t('journey.settings.title')}
-              className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform"
-              style={{
+            <JourneyMoreMenu
+              ariaLabel={t('journey.settings.title')}
+              iconSize={16}
+              triggerClassName="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform"
+              triggerStyle={{
                 background: 'var(--glass-bg)',
                 backdropFilter: 'var(--glass-blur)',
                 WebkitBackdropFilter: 'var(--glass-blur)',
@@ -462,9 +536,9 @@ export default function JourneyDetailPage() {
                 boxShadow: 'var(--glass-shadow)',
                 color: 'var(--text-secondary)',
               }}
-            >
-              <MoreHorizontal size={16} />
-            </button>
+              onOpenSettings={() => setShowSettings(true)}
+              onDelete={() => setShowDeleteJourneyConfirm(true)}
+            />
           ) : (
             <div className="w-10 h-10 flex-shrink-0" aria-hidden />
           )}
@@ -532,8 +606,9 @@ export default function JourneyDetailPage() {
                         el.disabled = true
                         try {
                           const { downloadJourneyBookPDF } = await import('../components/PDF/JourneyBookPDF')
-                          // Fetch GPX tracks for all linked trips
+                          // Fetch GPX tracks + budget totals for all linked trips
                           const tracks: any[] = []
+                          const expenseByCurrency = new Map<string, number>()
                           for (const trip of (current.trips || [])) {
                             try {
                               const list: any[] = await fetch(
@@ -549,8 +624,19 @@ export default function JourneyDetailPage() {
                                 if (full) tracks.push({ ...track, points: full.points || [] })
                               }
                             } catch { /* ignore per-trip errors */ }
+                            try {
+                              const items: any[] = await fetch(
+                                `/api/trips/${trip.trip_id}/budget`,
+                                { credentials: 'include' },
+                              ).then(r => r.ok ? r.json() : { items: [] }).then(d => d.items || [])
+                              for (const item of items) {
+                                const cur = (item.currency || trip.currency || 'EUR').toUpperCase()
+                                expenseByCurrency.set(cur, (expenseByCurrency.get(cur) || 0) + (item.total_price || 0))
+                              }
+                            } catch { /* ignore per-trip errors */ }
                           }
-                          downloadJourneyBookPDF(current, tracks)
+                          const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
+                          downloadJourneyBookPDF(current, tracks, mapTileUrl, expenses)
                         } finally {
                           el.disabled = false
                         }
@@ -573,7 +659,13 @@ export default function JourneyDetailPage() {
                       </span>
                     </div>
                     {canEditJourney && (
-                      <button onClick={() => setShowSettings(true)} className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"><MoreHorizontal size={14} /></button>
+                      <JourneyMoreMenu
+                        ariaLabel={t('journey.settings.title')}
+                        iconSize={14}
+                        triggerClassName="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
+                        onOpenSettings={() => setShowSettings(true)}
+                        onDelete={() => setShowDeleteJourneyConfirm(true)}
+                      />
                     )}
                   </div>
                 </div>
@@ -822,6 +914,7 @@ export default function JourneyDetailPage() {
           onSaved={() => { setShowSettings(false); loadJourney(Number(id)) }}
           onOpenInvite={() => { setShowInvite(true) }}
           onRefresh={() => loadJourney(Number(id))}
+          onDeleteJourney={() => { setShowSettings(false); setShowDeleteJourneyConfirm(true) }}
         />
       )}
 
@@ -857,6 +950,17 @@ export default function JourneyDetailPage() {
         }}
         title={t('journey.entries.deleteTitle')}
         message={t('journey.deleteConfirmMessage', { title: deleteTarget?.title || 'this entry' })}
+        confirmLabel={t('common.delete')}
+        danger
+      />
+
+      {/* Delete journey confirm (from the "..." menu) */}
+      <ConfirmDialog
+        isOpen={showDeleteJourneyConfirm}
+        onClose={() => setShowDeleteJourneyConfirm(false)}
+        onConfirm={handleDeleteJourney}
+        title={t('journey.settings.deleteJourney')}
+        message={t('journey.settings.deleteMessage', { title: current?.title })}
         confirmLabel={t('common.delete')}
         danger
       />
@@ -3059,12 +3163,13 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
   )
 }
 
-function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh }: {
+function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh, onDeleteJourney }: {
   journey: JourneyDetail
   onClose: () => void
   onSaved: () => void
   onOpenInvite: () => void
   onRefresh: () => void
+  onDeleteJourney: () => void
 }) {
   const { t } = useTranslation()
   const [title, setTitle] = useState(journey.title)
@@ -3078,8 +3183,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
   const handleClose = () => { if (isDirty) setShowDiscardConfirm(true); else onClose() }
   const coverRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
-  const navigate = useNavigate()
-  const { updateJourney, deleteJourney } = useJourneyStore()
+  const { updateJourney } = useJourneyStore()
 
   const handleSave = async () => {
     setSaving(true)
@@ -3107,7 +3211,6 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
     }
   }
 
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [archiving, setArchiving] = useState(false)
 
   const handleArchiveToggle = async () => {
@@ -3121,15 +3224,6 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
       toast.error(t('journey.settings.saveFailed'))
     } finally {
       setArchiving(false)
-    }
-  }
-
-  const handleDelete = async () => {
-    try {
-      await deleteJourney(journey.id)
-      navigate('/journey')
-    } catch {
-      toast.error(t('journey.settings.failedToDelete'))
     }
   }
 
@@ -3268,7 +3362,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
         {/* Footer */}
         <div className="flex items-center gap-1.5 px-4 md:px-6 py-4 pb-6 md:pb-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50">
           <button
-            onClick={() => setShowDeleteConfirm(true)}
+            onClick={onDeleteJourney}
             aria-label={t('journey.settings.delete')}
             title={t('journey.settings.delete')}
             className="flex items-center justify-center gap-1.5 h-9 min-w-9 px-2 md:px-2.5 text-[12px] font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg"
@@ -3323,16 +3417,6 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
           onAdded={() => { setShowAddTrip(false); onSaved() }}
         />
       )}
-
-      <ConfirmDialog
-        isOpen={showDeleteConfirm}
-        onClose={() => setShowDeleteConfirm(false)}
-        onConfirm={handleDelete}
-        title={t('journey.settings.deleteJourney')}
-        message={t('journey.settings.deleteMessage', { title: journey.title })}
-        confirmLabel={t('common.delete')}
-        danger
-      />
 
       <ConfirmDialog
         isOpen={showDiscardConfirm}
