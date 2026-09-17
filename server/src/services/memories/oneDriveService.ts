@@ -19,7 +19,9 @@ export function getOAuthConfig() {
   return {
     clientId:     process.env.ONEDRIVE_CLIENT_ID     || '',
     clientSecret: process.env.ONEDRIVE_CLIENT_SECRET || '',
-    redirectUri:  process.env.ONEDRIVE_REDIRECT_URI  || `${process.env.APP_URL || ''}/api/memories/onedrive/callback`,
+    // Must match where the callback route is actually mounted
+    // (app.ts: app.use('/api/integrations/memories', memoriesRoutes)).
+    redirectUri:  process.env.ONEDRIVE_REDIRECT_URI  || `${process.env.APP_URL || ''}/api/integrations/memories/onedrive/callback`,
   };
 }
 
