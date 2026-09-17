@@ -195,4 +195,52 @@ describe('downloadJourneyBookPDF', () => {
     expect(html).toContain('Day 1 Route');
     expect(html).toContain('Day 2 Route');
   });
+
+  it('FE-COMP-JOURNEYPDF-008: a single continuous track with no day link splits into per-day pages by point timestamp', async () => {
+    const journey = buildJourney({
+      entries: [
+        {
+          id: 10, journey_id: 1, author_id: 1, type: 'entry', title: 'Golden Circle',
+          story: 'Day one.', entry_date: '2026-07-01', entry_time: '09:00',
+          location_name: 'Thingvellir', location_lat: 64.255, location_lng: -21.13,
+          mood: null, weather: null, tags: [], pros_cons: null, visibility: 'private',
+          sort_order: 0, created_at: Date.now(), updated_at: Date.now(),
+          source_trip_id: null, source_place_id: null, source_trip_name: null, photos: [],
+        },
+        {
+          id: 11, journey_id: 1, author_id: 1, type: 'entry', title: 'Vík',
+          story: 'Day two.', entry_date: '2026-07-02', entry_time: '09:00',
+          location_name: 'Vík', location_lat: 63.418, location_lng: -19.006,
+          mood: null, weather: null, tags: [], pros_cons: null, visibility: 'private',
+          sort_order: 1, created_at: Date.now(), updated_at: Date.now(),
+          source_trip_id: null, source_place_id: null, source_trip_name: null, photos: [],
+        },
+      ] as unknown as JourneyDetail['entries'],
+    });
+
+    // One continuous multi-day recording, no day_id/date — like a Garmin/
+    // Strava export imported as a single track. Only the point timestamps
+    // tell us which calendar day each segment belongs to.
+    const tracks = [
+      {
+        id: 1, track_name: 'Full trip', total_distance: 20, total_elevation_gain: 500,
+        total_elevation_loss: 500, max_elevation: 400, min_elevation: 100, ibp: null,
+        points: [
+          { lat: 64.255, lng: -21.13, ele: 100, time: '2026-07-01T09:00:00Z' },
+          { lat: 64.26, lng: -21.14, ele: 400, time: '2026-07-01T15:00:00Z' },
+          { lat: 63.418, lng: -19.006, ele: 150, time: '2026-07-02T09:00:00Z' },
+          { lat: 63.42, lng: -19.02, ele: 350, time: '2026-07-02T15:00:00Z' },
+        ],
+      },
+    ];
+
+    await downloadJourneyBookPDF(journey, tracks as any);
+    const html = getIframe()!.srcdoc;
+    expect(html).toContain('Day 1 Route');
+    expect(html).toContain('Day 2 Route');
+    // No leftover single combined overview page duplicating the split days
+    // (the CSS has an unrelated "Route Overview Page" comment, so match the
+    // actual rendered heading rather than a bare substring)
+    expect(html).not.toContain('<div class="route-section-label">Route Overview</div>');
+  });
 });

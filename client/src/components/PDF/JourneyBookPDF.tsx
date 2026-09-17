@@ -2,7 +2,7 @@
 import { marked } from 'marked'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { formatMoney, currencyLocale } from '../../utils/formatters'
-import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
+import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, splitTrackByDate, type PdfGpxTrack } from './gpxDrawing'
 
 export type { PdfGpxTrack }
 
@@ -297,15 +297,31 @@ export async function downloadJourneyBookPDF(
     if (t.date && grouped.has(t.date)) {
       if (!tracksByDate.has(t.date)) tracksByDate.set(t.date, [])
       tracksByDate.get(t.date)!.push(t)
-    } else {
-      undatedTracks.push(t)
+      continue
     }
+    // No day link — most journeys carry one continuous multi-day recording
+    // rather than a track pre-split per trip day. If its points have real
+    // timestamps, split it by calendar date instead of falling back to a
+    // single combined page.
+    const byDate = splitTrackByDate(t)
+    let matchedAnyDay = false
+    for (const [date, fragment] of byDate) {
+      if (!grouped.has(date)) continue
+      matchedAnyDay = true
+      if (!tracksByDate.has(date)) tracksByDate.set(date, [])
+      tracksByDate.get(date)!.push(fragment)
+    }
+    if (!matchedAnyDay) undatedTracks.push(t)
   }
   const useDayRoutePages = tracksByDate.size > 0
+  // Every track ended up on a day page — an overview built from just the
+  // entries' pins (a dashed line between them, no real route) would only
+  // be a strictly worse duplicate of what the day pages already show.
+  const skipOverview = useDayRoutePages && undatedTracks.length === 0
 
   // Route page (inserted between TOC and entries)
   const overviewTracks = useDayRoutePages ? undatedTracks : tracks
-  const routePageHtml = await buildRoutePage(entries, overviewTracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
+  const routePageHtml = skipOverview ? '' : await buildRoutePage(entries, overviewTracks, tileUrlTemplate || DEFAULT_TILE_URL, expenses)
   const hasRoutePage = routePageHtml.length > 0
 
   // Per-day route pages, keyed by entry date
