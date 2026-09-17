@@ -6,6 +6,7 @@ import { accommodationsApi, mapsApi } from '../../api/client'
 import type { Trip, Day, Place, Category, AssignmentsMap, DayNotesMap } from '../../types'
 import { isDayInAccommodationRange, getDayOrder } from '../../utils/dayOrder'
 import { splitReservationDateTime } from '../../utils/formatters'
+import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
 
 function renderLucideIcon(icon:LucideIcon, props = {}) {
   if (!_renderToStaticMarkup) return ''
@@ -121,9 +122,10 @@ interface downloadTripPDFProps {
   reservations?: any[]
   t: (key: string, params?: Record<string, string | number>) => string
   locale: string
+  tileUrlTemplate?: string
 }
 
-export async function downloadTripPDF({ trip, days, places, assignments, categories, dayNotes, reservations = [], t: _t, locale: _locale }: downloadTripPDFProps) {
+export async function downloadTripPDF({ trip, days, places, assignments, categories, dayNotes, reservations = [], t: _t, locale: _locale, tileUrlTemplate }: downloadTripPDFProps) {
   await ensureRenderer()
   const loc = _locale || undefined
   const tr = _t || (k => k)
@@ -137,6 +139,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   // assigned (e.g. an alternate route), so totals are summed across all
   // tracks pinned to that day. Only relevant for cycling/trekking trips.
   const gpxStatsByDay: Record<number, { distKm: number; gain: number; loss: number }> = {}
+  // Full point data for the day's stage elevation chart + route map — only
+  // fetched for tracks that are both active and already split to a specific
+  // day (day_id set). Unsplit whole-trip tracks are out of scope here.
+  const tracksByDay: Record<number, PdfGpxTrack[]> = {}
   if (trip?.trip_type === 'cycling' || trip?.trip_type === 'trekking') {
     try {
       const res = await fetch(`/api/trips/${trip.id}/gpx`, { credentials: 'include' })
@@ -148,6 +154,18 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         entry.gain += parseFloat(track.total_elevation_gain) || 0
         entry.loss += parseFloat(track.total_elevation_loss) || 0
         gpxStatsByDay[track.day_id] = entry
+
+        if (track.is_active) {
+          try {
+            const pointsRes = await fetch(`/api/trips/${trip.id}/gpx/${track.id}/points`, { credentials: 'include' })
+            const full = pointsRes.ok ? await pointsRes.json() : null
+            if (full) {
+              const list = tracksByDay[track.day_id] || []
+              list.push({ ...track, points: full.points || [] })
+              tracksByDay[track.day_id] = list
+            }
+          } catch { /* ignore per-track errors, day just renders without its map */ }
+        }
       }
     } catch (e) {
       // eslint-disable-next-line no-console
@@ -202,8 +220,12 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
     return startId === dayId
   })
 
-  // Build day HTML
-  const daysHtml = sorted.map((day, di) => {
+  // Build day HTML (sequential loop, not .map, because a day with a linked
+  // GPX track needs to await its raster route-map image before its section
+  // can be appended)
+  const daysHtmlParts: string[] = []
+  for (let di = 0; di < sorted.length; di++) {
+    const day = sorted[di]
     const assigned = assignments[String(day.id)] || []
     const notes = (dayNotes || []).filter(n => n.day_id === day.id)
     const cost = dayCost(assignments, day.id, loc)
@@ -347,7 +369,7 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
         </div>`
       : ''
 
-    return `
+    const daySectionHtml = `
       <div class="day-section${di > 0 ? ' page-break' : ''}">
         <div class="day-header">
           <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
@@ -357,8 +379,40 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
           ${cost ? `<span class="day-cost">${cost}</span>` : ''}
         </div>
         <div class="day-body">${accommodationsHtml}${itemsHtml}</div>
-      </div>`  
-  }).join('')
+      </div>`
+
+    // Stage elevation profile + near-full-page route map, on their own
+    // printed page, for days with a linked + active + already-split GPX
+    // track. Unsplit whole-trip tracks (day_id == null) are out of scope.
+    let dayGpxPageHtml = ''
+    const dayTracks = tracksByDay[day.id] || []
+    if (dayTracks.length > 0) {
+      const elevSvg = buildElevationSvg(dayTracks)
+      const mapImg = await withTimeout(
+        buildRouteMapImage([], dayTracks, tileUrlTemplate || DEFAULT_TILE_URL, { width: 1240, height: 1560 }),
+        15000,
+      ).catch(() => null)
+
+      if (elevSvg || mapImg) {
+        dayGpxPageHtml = `
+      <div class="day-gpx-page">
+        <div class="day-header">
+          <span class="day-tag">${escHtml(tr('dayplan.dayN', { n: day.day_number })).toUpperCase()}</span>
+          <span class="day-title">${escHtml(day.title || tr('dayplan.dayN', { n: day.day_number }))}</span>
+          <span class="day-gpx-page-label">Stage route</span>
+        </div>
+        ${mapImg ? `<div class="day-gpx-map-wrap"><img src="${mapImg}" /></div>` : ''}
+        ${elevSvg ? `
+        <div class="day-gpx-ele-label">Elevation profile</div>
+        <div class="day-gpx-ele-wrap">${elevSvg}</div>
+        ` : ''}
+      </div>`
+      }
+    }
+
+    daysHtmlParts.push(daySectionHtml + dayGpxPageHtml)
+  }
+  const daysHtml = daysHtmlParts.join('')
 
   const html = `<!DOCTYPE html>
 <html lang="${loc.split('-')[0]}">
@@ -440,6 +494,28 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
   .day-cost  { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.65); }
   .day-gpx-stats { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.12); border-radius: 4px; padding: 2px 6px; flex-shrink: 0; white-space: nowrap; }
   .day-body  { padding: 12px 28px 6px; }
+
+  /* ── Day GPX stage page (elevation chart + near-full-page route map) ─── */
+  .day-gpx-page {
+    page-break-before: always;
+    width: 100%; min-height: 100vh;
+    display: flex; flex-direction: column;
+    padding-bottom: 20px;
+  }
+  .day-gpx-page-label { font-size: 8px; font-weight: 700; color: rgba(255,255,255,0.55); letter-spacing: 1.5px; text-transform: uppercase; flex-shrink: 0; }
+  .day-gpx-map-wrap {
+    flex: 1; min-height: 420px; margin: 16px 28px 0;
+    border-radius: 10px; overflow: hidden; background: #e2e8f0;
+  }
+  .day-gpx-map-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .day-gpx-ele-label {
+    font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
+    color: #94a3b8; margin: 14px 28px 4px; flex-shrink: 0;
+  }
+  .day-gpx-ele-wrap {
+    flex-shrink: 0; margin: 0 28px; border: 1px solid #e2e8f0; border-radius: 8px;
+    overflow: hidden; padding: 6px; background: #fff;
+  }
 
   /* accommodation info */
   .day-accommodations-overview { font-size: 12px; }
