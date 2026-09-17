@@ -169,6 +169,7 @@ router.post('/scan-receipt', authenticate, demoUploadBlock, scanUpload.single('f
       return res.status(503).json({ error: 'Receipt scanning is not configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
     }
     if (msg.includes('Gemini API error') || msg.includes('Claude API error')) {
+      console.error('[budget] scan-receipt AI provider error:', msg);
       return res.status(502).json({ error: `AI service error: ${msg}` });
     }
     console.error('[budget] scan-receipt error:', err);
