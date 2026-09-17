@@ -178,7 +178,11 @@ export async function streamPhoto(
       return;
     }
     case 'onedrive': {
-      await streamOneDriveAsset(res, userId, photo.asset_id!, kind === 'thumbnail' ? 'thumbnail' : 'original', photo.owner_id!);
+      // streamOneDriveAsset's second param picks whose Microsoft account to
+      // fetch from — it must be the photo's owner, not the viewer, or a
+      // collaborator with their own OneDrive connected silently gets 404s
+      // for asset IDs that only exist in the owner's drive.
+      await streamOneDriveAsset(res, photo.owner_id!, photo.asset_id!, kind === 'thumbnail' ? 'thumbnail' : 'original');
       return;
     }
     default:
