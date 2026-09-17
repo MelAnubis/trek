@@ -241,7 +241,10 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
     foldersVisited++;
     while (url) {
       const result = await graphGet(userId, url);
-      if (result.error) break;
+      if (result.error) {
+        console.error('[oneDrive] searchPhotos folder fetch failed:', url, result.status, result.error);
+        break;
+      }
       const items = result.data?.value || [];
       for (const item of items) {
         if (item.folder) {
@@ -266,6 +269,10 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
     const tb = b.photo?.takenDateTime || b.createdDateTime;
     return tb.localeCompare(ta);
   });
+
+  if (page === 1) {
+    console.log(`[oneDrive] searchPhotos: visited ${foldersVisited} folder(s), matched ${collected.length} photo(s) in range`, { from, to });
+  }
 
   const start = (page - 1) * size;
   return {
