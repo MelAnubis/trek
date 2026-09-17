@@ -243,4 +243,56 @@ describe('downloadJourneyBookPDF', () => {
     // actual rendered heading rather than a bare substring)
     expect(html).not.toContain('<div class="route-section-label">Route Overview</div>');
   });
+
+  it('FE-COMP-JOURNEYPDF-009: a day-linked track with no date or timestamps pairs with the journal\'s Nth day by day_number', async () => {
+    const journey = buildJourney({
+      entries: [
+        {
+          id: 10, journey_id: 1, author_id: 1, type: 'entry', title: 'Golden Circle',
+          story: 'Day one.', entry_date: '2026-07-01', entry_time: '09:00',
+          location_name: 'Thingvellir', location_lat: 64.255, location_lng: -21.13,
+          mood: null, weather: null, tags: [], pros_cons: null, visibility: 'private',
+          sort_order: 0, created_at: Date.now(), updated_at: Date.now(),
+          source_trip_id: null, source_place_id: null, source_trip_name: null, photos: [],
+        },
+        {
+          id: 11, journey_id: 1, author_id: 1, type: 'entry', title: 'Vík',
+          story: 'Day two.', entry_date: '2026-07-02', entry_time: '09:00',
+          location_name: 'Vík', location_lat: 63.418, location_lng: -19.006,
+          mood: null, weather: null, tags: [], pros_cons: null, visibility: 'private',
+          sort_order: 1, created_at: Date.now(), updated_at: Date.now(),
+          source_trip_id: null, source_place_id: null, source_trip_name: null, photos: [],
+        },
+      ] as unknown as JourneyDetail['entries'],
+    });
+
+    // Tracks already split per trip day (via the manual split wizard) but
+    // the trip itself has no fixed calendar dates — day_id is set, but
+    // neither `date` nor point timestamps are available to match on.
+    const tracks = [
+      {
+        id: 1, track_name: 'Stage 1', total_distance: 12, total_elevation_gain: 300,
+        total_elevation_loss: 300, max_elevation: 400, min_elevation: 100, ibp: null,
+        date: null, day_number: 1,
+        points: [
+          { lat: 64.255, lng: -21.13, ele: 100 },
+          { lat: 64.26, lng: -21.14, ele: 400 },
+        ],
+      },
+      {
+        id: 2, track_name: 'Stage 2', total_distance: 8, total_elevation_gain: 200,
+        total_elevation_loss: 200, max_elevation: 350, min_elevation: 150, ibp: null,
+        date: null, day_number: 2,
+        points: [
+          { lat: 63.418, lng: -19.006, ele: 150 },
+          { lat: 63.42, lng: -19.02, ele: 350 },
+        ],
+      },
+    ];
+
+    await downloadJourneyBookPDF(journey, tracks as any);
+    const html = getIframe()!.srcdoc;
+    expect(html).toContain('Day 1 Route');
+    expect(html).toContain('Day 2 Route');
+  });
 });

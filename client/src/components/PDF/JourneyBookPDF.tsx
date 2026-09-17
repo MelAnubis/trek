@@ -299,7 +299,7 @@ export async function downloadJourneyBookPDF(
       tracksByDate.get(t.date)!.push(t)
       continue
     }
-    // No day link — most journeys carry one continuous multi-day recording
+    // No usable date — most journeys carry one continuous multi-day recording
     // rather than a track pre-split per trip day. If its points have real
     // timestamps, split it by calendar date instead of falling back to a
     // single combined page.
@@ -311,7 +311,19 @@ export async function downloadJourneyBookPDF(
       if (!tracksByDate.has(date)) tracksByDate.set(date, [])
       tracksByDate.get(date)!.push(fragment)
     }
-    if (!matchedAnyDay) undatedTracks.push(t)
+    if (matchedAnyDay) continue
+    // Trips can be planned without fixed calendar dates, so a track already
+    // linked to a specific trip day (day_id set by the manual split wizard)
+    // can still have no date and no point timestamps to split by. Pair it
+    // with the journal's Nth day by position instead — day_number 1 with
+    // the earliest entry date, day_number 2 with the next, and so on.
+    if (t.day_number != null && t.day_number >= 1 && dates[t.day_number - 1]) {
+      const date = dates[t.day_number - 1]
+      if (!tracksByDate.has(date)) tracksByDate.set(date, [])
+      tracksByDate.get(date)!.push({ ...t, date })
+      continue
+    }
+    undatedTracks.push(t)
   }
   const useDayRoutePages = tracksByDate.size > 0
   // Every track ended up on a day page — an overview built from just the
@@ -465,15 +477,17 @@ export async function downloadJourneyBookPDF(
   }
   .day-header::before, .day-header::after { content: ''; flex: 1; height: 0.5pt; background: #d4d4d8; }
 
-  /* Photos */
-  .entry-photo-single { border-radius: 8pt; overflow: hidden; margin-bottom: 16pt; height: 55vh; }
-  .entry-photo-single img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Photos — object-fit: contain so the full photo always shows (no
+     cropping); the cell keeps a neutral fill behind any letterboxing so a
+     portrait shot in a landscape cell doesn't look like a rendering bug. */
+  .entry-photo-single { border-radius: 8pt; overflow: hidden; margin-bottom: 16pt; height: 55vh; background: #f4f4f5; }
+  .entry-photo-single img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .entry-photo-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 6pt; border-radius: 8pt; overflow: hidden; margin-bottom: 16pt; height: 45vh; }
   .entry-photo-trio { display: grid; grid-template-columns: 3fr 2fr; gap: 6pt; border-radius: 8pt; overflow: hidden; margin-bottom: 16pt; height: 50vh; }
-  .photo-cell { overflow: hidden; }
-  .photo-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .photo-hero { overflow: hidden; }
-  .photo-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-cell { overflow: hidden; background: #f4f4f5; }
+  .photo-cell img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .photo-hero { overflow: hidden; background: #f4f4f5; }
+  .photo-hero img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .photo-stack { display: flex; flex-direction: column; gap: 6pt; }
   .photo-stack .photo-cell { flex: 1; }
 
