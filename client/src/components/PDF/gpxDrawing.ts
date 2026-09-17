@@ -13,7 +13,7 @@ export interface PdfGpxTrack {
   max_elevation: number | null  // m
   min_elevation: number | null  // m
   ibp?: number | null
-  points: { lat: number; lng: number; ele: number | null }[]
+  points: { lat: number; lng: number; ele: number | null; time?: string | null }[]
   // ISO date (YYYY-MM-DD) of the trip day this track is linked to, when known —
   // lets callers group a flat track list back into per-day pages.
   date?: string | null
@@ -48,6 +48,52 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   })
 }
 
+// ── Split a single track into per-day fragments by recorded timestamp ────────
+// Journeys often carry one continuous multi-day GPX recording (exported from
+// Strava/Garmin/Wikiloc/a live-tracking app) rather than tracks manually
+// pre-split per trip day. When the points carry real timestamps, this groups
+// them by calendar date (UTC) and recomputes distance/elevation stats per
+// day so each day can still get its own map + elevation page.
+function computeTrackStats(points: PdfGpxTrack['points']): Pick<PdfGpxTrack, 'total_distance' | 'total_elevation_gain' | 'total_elevation_loss' | 'max_elevation' | 'min_elevation'> {
+  let total_distance = 0, total_elevation_gain = 0, total_elevation_loss = 0
+  let max_elevation: number | null = null, min_elevation: number | null = null
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i]
+    if (p.ele != null) {
+      max_elevation = max_elevation == null ? p.ele : Math.max(max_elevation, p.ele)
+      min_elevation = min_elevation == null ? p.ele : Math.min(min_elevation, p.ele)
+    }
+    if (i > 0) {
+      const prev = points[i - 1]
+      total_distance += haversineKm(prev.lat, prev.lng, p.lat, p.lng)
+      if (prev.ele != null && p.ele != null) {
+        const d = p.ele - prev.ele
+        if (d > 0) total_elevation_gain += d
+        else total_elevation_loss += -d
+      }
+    }
+  }
+  return { total_distance, total_elevation_gain, total_elevation_loss, max_elevation, min_elevation }
+}
+
+export function splitTrackByDate(track: PdfGpxTrack): Map<string, PdfGpxTrack> {
+  const byDate = new Map<string, PdfGpxTrack['points']>()
+  for (const p of track.points) {
+    if (!p.time) continue
+    const d = new Date(p.time)
+    if (isNaN(d.getTime())) continue
+    const dateKey = d.toISOString().slice(0, 10)
+    if (!byDate.has(dateKey)) byDate.set(dateKey, [])
+    byDate.get(dateKey)!.push(p)
+  }
+  const result = new Map<string, PdfGpxTrack>()
+  for (const [date, points] of byDate) {
+    if (points.length < 2) continue
+    result.set(date, { ...track, points, date, ...computeTrackStats(points) })
+  }
+  return result
+}
+
 // ── Real basemap route image (tiles + track, rendered to a raster PNG) ────────
 // Renders the track over real map tiles, composited onto a <canvas> so it
 // survives the print/srcdoc pipeline as a plain <img>. Falls back to null on
@@ -75,6 +121,16 @@ function loadTileImage(url: string): Promise<HTMLImageElement | null> {
     img.onerror = () => resolve(null)
     img.src = url
   })
+}
+
+// One retry on a slow/blipped tile before giving up on it — self-hosted
+// deployments often have less headroom on outbound bandwidth than a cloud
+// VM, and a single 6s timeout left a handful of tiles blank on an
+// otherwise-fine map instead of a full fallback.
+async function loadTileImageWithRetry(url: string): Promise<HTMLImageElement | null> {
+  const first = await withTimeout(loadTileImage(url), 6000).catch(() => null)
+  if (first) return first
+  return withTimeout(loadTileImage(url), 6000).catch(() => null)
 }
 
 export async function buildRouteMapImage(
@@ -144,7 +200,7 @@ export async function buildRouteMapImage(
         const url = buildTileUrl(tileUrlTemplate, zoom, wrappedX, ty)
         const tileX = tx, tileY = ty
         loads.push(
-          withTimeout(loadTileImage(url), 6000).catch(() => null).then(img => {
+          loadTileImageWithRetry(url).then(img => {
             if (img) ctx.drawImage(img, tileX * TILE_SIZE - originX, tileY * TILE_SIZE - originY, TILE_SIZE, TILE_SIZE)
           }),
         )
