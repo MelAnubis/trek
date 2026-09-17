@@ -14,6 +14,9 @@ export interface PdfGpxTrack {
   min_elevation: number | null  // m
   ibp?: number | null
   points: { lat: number; lng: number; ele: number | null }[]
+  // ISO date (YYYY-MM-DD) of the trip day this track is linked to, when known —
+  // lets callers group a flat track list back into per-day pages.
+  date?: string | null
 }
 
 // Minimal shape for map "entry" markers (e.g. Journey Book photo entries).

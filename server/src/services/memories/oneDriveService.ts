@@ -225,72 +225,39 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
   const to_   = to   ? new Date(to).toISOString()   : undefined;
   const collected: any[] = [];
 
-  // Años relevantes para el filtro
-  const fromYear = from ? new Date(from).getFullYear() : null;
-  const toYear   = to   ? new Date(to).getFullYear()   : null;
-  const fromMonth = from ? String(new Date(from).getMonth() + 1).padStart(2, '0') : null;
-  const toMonth   = to   ? String(new Date(to).getMonth() + 1).padStart(2, '0')   : null;
+  // Walk the special "photos" folder — the same root browseTimeline()/listAlbums()
+  // already use successfully — recursively, instead of assuming a fixed
+  // "Fotos/<year>/<month>" layout. Most accounts don't have that exact folder
+  // structure (different name, no year/month subfolders, deeper nesting, etc.),
+  // which made date-range search come back empty even when photos existed.
+  // Date filtering still happens per-item below, same as before.
+  const MAX_FOLDERS = 500;
+  const childrenQuery = '$select=id,name,folder,photo,image,file,thumbnails,createdDateTime&$top=200&$expand=thumbnails';
+  const queue: string[] = [`/me/drive/special/photos/children?${childrenQuery}`];
+  let foldersVisited = 0;
 
-  // Obtener subcarpetas de /Fotos
-  const foldersRes = await graphGet(userId, `/me/drive/root:/Fotos:/children?$select=id,name,folder&$top=100`);
-  if (foldersRes.error) return { assets: [], hasMore: false };
-
-  const allFolderIds: string[] = [];
-
-  for (const f of foldersRes.data?.value || []) {
-    if (!f.folder) continue;
-    allFolderIds.push(f.id);
-
-    // Subcarpetas de segundo nivel (ej: Camera Roll/2026)
-    const subRes = await graphGet(userId, `/me/drive/items/${f.id}/children?$select=id,name,folder&$top=100`);
-    if (subRes.error) continue;
-
-    for (const sub of subRes.data?.value || []) {
-      if (!sub.folder) continue;
-
-      // Filtrar por año si hay filtro de fechas
-      const subYear = parseInt(sub.name);
-      if (fromYear && toYear && !isNaN(subYear)) {
-        if (subYear < fromYear || subYear > toYear) continue;
-      }
-      allFolderIds.push(sub.id);
-
-      // Subcarpetas de tercer nivel (ej: Camera Roll/2026/04)
-      const subSubRes = await graphGet(userId, `/me/drive/items/${sub.id}/children?$select=id,name,folder&$top=100`);
-      if (subSubRes.error) continue;
-
-      for (const subsub of subSubRes.data?.value || []) {
-        if (!subsub.folder) continue;
-
-        // Filtrar por mes si hay filtro de fechas del mismo año
-        const subMonth = subsub.name.padStart(2, '0');
-        if (fromYear && toYear && fromYear === toYear && fromMonth && toMonth) {
-          if (subMonth < fromMonth || subMonth > toMonth) continue;
-        }
-        allFolderIds.push(subsub.id);
-      }
-    }
-  }
-
-  // Buscar fotos en cada carpeta
-  for (const folderId of allFolderIds) {
-    let url: string | null = `/me/drive/items/${folderId}/children?$select=id,name,photo,image,file,thumbnails,createdDateTime&$top=200&$expand=thumbnails`;
+  while (queue.length > 0 && foldersVisited < MAX_FOLDERS) {
+    let url: string | null = queue.shift()!;
+    foldersVisited++;
     while (url) {
       const result = await graphGet(userId, url);
       if (result.error) break;
-      const items = (result.data?.value || []).filter((i: any) =>
-        i.photo || i.image || i.file?.mimeType?.startsWith('image/')
-      );
-      for (const p of items) {
-        const taken = p.photo?.takenDateTime || p.createdDateTime;
+      const items = result.data?.value || [];
+      for (const item of items) {
+        if (item.folder) {
+          queue.push(`/me/drive/items/${item.id}/children?${childrenQuery}`);
+          continue;
+        }
+        if (!(item.photo || item.image || item.file?.mimeType?.startsWith('image/'))) continue;
+        const taken = item.photo?.takenDateTime || item.createdDateTime;
         if (from_ && taken < from_) continue;
         if (to_   && taken > to_)   continue;
-        collected.push(p);
+        collected.push(item);
       }
       const next = result.data?.['@odata.nextLink'];
-      if (!next) break;
+      if (!next) { url = null; break; }
       try { const u = new URL(next); url = u.pathname.replace('/v1.0', '') + u.search; }
-      catch { break; }
+      catch { url = null; }
     }
   }
 
