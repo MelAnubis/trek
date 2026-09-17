@@ -1454,6 +1454,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'costs.rateLabel': '1 {from} in {to}',
   'costs.category': 'Category',
   'costs.whoPaid': 'Who paid?',
+  'costs.sharedPayment': 'Paid from a shared kitty',
+  'costs.sharedPaymentHint': "Split evenly across everyone below — it doesn't matter who actually paid.",
   'costs.splitBetween': 'Split equally between',
   'costs.pickSomeone': 'Pick at least one person to split with.',
   'costs.splitSummary': 'Split {count} ways · {amount} each',

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2, Wallet } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -661,6 +661,16 @@ function SettleHistory({ settlements, fmt, Avatar, name, onUndo, canEdit }: {
   )
 }
 
+// Divides `total` into `n` shares down to the cent, so the shares always sum
+// back to exactly `total` regardless of rounding (e.g. 10.00 / 3 → 3.34/3.33/3.33).
+function splitEqually(total: number, n: number): number[] {
+  if (n <= 0) return []
+  const cents = Math.round(total * 100)
+  const base = Math.floor(cents / n)
+  const remainder = cents - base * n
+  return Array.from({ length: n }, (_, i) => (base + (i < remainder ? 1 : 0)) / 100)
+}
+
 // ── Add / edit expense modal ───────────────────────────────────────────────
 function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
   tripId: number; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; onClose: () => void; onSaved: () => void
@@ -684,14 +694,23 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
     editing ? new Set((editing.members || []).map(m => m.user_id)) : new Set(people.map(p => p.id)))
   const [saving, setSaving] = useState(false)
 
-  const payersTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
+  // "Paid from a shared kitty": a single total, auto-split equally across
+  // everyone in "split" — no one is individually tracked as the payer, since
+  // it came out of a pot everyone already put into.
+  const [sharedPayment, setSharedPayment] = useState(false)
+  const [sharedTotal, setSharedTotal] = useState('')
+
+  const manualTotal = Object.values(payers).reduce((a, v) => a + (parseFloat(v) || 0), 0)
+  const payersTotal = sharedPayment ? (parseFloat(sharedTotal) || 0) : manualTotal
   const each = split.size > 0 ? payersTotal / split.size : 0
   const valid = name.trim().length > 0 && split.size > 0 && payersTotal > 0
 
   const save = async () => {
     if (!valid) return
     setSaving(true)
-    const payerList = Object.entries(payers).map(([uid, v]) => ({ user_id: Number(uid), amount: parseFloat(v) || 0 })).filter(p => p.amount > 0)
+    const payerList = sharedPayment
+      ? [...split].map((uid, i) => ({ user_id: uid, amount: splitEqually(payersTotal, split.size)[i] })).filter(p => p.amount > 0)
+      : Object.entries(payers).map(([uid, v]) => ({ user_id: Number(uid), amount: parseFloat(v) || 0 })).filter(p => p.amount > 0)
     const data = {
       name: name.trim(), category: cat,
       // Store the actual currency the amounts were entered in; conversion to the
@@ -728,7 +747,13 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
           <label className={labelCls}>{t('costs.totalAmount')}</label>
           <div className="bg-surface-input border border-edge" style={{ height: FIELD_H, boxSizing: 'border-box', display: 'flex', alignItems: 'center', borderRadius: 10, padding: '0 12px' }}>
             <span className="text-content-faint" style={{ fontSize: 15 }}>{sym(currency)}</span>
-            <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            {sharedPayment ? (
+              <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={sharedTotal}
+                onChange={e => setSharedTotal(e.target.value)}
+                className="text-content" style={{ flex: 1, border: 0, background: 'none', outline: 'none', fontSize: 15, fontWeight: 600, padding: '8px 0 8px 6px' }} />
+            ) : (
+              <span className="text-content" style={{ flex: 1, fontSize: 15, fontWeight: 600, paddingLeft: 6 }}>{payersTotal.toFixed(2)}</span>
+            )}
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -771,20 +796,39 @@ function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
         </div>
 
         <div>
-          <label className={labelCls}>{t('costs.whoPaid')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-            {people.map(p => (
-              <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10 }}>
-                <span className="text-content" style={{ fontSize: 14, fontWeight: 500 }}>{p.id === me ? t('costs.you') : p.username}</span>
-                <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
-                  <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
-                  <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={payers[p.id] || ''}
-                    onChange={e => setPayers(prev => ({ ...prev, [p.id]: e.target.value }))}
-                    className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
-                </div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+            <label className={labelCls} style={{ margin: 0 }}>{t('costs.whoPaid')}</label>
+            <button
+              type="button"
+              onClick={() => setSharedPayment(v => {
+                const next = !v
+                if (next && !sharedTotal && manualTotal > 0) setSharedTotal(manualTotal.toFixed(2))
+                return next
+              })}
+              className={sharedPayment ? 'bg-surface-card text-content border' : 'bg-surface-secondary text-content-faint border border-edge'}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', borderColor: sharedPayment ? 'var(--text-primary)' : undefined }}
+            >
+              <Wallet size={12} />
+              {t('costs.sharedPayment')}
+            </button>
           </div>
+          {sharedPayment ? (
+            <p className="text-content-faint" style={{ fontSize: 12.5, margin: 0 }}>{t('costs.sharedPaymentHint')}</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+              {people.map(p => (
+                <div key={p.id} className="bg-surface-secondary border border-edge" style={{ display: 'grid', gridTemplateColumns: '1fr 130px', gap: 10, alignItems: 'center', padding: '8px 11px', borderRadius: 10 }}>
+                  <span className="text-content" style={{ fontSize: 14, fontWeight: 500 }}>{p.id === me ? t('costs.you') : p.username}</span>
+                  <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 8, padding: '0 10px' }}>
+                    <span className="text-content-faint" style={{ fontSize: 13 }}>{sym(currency)}</span>
+                    <input type="number" inputMode="decimal" min="0" step="0.01" placeholder="0.00" value={payers[p.id] || ''}
+                      onChange={e => setPayers(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      className="text-content" style={{ width: '100%', border: 0, background: 'none', outline: 'none', fontSize: 14, fontWeight: 600, padding: '8px 0', textAlign: 'right' }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div>
