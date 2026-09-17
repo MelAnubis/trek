@@ -17,6 +17,10 @@ export interface PdfGpxTrack {
   // ISO date (YYYY-MM-DD) of the trip day this track is linked to, when known —
   // lets callers group a flat track list back into per-day pages.
   date?: string | null
+  // 1-based position of the linked trip day (day_number), for trips planned
+  // without fixed calendar dates — lets callers pair a track with the
+  // journal's Nth day by position when there's no date to match on.
+  day_number?: number | null
 }
 
 // Minimal shape for map "entry" markers (e.g. Journey Book photo entries).
