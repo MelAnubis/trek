@@ -9,6 +9,23 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildSettings } from '../../../tests/helpers/factories';
 import CostsPanel from './CostsPanel';
+import { budgetApi, filesApi } from '../../api/client';
+
+// scanReceipt/upload send a FormData body carrying a real File's bytes —
+// the vitest jsdom environment's File/FormData objects aren't stream-
+// readable by Node's native undici (used by axios under test), which hangs
+// the request. Mocking the API layer lets these tests verify what the
+// component does with the response instead of re-testing the browser's
+// multipart encoding (already covered by the server's own file-upload
+// integration tests).
+vi.mock('../../api/client', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/client')>();
+  return {
+    ...actual,
+    budgetApi: { ...actual.budgetApi, scanReceipt: vi.fn() },
+    filesApi: { ...actual.filesApi, upload: vi.fn() },
+  };
+});
 
 const members = [
   { id: 1, username: 'Alice' },
@@ -84,5 +101,56 @@ describe('CostsPanel — shared payment', () => {
     expect(amounts.reduce((a: number, b: number) => a + b, 0)).toBeCloseTo(10, 2);
     // Every participant is both a payer and a split member — no one owes anyone
     expect(posted.payers.map((p: any) => p.user_id).sort()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('CostsPanel — receipt attachments', () => {
+  beforeEach(() => {
+    vi.mocked(budgetApi.scanReceipt).mockReset();
+    vi.mocked(filesApi.upload).mockReset();
+  });
+
+  it('FE-COMP-COSTSPANEL-004: attaching a receipt photo scans it and prefills the form', async () => {
+    const user = userEvent.setup();
+    vi.mocked(budgetApi.scanReceipt).mockResolvedValue({
+      result: { name: 'Trattoria Roma', total_price: 42.5, currency: 'EUR', expense_date: '2026-06-02', category: 'food' },
+    });
+
+    await openExpenseModal(user);
+
+    const fileInput = document.querySelector('input[type="file"][accept="image/*,.pdf"]') as HTMLInputElement;
+    expect(fileInput).toBeTruthy();
+    const file = new File(['fake-bytes'], 'receipt.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, file);
+
+    await waitFor(() => expect(screen.getByDisplayValue('Trattoria Roma')).toBeInTheDocument());
+    expect(screen.getByText('receipt.jpg')).toBeInTheDocument();
+    expect(budgetApi.scanReceipt).toHaveBeenCalledWith(1, expect.any(FormData));
+  });
+
+  it('FE-COMP-COSTSPANEL-005: a pending attachment on a new expense is uploaded once the expense is saved', async () => {
+    const user = userEvent.setup();
+    vi.mocked(budgetApi.scanReceipt).mockResolvedValue({ result: {} });
+    vi.mocked(filesApi.upload).mockResolvedValue({ file: { id: 5, trip_id: 1, original_name: 'receipt.jpg' } });
+    server.use(
+      http.post('/api/trips/1/budget', () => HttpResponse.json({ item: { id: 77, trip_id: 1, name: 'Taxi', total_price: 12, currency: 'EUR' } })),
+    );
+
+    await openExpenseModal(user);
+    await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Taxi');
+    await user.type(screen.getAllByPlaceholderText('0.00')[0], '12');
+
+    const fileInput = document.querySelector('input[type="file"][accept="image/*,.pdf"]') as HTMLInputElement;
+    const file = new File(['fake-bytes'], 'receipt.jpg', { type: 'image/jpeg' });
+    await user.upload(fileInput, file);
+    await screen.findByText('receipt.jpg');
+
+    const addExpenseButtons = screen.getAllByRole('button', { name: 'Add expense' });
+    await user.click(addExpenseButtons[addExpenseButtons.length - 1]);
+
+    await waitFor(() => expect(filesApi.upload).toHaveBeenCalled());
+    const [tripIdArg, formDataArg] = vi.mocked(filesApi.upload).mock.calls[0];
+    expect(tripIdArg).toBe(1);
+    expect((formDataArg as FormData).get('budget_item_id')).toBe('77');
   });
 });

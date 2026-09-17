@@ -2496,6 +2496,11 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE packing_items ADD COLUMN bikepack_item_id INTEGER REFERENCES bikepack_items(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // Let a receipt photo/document be attached directly to a budget item,
+    // same pattern as trip_files.place_id / reservation_id.
+    () => {
+      try { db.exec('ALTER TABLE trip_files ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
+    },
   ];
 
   if (currentVersion < migrations.length) {

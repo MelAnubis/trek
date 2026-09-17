@@ -197,6 +197,7 @@ export interface TripFile {
   place_id?: number | null;
   reservation_id?: number | null;
   note_id?: number | null;
+  budget_item_id?: number | null;
   uploaded_by?: number | null;
   uploaded_by_name?: string | null;
   filename: string;
