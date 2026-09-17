@@ -630,8 +630,11 @@ body {
     radial-gradient(ellipse 60% 40% at 80% 10%,  rgba(139,92,246,0.10) 0%, transparent 55%),
     radial-gradient(ellipse 70% 50% at 50% 90%,  rgba(14,165,233,0.08) 0%, transparent 60%);
 }
-/* All direct children get positioned above the pseudo-element */
-.page-bg > * { position: relative; z-index: 1; }
+/* All direct children get positioned above the pseudo-element — except ones
+   that already manage their own position (fixed/absolute/sticky full-screen
+   overlays, e.g. modals). Forcing position:relative on those overrides their
+   own positioning and z-index, breaking them out of the viewport entirely. */
+.page-bg > *:not(.fixed):not(.absolute):not(.sticky) { position: relative; z-index: 1; }
 
 /* ── Marker cluster custom styling ────────────── */
 .marker-cluster-wrapper {
