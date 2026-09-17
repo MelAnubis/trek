@@ -171,20 +171,45 @@ export function disconnect(userId: number): void {
   `).run(userId);
 }
 
-// ── List albums (OneDrive folders with photos) ────────────────────────────────
+// ── List albums (real OneDrive Albums + top-level Photos folders) ────────────
 export async function listAlbums(userId: number) {
-  // Use /me/drive/special/photos/children to list photo folders
-  const result = await graphGet(userId, '/me/drive/special/photos/children?$select=id,name,folder,photo,lastModifiedDateTime&$top=100');
-  if (result.error) return { error: result.error, status: result.status };
+  const seen = new Set<string>();
+  const albums: { id: string; name: string; count: number }[] = [];
 
-  const folders = (result.data?.value || []).filter((i: any) => i.folder);
-  return {
-    albums: folders.map((f: any) => ({
-      id:    f.id,
-      name:  f.name,
-      count: f.folder?.childCount || 0,
-    })),
-  };
+  // Real OneDrive Albums (created via "New album" in the OneDrive app) are a
+  // distinct resource from folders — the Graph API exposes them as "bundles"
+  // with an `album` facet. Listing only top-level Photos folders (as before)
+  // missed these entirely, which is what "no me trae los álbumes" was about.
+  const bundlesResult = await graphGet(userId, "/me/drive/bundles?$filter=bundle/album ne null&$select=id,name,bundle");
+  if (bundlesResult.error) {
+    console.error('[oneDrive] listAlbums bundles fetch failed:', bundlesResult.status, bundlesResult.error);
+  } else {
+    for (const b of bundlesResult.data?.value || []) {
+      if (seen.has(b.id)) continue;
+      seen.add(b.id);
+      albums.push({ id: b.id, name: b.name, count: b.bundle?.album?.count ?? b.bundle?.childCount ?? 0 });
+    }
+  }
+
+  // Also surface top-level folders under the special "photos" root (Camera
+  // Roll, or any custom folder the user organizes photos into manually) —
+  // some users use plain folders instead of, or alongside, real Albums.
+  const foldersResult = await graphGet(userId, '/me/drive/special/photos/children?$select=id,name,folder,photo,lastModifiedDateTime&$top=100');
+  if (foldersResult.error) {
+    console.error('[oneDrive] listAlbums folders fetch failed:', foldersResult.status, foldersResult.error);
+  } else {
+    for (const f of (foldersResult.data?.value || []).filter((i: any) => i.folder)) {
+      if (seen.has(f.id)) continue;
+      seen.add(f.id);
+      albums.push({ id: f.id, name: f.name, count: f.folder?.childCount || 0 });
+    }
+  }
+
+  if (bundlesResult.error && foldersResult.error) {
+    return { error: foldersResult.error, status: foldersResult.status };
+  }
+  console.log(`[oneDrive] listAlbums: ${albums.length} album(s)/folder(s) found`);
+  return { albums };
 }
 
 // ── Get photos in a folder/album ─────────────────────────────────────────────
