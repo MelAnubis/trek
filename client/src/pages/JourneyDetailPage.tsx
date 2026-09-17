@@ -1171,36 +1171,49 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
   const galleryUploading = galleryProgress !== null
   const toast = useToast()
 
-  // check which providers are enabled AND connected for the current user
+  // Check which providers are enabled AND connected for the current user.
+  // Uses /api/addons (any authenticated user) rather than /api/admin/addons
+  // (admin-only) — a non-admin collaborator still needs to see providers
+  // like Immich/Synology here. Each provider check has its own try/catch so
+  // one failing request (e.g. a 403 from an addon-scoped endpoint) can't
+  // silently wipe out the others, including the separate OneDrive check.
   useEffect(() => {
-    (async () => {
+    const checkProviders = async () => {
+      const connected: { id: string; name: string }[] = []
       try {
-        const addonsRes = await fetch('/api/admin/addons', { credentials: 'include' })
-        const addonsData = await addonsRes.json()
-        const enabledProviders = (addonsData.addons || []).filter(
-          (a: any) => a.type === 'photo_provider' && a.enabled
-        )
-        const connected: { id: string; name: string }[] = []
-        for (const p of enabledProviders) {
-          try {
-            const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include' })
-            if (res.ok) {
-              const status = await res.json()
-              if (status.connected) connected.push({ id: p.id, name: p.name })
-            }
-          } catch {}
-        }
-        // Check OneDrive separately (OAuth provider)
-        try {
-          const odRes = await fetch('/api/integrations/memories/onedrive/status', { credentials: 'include' })
-          if (odRes.ok) {
-            const odStatus = await odRes.json()
-            if (odStatus.connected) connected.push({ id: 'onedrive', name: 'OneDrive Photos' })
+        const addonsRes = await fetch('/api/addons', { credentials: 'include' })
+        if (addonsRes.ok) {
+          const addonsData = await addonsRes.json()
+          const enabledProviders = (addonsData.addons || []).filter(
+            (a: any) => a.type === 'photo_provider' && a.enabled
+          )
+          for (const p of enabledProviders) {
+            try {
+              const res = await fetch(`/api/integrations/memories/${p.id}/status`, { credentials: 'include' })
+              if (res.ok) {
+                const status = await res.json()
+                if (status.connected) connected.push({ id: p.id, name: p.name })
+              }
+            } catch {}
           }
-        } catch {}
-        setAvailableProviders(connected)
+        }
       } catch {}
-    })()
+      // Check OneDrive separately (OAuth provider, not addon-driven)
+      try {
+        const odRes = await fetch('/api/integrations/memories/onedrive/status', { credentials: 'include' })
+        if (odRes.ok) {
+          const odStatus = await odRes.json()
+          if (odStatus.connected) connected.push({ id: 'onedrive', name: 'OneDrive Photos' })
+        }
+      } catch {}
+      setAvailableProviders(connected)
+    }
+    checkProviders()
+    // Re-check when the tab regains focus — a provider connected from
+    // Settings in another tab (or after the OAuth redirect) shouldn't
+    // require a full page reload to show up here.
+    window.addEventListener('focus', checkProviders)
+    return () => window.removeEventListener('focus', checkProviders)
   }, [])
 
   const allPhotos = gallery
