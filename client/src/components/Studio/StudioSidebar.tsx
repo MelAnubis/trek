@@ -1,20 +1,43 @@
-import { Circle, Copy, ImageIcon, Plus, Square, Trash2, Type, ChevronUp, ChevronDown } from 'lucide-react'
+import { Circle, Copy, ImageIcon, Plus, Square, Trash2, Type, ChevronUp, ChevronDown, LayoutGrid } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
-import type { BookElement } from '../../types/book'
+import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
+import type { BookElement, BookPageSetup } from '../../types/book'
 
 /**
- * The left rail: pages, the journey's own photos to drag onto the canvas,
- * and buttons to add a text/shape/photo-frame element. Simpler than
- * upstream's Studio (single scrollable rail with sections, not separate
- * tabs; no journal-entry browser or template gallery yet — those, plus the
- * full shape/icon library, land with auto-layout in a later phase).
+ * The left rail: pages, layout templates, buttons to add a text/shape/
+ * photo-frame element, and the journey's own photos to drag onto the
+ * canvas. Simpler than upstream's Studio (single scrollable rail with
+ * sections, not separate tabs; no journal-entry browser yet, and the
+ * layout gallery is the 12 programmatic templates from templates.ts rather
+ * than upstream's hand-drawn reference set — see autoLayout.ts for why).
  */
 
 const PANEL_SECTION: React.CSSProperties = { padding: '14px 14px 16px', borderBottom: '1px solid var(--border-secondary)' }
 const PANEL_TITLE: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-faint)', marginBottom: 10 }
+
+/** "hero-story" -> "Hero story" */
+function prettyId(id: string): string {
+  const words = id.replace(/^cover-/, '').split('-')
+  return words.map((w, i) => (i === 0 ? w[0].toUpperCase() + w.slice(1) : w)).join(' ')
+}
+
+/** A miniature preview of what a template's frames look like, from its own `build()` output. */
+function LayoutSwatch({ template, single, page }: { template: Template; single: boolean; page: BookPageSetup }) {
+  const w = single ? page.pageWidth : page.pageWidth * 2
+  const h = page.pageHeight
+  const slots = template.build(page)
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', aspectRatio: `${w} / ${h}`, display: 'block', background: '#fff', borderRadius: 4 }}>
+      {slots.map((s, i) => (
+        <rect key={i} x={s.frame.x} y={s.frame.y} width={s.frame.w} height={s.frame.h}
+          fill={s.kind === 'photo' ? '#d4d4d8' : s.kind === 'heading' ? '#52525b' : s.kind === 'body' ? '#a1a1aa' : '#e4e4e7'} />
+      ))}
+    </svg>
+  )
+}
 
 export function StudioSidebar({
   galleryPhotos,
@@ -31,6 +54,7 @@ export function StudioSidebar({
   const moveSpread = useStudioStore(s => s.moveSpread)
   const canEditSpread = useStudioStore(s => s.canEditSpread)
   const addElement = useStudioStore(s => s.addElement)
+  const commit = useStudioStore(s => s.commit)
 
   if (!doc) return null
 
@@ -38,6 +62,19 @@ export function StudioSidebar({
     const x = (doc.page.pageWidth - w) / 2
     const y = (doc.page.pageHeight - h) / 2
     addElement(activeSpread, make(elementId('el'), { x, y, w, h }))
+  }
+
+  const spread = doc.spreads[activeSpread]
+  const isSingle = spread?.role !== 'inner'
+  const layoutOptions = isSingle ? COVER_TEMPLATES : TEMPLATES
+
+  const applyLayout = (tplId: string) => {
+    const tpl = layoutOptions.find(t => t.id === tplId)
+    if (!tpl) return
+    commit(d => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : applyTemplate(sp, tpl, d.page))),
+    }))
   }
 
   return (
@@ -84,6 +121,25 @@ export function StudioSidebar({
         </div>
       </div>
 
+      {/* Layouts */}
+      <div style={PANEL_SECTION}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <LayoutGrid size={12} color="var(--text-faint)" />
+          <span style={PANEL_TITLE}>{t('journey.studio.layoutsTab')}</span>
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
+          {t('journey.studio.layoutsHint')}
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {layoutOptions.map(tpl => (
+            <button key={tpl.id} onClick={() => applyLayout(tpl.id)} className="st-sb-layout" title={prettyId(tpl.id)}>
+              <LayoutSwatch template={tpl} single={isSingle} page={doc.page} />
+              <span>{prettyId(tpl.id)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Elements */}
       <div style={PANEL_SECTION}>
         <div style={PANEL_TITLE}>{t('journey.studio.elementsTab')}</div>
@@ -94,7 +150,7 @@ export function StudioSidebar({
           }))} className="st-sb-add"><Type size={15} /> {t('journey.studio.addText')}</button>
           <button onClick={() => addCentered(90, 65, (id, frame) => ({
             id, frame, kind: 'photo', rotation: 0, opacity: 1, locked: false,
-            photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none',
+            photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
           }))} className="st-sb-add"><ImageIcon size={15} /> {t('journey.studio.addPhotoFrame')}</button>
           <button onClick={() => addCentered(60, 60, (id, frame) => ({
             id, frame, kind: 'shape', rotation: 0, opacity: 1, locked: false,
@@ -128,6 +184,9 @@ export function StudioSidebar({
         .st-sb-btn.is-danger:hover { background: #fef2f2; color: #dc2626; }
         .st-sb-add { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 8px; border: 1px solid var(--border-primary); background: none; cursor: pointer; color: var(--text-muted); font-size: 10px; font-family: inherit; }
         .st-sb-add:hover { background: var(--bg-hover); }
+        .st-sb-layout { display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 8px; border: 1px solid var(--border-primary); background: none; cursor: pointer; font-family: inherit; }
+        .st-sb-layout:hover { border-color: var(--text-muted); }
+        .st-sb-layout span { font-size: 9px; color: var(--text-faint); text-align: center; }
       `}</style>
     </div>
   )

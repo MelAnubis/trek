@@ -182,7 +182,7 @@ export function StudioCanvas({
           id, kind: 'photo',
           frame: { x: p.x - w / 2, y: p.y - h / 2, w, h },
           rotation: 0, opacity: 1, locked: false,
-          photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none',
+          photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
         } as BookElement)
         select([id])
       }}

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Minus, Plus, Redo2, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Minus, Plus, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useStudioStore } from '../store/studioStore'
@@ -9,29 +9,18 @@ import { StudioCanvas } from '../components/Studio/StudioCanvas'
 import { StudioSidebar } from '../components/Studio/StudioSidebar'
 import { StudioInspector } from '../components/Studio/StudioInspector'
 import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
-import type { BookDocument } from '../types/book'
+import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
+import { useToast } from '../components/shared/Toast'
 
 /**
- * TREK Studio — Phase 2: the editing canvas. Loads/creates the journey's
- * book, wires it to studioStore (undo/redo, selection) and useBookStore
- * (debounced autosave, conflict handling), and lays out the sidebar /
- * canvas / inspector around StudioCanvas.
- *
- * Auto-layout ("This spread" / "the whole book" from journal entries) and
- * the travel-specific elements land in Phase 3; export/print in Phase 4.
+ * TREK Studio — Phase 2 (editing canvas) + Phase 3 (auto layout from the
+ * journal). The travel-specific elements (route maps, country lists, stat
+ * badges) and print/export land in later phases — see autoLayout.ts for
+ * why "the whole book" is built from the 12 programmatic templates rather
+ * than upstream's hand-drawn set for now.
  */
 
-function emptyBookDocument(): BookDocument {
-  return {
-    version: 1,
-    title: '',
-    page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
-    spreads: [
-      { id: 'cover', role: 'cover', background: null, elements: [], parked: [], entryId: null },
-      { id: 'spread-1', role: 'inner', background: null, elements: [], parked: [], entryId: null },
-    ],
-  }
-}
+const DEFAULT_PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
 
 /** Base CSS px-per-mm; StudioCanvas multiplies this by the zoom level. */
 const BASE_PX_PER_MM = 96 / 25.4
@@ -41,13 +30,15 @@ export default function JourneyStudioPage() {
   const { id } = useParams()
   const journeyId = Number(id)
   const navigate = useNavigate()
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
 
   const current = useJourneyStore(s => s.current)
   const loadJourney = useJourneyStore(s => s.loadJourney)
+  const toast = useToast()
 
   const doc = useStudioStore(s => s.doc)
   const loadDoc = useStudioStore(s => s.load)
+  const commit = useStudioStore(s => s.commit)
   const activeSpread = useStudioStore(s => s.activeSpread)
   const undo = useStudioStore(s => s.undo)
   const redo = useStudioStore(s => s.redo)
@@ -88,13 +79,59 @@ export default function JourneyStudioPage() {
     navigate(`/journey/${journeyId}`)
   }
 
-  const createBook = () => loadDoc(emptyBookDocument())
+  const createBook = () => loadDoc(emptyBook(DEFAULT_PAGE, current?.title || ''))
 
   const galleryPhotos = useMemo(() =>
     (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null })),
     [current])
 
+  const autoInput: AutoInput | null = useMemo(() => {
+    if (!current || !doc) return null
+    const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
+    const allPhotos = entries.flatMap(e => e.photos || [])
+    const withContent = entries.filter(e => (e.photos?.length || 0) > 0 || !!e.story?.trim())
+    const days = new Set(withContent.map(e => e.entry_date).filter(Boolean)).size
+    return {
+      locale,
+      title: current.title,
+      subtitle: current.subtitle || null,
+      coverPhotoId: allPhotos[0]?.photo_id ?? null,
+      entries: entries.map(e => ({
+        id: e.id,
+        title: e.title ?? null,
+        story: e.story ?? null,
+        location: e.location_name ?? null,
+        date: e.entry_date ?? null,
+        photos: (e.photos || []).map(p => ({ photoId: p.photo_id })),
+      })),
+      page: doc.page,
+      journeyStats: {
+        days,
+        entries: current.stats?.entries ?? withContent.length,
+        photos: current.stats?.photos ?? allPhotos.length,
+        places: current.stats?.places ?? 0,
+      },
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current, doc?.page, locale])
+
   const spread = doc?.spreads[activeSpread] ?? null
+
+  const handleAutoSpread = () => {
+    if (!autoInput || !spread) return
+    commit(d => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : relayoutSpread(sp, autoInput, activeSpread) ?? sp)),
+    }))
+    toast.success(t('journey.studio.autoLayoutDone'))
+  }
+
+  const handleAutoBook = () => {
+    if (!autoInput) return
+    if (!window.confirm(t('journey.studio.autoLayoutBookConfirm'))) return
+    commit(() => buildBook(autoInput))
+    toast.success(t('journey.studio.autoLayoutDone'))
+  }
   const zoomIndex = ZOOM_STEPS.reduce((best, z, i) => (Math.abs(z - zoom) < Math.abs(ZOOM_STEPS[best] - zoom) ? i : best), 0)
 
   const font: React.CSSProperties = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
@@ -133,6 +170,31 @@ export default function JourneyStudioPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {doc && autoInput && (
+            <div className="relative group" style={{ position: 'relative' }}>
+              <button style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
+                border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)',
+                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                <Sparkles size={14} /> {t('journey.studio.autoLayout')}
+              </button>
+              <div className="st-auto-menu" style={{
+                position: 'absolute', top: '100%', right: 0, marginTop: 4, minWidth: 160, borderRadius: 10,
+                border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                padding: 4, zIndex: 20, opacity: 0, visibility: 'hidden', transition: 'opacity 0.1s',
+              }}>
+                <button onClick={handleAutoSpread} disabled={!spread?.entryId}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: spread?.entryId ? 'pointer' : 'default', opacity: spread?.entryId ? 1 : 0.4, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
+                  {t('journey.studio.autoLayoutSpread')}
+                </button>
+                <button onClick={handleAutoBook}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit' }}>
+                  {t('journey.studio.autoLayoutBook')}
+                </button>
+              </div>
+            </div>
+          )}
           {doc && (
             <>
               <button onClick={undo} disabled={!canUndo} title={t('journey.studio.undo')}
@@ -228,6 +290,8 @@ export default function JourneyStudioPage() {
           </div>
         </div>
       )}
+
+      <style>{`.group:hover .st-auto-menu { opacity: 1 !important; visibility: visible !important; }`}</style>
     </div>
   )
 }

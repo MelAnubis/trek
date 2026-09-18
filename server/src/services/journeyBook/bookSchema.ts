@@ -69,6 +69,8 @@ export const bookPhotoElementSchema = z.object({
   radius: mm.default(0),
   filter: z.enum(['none', 'bw', 'warm', 'cool', 'fade', 'contrast']).default('none'),
   frameStyle: z.enum(['none', 'polaroid', 'white', 'shadow', 'film', 'tape']).default('none'),
+  /** Cut the picture to a shape. Null is the plain rectangle every photo starts as. */
+  mask: z.enum(BOOK_SHAPES).nullable().default(null),
 });
 
 export const bookTextElementSchema = z.object({

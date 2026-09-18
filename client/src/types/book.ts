@@ -36,6 +36,7 @@ export interface BookPhotoElement extends BookElementBase {
   radius: number;
   filter: 'none' | 'bw' | 'warm' | 'cool' | 'fade' | 'contrast';
   frameStyle: 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape';
+  mask: BookShapeId | null;
 }
 
 export interface BookTextBinding {

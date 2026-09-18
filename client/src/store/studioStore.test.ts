@@ -167,8 +167,10 @@ describe('studioStore — spread management', () => {
     useStudioStore.getState().duplicateSpread(1)
     const spreads = useStudioStore.getState().doc!.spreads
     expect(spreads).toHaveLength(3)
-    expect(spreads[2].elements[0].id).not.toBe('t-1')
-    expect(spreads[2].elements[0].text).toBe('hi')
+    const copied = spreads[2].elements[0]
+    expect(copied.id).not.toBe('t-1')
+    expect(copied.kind).toBe('text')
+    expect((copied as BookTextElement).text).toBe('hi')
   })
 
   it('FE-STORE-STUDIO-015: removeSpread refuses to remove the cover', () => {

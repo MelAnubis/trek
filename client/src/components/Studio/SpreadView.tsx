@@ -143,7 +143,7 @@ function PhotoView({ el, big, print, dropLabel }: {
         right: `${pad}mm`,
         bottom: `${bottom || pad}mm`,
         overflow: 'hidden',
-        borderRadius: el.radius ? `${el.radius}mm` : undefined,
+        borderRadius: el.mask === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
       }}
     >
       {empty ? hatch : (
