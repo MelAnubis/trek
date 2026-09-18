@@ -191,24 +191,40 @@ export async function listAlbums(userId: number) {
     }
   }
 
-  // Also surface top-level folders under the special "photos" root (Camera
-  // Roll, or any custom folder the user organizes photos into manually) —
-  // some users use plain folders instead of, or alongside, real Albums.
-  const foldersResult = await graphGet(userId, '/me/drive/special/photos/children?$select=id,name,folder,photo,lastModifiedDateTime&$top=100');
-  if (foldersResult.error) {
-    console.error('[oneDrive] listAlbums folders fetch failed:', foldersResult.status, foldersResult.error);
-  } else {
-    for (const f of (foldersResult.data?.value || []).filter((i: any) => i.folder)) {
-      if (seen.has(f.id)) continue;
-      seen.add(f.id);
-      albums.push({ id: f.id, name: f.name, count: f.folder?.childCount || 0 });
+  // Also surface EVERY folder under the special "photos" root, not just its
+  // direct children — a user's real trip folders are often nested a level
+  // or two deep (e.g. Camera Roll/Girona 2026), and listing only top-level
+  // folders missed those, which is what "no encuentra todos" was about.
+  // Same bounded recursive walk as searchPhotos().
+  const MAX_FOLDERS = 500;
+  const childrenQuery = '$select=id,name,folder,photo,lastModifiedDateTime&$top=200';
+  const queue: string[] = ['/me/drive/special/photos/children'];
+  let foldersVisited = 0;
+  let folderWalkError: { status?: number; error: string } | null = null;
+
+  while (queue.length > 0 && foldersVisited < MAX_FOLDERS) {
+    const path = queue.shift()!;
+    foldersVisited++;
+    const result = await graphGet(userId, `${path}?${childrenQuery}`);
+    if (result.error) {
+      console.error('[oneDrive] listAlbums folder fetch failed:', path, result.status, result.error);
+      folderWalkError = { status: result.status, error: result.error };
+      continue;
+    }
+    for (const item of result.data?.value || []) {
+      if (!item.folder) continue;
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        albums.push({ id: item.id, name: item.name, count: item.folder?.childCount || 0 });
+      }
+      queue.push(`/me/drive/items/${item.id}/children`);
     }
   }
 
-  if (bundlesResult.error && foldersResult.error) {
-    return { error: foldersResult.error, status: foldersResult.status };
+  if (bundlesResult.error && folderWalkError && albums.length === 0) {
+    return { error: folderWalkError.error, status: folderWalkError.status };
   }
-  console.log(`[oneDrive] listAlbums: ${albums.length} album(s)/folder(s) found`);
+  console.log(`[oneDrive] listAlbums: visited ${foldersVisited} folder(s), ${albums.length} album(s)/folder(s) found`);
   return { albums };
 }
 
