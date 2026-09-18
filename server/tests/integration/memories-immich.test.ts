@@ -64,8 +64,26 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         body: null,
       });
     }
-    // /api/search/metadata — search
+    // /api/search/metadata — used both for date-range search and (with an
+    // albumIds filter) for an album's own photos, since GET /api/albums/:id
+    // no longer embeds an `assets` array — see fetchAlbumAssets().
     if (u.includes('/api/search/metadata')) {
+      let body: any = {};
+      try { body = init?.body ? JSON.parse(init.body) : {}; } catch { /* ignore */ }
+      if (Array.isArray(body.albumIds) && body.albumIds.length > 0) {
+        return Promise.resolve({
+          ok: true, status: 200,
+          headers: { get: () => null },
+          json: () => Promise.resolve({
+            assets: {
+              items: (body.page ?? 1) === 1
+                ? [{ id: 'asset-sync-1', fileCreatedAt: '2024-06-02T10:00:00.000Z', exifInfo: {} }]
+                : [],
+            },
+          }),
+          body: null,
+        });
+      }
       return Promise.resolve({
         ok: true, status: 200,
         headers: { get: () => null },
@@ -127,15 +145,6 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         json: () => Promise.resolve([
           { id: 'album-uuid-1', albumName: 'Vacation 2024', assetCount: 42, startDate: '2024-06-01', endDate: '2024-06-14', albumThumbnailAssetId: null },
         ]),
-        body: null,
-      });
-    }
-    // /api/albums/:id — album detail (for sync)
-    if (/\/api\/albums\//.test(u)) {
-      return Promise.resolve({
-        ok: true, status: 200,
-        headers: { get: () => null },
-        json: () => Promise.resolve({ assets: [{ id: 'asset-sync-1', type: 'IMAGE' }] }),
         body: null,
       });
     }

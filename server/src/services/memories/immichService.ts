@@ -323,6 +323,41 @@ export async function listAlbums(
   }
 }
 
+/**
+ * An album's photos, paginated through the same date/filter search endpoint
+ * searchPhotos() above uses, filtered to this album.
+ *
+ * `GET /albums/{id}` used to embed an `assets` array directly, which is
+ * what this used to read — but Immich's AlbumResponseDto no longer has an
+ * `assets` field at all (confirmed against the current OpenAPI spec), so
+ * that array was always empty regardless of how many photos the album
+ * actually had: the picker showed the real assetCount (from the *list*
+ * endpoint, which does still carry it) but every album "had no photos"
+ * the moment you opened it. `/search/metadata` with an `albumIds` filter
+ * is the documented replacement.
+ */
+async function fetchAlbumAssets(
+  creds: { immich_url: string; immich_api_key: string },
+  albumId: string,
+): Promise<{ items?: any[]; error?: string; status?: number }> {
+  const items: any[] = [];
+  const size = 200;
+  for (let page = 1; page <= 50; page++) {
+    const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
+      method: 'POST',
+      headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ albumIds: [albumId], type: 'IMAGE', size, page }),
+      signal: AbortSignal.timeout(15000) as any,
+    });
+    if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
+    const data = await resp.json() as { assets?: { items?: any[] } };
+    const pageItems = data.assets?.items || [];
+    items.push(...pageItems);
+    if (pageItems.length < size) break;
+  }
+  return { items };
+}
+
 export async function getAlbumPhotos(
   userId: number,
   albumId: string,
@@ -331,13 +366,9 @@ export async function getAlbumPhotos(
   if (!creds) return { error: 'Immich not configured', status: 400 };
 
   try {
-    const resp = await safeFetch(`${creds.immich_url}/api/albums/${albumId}`, {
-      headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000) as any,
-    });
-    if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
-    const albumData = await resp.json() as { assets?: any[] };
-    const assets = (albumData.assets || []).filter((a: any) => a.type === 'IMAGE').map((a: any) => ({
+    const result = await fetchAlbumAssets(creds, albumId);
+    if (result.error) return { error: result.error, status: result.status };
+    const assets = (result.items || []).map((a: any) => ({
       id: a.id,
       takenAt: a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
@@ -398,17 +429,13 @@ export async function syncAlbumAssets(
   if (!creds) return { error: 'Immich not configured', status: 400 };
 
   try {
-    const resp = await safeFetch(`${creds.immich_url}/api/albums/${response.data}`, {
-      headers: { 'x-api-key': creds.immich_api_key, 'Accept': 'application/json' },
-      signal: AbortSignal.timeout(15000) as any,
-    });
-    if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };
-    const albumData = await resp.json() as { assets?: any[] };
-    const assets = (albumData.assets || []).filter((a: any) => a.type === 'IMAGE');
+    const albumAssets = await fetchAlbumAssets(creds, response.data);
+    if (albumAssets.error) return { error: albumAssets.error, status: albumAssets.status };
+    const items = albumAssets.items || [];
 
     const selection: Selection = {
       provider: 'immich',
-      asset_ids: assets.map((a: any) => a.id),
+      asset_ids: items.map((a: any) => a.id),
     };
 
     const result = await addTripPhotos(tripId, userId, true, [selection], sid, linkId);
@@ -416,7 +443,7 @@ export async function syncAlbumAssets(
 
     updateSyncTimeForAlbumLink(linkId);
 
-    return { success: true, added: result.data.added, total: assets.length };
+    return { success: true, added: result.data.added, total: items.length };
   } catch {
     return { error: 'Could not reach Immich', status: 502 };
   }
