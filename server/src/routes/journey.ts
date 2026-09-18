@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import * as svc from '../services/journeyService';
+import * as journeyBookSvc from '../services/journeyBookService';
+import { bookSaveRequestSchema } from '../services/journeyBook/bookStoreSchema';
 import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
@@ -388,6 +390,41 @@ router.delete('/:id/share-link', authenticate, (req: Request, res: Response) => 
     return res.status(403).json({ error: 'Not allowed' });
   }
   res.json({ success: true });
+});
+
+// ── TREK Studio book ─────────────────────────────────────────────────────
+
+router.get('/:id/book', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const journeyId = Number(req.params.id);
+  if (!svc.canAccessJourney(journeyId, authReq.user.id)) return res.status(404).json({ error: 'Journey not found' });
+  const book = journeyBookSvc.getBook(journeyId, authReq.user.id);
+  res.json({ book });
+});
+
+router.put('/:id/book', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const journeyId = Number(req.params.id);
+  const parsed = bookSaveRequestSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Invalid book document' });
+
+  const result = journeyBookSvc.saveBook(journeyId, authReq.user.id, parsed.data);
+  if (result === null) return res.status(403).json({ error: 'Not allowed' });
+  if ('conflict' in result) {
+    return res.status(409).json({ error: 'Book was changed by someone else', current: result.conflict });
+  }
+
+  const socketId = req.headers['x-socket-id'] as string | undefined;
+  journeyBookSvc.broadcastBookSaved(journeyId, authReq.user.id, result.record, socketId);
+  res.json({ book: result.record });
+});
+
+router.delete('/:id/book', authenticate, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const journeyId = Number(req.params.id);
+  const result = journeyBookSvc.deleteBook(journeyId, authReq.user.id);
+  if (result === null) return res.status(403).json({ error: 'Not allowed' });
+  res.status(204).end();
 });
 
 export default router;

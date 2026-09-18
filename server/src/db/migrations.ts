@@ -2501,6 +2501,25 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE trip_files ADD COLUMN budget_item_id INTEGER REFERENCES budget_items(id) ON DELETE SET NULL'); } catch (err: any) { if (!err.message?.includes('duplicate column name')) throw err; }
     },
+    // TREK Studio: printable photo-book document per journey. One row per
+    // journey for now (the schema allows more, since a second book of the
+    // same trip is an obvious thing to want later). `version` backs the
+    // optimistic-concurrency save in journeyBookService.ts.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS journey_books (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          journey_id INTEGER NOT NULL REFERENCES journeys(id) ON DELETE CASCADE,
+          title TEXT NOT NULL DEFAULT '',
+          document TEXT NOT NULL,
+          version INTEGER NOT NULL DEFAULT 1,
+          created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          updated_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          updated_at TEXT
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_journey_books_journey ON journey_books(journey_id)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

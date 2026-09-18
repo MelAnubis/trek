@@ -663,6 +663,11 @@ export default function JourneyDetailPage() {
                       }}
                       className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25 disabled:opacity-50"
                     ><Download size={14} /></button>
+                    <button
+                      onClick={() => navigate(`/journey/${current.id}/studio`)}
+                      title={t('journey.studio.title')}
+                      className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
+                    ><BookOpen size={14} /></button>
                     <div className="relative group">
                       <button
                         onClick={async () => {

@@ -24,7 +24,7 @@ const GALLERY_SELECT = `
 `;
 const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
 
-function broadcastJourneyEvent(journeyId: number, event: string, data: Record<string, unknown>, excludeSocketId?: string | number) {
+export function broadcastJourneyEvent(journeyId: number, event: string, data: Record<string, unknown>, excludeSocketId?: string | number) {
   const contributors = db.prepare(
     'SELECT user_id FROM journey_contributors WHERE journey_id = ?'
   ).all(journeyId) as { user_id: number }[];

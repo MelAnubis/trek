@@ -474,6 +474,13 @@ export const journeyApi = {
   createShareLink: (id: number, perms: { share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean }) => apiClient.post(`/journeys/${id}/share-link`, perms).then(r => r.data),
   deleteShareLink: (id: number) => apiClient.delete(`/journeys/${id}/share-link`).then(r => r.data),
   getPublicJourney: (token: string) => apiClient.get(`/public/journey/${token}`).then(r => r.data),
+
+  // TREK Studio book — X-Socket-Id is attached automatically by the request
+  // interceptor above, so the server can exclude this tab from its own save broadcast.
+  getBook: (id: number) => apiClient.get(`/journeys/${id}/book`).then(r => r.data as { book: import('../types/book').BookRecord | null }),
+  saveBook: (id: number, data: { title: string; document: import('../types/book').BookDocument; baseVersion?: number }) =>
+    apiClient.put(`/journeys/${id}/book`, data).then(r => r.data as { book: import('../types/book').BookRecord }),
+  deleteBook: (id: number) => apiClient.delete(`/journeys/${id}/book`),
 }
 
 export const mapsApi = {
