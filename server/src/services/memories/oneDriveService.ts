@@ -171,60 +171,41 @@ export function disconnect(userId: number): void {
   `).run(userId);
 }
 
-// ── List albums (real OneDrive Albums + top-level Photos folders) ────────────
+// ── List albums (only real, user-created OneDrive Albums) ─────────────────────
 export async function listAlbums(userId: number) {
+  // Real OneDrive Albums — the ones a user deliberately creates via "New
+  // album" in the OneDrive app/website — are a distinct resource from plain
+  // folders. The Graph API exposes them as "bundles" with an `album` facet.
+  // Earlier this also walked the Photos folder tree to catch trip folders,
+  // but that surfaced every auto-organized folder too (Camera Roll, year/
+  // month subfolders, etc.) — noise the user explicitly doesn't want here.
   const seen = new Set<string>();
   const albums: { id: string; name: string; count: number }[] = [];
+  let url: string | null = "/me/drive/bundles?$filter=bundle/album ne null&$select=id,name,bundle&$top=200";
+  let lastError: { status?: number; error: string } | null = null;
 
-  // Real OneDrive Albums (created via "New album" in the OneDrive app) are a
-  // distinct resource from folders — the Graph API exposes them as "bundles"
-  // with an `album` facet. Listing only top-level Photos folders (as before)
-  // missed these entirely, which is what "no me trae los álbumes" was about.
-  const bundlesResult = await graphGet(userId, "/me/drive/bundles?$filter=bundle/album ne null&$select=id,name,bundle");
-  if (bundlesResult.error) {
-    console.error('[oneDrive] listAlbums bundles fetch failed:', bundlesResult.status, bundlesResult.error);
-  } else {
-    for (const b of bundlesResult.data?.value || []) {
+  while (url) {
+    const result: { data?: any; error?: string; status?: number } = await graphGet(userId, url);
+    if (result.error) {
+      console.error('[oneDrive] listAlbums bundles fetch failed:', result.status, result.error);
+      lastError = { status: result.status, error: result.error };
+      break;
+    }
+    for (const b of result.data?.value || []) {
       if (seen.has(b.id)) continue;
       seen.add(b.id);
       albums.push({ id: b.id, name: b.name, count: b.bundle?.album?.count ?? b.bundle?.childCount ?? 0 });
     }
+    const next = result.data?.['@odata.nextLink'];
+    if (!next) { url = null; break; }
+    try { const u = new URL(next); url = u.pathname.replace('/v1.0', '') + u.search; }
+    catch { url = null; }
   }
 
-  // Also surface EVERY folder under the special "photos" root, not just its
-  // direct children — a user's real trip folders are often nested a level
-  // or two deep (e.g. Camera Roll/Girona 2026), and listing only top-level
-  // folders missed those, which is what "no encuentra todos" was about.
-  // Same bounded recursive walk as searchPhotos().
-  const MAX_FOLDERS = 500;
-  const childrenQuery = '$select=id,name,folder,photo,lastModifiedDateTime&$top=200';
-  const queue: string[] = ['/me/drive/special/photos/children'];
-  let foldersVisited = 0;
-  let folderWalkError: { status?: number; error: string } | null = null;
-
-  while (queue.length > 0 && foldersVisited < MAX_FOLDERS) {
-    const path = queue.shift()!;
-    foldersVisited++;
-    const result = await graphGet(userId, `${path}?${childrenQuery}`);
-    if (result.error) {
-      console.error('[oneDrive] listAlbums folder fetch failed:', path, result.status, result.error);
-      folderWalkError = { status: result.status, error: result.error };
-      continue;
-    }
-    for (const item of result.data?.value || []) {
-      if (!item.folder) continue;
-      if (!seen.has(item.id)) {
-        seen.add(item.id);
-        albums.push({ id: item.id, name: item.name, count: item.folder?.childCount || 0 });
-      }
-      queue.push(`/me/drive/items/${item.id}/children`);
-    }
+  if (lastError && albums.length === 0) {
+    return { error: lastError.error, status: lastError.status };
   }
-
-  if (bundlesResult.error && folderWalkError && albums.length === 0) {
-    return { error: folderWalkError.error, status: folderWalkError.status };
-  }
-  console.log(`[oneDrive] listAlbums: visited ${foldersVisited} folder(s), ${albums.length} album(s)/folder(s) found`);
+  console.log(`[oneDrive] listAlbums: ${albums.length} user-created album(s) found`);
   return { albums };
 }
 
