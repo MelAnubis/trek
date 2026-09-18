@@ -97,8 +97,10 @@ router.post('/search', authenticate, async (req: Request, res: Response) => {
 // ── Albums ─────────────────────────────────────────────────────────────────
 router.get('/albums', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
+  // listAlbums() is now best-effort across two independent sources (real
+  // Albums + named Photos folders) and never fails outright — a source
+  // erroring out just means fewer results, logged server-side.
   const result = await listAlbums(authReq.user.id);
-  if (result.error) return res.status(result.status || 500).json({ error: result.error });
   res.json(result);
 });
 
