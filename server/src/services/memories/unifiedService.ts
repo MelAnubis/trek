@@ -15,9 +15,19 @@ import { encrypt_api_key } from '../apiKeyCrypto';
 function _providers(): Array<{id: string; enabled: boolean}> {
   const rows = db.prepare('SELECT id, enabled FROM photo_providers').all() as Array<{id: string; enabled: number}>;
   return rows.map(r => ({ id: r.id, enabled: r.enabled === 1 }));
-} 
+}
+
+// OAuth-based providers a user connects individually (Settings > Integrations)
+// rather than something an admin configures with a URL/API key. They never
+// get a row in `photo_providers` — that table only seeds immich and
+// synologyphotos (see db/seeds.ts) — so without this carve-out
+// `_validProvider` rejected every OneDrive photo with "not supported" and
+// addTripPhotos()/syncAlbumAssets() silently added nothing, no matter how
+// well photo search/browsing worked.
+const OAUTH_PROVIDERS = new Set(['onedrive']);
 
 function _validProvider(provider: string): ServiceResult<string> {
+  if (OAUTH_PROVIDERS.has(provider)) return success(provider);
   const providers = _providers();
   const found = providers.find(p => p.id === provider);
   if (!found) {
