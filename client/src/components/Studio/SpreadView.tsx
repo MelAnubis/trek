@@ -240,3 +240,63 @@ export function SpreadView({
     </div>
   )
 }
+
+/**
+ * The fold down the middle of an open book.
+ *
+ * Preview chrome, not content — which is why it lives outside `SpreadView`.
+ * A printed book has a physical crease; a *printed* shadow down the gutter
+ * would be a defect. So the editor and the page thumbnails draw this, and
+ * the print renderer never sees it.
+ *
+ * Two layers, because that is what makes paper read as curving rather than
+ * as a grey stripe: the shadow ramps into the spine and darkens hard at the
+ * crease, and just outside it a pale band lifts, the way the sheet catches
+ * light as it comes back up out of the binding.
+ */
+export function SpreadFold({ page, scaled }: { page: BookPageSetup; scaled: number }) {
+  const width = 52 * scaled
+  const left = page.pageWidth * scaled - width / 2
+  return (
+    <div style={{ position: 'absolute', left, top: 0, width, bottom: 0, pointerEvents: 'none' }}>
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          background:
+            'linear-gradient(90deg,'
+            + ' rgba(255,255,255,0) 0%,'
+            + ' rgba(255,255,255,.07) 12%,'
+            + ' rgba(255,255,255,.17) 27%,'
+            + ' rgba(255,255,255,.11) 37%,'
+            + ' rgba(255,255,255,0) 43%,'
+            + ' rgba(0,0,0,.035) 45.5%,'
+            + ' rgba(0,0,0,.10) 48%,'
+            + ' rgba(0,0,0,.18) 49.6%,'
+            + ' rgba(0,0,0,.21) 50%,'
+            + ' rgba(0,0,0,.18) 50.4%,'
+            + ' rgba(0,0,0,.10) 52%,'
+            + ' rgba(0,0,0,.035) 54.5%,'
+            + ' rgba(255,255,255,0) 57%,'
+            + ' rgba(255,255,255,.11) 63%,'
+            + ' rgba(255,255,255,.17) 73%,'
+            + ' rgba(255,255,255,.07) 88%,'
+            + ' rgba(255,255,255,0) 100%)',
+        }}
+      />
+      {/* The crease itself. Sub-pixel at small zoom, which is right — you
+          should not see a hard line on a page shown at 15%. */}
+      <div
+        style={{
+          position: 'absolute',
+          left: '50%',
+          top: 0,
+          bottom: 0,
+          width: Math.max(0.5, 0.35 * scaled),
+          marginLeft: -Math.max(0.25, 0.175 * scaled),
+          background: 'rgba(0,0,0,.16)',
+        }}
+      />
+    </div>
+  )
+}
