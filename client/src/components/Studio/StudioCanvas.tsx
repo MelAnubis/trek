@@ -7,14 +7,15 @@ import { fontStack } from './bookFonts'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
+import { PeerCursors } from './PeerCursors'
+import type { PeerCursor } from './useBookPresence'
 
 /**
  * The sheet plus everything you do to it. Ported from liketrek/trek's
- * client/src/components/Studio/StudioCanvas.tsx (same AGPLv3 license),
- * trimmed for this phase: no peer cursors (real-time presence is a later
- * phase — see the plan's Phase 5) and no raw-OS-file drop-to-upload (photos
- * come from the Content panel's own drag source for now; dropping a file
- * straight from the desktop is a follow-up).
+ * client/src/components/Studio/StudioCanvas.tsx (same AGPLv3 license).
+ * Raw-OS-file drop-to-upload is still trimmed (photos come from the Content
+ * panel's own drag source for now; dropping a file straight from the desktop
+ * is a follow-up). Peer cursors (Phase 5) are wired in via `cursors`/`onCursor`.
  *
  * The page itself is `SpreadView`, byte for byte what the print renderer
  * will draw. Selection outlines, handles and snap guides live in a layer
@@ -57,6 +58,8 @@ export function StudioCanvas({
   pxPerMm,
   bookView,
   dropLabel,
+  cursors,
+  onCursor,
 }: {
   spread: BookSpread | null
   spreadIndex: number
@@ -65,6 +68,10 @@ export function StudioCanvas({
   pxPerMm: number
   bookView: boolean
   dropLabel: string
+  /** Other editors' pointers, all spreads — StudioCanvas filters to its own. */
+  cursors?: PeerCursor[]
+  /** Where this tab's own pointer is, in the spread's millimetres — null on leave. */
+  onCursor?: (x: number | null, y: number | null) => void
 }) {
   const { t } = useTranslation()
   const selection = useStudioStore(s => s.selection)
@@ -138,7 +145,15 @@ export function StudioCanvas({
     <div
       className="st-stage"
       style={{ width: sheetW * scaled, height: page.pageHeight * scaled, position: 'relative' }}
-      onPointerMove={onPointerMove}
+      onPointerMove={e => {
+        onPointerMove(e)
+        if (!onCursor) return
+        const r = e.currentTarget.getBoundingClientRect()
+        onCursor((e.clientX - r.left) / scaled, (e.clientY - r.top) / scaled)
+      }}
+      // Leaving the stage sends null, so the arrow goes rather than sticking
+      // where the pointer happened to cross the edge.
+      onPointerLeave={() => onCursor?.(null, null)}
       onPointerUp={finish}
       onPointerCancel={finish}
       onDragOver={e => {
@@ -199,6 +214,10 @@ export function StudioCanvas({
         onPointerDown={() => select([])}
       >
         <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} />
+
+        {cursors && cursors.length > 0 && (
+          <PeerCursors cursors={cursors} spreadIndex={spreadIndex} zoom={zoom} />
+        )}
 
         {/* Hit targets sit above the page so a photo's own <img> never eats
             the gesture, and so a locked element simply is not grabbable. */}

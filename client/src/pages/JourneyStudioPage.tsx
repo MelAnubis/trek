@@ -5,6 +5,8 @@ import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useStudioStore } from '../store/studioStore'
 import { useBookStore } from '../components/Studio/useBookStore'
+import { useBookPresence } from '../components/Studio/useBookPresence'
+import { PeerBadges } from '../components/Studio/PeerBadges'
 import { StudioCanvas } from '../components/Studio/StudioCanvas'
 import { StudioSidebar } from '../components/Studio/StudioSidebar'
 import { StudioInspector } from '../components/Studio/StudioInspector'
@@ -51,6 +53,7 @@ export default function JourneyStudioPage() {
   const [showExport, setShowExport] = useState(false)
 
   const { record, loaded: bookLoaded, state, queueSave, saveNow, acceptTheirs, keepMine } = useBookStore(journeyId, loadDoc)
+  const { peers, cursors, moveCursor } = useBookPresence(journeyId)
 
   const builtRef = useRef({ built: false })
 
@@ -173,6 +176,7 @@ export default function JourneyStudioPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <PeerBadges peers={peers} t={t} />
           {doc && autoInput && (
             <div className="relative group" style={{ position: 'relative' }}>
               <button style={{
@@ -256,6 +260,8 @@ export default function JourneyStudioPage() {
                   pxPerMm={BASE_PX_PER_MM}
                   bookView
                   dropLabel={t('journey.studio.dropLabel')}
+                  cursors={cursors}
+                  onCursor={(x, y) => moveCursor(activeSpread, x, y)}
                 />
               </div>
             </div>

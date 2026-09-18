@@ -2218,6 +2218,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.emptyHint': 'Lay out this journey as a printable book — drag in photos, write captions, pick a page size.',
   'journey.studio.createBook': 'Create book',
   'journey.studio.betaBadge': 'Beta',
+  'journey.studio.peersHere': 'here now',
   'journey.studio.loadError': 'Could not load the book',
   'journey.studio.createError': 'Could not create the book',
   'journey.studio.rotate': 'Rotate',

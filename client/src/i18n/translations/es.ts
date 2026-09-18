@@ -2027,6 +2027,7 @@ const es: Record<string, string> = {
   'journey.studio.emptyHint': 'Maqueta esta travesía como un libro imprimible — arrastra fotos, escribe pies de foto, elige un tamaño de página.',
   'journey.studio.createBook': 'Crear libro',
   'journey.studio.betaBadge': 'Beta',
+  'journey.studio.peersHere': 'aquí ahora',
   'journey.studio.loadError': 'No se pudo cargar el libro',
   'journey.studio.createError': 'No se pudo crear el libro',
   'journey.studio.rotate': 'Rotar',
