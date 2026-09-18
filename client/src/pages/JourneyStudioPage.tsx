@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Minus, Plus, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useStudioStore } from '../store/studioStore'
@@ -8,16 +8,18 @@ import { useBookStore } from '../components/Studio/useBookStore'
 import { StudioCanvas } from '../components/Studio/StudioCanvas'
 import { StudioSidebar } from '../components/Studio/StudioSidebar'
 import { StudioInspector } from '../components/Studio/StudioInspector'
+import { StudioExport } from '../components/Studio/StudioExport'
 import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
 import { useToast } from '../components/shared/Toast'
 
 /**
  * TREK Studio — Phase 2 (editing canvas) + Phase 3 (auto layout from the
- * journal). The travel-specific elements (route maps, country lists, stat
- * badges) and print/export land in later phases — see autoLayout.ts for
+ * journal) + Phase 4 (print export). The travel-specific elements (route
+ * maps, country lists, stat badges) and real-time multi-cursor presence
+ * are the remaining, explicitly deferred pieces — see autoLayout.ts for
  * why "the whole book" is built from the 12 programmatic templates rather
- * than upstream's hand-drawn set for now.
+ * than upstream's hand-drawn set.
  */
 
 const DEFAULT_PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -46,6 +48,7 @@ export default function JourneyStudioPage() {
   const canRedo = useStudioStore(s => s.canRedo())
 
   const [zoom, setZoom] = useState(0.4)
+  const [showExport, setShowExport] = useState(false)
 
   const { record, loaded: bookLoaded, state, queueSave, saveNow, acceptTheirs, keepMine } = useBookStore(journeyId, loadDoc)
 
@@ -205,6 +208,10 @@ export default function JourneyStudioPage() {
                 style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: canRedo ? 'pointer' : 'default', opacity: canRedo ? 1 : 0.4, color: 'var(--text-muted)' }}>
                 <Redo2 size={14} />
               </button>
+              <button onClick={() => { void saveNow(); setShowExport(true) }} title={t('journey.studio.export')}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <Printer size={14} /> {t('journey.studio.export')}
+              </button>
             </>
           )}
           {saveLabel && (
@@ -289,6 +296,10 @@ export default function JourneyStudioPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showExport && doc && (
+        <StudioExport doc={doc} title={current?.title || doc.title} onClose={() => setShowExport(false)} />
       )}
 
       <style>{`.group:hover .st-auto-menu { opacity: 1 !important; visibility: visible !important; }`}</style>
