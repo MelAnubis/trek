@@ -160,7 +160,15 @@ export function groupTracksByDate(
 // handle the null case and just skip the map.
 
 const TILE_SIZE = 256
-export const DEFAULT_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+// CARTO's current documented raster endpoint (basemaps.cartocdn.com no
+// longer serves the old un-prefixed /light_all/... path going forward).
+// As of August 2026 this — like every anonymous CARTO request — renders
+// an "API KEY REQUIRED" watermark instead of a real tile without a free
+// key appended (?key=...): see Settings > Map for how an admin adds one.
+// Kept as the bundled fallback anyway, since a watermarked map still
+// fails visibly rather than leaving a blank gap, and it starts working
+// correctly the moment a key is configured centrally.
+export const DEFAULT_TILE_URL = 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png'
 
 function lngToWorldPx(lng: number, zoom: number): number {
   return (lng + 180) / 360 * TILE_SIZE * Math.pow(2, zoom)

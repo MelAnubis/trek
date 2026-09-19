@@ -23,8 +23,10 @@ const AVG_TILE_KB = 15
 /** Hard cap: ~50 MB worth of tiles. */
 export const MAX_TILES = Math.floor((50 * 1024) / AVG_TILE_KB) // ≈ 3413
 
+// See gpxDrawing.ts's own DEFAULT_TILE_URL for why this is watermarked
+// ("API KEY REQUIRED") without a free CARTO key configured in Settings.
 const DEFAULT_TILE_URL =
-  'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+  'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png'
 
 // OSM tile servers block bulk app requests per their usage policy ("heavy
 // use, e.g. distributing an app that uses tile.openstreetmap.org by

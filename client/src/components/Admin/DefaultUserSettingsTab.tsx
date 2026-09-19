@@ -8,12 +8,17 @@ import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import type { Place } from '../../types'
 
+// CARTO changed policy in August 2026: anonymous (keyless) requests to
+// basemaps.cartocdn.com now return an "API KEY REQUIRED" watermark instead
+// of a usable map. The free tier still exists — carto.com/basemaps/apikey
+// issues a key instantly by email, no approval, up to 5M requests/month —
+// but it's no longer optional, so these presets carry a ?key= placeholder.
 const MAP_PRESETS = [
   { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
-  { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
-  { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
-  { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
+  { name: 'CartoDB Light (needs a free API key)', url: 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=YOUR_KEY' },
+  { name: 'CartoDB Dark (needs a free API key)', url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=YOUR_KEY' },
+  { name: 'Stadia Smooth (needs an API key)', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=YOUR_KEY' },
 ]
 
 type Defaults = {
@@ -263,6 +268,14 @@ export default function DefaultUserSettingsTab(): React.ReactElement {
           className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
         />
         <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.mapDefaultHint')}</p>
+        {(mapTileUrl === '' || (mapTileUrl.includes('cartocdn.com') && !/[?&](key|api_key)=/.test(mapTileUrl))) && (
+          <p className="text-xs mt-1" style={{ color: '#b45309' }}>
+            {t('settings.mapCartoKeyWarning')}{' '}
+            <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+              carto.com/basemaps/apikey
+            </a>
+          </p>
+        )}
         <div style={{ position: 'relative', height: '200px', width: '100%', marginTop: 12 }}>
           {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
           {React.createElement(MapView as any, {

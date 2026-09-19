@@ -15,12 +15,19 @@ interface MapPreset {
   url: string
 }
 
+// CARTO changed policy in August 2026: anonymous (keyless) requests to
+// basemaps.cartocdn.com now return an "API KEY REQUIRED" watermark stamped
+// over every tile instead of a usable map. The free tier still exists —
+// https://carto.com/basemaps/apikey/ issues a key instantly by email, no
+// approval, up to 5M tile requests/month — but it's no longer optional, so
+// the CartoDB presets carry a ?key= placeholder the admin has to fill in.
+// Stadia's tile styles need their own account/key the same way.
 const MAP_PRESETS: MapPreset[] = [
   { name: 'OpenStreetMap', url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png' },
   { name: 'OpenStreetMap DE', url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' },
-  { name: 'CartoDB Light', url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png' },
-  { name: 'CartoDB Dark', url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' },
-  { name: 'Stadia Smooth', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png' },
+  { name: 'CartoDB Light (needs a free API key)', url: 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=YOUR_KEY' },
+  { name: 'CartoDB Dark (needs a free API key)', url: 'https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}{r}.png?key=YOUR_KEY' },
+  { name: 'Stadia Smooth (needs an API key)', url: 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=YOUR_KEY' },
 ]
 
 interface StylePreset {
@@ -275,7 +282,7 @@ export default function MapSettingsTab(): React.ReactElement {
             type="text"
             value={mapTileUrl}
             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMapTileUrl(e.target.value)}
-            placeholder="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+            placeholder="https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=YOUR_KEY"
             className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
           />
           {(mapTileUrl.includes('tile.openstreetmap.org') || mapTileUrl.includes('tile.openstreetmap.de')) && (
@@ -283,6 +290,17 @@ export default function MapSettingsTab(): React.ReactElement {
               <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
               <p className="text-xs text-amber-700 dark:text-amber-400">
                 {t('settings.mapOsmWarning')}
+              </p>
+            </div>
+          )}
+          {(mapTileUrl === '' || (mapTileUrl.includes('cartocdn.com') && !/[?&](key|api_key)=/.test(mapTileUrl))) && (
+            <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-900/20 dark:border-amber-700">
+              <AlertTriangle size={14} className="flex-shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                {t('settings.mapCartoKeyWarning')}{' '}
+                <a href="https://carto.com/basemaps/apikey/" target="_blank" rel="noopener noreferrer" className="underline font-medium">
+                  carto.com/basemaps/apikey
+                </a>
               </p>
             </div>
           )}
