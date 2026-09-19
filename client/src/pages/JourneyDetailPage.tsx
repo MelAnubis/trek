@@ -2561,7 +2561,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 absolutely positioned image (works across all browsers). */}
             {showGalleryPick && (
               <div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-zinc-50 dark:bg-zinc-800/50">
-                <div className="grid grid-cols-5 sm:grid-cols-6 gap-1.5 max-h-[160px] overflow-y-auto">
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[280px] overflow-y-auto">
                   {availableGalleryPhotos.map(gp => (
                     <div
                       key={gp.id}

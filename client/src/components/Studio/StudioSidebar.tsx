@@ -166,7 +166,7 @@ export function StudioSidebar({
       {/* Photos */}
       <div style={PANEL_SECTION}>
         <div style={PANEL_TITLE}>{t('journey.studio.photosTab')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
           {galleryPhotos.map(p => (
             <div key={p.photoId}
               draggable
