@@ -150,6 +150,7 @@ function PhotoView({ el, big, print, dropLabel }: {
         <BookPhotoImg
           photoId={el.photoId!}
           big={big}
+          print={print}
           style={{
             width: '100%',
             height: '100%',
