@@ -173,11 +173,15 @@ function loadTileImage(url: string): Promise<HTMLImageElement | null> {
 // One retry on a slow/blipped tile before giving up on it — self-hosted
 // deployments often have less headroom on outbound bandwidth than a cloud
 // VM, and a single 6s timeout left a handful of tiles blank on an
-// otherwise-fine map instead of a full fallback.
-async function loadTileImageWithRetry(url: string): Promise<HTMLImageElement | null> {
-  const first = await withTimeout(loadTileImage(url), 6000).catch(() => null)
+// otherwise-fine map instead of a full fallback. The retry re-resolves the
+// URL rather than reusing the failed one: buildTileUrl() rotates through
+// {s} subdomains on every call, so a tile that failed against a.basemaps
+// (a rate limit, a blip on that one edge) gets a real second chance on
+// b/c/d instead of hammering the same host that just failed it.
+async function loadTileImageWithRetry(buildUrl: () => string): Promise<HTMLImageElement | null> {
+  const first = await withTimeout(loadTileImage(buildUrl()), 6000).catch(() => null)
   if (first) return first
-  return withTimeout(loadTileImage(url), 6000).catch(() => null)
+  return withTimeout(loadTileImage(buildUrl()), 6000).catch(() => null)
 }
 
 export async function buildRouteMapImage(
@@ -244,10 +248,9 @@ export async function buildRouteMapImage(
       for (let ty = minTileY; ty <= maxTileY; ty++) {
         if (ty < 0 || ty > maxTile) continue
         const wrappedX = ((tx % (maxTile + 1)) + (maxTile + 1)) % (maxTile + 1)
-        const url = buildTileUrl(tileUrlTemplate, zoom, wrappedX, ty)
         const tileX = tx, tileY = ty
         loads.push(
-          loadTileImageWithRetry(url).then(img => {
+          loadTileImageWithRetry(() => buildTileUrl(tileUrlTemplate, zoom, wrappedX, ty)).then(img => {
             if (img) ctx.drawImage(img, tileX * TILE_SIZE - originX, tileY * TILE_SIZE - originY, TILE_SIZE, TILE_SIZE)
           }),
         )

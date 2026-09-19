@@ -42,6 +42,7 @@ export default function JourneyStudioPage() {
 
   const doc = useStudioStore(s => s.doc)
   const loadDoc = useStudioStore(s => s.load)
+  const resetDoc = useStudioStore(s => s.reset)
   const commit = useStudioStore(s => s.commit)
   const activeSpread = useStudioStore(s => s.activeSpread)
   const undo = useStudioStore(s => s.undo)
@@ -56,6 +57,19 @@ export default function JourneyStudioPage() {
   const { peers, cursors, moveCursor } = useBookPresence(journeyId)
 
   const builtRef = useRef({ built: false })
+
+  // Navigating from one journey's Studio straight to another's reuses this
+  // same page instance (only the :id route param changes) — without this,
+  // builtRef stayed "built" from the previous journey forever, so the load
+  // effect below never re-ran and the previous journey's book stayed on
+  // screen (and open to edits, autosaving straight over the new journey's
+  // book) until a full page reload. Re-arm the gate and clear the stale
+  // document the instant the id changes, before the new journey's book has
+  // even arrived.
+  useEffect(() => {
+    builtRef.current.built = false
+    resetDoc()
+  }, [journeyId, resetDoc])
 
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return

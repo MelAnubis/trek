@@ -83,6 +83,26 @@ export function useBookStore(
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
     let cancelled = false
+
+    // journeyId changing means this hook instance is being handed a
+    // different journey — not a fresh mount — since a page keeps the same
+    // component (and the same hook state) across a route param change.
+    // Everything held from the previous journey's book session — the
+    // record on screen, the version a save would be based on, any
+    // in-flight/pending save, a conflict banner — belongs to that other
+    // book and must not leak into this one while the new book loads.
+    setRecord(null)
+    setLoaded(false)
+    setState({ status: 'idle' })
+    version.current = null
+    synced.current = null
+    latest.current = null
+    pending.current = null
+    inFlight.current = false
+    blocked.current = false
+    firstDirtyAt.current = null
+    if (timer.current != null) { window.clearTimeout(timer.current); timer.current = null }
+
     journeyApi.getBook(journeyId)
       .then((res: { book: BookRecord | null }) => {
         if (cancelled) return

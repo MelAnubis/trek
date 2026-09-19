@@ -30,6 +30,8 @@ interface StudioState {
   gestureBase: BookDocument | null
 
   load: (doc: BookDocument) => void
+  /** Back to the empty pre-load state — switching to a different journey's book, whose own load hasn't arrived yet, must not leave the previous journey's document on screen or open to edits. */
+  reset: () => void
   setActiveSpread: (i: number) => void
   select: (ids: string[]) => void
   toggleSelect: (id: string, additive: boolean) => void
@@ -82,6 +84,7 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   gestureBase: null,
 
   load: doc => set({ doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
+  reset: () => set({ doc: null, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
   setActiveSpread: i => set({ activeSpread: i, selection: [] }),
   select: ids => set({ selection: ids }),
   toggleSelect: (id, additive) => set(s => {

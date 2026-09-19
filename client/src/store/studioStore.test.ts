@@ -49,6 +49,19 @@ describe('studioStore — load / selection', () => {
     useStudioStore.getState().toggleSelect('c', false)
     expect(useStudioStore.getState().selection).toEqual(['c'])
   })
+
+  it('FE-STORE-STUDIO-021: reset clears doc, selection, active spread and history — switching journeys must never leave the previous one\'s book on screen', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().select(['t-1'])
+    useStudioStore.getState().setActiveSpread(1)
+    useStudioStore.getState().commit(d => d)
+    useStudioStore.getState().reset()
+    expect(useStudioStore.getState().doc).toBeNull()
+    expect(useStudioStore.getState().selection).toEqual([])
+    expect(useStudioStore.getState().activeSpread).toBe(0)
+    expect(useStudioStore.getState().past).toEqual([])
+    expect(useStudioStore.getState().future).toEqual([])
+  })
 })
 
 describe('studioStore — commit / undo / redo', () => {
