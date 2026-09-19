@@ -1,5 +1,5 @@
-// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-008
-import { sheetBox, sheetsFor } from './bookSheets'
+// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-013
+import { imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
 import type { BookDocument, BookSpread } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -73,5 +73,40 @@ describe('sheetsFor — spreads mode', () => {
     const pages = sheetsFor(book, 'pages')
     const spreads = sheetsFor(book, 'spreads')
     expect(spreads.length).toBeLessThan(pages.length)
+  })
+})
+
+describe('imposeBooklet', () => {
+  const leaves = (n: number) => Array.from({ length: n }, (_, i) => `p${i + 1}`)
+
+  it('FE-BOOKSHEETS-009: a single folded sheet (4 pages) pairs back-cover+front-cover, then page2+page3', () => {
+    expect(imposeBooklet(leaves(4))).toEqual(['p4', 'p1', 'p2', 'p3'])
+  })
+
+  it('FE-BOOKSHEETS-010: an 8-page booklet (2 nested sheets) matches the standard saddle-stitch order', () => {
+    // Sheet 1 front: 8,1 · back: 2,7 — Sheet 2 front: 6,3 · back: 4,5
+    expect(imposeBooklet(leaves(8))).toEqual([
+      'p8', 'p1', 'p2', 'p7',
+      'p6', 'p3', 'p4', 'p5',
+    ])
+  })
+
+  it('FE-BOOKSHEETS-011: a count not divisible by 4 is padded with blanks (null) to the next multiple of 4', () => {
+    const out = imposeBooklet(leaves(6))
+    expect(out).toHaveLength(8)
+    expect(out.filter(x => x === null)).toHaveLength(2)
+  })
+
+  it('FE-BOOKSHEETS-012: every leaf appears in the imposed order exactly once, for any page count', () => {
+    for (const n of [4, 8, 12, 16, 28]) {
+      const original = leaves(n)
+      const imposed = imposeBooklet(original).filter((x): x is string => x !== null)
+      expect([...imposed].sort()).toEqual([...original].sort())
+    }
+  })
+
+  it('FE-BOOKSHEETS-013: an already-multiple-of-4 count needs no padding', () => {
+    expect(imposeBooklet(leaves(12))).toHaveLength(12)
+    expect(imposeBooklet(leaves(12)).filter(x => x === null)).toHaveLength(0)
   })
 })

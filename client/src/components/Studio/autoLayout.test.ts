@@ -135,3 +135,55 @@ describe('relayoutSpread', () => {
     expect(relaid!.elements.length).toBeGreaterThan(0)
   })
 })
+
+describe('buildBook — route spreads', () => {
+  it('FE-AUTOLAYOUT-012: a day with a matching route image gets its own spread, right after that day\'s entry', () => {
+    const inp = input({
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null }]]),
+    })
+    const doc = buildBook(inp)
+    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
+    expect(entryIdx).toBeGreaterThan(-1)
+    const routeSpread = doc.spreads[entryIdx + 1]
+    expect(routeSpread.entryId).toBeNull()
+    expect(routeSpread.elements.some(e => e.kind === 'image')).toBe(true)
+  })
+
+  it('FE-AUTOLAYOUT-013: a day with no matching route image gets no extra spread', () => {
+    const inp = input({ routeImagesByDate: new Map() })
+    const withImages = buildBook(inp).spreads.length
+    const without = buildBook(input()).spreads.length
+    expect(withImages).toBe(without)
+  })
+
+  it('FE-AUTOLAYOUT-014: with entries sharing a date, the route spread lands after the last of that day\'s entries, not the first', () => {
+    const inp = input({
+      entries: [
+        entry({ id: 1, date: '2026-04-02', title: 'Morning' }),
+        entry({ id: 2, date: '2026-04-02', title: 'Evening' }),
+      ],
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null }]]),
+    })
+    const doc = buildBook(inp)
+    const entryIndices = doc.spreads.map((s, i) => s.entryId != null ? i : -1).filter(i => i >= 0)
+    expect(entryIndices).toEqual([1, 2])
+    expect(doc.spreads[3].elements.some(e => e.kind === 'image')).toBe(true)
+  })
+
+  it('FE-AUTOLAYOUT-015: with no routeImagesByDate at all, behaves exactly as before (backward compatible)', () => {
+    const withField = buildBook(input({ routeImagesByDate: undefined }))
+    const withoutField = buildBook(input())
+    const shape = (d: typeof withField) => d.spreads.map(s => ({ role: s.role, entryId: s.entryId, kinds: s.elements.map(e => e.kind) }))
+    expect(shape(withField)).toEqual(shape(withoutField))
+  })
+
+  it('FE-AUTOLAYOUT-016: both a map and an elevation image are placed when both are available', () => {
+    const inp = input({
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB' }]]),
+    })
+    const doc = buildBook(inp)
+    const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
+    const images = routeSpread.elements.filter(e => e.kind === 'image')
+    expect(images).toHaveLength(2)
+  })
+})

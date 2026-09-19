@@ -73,7 +73,24 @@ export interface BookShapeElement extends BookElementBase {
   radius: number;
 }
 
-export type BookElement = BookPhotoElement | BookTextElement | BookShapeElement;
+/**
+ * A self-contained image — a data: URI, not a reference like `photo`'s
+ * `photoId`. Auto-layout's only user today: a day's route map (a raster PNG
+ * from gpxDrawing's canvas renderer) or elevation profile (its SVG markup,
+ * base64-encoded) baked in once when the book is built. Self-contained on
+ * purpose — the print export's sandboxed iframe has no script execution
+ * (see printSheets.ts), so anything drawn there must already be a plain
+ * `<img src>` the browser can paint without running any code, the same
+ * reason `photo` elements switch to a plain URL in print mode.
+ */
+export interface BookImageElement extends BookElementBase {
+  kind: 'image';
+  src: string;
+  fit: 'cover' | 'contain';
+  radius: number;
+}
+
+export type BookElement = BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement;
 
 export interface BookSpread {
   id: string;

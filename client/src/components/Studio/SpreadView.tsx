@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import type { BookElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
+import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
 
@@ -181,6 +181,23 @@ function PhotoView({ el, big, print, dropLabel }: {
   )
 }
 
+/** A self-contained `data:` URI — always a plain `<img src>`, in both edit and print mode, since there's no live fetch to race (see the type's own comment). */
+function ImageView({ el }: { el: BookImageElement }) {
+  return (
+    <img
+      src={el.src}
+      alt=""
+      draggable={false}
+      style={{
+        ...frameStyle(el),
+        objectFit: el.fit,
+        borderRadius: el.radius ? `${el.radius}mm` : undefined,
+        display: 'block',
+      }}
+    />
+  )
+}
+
 export function ElementView({
   el, big, print = false, dropLabel = '',
 }: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
@@ -189,6 +206,7 @@ export function ElementView({
   }
 
   if (el.kind === 'shape') return <ShapeView el={el} />
+  if (el.kind === 'image') return <ImageView el={el} />
 
   return (
     <div

@@ -7,9 +7,12 @@ import { z } from 'zod';
  * Ported from liketrek/trek's shared/src/book/book.schema.ts (same AGPLv3
  * license), trimmed to what Phase 1 needs: `photo`, `text` and a small
  * `shape` subset (rect/ellipse only — the rest of the decorative shape
- * library, plus `map`/`stats`/`countries`/`badge`/`icon`/`list`, land in
- * later phases). Extending the discriminated union later is additive and
- * does not require a document migration — `version` stays 1.
+ * library, plus `stats`/`countries`/`badge`/`icon`/`list`, land in later
+ * phases). `image` (a self-contained data: URI, used for auto-layout's
+ * route map/elevation profile) was added outside that plan — see its own
+ * comment for why it doesn't need upstream's live `map` element kind.
+ * Extending the discriminated union later is additive and does not require
+ * a document migration — `version` stays 1.
  *
  * Two decisions carry the rest of the format (kept from upstream):
  *
@@ -110,15 +113,32 @@ export const bookShapeElementSchema = z.object({
   radius: mm.default(0),
 });
 
+/** Max length of an `image` element's data: URI — generous enough for a
+ *  reasonable-quality route map PNG (gpxDrawing's default canvas size),
+ *  bounded so a handful of oversized images per spread can't blow up the
+ *  document (MAX_SPREAD_ELEMENTS × MAX_IMAGE_SRC_LENGTH is the real cap). */
+export const MAX_IMAGE_SRC_LENGTH = 2_000_000;
+
+export const bookImageElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('image'),
+  /** Self-contained by design — see the client type's comment on why (the print export's sandboxed iframe runs no scripts, so a live-fetched image can't work there). */
+  src: z.string().max(MAX_IMAGE_SRC_LENGTH).regex(/^data:image\/(png|jpeg|svg\+xml);base64,/, 'expected a data: URI'),
+  fit: z.enum(['cover', 'contain']).default('cover'),
+  radius: mm.default(0),
+});
+
 export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
   bookTextElementSchema,
   bookShapeElementSchema,
+  bookImageElementSchema,
 ]);
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
 export type BookTextElement = z.infer<typeof bookTextElementSchema>;
 export type BookShapeElement = z.infer<typeof bookShapeElementSchema>;
+export type BookImageElement = z.infer<typeof bookImageElementSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),

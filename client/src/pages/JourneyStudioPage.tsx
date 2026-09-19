@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
+import { useSettingsStore } from '../store/settingsStore'
 import { useStudioStore } from '../store/studioStore'
 import { useBookStore } from '../components/Studio/useBookStore'
 import { useBookPresence } from '../components/Studio/useBookPresence'
@@ -13,6 +14,9 @@ import { StudioInspector } from '../components/Studio/StudioInspector'
 import { StudioExport } from '../components/Studio/StudioExport'
 import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
+import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
+import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
+import { DEFAULT_TILE_URL, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
 /**
@@ -52,6 +56,18 @@ export default function JourneyStudioPage() {
 
   const [zoom, setZoom] = useState(0.4)
   const [showExport, setShowExport] = useState(false)
+  const [autoBookBuilding, setAutoBookBuilding] = useState(false)
+  const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
+
+  const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
+  const linkedTripIds = (current?.trips || []).map((t: any) => t.trip_id).join(',')
+  useEffect(() => {
+    if (!linkedTripIds) { setGpxTracks([]); return }
+    let cancelled = false
+    fetchJourneyGpxTracks(current!.trips).then(tracks => { if (!cancelled) setGpxTracks(tracks) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedTripIds])
 
   const { record, loaded: bookLoaded, state, queueSave, saveNow, acceptTheirs, keepMine } = useBookStore(journeyId, loadDoc)
   const { peers, cursors, moveCursor } = useBookPresence(journeyId)
@@ -146,11 +162,24 @@ export default function JourneyStudioPage() {
     toast.success(t('journey.studio.autoLayoutDone'))
   }
 
-  const handleAutoBook = () => {
+  const handleAutoBook = async () => {
     if (!autoInput) return
     if (!window.confirm(t('journey.studio.autoLayoutBookConfirm'))) return
-    commit(() => buildBook(autoInput))
-    toast.success(t('journey.studio.autoLayoutDone'))
+    setAutoBookBuilding(true)
+    try {
+      // Route images need a network round-trip per day (map tiles) — buildBook
+      // itself stays synchronous and just takes whatever came back, same
+      // split JourneyBookPDF.tsx already has between fetching tracks and
+      // laying out the route pages.
+      const knownDates = [...new Set(autoInput.entries.map(e => e.date).filter((d): d is string => !!d))].sort()
+      const routeImagesByDate = gpxTracks.length
+        ? await buildRouteImagesByDate(gpxTracks, knownDates, mapTileUrl || DEFAULT_TILE_URL)
+        : undefined
+      commit(() => buildBook({ ...autoInput, routeImagesByDate }))
+      toast.success(t('journey.studio.autoLayoutDone'))
+    } finally {
+      setAutoBookBuilding(false)
+    }
   }
   const zoomIndex = ZOOM_STEPS.reduce((best, z, i) => (Math.abs(z - zoom) < Math.abs(ZOOM_STEPS[best] - zoom) ? i : best), 0)
 
@@ -209,9 +238,9 @@ export default function JourneyStudioPage() {
                   style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: spread?.entryId ? 'pointer' : 'default', opacity: spread?.entryId ? 1 : 0.4, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
                   {t('journey.studio.autoLayoutSpread')}
                 </button>
-                <button onClick={handleAutoBook}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit' }}>
-                  {t('journey.studio.autoLayoutBook')}
+                <button onClick={handleAutoBook} disabled={autoBookBuilding}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: autoBookBuilding ? 'default' : 'pointer', opacity: autoBookBuilding ? 0.5 : 1, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
+                  {autoBookBuilding ? t('journey.studio.autoLayoutBookBuilding') : t('journey.studio.autoLayoutBook')}
                 </button>
               </div>
             </div>

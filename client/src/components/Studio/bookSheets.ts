@@ -92,3 +92,31 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
 
   return out
 }
+
+/**
+ * Saddle-stitch imposition: reorder a book's leaves (in reading order, as
+ * `sheetsFor(doc, 'pages')` already returns them) into physical-sheet
+ * front/back pairs, so that printing double-sided and folding the whole
+ * stack once down the middle puts every leaf back in reading order.
+ *
+ * Standard single-signature formula: pad to a multiple of 4 (a folded sheet
+ * always carries 4 pages), then for sheet `s` of `N/4`, its front holds
+ * leaves `N-1-2s` and `2s` side by side, its back holds `2s+1` and
+ * `N-2-2s`. `null` marks a padding blank — there is no leaf N+1 of a
+ * 27-page book, but the fold still needs a 28th page-sized blank there.
+ *
+ * Returned flat, two entries per physical side, in the order a printer
+ * should receive them: sheet 0's front, sheet 0's back, sheet 1's front, …
+ * — pair them up by twos to get each physical side's two leaves.
+ */
+export function imposeBooklet<T>(leaves: T[]): (T | null)[] {
+  const padded: (T | null)[] = [...leaves]
+  while (padded.length % 4 !== 0) padded.push(null)
+  const n = padded.length
+  const out: (T | null)[] = []
+  for (let s = 0; s < n / 4; s++) {
+    out.push(padded[n - 1 - 2 * s], padded[2 * s])
+    out.push(padded[2 * s + 1], padded[n - 2 - 2 * s])
+  }
+  return out
+}

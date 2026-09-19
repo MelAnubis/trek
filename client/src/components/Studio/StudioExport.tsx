@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, FileText, Printer, Scissors, X } from 'lucide-react'
+import { BookOpen, FileText, FoldHorizontal, Layers, Printer, Scissors, X } from 'lucide-react'
 import type { BookDocument } from '../../types/book'
 import { BookSheetsView } from './BookSheetsView'
+import { BookletSheetsView } from './BookletSheetsView'
 import { sheetBox, sheetsFor, type SheetMode } from './bookSheets'
 import { printSheets } from './printSheets'
 import { useTranslation } from '../../i18n'
+
+type HomeFinish = 'none' | 'duplex' | 'booklet'
 
 /**
  * Getting the book out. Ported from liketrek/trek's
@@ -12,22 +15,42 @@ import { useTranslation } from '../../i18n'
  * restyled with this fork's inline-style convention instead of upstream's
  * studio.css classes.
  *
- * Two questions, not a settings panel: leaves or spreads, and marks or no
- * marks. The sheets are rendered here (off screen, inside the live app)
- * rather than built as a markup string, because they're the editor's own
+ * Layout (leaves or spreads), finishing (marks or no marks), and — this
+ * fork's own addition — home finishing: printing on a plain double-sided
+ * home inkjet in an order that's easy to bind by hand, either straight
+ * duplex for a side-bound book (punched, stapled or spiraled along one
+ * edge) or saddle-stitch imposition for a folded booklet. Either forces
+ * single leaves (a home fold has no use for the "spreads" preview layout)
+ * and neither can tell the printer *which* edge it flips on for duplex —
+ * that's a driver setting, not something a web page can reach — so the
+ * hint text says to check it, not to trust a default.
+ *
+ * The sheets are rendered here (off screen, inside the live app) rather
+ * than built as a markup string, because they're the editor's own
  * components and read context — the active locale, most visibly.
  */
 export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title: string; onClose: () => void }) {
   const { t } = useTranslation()
   const [mode, setMode] = useState<SheetMode>('pages')
   const [marks, setMarks] = useState(true)
+  const [homeFinish, setHomeFinish] = useState<HomeFinish>('none')
   const [building, setBuilding] = useState(false)
   const stage = useRef<HTMLDivElement>(null)
 
-  const sheets = sheetsFor(doc, mode)
+  const isBooklet = homeFinish === 'booklet'
+  const effectiveMode: SheetMode = homeFinish === 'none' ? mode : 'pages'
+  const effectiveMarks = isBooklet ? false : marks
+
+  const leaves = sheetsFor(doc, 'pages')
+  const sheets = sheetsFor(doc, effectiveMode)
   const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
-  const box = sheetBox(widest, doc.page.pageHeight, doc.page.bleed, marks)
-  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, marks)
+  const box = isBooklet
+    ? { width: doc.page.pageWidth * 2, height: doc.page.pageHeight, margin: 0, bleed: 0 }
+    : sheetBox(widest, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
+  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
+  // A saddle-stitch signature always pads to a multiple of 4 leaves (2 per side) — see imposeBooklet.
+  const bookletSideCount = Math.ceil(leaves.length / 4) * 2
+  const sheetCount = isBooklet ? bookletSideCount : sheets.length
 
   useEffect(() => {
     if (!building) return
@@ -38,13 +61,13 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
       html,
       sheetWidth: box.width,
       sheetHeight: box.height,
-      singleWidth: single.width,
-      singleHeight: single.height,
+      singleWidth: isBooklet ? undefined : single.width,
+      singleHeight: isBooklet ? undefined : single.height,
       title,
       labels: {
         save: t('journey.studio.exportSave'),
         close: t('common.close'),
-        count: t('journey.studio.exportSheetCount', { count: sheets.length }),
+        count: t('journey.studio.exportSheetCount', { count: sheetCount }),
         preparing: t('journey.studio.exportPreparing'),
       },
     })
@@ -79,34 +102,63 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 8 }}>
             {t('journey.studio.exportLayout')}
           </div>
-          <button style={opt(mode === 'pages')} onClick={() => setMode('pages')} aria-pressed={mode === 'pages'}>
+          <button style={opt(effectiveMode === 'pages')} onClick={() => setMode('pages')} aria-pressed={effectiveMode === 'pages'}>
             <FileText size={16} color="var(--text-muted)" />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportPages')}</div>
               <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportPagesHint')}</div>
             </div>
           </button>
-          <button style={opt(mode === 'spreads')} onClick={() => setMode('spreads')} aria-pressed={mode === 'spreads'}>
+          <button style={{ ...opt(effectiveMode === 'spreads'), cursor: homeFinish === 'none' ? 'pointer' : 'default', opacity: homeFinish === 'none' ? 1 : 0.45 }}
+            onClick={() => homeFinish === 'none' && setMode('spreads')} disabled={homeFinish !== 'none'} aria-pressed={effectiveMode === 'spreads'}>
             <BookOpen size={16} color="var(--text-muted)" />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportSpreads')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportSpreadsHint')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                {homeFinish === 'none' ? t('journey.studio.exportSpreadsHint') : t('journey.studio.exportSpreadsDisabledHint')}
+              </div>
             </div>
           </button>
 
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
+            {t('journey.studio.exportHomeFinish')}
+          </div>
+          <button style={opt(homeFinish === 'duplex')} onClick={() => setHomeFinish(f => f === 'duplex' ? 'none' : 'duplex')} aria-pressed={homeFinish === 'duplex'}>
+            <Layers size={16} color="var(--text-muted)" />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportDuplex')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportDuplexHint')}</div>
+            </div>
+          </button>
+          <button style={opt(isBooklet)} onClick={() => setHomeFinish(f => f === 'booklet' ? 'none' : 'booklet')} aria-pressed={isBooklet}>
+            <FoldHorizontal size={16} color="var(--text-muted)" />
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportBooklet')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportBookletHint')}</div>
+            </div>
+          </button>
+          {homeFinish !== 'none' && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '2px 0 0', lineHeight: 1.5 }}>
+              {t('journey.studio.exportHomeFinishNote')}
+            </p>
+          )}
+
+          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
             {t('journey.studio.exportFinishing')}
           </div>
-          <button style={opt(marks)} onClick={() => setMarks(!marks)} aria-pressed={marks}>
+          <button style={{ ...opt(effectiveMarks), cursor: isBooklet ? 'default' : 'pointer', opacity: isBooklet ? 0.45 : 1 }}
+            onClick={() => !isBooklet && setMarks(!marks)} disabled={isBooklet} aria-pressed={effectiveMarks}>
             <Scissors size={16} color="var(--text-muted)" />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportMarks')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                {isBooklet ? t('journey.studio.exportMarksDisabledHint') : t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}
+              </div>
             </div>
           </button>
 
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.5 }}>
-            {t('journey.studio.exportNote', { sheets: sheets.length, width: round1(box.width), height: round1(box.height) })}
+            {t('journey.studio.exportNote', { sheets: sheetCount, width: round1(box.width), height: round1(box.height) })}
           </p>
         </div>
 
@@ -126,7 +178,7 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
           same CSS that will print them) rather than measuring zero. */}
       {building && (
         <div ref={stage} aria-hidden="true" style={{ position: 'fixed', left: '-20000mm', top: 0, pointerEvents: 'none' }}>
-          <BookSheetsView doc={doc} mode={mode} marks={marks} />
+          {isBooklet ? <BookletSheetsView doc={doc} /> : <BookSheetsView doc={doc} mode={effectiveMode} marks={effectiveMarks} />}
         </div>
       )}
     </div>

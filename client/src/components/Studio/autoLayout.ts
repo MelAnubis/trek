@@ -1,6 +1,7 @@
-import type { BookDocument, BookElement, BookPageSetup, BookSpread, BookTextElement } from '../../types/book'
+import type { BookDocument, BookElement, BookImageElement, BookPageSetup, BookSpread, BookTextElement } from '../../types/book'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
 import { elementId } from './bookIds'
+import type { RouteImages } from './buildRouteImages'
 
 /**
  * Auto layout: turn a journey's own material into a populated book.
@@ -44,6 +45,15 @@ export interface AutoInput {
   page: BookPageSetup
   /** Pre-computed — buildBook does no fetching or aggregation of its own. */
   journeyStats: { days: number; entries: number; photos: number; places: number }
+  /**
+   * A day's route map + elevation profile, pre-rendered by
+   * buildRouteImagesByDate (async — network tile fetches — which is why
+   * buildBook itself stays synchronous and takes the result rather than
+   * the raw tracks). Keyed by the same ISO date entries carry. Omitted
+   * entirely, a book built without it just has no route spreads — this is
+   * additive, not a new requirement on every caller.
+   */
+  routeImagesByDate?: Map<string, RouteImages>
 }
 
 function photoEl(id: string, photoId: number | null): BookElement {
@@ -51,6 +61,10 @@ function photoEl(id: string, photoId: number | null): BookElement {
     id, kind: 'photo', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false,
     photoId, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
   }
+}
+
+function imageEl(id: string, src: string, frame: { x: number; y: number; w: number; h: number }, fit: BookImageElement['fit'] = 'cover'): BookImageElement {
+  return { id, kind: 'image', frame, rotation: 0, opacity: 1, locked: false, src, fit, radius: 0 }
 }
 
 /** Size is what `applyTemplate`'s heuristic uses to tell heading/body/meta apart — see templates.ts. */
@@ -139,6 +153,38 @@ function coverSpread(input: AutoInput): BookSpread {
   return seedSpread(elementId('sp'), 'cover', elements)
 }
 
+/**
+ * A day's route map + elevation profile, full-bleed across the spread —
+ * the same content JourneyBookPDF.tsx's fixed route pages already show,
+ * pre-rendered by buildRouteImagesByDate into the self-contained `image`
+ * elements this needs (see BookImageElement's own comment on why).
+ */
+function routeSpread(date: string, images: RouteImages, page: BookPageSetup, locale: string): BookSpread {
+  const W = page.pageWidth
+  const H = page.pageHeight
+  const elements: BookElement[] = []
+
+  const parsed = new Date(`${date}T00:00:00`)
+  const label = Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
+
+  if (images.mapSrc) {
+    elements.push(imageEl(elementId('im'), images.mapSrc, { x: -page.bleed, y: -page.bleed, w: W * 2 + page.bleed * 2, h: H * 0.6 + page.bleed }, 'cover'))
+  }
+  if (label) {
+    elements.push({
+      ...textEl(elementId('t'), label, 15),
+      frame: { x: W * 0.15, y: H * 0.6 + 10, w: W * 1.7, h: 10 },
+      weight: 700,
+      color: '#1a1a1a',
+    })
+  }
+  if (images.elevationSrc) {
+    elements.push(imageEl(elementId('im'), images.elevationSrc, { x: W * 0.1, y: H * 0.6 + 22, w: W * 1.8, h: H * 0.3 }, 'contain'))
+  }
+
+  return seedSpread(elementId('sp'), 'inner', elements)
+}
+
 /** A plain, non-templated closing spread — trip figures as styled text, no dedicated stats element yet. */
 function summarySpread(input: AutoInput, dateRange: string): BookSpread {
   const s = input.journeyStats
@@ -199,7 +245,19 @@ export function buildBook(input: AutoInput): BookDocument {
     : ''
 
   const spreads: BookSpread[] = [coverSpread(input)]
-  withContent.forEach((entry, i) => spreads.push(entrySpread(entry, input.page, input.locale, i)))
+  const routeImages = input.routeImagesByDate
+  // The last entry (in withContent's own order) for each date, so a day's
+  // route spread lands right after that day's own last entry rather than
+  // wherever iteration happens to be when its date is first seen.
+  const lastIndexForDate = new Map<string, number>()
+  withContent.forEach((entry, i) => { if (entry.date) lastIndexForDate.set(entry.date, i) })
+
+  withContent.forEach((entry, i) => {
+    spreads.push(entrySpread(entry, input.page, input.locale, i))
+    if (entry.date && routeImages?.has(entry.date) && lastIndexForDate.get(entry.date) === i) {
+      spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
+    }
+  })
   spreads.push(summarySpread(input, dateRange))
 
   return { version: 1, title: input.title, page: input.page, spreads: spreads.slice(0, 150) }
