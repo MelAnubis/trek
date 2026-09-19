@@ -42,7 +42,7 @@ export default function LoginPage(): React.ReactElement {
 
   const [langDropdownOpen, setLangDropdownOpen] = useState<boolean>(false)
 
-  const { login, register, demoLogin, completeMfaLogin, loadUser } = useAuthStore()
+  const { login, register, demoLogin, completeMfaLogin, loadUser, appVersion } = useAuthStore()
   const { setLanguageLocal, setLanguageTransient } = useSettingsStore()
   const navigate = useNavigate()
   const location = useLocation()
@@ -637,7 +637,7 @@ export default function LoginPage(): React.ReactElement {
           </div>
 
           <p style={{ marginTop: 36, fontSize: 11.5, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.03em' }}>
-            {t('login.selfHosted')}
+            {t('login.selfHosted')}{appVersion && <> &middot; v{appVersion}</>}
           </p>
         </div>
       </div>
