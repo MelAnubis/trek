@@ -406,7 +406,12 @@ router.put('/:id/book', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const journeyId = Number(req.params.id);
   const parsed = bookSaveRequestSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'Invalid book document' });
+  if (!parsed.success) {
+    // Paths and messages only — never the offending values, which may carry a
+    // photo caption or journal text nobody asked to see in an error response.
+    const issues = parsed.error.issues.map(i => ({ path: i.path.join('.'), message: i.message }));
+    return res.status(400).json({ error: 'Invalid book document', issues });
+  }
 
   const result = journeyBookSvc.saveBook(journeyId, authReq.user.id, parsed.data);
   if (result === null) return res.status(403).json({ error: 'Not allowed' });

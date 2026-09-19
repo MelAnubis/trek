@@ -95,6 +95,26 @@ describe('buildBook', () => {
     const doc = buildBook(input({ entries: many }))
     expect(doc.spreads.length).toBeLessThanOrEqual(150)
   })
+
+  it('FE-AUTOLAYOUT-011: every text/shape colour is a plain #rrggbb hex, never rgba() or a CSS name', () => {
+    // The server validates colour fields with a strict #rrggbb regex — no
+    // alpha channel — since fading is expressed through the element's own
+    // `opacity`, not baked into the colour string. A colour that fails this
+    // (e.g. 'rgba(255,255,255,0.5)') passes client-side rendering fine but
+    // gets rejected by the save endpoint with a 400, silently dropping the
+    // user's edits since nothing after that point is version 1 anymore.
+    const doc = buildBook(input())
+    const hex = /^#[0-9a-fA-F]{6}$/
+    for (const spread of doc.spreads) {
+      for (const el of [...spread.elements, ...spread.parked]) {
+        if (el.kind === 'text') expect(el.color).toMatch(hex)
+        if (el.kind === 'shape') {
+          if (el.fill != null) expect(el.fill).toMatch(hex)
+          if (el.stroke != null) expect(el.stroke).toMatch(hex)
+        }
+      }
+    }
+  })
 })
 
 describe('relayoutSpread', () => {

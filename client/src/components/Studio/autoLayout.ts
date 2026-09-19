@@ -158,8 +158,9 @@ function summarySpread(input: AutoInput, dateRange: string): BookSpread {
       rotation: 0, opacity: 1, locked: false, text: input.title, font: 'display', size: 26, weight: 700, italic: false,
       align: 'center', leading: 1.1, tracking: -0.01, color: '#ffffff', binding: null, overridden: true },
     { id: elementId('t'), kind: 'text', frame: { x: W * 0.3, y: H * 0.38 + 26, w: W * 1.4, h: 10 },
-      rotation: 0, opacity: 1, locked: false, text: dateRange, font: 'sans', size: 9, weight: 500, italic: false,
-      align: 'center', leading: 1.4, tracking: 0.04, color: 'rgba(255,255,255,0.5)', binding: null, overridden: true },
+      // opacity carries the fade — `color` is validated server-side as plain #rrggbb, no alpha.
+      rotation: 0, opacity: 0.5, locked: false, text: dateRange, font: 'sans', size: 9, weight: 500, italic: false,
+      align: 'center', leading: 1.4, tracking: 0.04, color: '#ffffff', binding: null, overridden: true },
     { id: elementId('t'), kind: 'text', frame: { x: W * 0.3, y: H * 0.38 + 44, w: W * 1.4, h: 10 },
       rotation: 0, opacity: 1, locked: false, text: parts.join('   ·   '), font: 'sans', size: 10, weight: 700, italic: false,
       align: 'center', leading: 1.4, tracking: 0.08, color: '#2dd4bf', binding: null, overridden: true },

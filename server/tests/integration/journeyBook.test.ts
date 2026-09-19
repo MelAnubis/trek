@@ -164,6 +164,31 @@ describe('PUT /api/journeys/:id/book', () => {
     expect(res.status).toBe(200);
     expect(res.body.book.document.spreads).toEqual([]);
   });
+
+  it('JOURNEYBOOK-008 — an invalid colour (e.g. rgba(), not #rrggbb) is rejected with the offending field named', async () => {
+    // Regression: autoLayout.ts once emitted 'rgba(255,255,255,0.5)' for a
+    // faded subtitle — valid CSS, invalid per this schema's plain-hex rule —
+    // which 400'd silently on every autosave after. The error body should
+    // name the exact path so this doesn't need a network trace to diagnose.
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const doc = emptyDoc();
+    doc.spreads[0].elements = [{
+      id: 't1', kind: 'text', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false,
+      text: 'hi', font: 'sans', size: 11, weight: 400, italic: false, align: 'left', leading: 1.45, tracking: 0,
+      color: 'rgba(255,255,255,0.5)', binding: null, overridden: false,
+    }] as any;
+
+    const res = await request(app)
+      .put(`/api/journeys/${journey.id}/book`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: '', document: doc });
+
+    expect(res.status).toBe(400);
+    expect(res.body.issues).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: 'document.spreads.0.elements.0.color' })])
+    );
+  });
 });
 
 describe('DELETE /api/journeys/:id/book', () => {
