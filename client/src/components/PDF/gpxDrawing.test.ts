@@ -1,5 +1,5 @@
-// FE-GPXDRAW-001 to FE-GPXDRAW-006
-import { groupTracksByDate, type PdfGpxTrack } from './gpxDrawing'
+// FE-GPXDRAW-001 to FE-GPXDRAW-010
+import { groupTracksByDate, resolveSafeTileUrl, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
 
 function track(overrides: Partial<PdfGpxTrack> = {}): PdfGpxTrack {
   return {
@@ -67,5 +67,24 @@ describe('groupTracksByDate', () => {
     const { byDate } = groupTracksByDate([t], DAYS)
     expect(byDate.has('2026-04-03')).toBe(true)
     expect(byDate.has('2026-04-01')).toBe(false)
+  })
+})
+
+describe('resolveSafeTileUrl', () => {
+  it('FE-GPXDRAW-007: substitutes the CartoDB default for tile.openstreetmap.org — osm.org\'s usage policy refuses exactly this kind of bulk, programmatic request', () => {
+    expect(resolveSafeTileUrl('https://tile.openstreetmap.org/{z}/{x}/{y}.png')).toBe(DEFAULT_TILE_URL)
+  })
+
+  it('FE-GPXDRAW-008: substitutes for tile.openstreetmap.de too', () => {
+    expect(resolveSafeTileUrl('https://a.tile.openstreetmap.de/{z}/{x}/{y}.png')).toBe(DEFAULT_TILE_URL)
+  })
+
+  it('FE-GPXDRAW-009: leaves a self-hosted or third-party tile server untouched', () => {
+    const custom = 'https://maps.example.com/{z}/{x}/{y}.png'
+    expect(resolveSafeTileUrl(custom)).toBe(custom)
+  })
+
+  it('FE-GPXDRAW-010: leaves the CartoDB default itself untouched', () => {
+    expect(resolveSafeTileUrl(DEFAULT_TILE_URL)).toBe(DEFAULT_TILE_URL)
   })
 })

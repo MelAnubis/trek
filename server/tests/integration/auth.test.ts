@@ -319,6 +319,45 @@ describe('App config', () => {
     expect(res.status).toBe(200);
     expect(res.body.allow_registration).toBe(false);
   });
+
+  // A self-hosted build (`docker compose up -d --build`, no --build-arg)
+  // leaves APP_VERSION unset or empty — the Dockerfile's build-arg default
+  // used to be the literal string "dev", which then won over the real
+  // version via `??`, showing "vdev" in the app regardless of the actual
+  // release. Both cases must fall through to package.json's real version.
+  it('AUTH-041 — version falls back to package.json when APP_VERSION is unset', async () => {
+    const original = process.env.APP_VERSION;
+    delete process.env.APP_VERSION;
+    try {
+      const res = await request(app).get('/api/auth/app-config');
+      expect(res.body.version).toBe(require('../../package.json').version);
+      expect(res.body.version).not.toBe('dev');
+    } finally {
+      if (original === undefined) delete process.env.APP_VERSION; else process.env.APP_VERSION = original;
+    }
+  });
+
+  it('AUTH-042 — version falls back to package.json when APP_VERSION is an empty string (the Dockerfile\'s default with no build-arg passed)', async () => {
+    const original = process.env.APP_VERSION;
+    process.env.APP_VERSION = '';
+    try {
+      const res = await request(app).get('/api/auth/app-config');
+      expect(res.body.version).toBe(require('../../package.json').version);
+    } finally {
+      if (original === undefined) delete process.env.APP_VERSION; else process.env.APP_VERSION = original;
+    }
+  });
+
+  it('AUTH-043 — version uses APP_VERSION directly when the release workflow does set it', async () => {
+    const original = process.env.APP_VERSION;
+    process.env.APP_VERSION = '9.9.9';
+    try {
+      const res = await request(app).get('/api/auth/app-config');
+      expect(res.body.version).toBe('9.9.9');
+    } finally {
+      if (original === undefined) delete process.env.APP_VERSION; else process.env.APP_VERSION = original;
+    }
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

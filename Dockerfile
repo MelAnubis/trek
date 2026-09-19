@@ -37,7 +37,15 @@ RUN apk add --no-cache --repository=https://dl-cdn.alpinelinux.org/alpine/edge/c
 
 ENV NODE_ENV=production
 ENV PORT=3000
-ARG APP_VERSION=dev
+# Left empty by default — only the release workflow passes a real value via
+# --build-arg. A self-hosted build (e.g. `docker compose up -d --build`,
+# building straight from the checkout with no build-arg) previously baked in
+# the literal string "dev" here, which then WON the server's own version
+# fallback (`process.env.APP_VERSION ?? package.json version`) over the
+# accurate version already committed in package.json — showing "vdev" in
+# the app instead of the real release number. Left empty, the server's
+# fallback reads the real version straight out of package.json instead.
+ARG APP_VERSION=
 ENV APP_VERSION=${APP_VERSION}
 
 EXPOSE 3000

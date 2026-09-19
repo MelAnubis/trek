@@ -1,7 +1,7 @@
 // Shared GPX drawing helpers for PDF exports (elevation profile SVG + raster
 // route map image). Pure functions, no React — used by both TripPDF.tsx and
 // JourneyBookPDF.tsx so the two PDFs render tracks the same way.
-import { buildTileUrl } from '../../sync/tilePrefetcher'
+import { buildTileUrl, BLOCKED_PREFETCH_HOSTS } from '../../sync/tilePrefetcher'
 
 // ── GPX track type shared by both PDF builders ────────────────────────────────
 export interface PdfGpxTrack {
@@ -184,12 +184,28 @@ async function loadTileImageWithRetry(buildUrl: () => string): Promise<HTMLImage
   return withTimeout(loadTileImage(buildUrl()), 6000).catch(() => null)
 }
 
+/**
+ * A raster route map fires a couple dozen tile requests per render, every
+ * time a journey's Studio/PDF/timeline map is shown — real bulk,
+ * programmatic use of whatever host the template points at. osm.org's own
+ * tile servers explicitly refuse exactly this usage pattern (see
+ * BLOCKED_PREFETCH_HOSTS's comment) and silently drop a chunk of tiles
+ * rather than erroring outright, which is what leaves gaps in the rendered
+ * map instead of a clean fallback. If map_tile_url is pointed at one of
+ * those hosts, fall back to the bundled CartoDB default rather than hand
+ * every render's tiles to a host that will refuse some of them.
+ */
+export function resolveSafeTileUrl(tileUrlTemplate: string): string {
+  return BLOCKED_PREFETCH_HOSTS.some(h => tileUrlTemplate.includes(h)) ? DEFAULT_TILE_URL : tileUrlTemplate
+}
+
 export async function buildRouteMapImage(
   entries: PdfMapEntryPoint[],
   tracks: PdfGpxTrack[],
   tileUrlTemplate: string,
   size: { width: number; height: number } = { width: 760, height: 380 },
 ): Promise<string | null> {
+  tileUrlTemplate = resolveSafeTileUrl(tileUrlTemplate)
   const W = size.width, H = size.height
 
   const entryCoords = entries.filter(e => (e.location_lat as any) && (e.location_lng as any))

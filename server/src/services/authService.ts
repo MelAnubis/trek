@@ -263,7 +263,12 @@ export function getAppConfig(authenticatedUser: { id: number } | null) {
   const userCount = (db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count;
   const isDemo = process.env.DEMO_MODE?.toLowerCase() === 'true';
   const toggles = resolveAuthToggles();
-  const version: string = process.env.APP_VERSION ?? require('../../package.json').version;
+  // `||`, not `??` — the Dockerfile's APP_VERSION build-arg defaults to an
+  // *empty string* when a self-hosted build doesn't pass it (only the
+  // release workflow does), and an empty string is still "set" as far as
+  // `??` is concerned, so it would win over the real version below instead
+  // of falling through to it.
+  const version: string = process.env.APP_VERSION || require('../../package.json').version;
   const hasGoogleKey = !!db.prepare("SELECT maps_api_key FROM users WHERE role = 'admin' AND maps_api_key IS NOT NULL AND maps_api_key != '' LIMIT 1").get();
   const oidcDisplayName = process.env.OIDC_DISPLAY_NAME ||
     (db.prepare("SELECT value FROM app_settings WHERE key = 'oidc_display_name'").get() as { value: string } | undefined)?.value || null;

@@ -26,10 +26,16 @@ export const MAX_TILES = Math.floor((50 * 1024) / AVG_TILE_KB) // ≈ 3413
 const DEFAULT_TILE_URL =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
 
-// OSM tile servers block bulk app requests per their usage policy and return
-// 403 "Access blocked" images that get cached as valid tiles, poisoning the
-// offline cache. Prefetch is skipped for these hosts.
-const BLOCKED_PREFETCH_HOSTS = ['tile.openstreetmap.org', 'tile.openstreetmap.de']
+// OSM tile servers block bulk app requests per their usage policy ("heavy
+// use, e.g. distributing an app that uses tile.openstreetmap.org by
+// default" is explicitly called out) and return 403 "Access blocked"
+// images. For prefetch those would get cached as valid tiles, poisoning
+// the offline cache, so prefetch is skipped for these hosts — and
+// gpxDrawing.ts's route-map canvas renderer (many tile requests per
+// render, for every map shown) hits the exact same policy if a user has
+// pointed their map_tile_url setting at one of these, so it reuses this
+// same list rather than silently drawing gaps where tiles got refused.
+export const BLOCKED_PREFETCH_HOSTS = ['tile.openstreetmap.org', 'tile.openstreetmap.de']
 function isBlockedForPrefetch(url: string): boolean {
   return BLOCKED_PREFETCH_HOSTS.some(h => url.includes(h))
 }
