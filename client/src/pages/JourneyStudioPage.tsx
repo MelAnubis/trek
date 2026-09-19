@@ -102,7 +102,7 @@ export default function JourneyStudioPage() {
   const createBook = () => loadDoc(emptyBook(DEFAULT_PAGE, current?.title || ''))
 
   const galleryPhotos = useMemo(() =>
-    (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null })),
+    (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null, taken_at: p.taken_at, created_at: p.created_at })),
     [current])
 
   const autoInput: AutoInput | null = useMemo(() => {

@@ -36,6 +36,7 @@ import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
 import { getApiErrorMessage } from '../types'
+import { groupPhotosByDay, formatPhotoDayHeader } from '../utils/groupPhotosByDay'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -2381,7 +2382,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   onUploadPhotos: (entryId: number, files: File[], cbs?: { onProgress?: (p: UploadProgress) => void }) => Promise<ResilientResult<JourneyPhoto>>
   onDone: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const toast = useToast()
   const isMobile = useIsMobile()
   const [title, setTitle] = useState(entry.title || '')
@@ -2552,29 +2553,38 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                 absolutely positioned image (works across all browsers). */}
             {showGalleryPick && (
               <div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 bg-zinc-50 dark:bg-zinc-800/50">
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-[280px] overflow-y-auto">
-                  {availableGalleryPhotos.map(gp => (
-                    <div
-                      key={gp.id}
-                      onClick={async () => {
-                        if (entry.id > 0) {
-                          try {
-                            const linked = await journeyApi.linkPhoto(entry.id, gp.id)
-                            if (linked) setPhotos(prev => [...prev, linked])
-                          } catch {}
-                        } else {
-                          setPendingLinkIds(prev => [...prev, gp.id])
-                          setPhotos(prev => [...prev, gp])
-                        }
-                      }}
-                      className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
-                      style={{ paddingTop: '100%' }}
-                    >
-                      <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
+                <div className="max-h-[280px] overflow-y-auto">
+                  {groupPhotosByDay(availableGalleryPhotos).map(group => (
+                    <div key={group.dayKey}>
+                      <p className="text-[11px] font-medium text-zinc-500 dark:text-zinc-400 mb-2 mt-3 first:mt-0">
+                        {formatPhotoDayHeader(group.dayKey, locale)}
+                      </p>
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-1">
+                        {group.photos.map(gp => (
+                          <div
+                            key={gp.id}
+                            onClick={async () => {
+                              if (entry.id > 0) {
+                                try {
+                                  const linked = await journeyApi.linkPhoto(entry.id, gp.id)
+                                  if (linked) setPhotos(prev => [...prev, linked])
+                                } catch {}
+                              } else {
+                                setPendingLinkIds(prev => [...prev, gp.id])
+                                setPhotos(prev => [...prev, gp])
+                              }
+                            }}
+                            className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
+                            style={{ paddingTop: '100%' }}
+                          >
+                            <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                   {availableGalleryPhotos.length === 0 && (
-                    <div className="col-span-full text-center py-3 text-[11px] text-zinc-400">{t('journey.editor.allPhotosAdded')}</div>
+                    <div className="text-center py-3 text-[11px] text-zinc-400">{t('journey.editor.allPhotosAdded')}</div>
                   )}
                 </div>
               </div>

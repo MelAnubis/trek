@@ -5,6 +5,7 @@ import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
 import type { BookElement, BookPageSetup } from '../../types/book'
+import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -42,9 +43,9 @@ function LayoutSwatch({ template, single, page }: { template: Template; single: 
 export function StudioSidebar({
   galleryPhotos,
 }: {
-  galleryPhotos: { photoId: number; caption: string | null }[]
+  galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const doc = useStudioStore(s => s.doc)
   const activeSpread = useStudioStore(s => s.activeSpread)
   const setActiveSpread = useStudioStore(s => s.setActiveSpread)
@@ -166,16 +167,23 @@ export function StudioSidebar({
       {/* Photos */}
       <div style={PANEL_SECTION}>
         <div style={PANEL_TITLE}>{t('journey.studio.photosTab')}</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-          {galleryPhotos.map(p => (
-            <div key={p.photoId}
-              draggable
-              onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}
-              style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: 'grab', background: 'var(--bg-tertiary)' }}>
-              <BookPhotoImg photoId={p.photoId} big={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        {groupPhotosByDay(galleryPhotos).map(group => (
+          <div key={group.dayKey} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 6 }}>
+              {formatPhotoDayHeader(group.dayKey, locale)}
             </div>
-          ))}
-        </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+              {group.photos.map(p => (
+                <div key={p.photoId}
+                  draggable
+                  onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}
+                  style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: 'grab', background: 'var(--bg-tertiary)' }}>
+                  <BookPhotoImg photoId={p.photoId} big={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <style>{`
