@@ -315,6 +315,17 @@ export async function listAlbums(userId: number) {
   return { albums };
 }
 
+// ── Single-item capture date lookup ─────────────────────────────────────────
+// Used when linking a photo into a journey and by the trek_photos.taken_at
+// backfill — the picker endpoints above already resolve this per item, but
+// neither the client's add-photo call nor an already-linked row carries it.
+export async function getAssetTakenAt(userId: number, assetId: string): Promise<string | null> {
+  const result = await graphGet(userId, `/me/drive/items/${assetId}?$select=photo,fileSystemInfo,createdDateTime`);
+  if (result.error || !result.data) return null;
+  const taken = resolveTakenDate(result.data);
+  return taken || null;
+}
+
 // ── Get photos in a folder/album ─────────────────────────────────────────────
 export async function getAlbumPhotos(userId: number, albumId: string) {
   // Paginated — a single 200-item page used to silently drop the rest of

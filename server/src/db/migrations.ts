@@ -2520,6 +2520,13 @@ function runMigrations(db: Database.Database): void {
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_journey_books_journey ON journey_books(journey_id)');
     },
+    // Capture date, not upload/link date — the journey gallery sorts by this
+    // (falling back to journey_photos.created_at where it's not known yet).
+    // Populated going forward when a photo is linked, and backfilled for
+    // existing rows by a best-effort background pass at server startup.
+    () => {
+      try { db.exec('ALTER TABLE trek_photos ADD COLUMN taken_at TEXT'); } catch {}
+    },
   ];
 
   if (currentVersion < migrations.length) {

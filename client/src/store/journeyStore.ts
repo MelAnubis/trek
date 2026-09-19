@@ -56,6 +56,7 @@ export interface JourneyPhoto {
   thumbnail_path?: string | null
   width?: number | null
   height?: number | null
+  taken_at?: string | null
 }
 
 export interface GalleryPhoto {
@@ -74,6 +75,7 @@ export interface GalleryPhoto {
   thumbnail_path?: string | null
   width?: number | null
   height?: number | null
+  taken_at?: string | null
 }
 
 export interface JourneyTrip {

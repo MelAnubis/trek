@@ -12,6 +12,7 @@ import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
 import { getAllowedExtensions } from '../services/fileService';
+import { resolveAndStoreTakenAt } from '../services/memories/photoResolverService';
 
 const router = express.Router();
 
@@ -132,6 +133,7 @@ router.post('/entries/:entryId/photos', authenticate, upload.array('photos'), as
           }
         } catch {}
       }
+      await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
       results.push(photo);
     }
   }
@@ -140,7 +142,7 @@ router.post('/entries/:entryId/photos', authenticate, upload.array('photos'), as
   res.status(201).json({ photos: results });
 });
 
-router.post('/entries/:entryId/provider-photos', authenticate, (req: Request, res: Response) => {
+router.post('/entries/:entryId/provider-photos', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { provider, asset_id, asset_ids, caption, passphrase } = req.body || {};
   const pp = passphrase && typeof passphrase === 'string' ? passphrase : undefined;
@@ -150,7 +152,10 @@ router.post('/entries/:entryId/provider-photos', authenticate, (req: Request, re
     const added: any[] = [];
     for (const id of asset_ids) {
       const photo = svc.addProviderPhoto(Number(req.params.entryId), authReq.user.id, provider, String(id), caption, pp);
-      if (photo) added.push(photo);
+      if (photo) {
+        await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+        added.push(photo);
+      }
     }
     return res.status(201).json({ photos: added, added: added.length });
   }
@@ -159,6 +164,7 @@ router.post('/entries/:entryId/provider-photos', authenticate, (req: Request, re
   if (!provider || !asset_id) return res.status(400).json({ error: 'provider and asset_id required' });
   const photo = svc.addProviderPhoto(Number(req.params.entryId), authReq.user.id, provider, asset_id, caption, pp);
   if (!photo) return res.status(403).json({ error: 'Not allowed or duplicate' });
+  await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
   res.status(201).json(photo);
 });
 
@@ -211,11 +217,12 @@ router.post('/:id/gallery/photos', authenticate, upload.array('photos'), async (
   const filePaths = files.map(f => ({ path: `journey/${f.filename}` }));
   const photos = svc.uploadGalleryPhotos(Number(req.params.id), authReq.user.id, filePaths);
   if (!photos.length) return res.status(403).json({ error: 'Not allowed' });
+  for (const photo of photos) await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
   res.status(201).json({ photos });
 });
 
 // Add provider photos to gallery only (no entry link)
-router.post('/:id/gallery/provider-photos', authenticate, (req: Request, res: Response) => {
+router.post('/:id/gallery/provider-photos', authenticate, async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { provider, asset_id, asset_ids, passphrase } = req.body || {};
   const pp = passphrase && typeof passphrase === 'string' ? passphrase : undefined;
@@ -224,7 +231,10 @@ router.post('/:id/gallery/provider-photos', authenticate, (req: Request, res: Re
     const added: any[] = [];
     for (const id of asset_ids) {
       const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, String(id), undefined, pp);
-      if (photo) added.push(photo);
+      if (photo) {
+        await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+        added.push(photo);
+      }
     }
     return res.status(201).json({ photos: added, added: added.length });
   }
@@ -232,6 +242,7 @@ router.post('/:id/gallery/provider-photos', authenticate, (req: Request, res: Re
   if (!provider || !asset_id) return res.status(400).json({ error: 'provider and asset_id required' });
   const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, asset_id, undefined, pp);
   if (!photo) return res.status(403).json({ error: 'Not allowed or duplicate' });
+  await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
   res.status(201).json(photo);
 });
 

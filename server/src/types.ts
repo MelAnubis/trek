@@ -384,6 +384,8 @@ export interface TrekPhoto {
   height?: number | null;
   passphrase?: string | null;
   created_at: string;
+  /** When the photo was actually taken (EXIF / provider metadata), not when it was linked. Null until resolved. */
+  taken_at?: string | null;
 }
 
 export interface JourneyPhoto {

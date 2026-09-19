@@ -11,18 +11,25 @@ function ts(): number {
 // id = gp.id (gallery photo id) — used by clients for linkPhoto/updatePhoto/unlink/delete.
 const JP_SELECT = `
   gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at
 `;
 const JP_JOIN = `journey_entry_photos jep
   JOIN journey_photos gp ON gp.id  = jep.journey_photo_id
   JOIN trek_photos    tp ON tp.id  = gp.photo_id`;
 
 // Per-journey gallery view: journey_photos → trek_photos (no entry context).
+// Sorted by when the photo was actually taken, not when it was linked into
+// the journey — a photo pulled in from an old Immich album should land on
+// the day it was shot, not at the end because that's when someone dragged
+// it in. Falls back to the link date for a photo whose capture date isn't
+// known yet (not yet resolved, or a provider/local file where it never will
+// be) rather than dropping it out of order entirely.
 const GALLERY_SELECT = `
   gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at
 `;
 const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
+const GALLERY_ORDER = 'ORDER BY COALESCE(tp.taken_at, gp.created_at) ASC, gp.id ASC';
 
 export function broadcastJourneyEvent(journeyId: number, event: string, data: Record<string, unknown>, excludeSocketId?: string | number) {
   const contributors = db.prepare(
@@ -134,7 +141,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
   }
 
   const gallery = db.prepare(
-    `SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? ORDER BY gp.sort_order ASC, gp.id ASC`
+    `SELECT ${GALLERY_SELECT} FROM ${GALLERY_JOIN} WHERE gp.journey_id = ? ${GALLERY_ORDER}`
   ).all(journeyId);
 
   const enrichedEntries = entries

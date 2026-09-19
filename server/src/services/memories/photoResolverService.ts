@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import exifr from 'exifr';
 import { db } from '../../db/database';
 import type { TrekPhoto } from '../../types';
 import { streamImmichAsset, fetchImmichThumbnailBytes, getAssetInfo as getImmichAssetInfo } from './immichService';
@@ -10,7 +11,7 @@ import { fail, success } from './helpersService';
 import { encrypt_api_key, decrypt_api_key } from '../apiKeyCrypto';
 import * as photoCache from './trekPhotoCache';
 import { ensureLocalThumbnail } from './thumbnailService';
-import { streamOneDriveAsset } from './oneDriveService';
+import { streamOneDriveAsset, getAssetTakenAt as getOneDriveAssetTakenAt } from './oneDriveService';
 
 // ── Lookup / Register ────────────────────────────────────────────────────
 
@@ -56,6 +57,76 @@ export function getOrCreateLocalTrekPhoto(
 
 export function resolveTrekPhoto(photoId: number): TrekPhoto | null {
   return db.prepare('SELECT * FROM trek_photos WHERE id = ?').get(photoId) as TrekPhoto | undefined || null;
+}
+
+// ── Capture date ─────────────────────────────────────────────────────────
+
+/** DateTimeOriginal, falling back to CreateDate — both EXIF, both in local camera time. */
+async function readExifTakenAt(absPath: string): Promise<string | null> {
+  try {
+    if (!fs.existsSync(absPath)) return null;
+    const tags = await exifr.parse(absPath, ['DateTimeOriginal', 'CreateDate']) as
+      { DateTimeOriginal?: Date; CreateDate?: Date } | undefined;
+    const date = tags?.DateTimeOriginal ?? tags?.CreateDate;
+    return date instanceof Date && !Number.isNaN(date.getTime()) ? date.toISOString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fill in a photo's real capture date — when it was taken, not when it was
+ * linked into a journey. Best-effort and idempotent: a photo that already
+ * has one is left alone, and any lookup failure (offline provider, a local
+ * file with no EXIF, a screenshot) just leaves it null, which the gallery's
+ * COALESCE already treats as "sort by link date instead."
+ *
+ * Called both right after a photo is linked (so it lands in the right place
+ * immediately) and by the startup backfill pass for photos that predate this
+ * column entirely.
+ */
+export async function resolveAndStoreTakenAt(photoId: number, userId: number): Promise<string | null> {
+  const photo = resolveTrekPhoto(photoId);
+  if (!photo || photo.taken_at) return photo?.taken_at ?? null;
+
+  let takenAt: string | null = null;
+  try {
+    switch (photo.provider) {
+      case 'local': {
+        if (photo.file_path) {
+          const abs = path.join(__dirname, '../../../uploads', photo.file_path);
+          takenAt = await readExifTakenAt(abs);
+        }
+        break;
+      }
+      case 'immich': {
+        if (photo.asset_id && photo.owner_id) {
+          const result = await getImmichAssetInfo(userId, photo.asset_id, photo.owner_id);
+          if (!result.error && result.data?.takenAt) takenAt = result.data.takenAt;
+        }
+        break;
+      }
+      case 'synologyphotos': {
+        if (photo.asset_id && photo.owner_id) {
+          const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
+          const result = await getSynologyAssetInfo(userId, photo.asset_id, photo.owner_id, passphrase);
+          if (result.success && result.data.takenAt) takenAt = result.data.takenAt;
+        }
+        break;
+      }
+      case 'onedrive': {
+        if (photo.asset_id && photo.owner_id) takenAt = await getOneDriveAssetTakenAt(photo.owner_id, photo.asset_id);
+        break;
+      }
+    }
+  } catch {
+    // Best-effort — a provider hiccup here shouldn't fail the photo add/link it rode in on.
+  }
+
+  if (takenAt) {
+    db.prepare('UPDATE trek_photos SET taken_at = ? WHERE id = ? AND taken_at IS NULL').run(takenAt, photoId);
+  }
+  return takenAt;
 }
 
 // ── Streaming ────────────────────────────────────────────────────────────
