@@ -52,6 +52,18 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   })
 }
 
+/** Runs `jobs` through a fixed-size worker pool instead of firing them all at once — see its call site for why that matters for tile requests specifically. */
+export async function runWithConcurrency(jobs: (() => Promise<void>)[], limit: number): Promise<void> {
+  let next = 0
+  const worker = async () => {
+    while (next < jobs.length) {
+      const job = jobs[next++]
+      await job()
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limit, jobs.length) }, worker))
+}
+
 // ── Split a single track into per-day fragments by recorded timestamp ────────
 // Journeys often carry one continuous multi-day GPX recording (exported from
 // Strava/Garmin/Wikiloc/a live-tracking app) rather than tracks manually
@@ -259,20 +271,27 @@ export async function buildRouteMapImage(
     ctx.fillRect(0, 0, W, H)
 
     const maxTile = Math.pow(2, zoom) - 1
-    const loads: Promise<void>[] = []
+    const jobs: (() => Promise<void>)[] = []
     for (let tx = minTileX; tx <= maxTileX; tx++) {
       for (let ty = minTileY; ty <= maxTileY; ty++) {
         if (ty < 0 || ty > maxTile) continue
         const wrappedX = ((tx % (maxTile + 1)) + (maxTile + 1)) % (maxTile + 1)
         const tileX = tx, tileY = ty
-        loads.push(
+        jobs.push(() =>
           loadTileImageWithRetry(() => buildTileUrl(tileUrlTemplate, zoom, wrappedX, ty)).then(img => {
             if (img) ctx.drawImage(img, tileX * TILE_SIZE - originX, tileY * TILE_SIZE - originY, TILE_SIZE, TILE_SIZE)
           }),
         )
       }
     }
-    await Promise.all(loads)
+    // A route map can be 20-140 tiles; firing them all in one burst is the
+    // exact "many simultaneous automated requests from one client" pattern
+    // free tile hosts' abuse detection looks for (distinct from the
+    // per-request throttling BLOCKED_PREFETCH_HOSTS/resolveSafeTileUrl
+    // already handle) — trickling requests through a small worker pool
+    // instead keeps this looking like the ordinary map panning it's
+    // standing in for.
+    await runWithConcurrency(jobs, 6)
 
     const project = (lat: number, lng: number) => ({
       x: lngToWorldPx(lng, zoom) - originX,

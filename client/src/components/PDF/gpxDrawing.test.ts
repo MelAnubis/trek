@@ -1,5 +1,5 @@
-// FE-GPXDRAW-001 to FE-GPXDRAW-010
-import { groupTracksByDate, resolveSafeTileUrl, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
+// FE-GPXDRAW-001 to FE-GPXDRAW-014
+import { groupTracksByDate, resolveSafeTileUrl, runWithConcurrency, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
 
 function track(overrides: Partial<PdfGpxTrack> = {}): PdfGpxTrack {
   return {
@@ -86,5 +86,38 @@ describe('resolveSafeTileUrl', () => {
 
   it('FE-GPXDRAW-010: leaves the CartoDB default itself untouched', () => {
     expect(resolveSafeTileUrl(DEFAULT_TILE_URL)).toBe(DEFAULT_TILE_URL)
+  })
+})
+
+describe('runWithConcurrency', () => {
+  it('FE-GPXDRAW-011: runs every job exactly once', async () => {
+    const seen: number[] = []
+    const jobs = Array.from({ length: 20 }, (_, i) => async () => { seen.push(i) })
+    await runWithConcurrency(jobs, 6)
+    expect([...seen].sort((a, b) => a - b)).toEqual(Array.from({ length: 20 }, (_, i) => i))
+  })
+
+  it('FE-GPXDRAW-012: never runs more than `limit` jobs at once — the whole point, vs. firing everything in one Promise.all burst', async () => {
+    let active = 0
+    let maxActive = 0
+    const jobs = Array.from({ length: 30 }, () => async () => {
+      active++
+      maxActive = Math.max(maxActive, active)
+      await new Promise(r => setTimeout(r, 1))
+      active--
+    })
+    await runWithConcurrency(jobs, 6)
+    expect(maxActive).toBeLessThanOrEqual(6)
+  })
+
+  it('FE-GPXDRAW-013: with fewer jobs than the limit, still runs them all', async () => {
+    const seen: number[] = []
+    const jobs = [0, 1, 2].map(i => async () => { seen.push(i) })
+    await runWithConcurrency(jobs, 6)
+    expect(seen.sort()).toEqual([0, 1, 2])
+  })
+
+  it('FE-GPXDRAW-014: an empty job list resolves immediately without error', async () => {
+    await expect(runWithConcurrency([], 6)).resolves.toBeUndefined()
   })
 })

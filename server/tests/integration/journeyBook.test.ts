@@ -189,6 +189,30 @@ describe('PUT /api/journeys/:id/book', () => {
       expect.arrayContaining([expect.objectContaining({ path: 'document.spreads.0.elements.0.color' })])
     );
   });
+
+  it('JOURNEYBOOK-009 — a book with an embedded route-map image (well past the app-wide 100kb JSON limit) still saves', async () => {
+    // Regression: the app-wide express.json({limit:'100kb'}) sits ahead of
+    // every route in app.ts, so a book carrying even one auto-layout route
+    // image (a self-contained data: URI — see BookImageElement's own
+    // comment on why it can't just be a live URL) used to 413 before ever
+    // reaching this handler. This request body alone is ~300KB.
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const doc = emptyDoc();
+    const bigImage = 'A'.repeat(300_000);
+    doc.spreads[0].elements = [{
+      id: 'im1', kind: 'image', frame: { x: 0, y: 0, w: 210, h: 100 }, rotation: 0, opacity: 1, locked: false,
+      src: `data:image/png;base64,${bigImage}`, fit: 'cover', radius: 0,
+    }] as any;
+
+    const res = await request(app)
+      .put(`/api/journeys/${journey.id}/book`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: '', document: doc });
+
+    expect(res.status).toBe(200);
+    expect(res.body.book.document.spreads[0].elements[0].kind).toBe('image');
+  });
 });
 
 describe('DELETE /api/journeys/:id/book', () => {

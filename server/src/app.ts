@@ -175,6 +175,16 @@ export function createApp(): express.Application {
     });
   }
 
+  // Studio book documents can carry a handful of embedded route-map/
+  // elevation images (self-contained data: URIs — see BookImageElement's
+  // own comment on why they can't just be a live URL) that the blanket
+  // 100kb JSON limit below was never sized for. Must be registered before
+  // that blanket express.json() — body-parser marks `req._body` once a
+  // request's body has been parsed, and any later express.json() in the
+  // chain just skips re-parsing, so a *later, larger* limit on this path
+  // would never actually apply: the earlier 100kb parser would already
+  // have rejected the request before this one ever ran.
+  app.use('/api/journeys/:id/book', express.json({ limit: '20mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
