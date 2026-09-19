@@ -70,6 +70,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'nav.darkMode': 'Dark Mode',
   'nav.autoMode': 'Auto Mode',
   'nav.administrator': 'Administrator',
+  'nav.versionTitle': 'App version',
 
   // Dashboard
   'dashboard.title': 'My Trips',

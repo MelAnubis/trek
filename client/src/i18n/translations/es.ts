@@ -67,6 +67,7 @@ const es: Record<string, string> = {
   'nav.darkMode': 'Modo oscuro',
   'nav.autoMode': 'Modo automático',
   'nav.administrator': 'Administrador',
+  'nav.versionTitle': 'Versión de la app',
   'nav.myTrips': 'Mis viajes',
 
   // Dashboard

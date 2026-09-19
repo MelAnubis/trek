@@ -198,15 +198,28 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         </button>
       )}
 
-      {/* Prerelease badge */}
-      {isPrerelease && appVersion && (
-        <span
-          className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
-          style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}
-        >
-          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />
-          {appVersion}
-        </span>
+      {/* Version — amber "prerelease" pill on a dev/beta build, a plain
+          neutral one otherwise. Always shown (not tucked into the user
+          menu) so anyone glancing at the app — including a maintainer
+          confirming a deploy actually landed — can see it without a click. */}
+      {appVersion && (
+        isPrerelease ? (
+          <span
+            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
+            style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}
+          >
+            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />
+            {appVersion}
+          </span>
+        ) : (
+          <span
+            className="hidden sm:flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
+            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-faint)' }}
+            title={t('nav.versionTitle')}
+          >
+            v{appVersion}
+          </span>
+        )
       )}
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
