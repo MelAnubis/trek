@@ -697,6 +697,20 @@ body {
   filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
 }
 
+/* Journey map dark mode — same trick, applied when JourneyMap.tsx falls
+   back to plain OSM tiles (no custom map_tile_url configured) instead of
+   CartoDB's now-key-required dark_all style. */
+.journey-map-dark-tiles .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
+/* Navigation "Oscuro" tile style and the nav summary preview map — same
+   trick, used since CartoDB's dark_all now needs an API key. */
+.nav-map-dark-tiles .leaflet-tile-pane,
+.nav-summary-dark-tiles .leaflet-tile-pane {
+  filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.9);
+}
+
 /* ── iOS-style map tooltip ─────────────────────── */
 .leaflet-tooltip.map-tooltip {
   background: var(--tooltip-bg);

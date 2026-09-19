@@ -90,7 +90,7 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
     <div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
       {/* Map preview */}
-      <div style={{ flex: '0 0 220px', position: 'relative' }}>
+      <div className="nav-summary-dark-tiles" style={{ flex: '0 0 220px', position: 'relative' }}>
         {latlngs.length > 1 ? (
           <MapContainer
             center={center}
@@ -101,7 +101,8 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
             scrollWheelZoom={false}
             dragging={false}
           >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" />
+            {/* CARTO's dark_all now refuses anonymous requests (an "API KEY REQUIRED" watermark since Aug 2026) — plain OSM tiles + a CSS invert filter (.nav-summary-dark-tiles) stand in for the dark style instead. */}
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             <Polyline positions={latlngs} pathOptions={{ color: '#22d96e', weight: 3, opacity: 0.9 }} />
             {navPhotos.map(p => <PhotoPin key={p.id} photo={p} />)}
             <AutoFit points={latlngs} />

@@ -893,7 +893,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
     return da.map(a => a.place).filter(p => p?.lat && p?.lng)
   }, [selectedDayId, assignments])
 
-  const mapTileUrl = settings.map_tile_url || 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+  // CARTO's basemaps.cartocdn.com now refuses anonymous requests (an "API
+  // KEY REQUIRED" watermark since Aug 2026 — see Settings > Map), so the
+  // no-configuration fallback is plain OSM tiles instead.
+  const mapTileUrl = settings.map_tile_url || 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
   const defaultCenter = [settings.default_lat || 48.8566, settings.default_lng || 2.3522]
   const defaultZoom = settings.default_zoom || 10
 

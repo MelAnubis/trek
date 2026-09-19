@@ -124,9 +124,14 @@ const TILE_LAYERS = {
     color: '#38bdf8',
   },
   dark: {
+    // CARTO's dark_all now refuses anonymous requests (an "API KEY
+    // REQUIRED" watermark since Aug 2026 — see Settings > Map), so this
+    // uses plain OSM tiles with a CSS invert filter instead (see
+    // .nav-map-dark-tiles below) — the same trick AtlasPage.tsx and
+    // JourneyMap.tsx use for their own dark styles.
     label: 'Oscuro',
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '© OpenStreetMap © CARTO',
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '© OpenStreetMap contributors',
     maxZoom: 19,
     color: '#94a3b8',
   },
@@ -255,7 +260,7 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
   const tile = TILE_LAYERS[tileKey]
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+    <div className={tileKey === 'dark' ? 'nav-map-dark-tiles' : undefined} style={{ position: 'relative', width: '100%', height: '100%' }}>
     <MapContainer
       center={defaultCenter}
       zoom={15}

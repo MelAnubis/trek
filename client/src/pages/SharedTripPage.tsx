@@ -172,7 +172,8 @@ export default function SharedTripPage() {
         {activeTab === 'plan' && (<>
         <div style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
           <MapContainer center={center as [number, number]} zoom={11} zoomControl={false} style={{ width: '100%', height: '100%' }}>
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" referrerPolicy="strict-origin-when-cross-origin" />
+            {/* CARTO's basemaps.cartocdn.com now refuses anonymous requests (an "API KEY REQUIRED" watermark since Aug 2026) — this public page has no admin-configured key to use, so it falls back to plain OSM tiles. */}
+            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" referrerPolicy="strict-origin-when-cross-origin" />
             <FitBoundsToPlaces places={mapPlaces} />
             {mapPlaces.map((p: any) => (
               <Marker key={p.id} position={[p.lat, p.lng]} icon={createMarkerIcon(p)}>

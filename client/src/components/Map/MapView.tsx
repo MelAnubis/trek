@@ -431,7 +431,13 @@ const MemoMarker = memo(function MemoMarker({
   )
 })
 
-const FALLBACK_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
+// CARTO's basemaps.cartocdn.com now refuses anonymous requests outright
+// (an "API KEY REQUIRED" watermark since Aug 2026 — see Settings > Map),
+// so it's no longer a usable no-configuration fallback. OSM's own tiles
+// work for ordinary interactive panning without a key (same choice
+// AtlasPage.tsx already made for the same reason); an admin who wants
+// CartoDB's look sets it explicitly in Settings, with their own key.
+const FALLBACK_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 
 export const MapView = memo(function MapView({
   places = [],
@@ -444,7 +450,7 @@ export const MapView = memo(function MapView({
   onMapContextMenu = null,
   center = [48.8566, 2.3522],
   zoom = 10,
-  tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+  tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   fitKey = 0,
   dayOrderMap = {},
   leftWidth = 0,

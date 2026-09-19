@@ -169,10 +169,15 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     })
     mapRef.current = map
 
-    const defaultTile = dark
-      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-    const fallbackTile = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+    // CARTO's basemaps.cartocdn.com now refuses anonymous requests outright
+    // (an "API KEY REQUIRED" watermark since Aug 2026 — see Settings > Map),
+    // so it's no longer usable without a key an admin configures themselves.
+    // OSM's own tiles work for ordinary interactive panning without one —
+    // the dark look, when no custom mapTileUrl is set, comes from a CSS
+    // filter on this same tile layer (.journey-map-dark-tiles in index.css)
+    // rather than a dedicated dark tileset, since OSM has none.
+    const defaultTile = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    const fallbackTile = defaultTile
     const tileLayer = L.tileLayer(mapTileUrl || defaultTile, {
       maxZoom: 18,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
@@ -298,6 +303,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     <div style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
       <div
         ref={containerRef}
+        className={dark && !mapTileUrl ? 'journey-map-dark-tiles' : undefined}
         style={{ width: '100%', height: '100%' }}
       />
       <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}>
