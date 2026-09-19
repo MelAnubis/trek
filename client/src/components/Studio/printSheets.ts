@@ -83,11 +83,18 @@ ${collectStyles()}
   @page { size: ${input.sheetWidth}mm ${input.sheetHeight}mm; margin: 0; }
 ${singleRule(input)}
   @media screen { .bx-book { zoom: var(--bx-fit, 1); } }
-  html, body { margin: 0; padding: 0; background: ${WORKTOP}; }
+  /* Overrides the host app's own SPA shell rules (index.css sets
+     html{height:100%;overflow:hidden} so the app scrolls on body, not
+     html) — collectStyles() copies that in wholesale above, and left
+     unset here it clips this whole multi-sheet document down to one
+     page's worth of content before break-after:page ever gets a chance
+     to paginate it, which is why printing used to produce a single,
+     cropped page instead of every sheet. */
+  html, body { margin: 0; padding: 0; background: ${WORKTOP}; height: auto; overflow: visible; }
   .bx-book { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 16px 0; }
   .bx-sheet { box-shadow: 0 2px 12px rgba(0,0,0,0.35); }
   @media print {
-    html, body { background: ${PAPER}; }
+    html, body { background: ${PAPER}; height: auto; overflow: visible; }
     .bx-book { display: block; gap: 0; padding: 0; }
     .bx-sheet { box-shadow: none; }
     * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
