@@ -1160,7 +1160,7 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
   onPhotoClick: (photos: GalleryPhoto[], index: number) => void
   onRefresh: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
   const [pickerProvider, setPickerProvider] = useState<string | null>(null)
   const [availableProviders, setAvailableProviders] = useState<{ id: string; name: string }[]>([])
@@ -1314,42 +1314,60 @@ function GalleryView({ entries, gallery, journeyId, userId, trips, onPhotoClick,
           <p className="text-[12px] text-zinc-500 mt-1">{t('journey.detail.noPhotosHint')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5 pb-24 md:pb-6">
-          {allPhotos.map((photo, i) => (
-            <div
-              key={photo.id}
-              className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
-              onClick={() => onPhotoClick(allPhotos, i)}
-            >
-              <img
-                src={photoUrl(photo, 'thumbnail')}
-                alt={photo.caption || ''}
-                className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
-              {/* Delete button */}
-              <button
-                onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
-                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-              >
-                <X size={12} />
-              </button>
-              {photo.provider && photo.provider !== 'local' && (
-                <div className="absolute top-1.5 left-1.5">
-                  <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur text-white flex items-center gap-1">
-                    <RefreshCw size={7} />
+        <div className="pb-24 md:pb-6">
+          {(() => {
+            const grouped = groupPhotosByDay(allPhotos)
+            const flatOrdered = grouped.flatMap(g => g.photos)
+            let runningIndex = 0
+            return grouped.map(group => {
+              const startIndex = runningIndex
+              runningIndex += group.photos.length
+              return (
+                <div key={group.dayKey} className="mb-5 last:mb-0">
+                  <p className="text-[12px] font-semibold text-zinc-500 dark:text-zinc-400 mb-2">
+                    {formatPhotoDayHeader(group.dayKey, locale)}
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
+                    {group.photos.map((photo, i) => (
+                      <div
+                        key={photo.id}
+                        className="relative aspect-square rounded-lg overflow-hidden cursor-pointer group"
+                        onClick={() => onPhotoClick(flatOrdered, startIndex + i)}
+                      >
+                        <img
+                          src={photoUrl(photo, 'thumbnail')}
+                          alt={photo.caption || ''}
+                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                        {/* Delete button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeletePhoto(photo.id) }}
+                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/60 backdrop-blur text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        >
+                          <X size={12} />
+                        </button>
+                        {photo.provider && photo.provider !== 'local' && (
+                          <div className="absolute top-1.5 left-1.5">
+                            <span className="text-[8px] font-medium px-1.5 py-0.5 rounded-full bg-black/70 backdrop-blur text-white flex items-center gap-1">
+                              <RefreshCw size={7} />
 {photo.provider === 'immich' ? 'Immich' : photo.provider === 'synologyphotos' ? 'Synology' : photo.provider === 'onedrive' ? 'OneDrive' : photo.provider}
-                  </span>
+                            </span>
+                          </div>
+                        )}
+                        {photo.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                            <p className="text-[10px] text-white truncate">{photo.caption}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
-              {photo.caption && (
-                <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                  <p className="text-[10px] text-white truncate">{photo.caption}</p>
-                </div>
-              )}
-            </div>
-          ))}
+              )
+            })
+          })()}
         </div>
       )}
 
