@@ -98,6 +98,49 @@ export function splitTrackByDate(track: PdfGpxTrack): Map<string, PdfGpxTrack> {
   return result
 }
 
+// ── Match tracks to calendar days ─────────────────────────────────────────────
+// Shared by the PDF's per-day route pages and the live timeline's per-day
+// route cards, so both agree on which track goes with which day.
+//
+// Three ways a track finds its day, tried in order: (1) it already carries a
+// date that matches one of the journal's days, (2) it has no date but its
+// points carry real timestamps — split it by calendar date and match each
+// fragment, since journeys usually carry one continuous multi-day recording
+// rather than a track pre-split per day, (3) no date and no timestamps, but
+// it's linked to a trip day planned without a calendar date — pair it with
+// the journal's Nth day by position (day_number).
+export function groupTracksByDate(
+  tracks: PdfGpxTrack[],
+  knownDates: string[],
+): { byDate: Map<string, PdfGpxTrack[]>; unmatched: PdfGpxTrack[] } {
+  const knownDateSet = new Set(knownDates)
+  const byDate = new Map<string, PdfGpxTrack[]>()
+  const unmatched: PdfGpxTrack[] = []
+  const add = (date: string, track: PdfGpxTrack) => {
+    if (!byDate.has(date)) byDate.set(date, [])
+    byDate.get(date)!.push(track)
+  }
+
+  for (const t of tracks) {
+    if (t.date && knownDateSet.has(t.date)) { add(t.date, t); continue }
+
+    let matchedAnyDay = false
+    for (const [date, fragment] of splitTrackByDate(t)) {
+      if (!knownDateSet.has(date)) continue
+      matchedAnyDay = true
+      add(date, fragment)
+    }
+    if (matchedAnyDay) continue
+
+    if (t.day_number != null && t.day_number >= 1 && knownDates[t.day_number - 1]) {
+      add(knownDates[t.day_number - 1], { ...t, date: knownDates[t.day_number - 1] })
+      continue
+    }
+    unmatched.push(t)
+  }
+  return { byDate, unmatched }
+}
+
 // ── Real basemap route image (tiles + track, rendered to a raster PNG) ────────
 // Renders the track over real map tiles, composited onto a <canvas> so it
 // survives the print/srcdoc pipeline as a plain <img>. Falls back to null on

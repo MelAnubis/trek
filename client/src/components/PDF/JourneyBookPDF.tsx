@@ -2,7 +2,7 @@
 import { marked } from 'marked'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { formatMoney, currencyLocale } from '../../utils/formatters'
-import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, splitTrackByDate, type PdfGpxTrack } from './gpxDrawing'
+import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, groupTracksByDate, type PdfGpxTrack } from './gpxDrawing'
 
 export type { PdfGpxTrack }
 
@@ -291,40 +291,7 @@ export async function downloadJourneyBookPDF(
   // Tracks that couldn't be matched to a day (no day_id, or day date doesn't
   // line up with any entry) fall back into a single top-of-book overview,
   // same as before day-linking existed.
-  const tracksByDate = new Map<string, PdfGpxTrack[]>()
-  const undatedTracks: PdfGpxTrack[] = []
-  for (const t of tracks) {
-    if (t.date && grouped.has(t.date)) {
-      if (!tracksByDate.has(t.date)) tracksByDate.set(t.date, [])
-      tracksByDate.get(t.date)!.push(t)
-      continue
-    }
-    // No usable date — most journeys carry one continuous multi-day recording
-    // rather than a track pre-split per trip day. If its points have real
-    // timestamps, split it by calendar date instead of falling back to a
-    // single combined page.
-    const byDate = splitTrackByDate(t)
-    let matchedAnyDay = false
-    for (const [date, fragment] of byDate) {
-      if (!grouped.has(date)) continue
-      matchedAnyDay = true
-      if (!tracksByDate.has(date)) tracksByDate.set(date, [])
-      tracksByDate.get(date)!.push(fragment)
-    }
-    if (matchedAnyDay) continue
-    // Trips can be planned without fixed calendar dates, so a track already
-    // linked to a specific trip day (day_id set by the manual split wizard)
-    // can still have no date and no point timestamps to split by. Pair it
-    // with the journal's Nth day by position instead — day_number 1 with
-    // the earliest entry date, day_number 2 with the next, and so on.
-    if (t.day_number != null && t.day_number >= 1 && dates[t.day_number - 1]) {
-      const date = dates[t.day_number - 1]
-      if (!tracksByDate.has(date)) tracksByDate.set(date, [])
-      tracksByDate.get(date)!.push({ ...t, date })
-      continue
-    }
-    undatedTracks.push(t)
-  }
+  const { byDate: tracksByDate, unmatched: undatedTracks } = groupTracksByDate(tracks, dates)
   const useDayRoutePages = tracksByDate.size > 0
   // Every track ended up on a day page — an overview built from just the
   // entries' pins (a dashed line between them, no real route) would only

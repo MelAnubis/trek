@@ -29,6 +29,9 @@ import {
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
+import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
+import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
+import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
@@ -180,10 +183,24 @@ export default function JourneyDetailPage() {
   const [showSettings, setShowSettings] = useState(false)
   const [showDeleteJourneyConfirm, setShowDeleteJourneyConfirm] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)
+  const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
 
   useEffect(() => {
     if (id) loadJourney(Number(id)).catch(() => {})
   }, [id])
+
+  // GPX tracks for the timeline's per-day route cards + route summary
+  // header — same data JourneyBookPDF.tsx's route pages use. Keyed on the
+  // trip ids (not the trips array reference, which changes on every store
+  // update) so this only refetches when the actual set of linked trips does.
+  const linkedTripIds = (current?.trips || []).map((t: any) => t.trip_id).join(',')
+  useEffect(() => {
+    if (!linkedTripIds) { setGpxTracks([]); return }
+    let cancelled = false
+    fetchJourneyGpxTracks(current!.trips).then(tracks => { if (!cancelled) setGpxTracks(tracks) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedTripIds])
 
   useEffect(() => {
     if (current?.hide_skeletons !== undefined) setHideSkeletons(current.hide_skeletons)
@@ -421,6 +438,7 @@ export default function JourneyDetailPage() {
   const timelineEntries = current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton'))
   const dayGroups = groupByDate(timelineEntries)
   const sortedDates = [...dayGroups.keys()].sort()
+  const { byDate: tracksByDate } = groupTracksByDate(gpxTracks, sortedDates)
 
   const tripDateMin = current.trips.length
     ? current.trips.reduce((min: string, t: any) => t.start_date && (!min || t.start_date < min) ? t.start_date : min, '')
@@ -606,44 +624,11 @@ export default function JourneyDetailPage() {
                         el.disabled = true
                         try {
                           const { downloadJourneyBookPDF } = await import('../components/PDF/JourneyBookPDF')
-                          // Fetch GPX tracks + budget totals for all linked trips
-                          const tracks: any[] = []
+                          // GPX tracks are already fetched for the timeline's route
+                          // cards (gpxTracks) — reuse them instead of a second round
+                          // trip. Only the budget totals are PDF-only and fetched here.
                           const expenseByCurrency = new Map<string, number>()
                           for (const trip of (current.trips || [])) {
-                            const dayDateById = new Map<number, string>()
-                            const dayNumberById = new Map<number, number>()
-                            try {
-                              const days: any[] = await fetch(
-                                `/api/trips/${trip.trip_id}/days`,
-                                { credentials: 'include' },
-                              ).then(r => r.ok ? r.json() : [])
-                              for (const d of days) {
-                                if (d.date) dayDateById.set(d.id, d.date)
-                                if (d.day_number != null) dayNumberById.set(d.id, d.day_number)
-                              }
-                            } catch { /* ignore per-trip errors */ }
-                            try {
-                              const list: any[] = await fetch(
-                                `/api/trips/${trip.trip_id}/gpx`,
-                                { credentials: 'include' },
-                              ).then(r => r.ok ? r.json() : [])
-                              const active = list.filter((t: any) => t.is_active)
-                              for (const track of active) {
-                                const full = await fetch(
-                                  `/api/trips/${trip.trip_id}/gpx/${track.id}/points`,
-                                  { credentials: 'include' },
-                                ).then(r => r.ok ? r.json() : null)
-                                if (full) tracks.push({
-                                  ...track,
-                                  points: full.points || [],
-                                  date: track.day_id != null ? (dayDateById.get(track.day_id) || null) : null,
-                                  // Trips can be planned without fixed calendar dates — when a
-                                  // linked day has no date, its day_number still lets the PDF
-                                  // pair it up with the journal's Nth day by position.
-                                  day_number: track.day_id != null ? (dayNumberById.get(track.day_id) ?? null) : null,
-                                })
-                              }
-                            } catch { /* ignore per-trip errors */ }
                             try {
                               const items: any[] = await fetch(
                                 `/api/trips/${trip.trip_id}/budget`,
@@ -656,7 +641,7 @@ export default function JourneyDetailPage() {
                             } catch { /* ignore per-trip errors */ }
                           }
                           const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
-                          downloadJourneyBookPDF(current, tracks, mapTileUrl, expenses)
+                          downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
                         } finally {
                           el.disabled = false
                         }
@@ -766,6 +751,8 @@ export default function JourneyDetailPage() {
               {/* Timeline (desktop only — mobile uses fullscreen combined view above) */}
               {!isMobile && (
                 <div className={`flex flex-col gap-6 pb-24 md:pb-6${view === 'timeline' ? '' : ' hidden'}`}>
+                  <JourneyRouteSummary tracks={gpxTracks} tileUrl={mapTileUrl} />
+
                   {sortedDates.length === 0 && (
                     <div className="text-center py-16">
                       <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
@@ -796,6 +783,10 @@ export default function JourneyDetailPage() {
                             <span className="flex items-center gap-1"><MapPin size={12} /> {entries.length} {t('journey.synced.places')}</span>
                           </div>
                         </div>
+
+                        {tracksByDate.has(date) && (
+                          <DayRouteCard tracks={tracksByDate.get(date)!} tileUrl={mapTileUrl} />
+                        )}
 
                         {entries.map((entry, idx) => {
                           // Skeletons are just "suggested" places pulled
