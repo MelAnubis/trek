@@ -10,10 +10,17 @@ export async function fetchJourneyGpxTracks(trips: { trip_id: number }[]): Promi
     const dayDateById = new Map<number, string>()
     const dayNumberById = new Map<number, number>()
     try {
-      const days: any[] = await fetch(
+      // The days endpoint returns { days: [...] }, not a bare array (see
+      // dayService.listDays / GpxManager.tsx's own fetch of the same
+      // endpoint) — unwrapped, `days` below is the wrapper object, which
+      // for...of throws on, silently caught by this try/catch and leaving
+      // every track's date/day_number unset (so no track could ever match
+      // a day, however plainly it was linked to one).
+      const res: any = await fetch(
         `/api/trips/${trip.trip_id}/days`,
         { credentials: 'include' },
-      ).then(r => r.ok ? r.json() : [])
+      ).then(r => r.ok ? r.json() : { days: [] })
+      const days: any[] = res.days || res
       for (const d of days) {
         if (d.date) dayDateById.set(d.id, d.date)
         if (d.day_number != null) dayNumberById.set(d.id, d.day_number)
