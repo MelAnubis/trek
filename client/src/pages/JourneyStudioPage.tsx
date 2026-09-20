@@ -14,6 +14,8 @@ import { StudioInspector } from '../components/Studio/StudioInspector'
 import { StudioExport } from '../components/Studio/StudioExport'
 import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
+import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
+import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
 import { DEFAULT_TILE_URL, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
@@ -27,8 +29,6 @@ import { useToast } from '../components/shared/Toast'
  * why "the whole book" is built from the 12 programmatic templates rather
  * than upstream's hand-drawn set.
  */
-
-const DEFAULT_PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
 
 /** Base CSS px-per-mm; StudioCanvas multiplies this by the zoom level. */
 const BASE_PX_PER_MM = 96 / 25.4
@@ -61,6 +61,8 @@ export default function JourneyStudioPage() {
   const [zoom, setZoom] = useState(0.4)
   const [showExport, setShowExport] = useState(false)
   const [autoBookBuilding, setAutoBookBuilding] = useState(false)
+  const [pagePreset, setPagePreset] = useState<BookPageSetup['preset']>('square-210')
+  const [customPage, setCustomPage] = useState({ pageWidth: 210, pageHeight: 210, bleed: 3 })
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
 
   const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
@@ -119,7 +121,7 @@ export default function JourneyStudioPage() {
     navigate(`/journey/${journeyId}`)
   }
 
-  const createBook = () => loadDoc(emptyBook(DEFAULT_PAGE, current?.title || ''))
+  const createBook = () => loadDoc(emptyBook(pageSetupFor(pagePreset, customPage), current?.title || ''))
 
   const galleryPhotos = useMemo(() =>
     (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null, taken_at: p.taken_at, created_at: p.created_at })),
@@ -293,6 +295,46 @@ export default function JourneyStudioPage() {
           <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)', maxWidth: 380, lineHeight: 1.5 }}>
             {t('journey.studio.emptyHint')}
           </p>
+
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 8 }}>
+              {t('journey.studio.pageSize')}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', maxWidth: 420 }}>
+              {(Object.keys(PAGE_PRESETS) as (keyof typeof PAGE_PRESETS)[]).map(key => (
+                <button key={key} onClick={() => setPagePreset(key)} aria-pressed={pagePreset === key} style={{
+                  padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                  border: pagePreset === key ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+                  background: pagePreset === key ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
+                }}>
+                  {t(PAGE_PRESETS[key].labelKey)}
+                </button>
+              ))}
+              <button onClick={() => setPagePreset('custom')} aria-pressed={pagePreset === 'custom'} style={{
+                padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
+                border: pagePreset === 'custom' ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+                background: pagePreset === 'custom' ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
+              }}>
+                {t('journey.studio.pagePreset.custom')}
+              </button>
+            </div>
+
+            {pagePreset === 'custom' && (
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+                {(['pageWidth', 'pageHeight', 'bleed'] as const).map(field => (
+                  <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 10, color: 'var(--text-faint)' }}>
+                    {t(`journey.studio.pageField.${field}`)}
+                    <input
+                      type="number" min={0} step={0.1} value={customPage[field]}
+                      onChange={e => setCustomPage(c => ({ ...c, [field]: Number(e.target.value) || 0 }))}
+                      style={{ width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 12 }}
+                    />
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
           <button onClick={createBook} style={{
             padding: '10px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
