@@ -1,4 +1,4 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-022
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-023
 import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -237,6 +237,28 @@ describe('buildBook — hero-story avoids a blank gap above its photo grid', () 
     const shortY = heroStoryGridY('Just arrived.')
     expect(shortY).toBeLessThan(pinnedY)
   })
+
+  it('FE-AUTOLAYOUT-023: on a page much taller than the template was tuned for, a short story still leaves a reasonable margin below the grid, not the whole extra height as dead space', () => {
+    // Roughly Blurb's 8x10in portrait trim size — the report that surfaced
+    // this ("se me va a dos páginas descojonadas" was the gutter bug; this
+    // one showed up right after as "todo el hueco se va abajo") only shows
+    // up once the page is meaningfully taller than the ~210mm square
+    // default every template was written against.
+    const tallPage = { ...PAGE, pageWidth: 203.2, pageHeight: 254 }
+    const doc = buildBook(input({
+      page: tallPage,
+      entries: [entry({ id: 1, story: 'Just arrived.', photos: fourPhotos })],
+    }))
+    const spread = doc.spreads.find(s => s.entryId === 1)!
+    const small = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < tallPage.pageWidth * 0.4)
+    expect(small).toHaveLength(3)
+    const gridBottom = Math.max(...small.map(e => e.frame.y + e.frame.h))
+    const marginBelow = tallPage.pageHeight - gridBottom
+    // Before the centring fix this was the entire freed-up height (~120mm
+    // on this page size) — bounding it well under half the page confirms
+    // the leftover room is actually split, not dumped below the grid.
+    expect(marginBelow).toBeLessThan(tallPage.pageHeight * 0.35)
+  })
 })
 
 describe('buildBook — every auto-generated entry spread stands on its own single leaf', () => {
@@ -244,20 +266,36 @@ describe('buildBook — every auto-generated entry spread stands on its own sing
   // page.pageWidth — a template picked here that straddles that line comes
   // out as two disconnected fragments on two separate sheets, which is
   // exactly the "queda fatal en todas" report this guards against.
-  function crossesGutter(x: number, w: number) {
-    return x < PAGE.pageWidth && x + w > PAGE.pageWidth
+  function crossesGutter(x: number, w: number, pageWidth: number) {
+    return x < pageWidth && x + w > pageWidth
   }
 
-  it('FE-AUTOLAYOUT-021: no element in an auto-generated entry spread straddles the gutter, across a range of photo counts and story lengths', () => {
-    for (let photoCount = 0; photoCount <= 9; photoCount++) {
-      for (const story of ['', 'A short story.']) {
-        const doc = buildBook(input({
-          entries: [entry({ id: 1, story, photos: Array.from({ length: photoCount }, (_, i) => ({ photoId: i })) })],
-        }))
-        const spread = doc.spreads.find(s => s.entryId === 1)
-        if (!spread) continue // no content at all (0 photos, no story) is skipped entirely — nothing to check
-        for (const el of spread.elements) {
-          expect(crossesGutter(el.frame.x, el.frame.w), `${el.kind} in a ${photoCount}-photo${story ? '+story' : ''} spread`).toBe(false)
+  // Square (the old default), a tall portrait trim (roughly Blurb's
+  // 8x10in) and a wide landscape one — crossesGutter is defined purely in
+  // terms of page.pageWidth, but templateFit's scoring and the gridH/bandH/
+  // etc. proportions inside each template's own build() all read
+  // page.pageHeight too, so a page-shape change can plausibly pick a
+  // different template or shift a slot enough to matter — worth the sweep
+  // rather than assuming the square case generalises for free.
+  const PAGE_SHAPES = [
+    { ...PAGE, pageWidth: 210, pageHeight: 210 },
+    { ...PAGE, pageWidth: 203.2, pageHeight: 254 },
+    { ...PAGE, pageWidth: 254, pageHeight: 203.2 },
+  ]
+
+  it('FE-AUTOLAYOUT-021: no element in an auto-generated entry spread straddles the gutter, across a range of photo counts, story lengths and page shapes', () => {
+    for (const page of PAGE_SHAPES) {
+      for (let photoCount = 0; photoCount <= 9; photoCount++) {
+        for (const story of ['', 'A short story.']) {
+          const doc = buildBook(input({
+            page,
+            entries: [entry({ id: 1, story, photos: Array.from({ length: photoCount }, (_, i) => ({ photoId: i })) })],
+          }))
+          const spread = doc.spreads.find(s => s.entryId === 1)
+          if (!spread) continue // no content at all (0 photos, no story) is skipped entirely — nothing to check
+          for (const el of spread.elements) {
+            expect(crossesGutter(el.frame.x, el.frame.w, page.pageWidth), `${page.pageWidth}x${page.pageHeight}, ${el.kind} in a ${photoCount}-photo${story ? '+story' : ''} spread`).toBe(false)
+          }
         }
       }
     }

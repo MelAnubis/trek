@@ -145,9 +145,20 @@ export function estimateTextHeight(text: string, boxWidthMm: number, fontSizePt:
  * hero-story pins its small photo grid to the bottom of the page, with the
  * story's text box filling everything above it — sized for a long story. A
  * short one leaves most of that box blank, and the grid stays pinned at the
- * bottom regardless, so the page reads as mostly empty. Pull the grid up to
- * sit just under the text it actually has, never lower than the template's
- * own position (a long story still fills the box and the grid stays put).
+ * bottom regardless, so the page reads as mostly empty.
+ *
+ * Pulling the grid all the way up to sit right under the text just moves
+ * the blank space rather than removing it — worse still on a page taller
+ * than the ~210mm the template was tuned against (a real photo-book trim
+ * size, e.g. Blurb's 8x10in, can be noticeably taller than wide), where the
+ * gap between a short story and the template's own bottom-pinned position
+ * is largest: the grid ends up stranded in the upper half with an even
+ * bigger empty band below it than there was above it before.
+ *
+ * Split the difference instead: move the grid up by half of what tight
+ * spacing would free, so the leftover room reads as a bottom margin instead
+ * of a dead zone, on any page shape. A long story still fills the box (no
+ * room to free) and the grid stays exactly at its template position.
  */
 function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
   const body = spread.elements.find((e): e is BookTextElement => e.kind === 'text' && e.size === 10)
@@ -158,12 +169,12 @@ function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
   const gap = 10
   const minY = body.frame.y + needed + gap
   const originalY = Math.min(...grid.map(e => e.frame.y))
-  const y = Math.min(originalY, Math.max(minY, body.frame.y))
+  const y = Math.min(originalY, Math.max(minY, (originalY + minY) / 2))
   if (y >= originalY) return spread
 
   return {
     ...spread,
-    elements: spread.elements.map(e => (e.kind === 'photo' && grid.includes(e) ? { ...e, frame: { ...e.frame, y } } : e)),
+    elements: spread.elements.map(e => (e.kind === 'photo' && grid.includes(e) ? { ...e, frame: { ...e.frame, y: y + (e.frame.y - originalY) } } : e)),
   }
 }
 
