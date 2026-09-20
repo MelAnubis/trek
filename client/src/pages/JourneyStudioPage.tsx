@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -53,6 +53,10 @@ export default function JourneyStudioPage() {
   const redo = useStudioStore(s => s.redo)
   const canUndo = useStudioStore(s => s.canUndo())
   const canRedo = useStudioStore(s => s.canRedo())
+  const selection = useStudioStore(s => s.selection)
+  const clipboard = useStudioStore(s => s.clipboard)
+  const copySelection = useStudioStore(s => s.copy)
+  const pasteClipboard = useStudioStore(s => s.paste)
 
   const [zoom, setZoom] = useState(0.4)
   const [showExport, setShowExport] = useState(false)
@@ -254,6 +258,14 @@ export default function JourneyStudioPage() {
               <button onClick={redo} disabled={!canRedo} title={t('journey.studio.redo')}
                 style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: canRedo ? 'pointer' : 'default', opacity: canRedo ? 1 : 0.4, color: 'var(--text-muted)' }}>
                 <Redo2 size={14} />
+              </button>
+              <button onClick={() => copySelection(activeSpread, selection)} disabled={!selection.length} title={t('journey.studio.copy')}
+                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: selection.length ? 'pointer' : 'default', opacity: selection.length ? 1 : 0.4, color: 'var(--text-muted)' }}>
+                <Clipboard size={14} />
+              </button>
+              <button onClick={() => pasteClipboard(activeSpread)} disabled={!clipboard.length} title={t('journey.studio.paste')}
+                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: clipboard.length ? 'pointer' : 'default', opacity: clipboard.length ? 1 : 0.4, color: 'var(--text-muted)' }}>
+                <ClipboardPaste size={14} />
               </button>
               <button onClick={() => { void saveNow(); setShowExport(true) }} title={t('journey.studio.export')}
                 style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>

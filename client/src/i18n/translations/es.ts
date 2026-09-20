@@ -2046,6 +2046,8 @@ const es: Record<string, string> = {
   'journey.studio.delete': 'Eliminar',
   'journey.studio.undo': 'Deshacer',
   'journey.studio.redo': 'Rehacer',
+  'journey.studio.copy': 'Copiar',
+  'journey.studio.paste': 'Pegar',
   'journey.studio.addSpread': 'Añadir página',
   'journey.studio.duplicateSpread': 'Duplicar página',
   'journey.studio.removeSpread': 'Eliminar página',

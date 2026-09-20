@@ -2237,6 +2237,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.delete': 'Delete',
   'journey.studio.undo': 'Undo',
   'journey.studio.redo': 'Redo',
+  'journey.studio.copy': 'Copy',
+  'journey.studio.paste': 'Paste',
   'journey.studio.addSpread': 'Add page',
   'journey.studio.duplicateSpread': 'Duplicate page',
   'journey.studio.removeSpread': 'Delete page',
