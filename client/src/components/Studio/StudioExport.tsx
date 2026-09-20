@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, FileText, FoldHorizontal, Layers, Printer, Scissors, X } from 'lucide-react'
+import { BookOpen, FileText, FoldHorizontal, Layers, Monitor, Printer, Scissors, X } from 'lucide-react'
 import type { BookDocument } from '../../types/book'
 import { BookSheetsView } from './BookSheetsView'
 import { BookletSheetsView } from './BookletSheetsView'
@@ -8,6 +8,7 @@ import { printSheets } from './printSheets'
 import { useTranslation } from '../../i18n'
 
 type HomeFinish = 'none' | 'duplex' | 'booklet'
+type ExportFormat = 'print' | 'digital'
 
 /**
  * Getting the book out. Ported from liketrek/trek's
@@ -28,33 +29,45 @@ type HomeFinish = 'none' | 'duplex' | 'booklet'
  * The sheets are rendered here (off screen, inside the live app) rather
  * than built as a markup string, because they're the editor's own
  * components and read context — the active locale, most visibly.
+ *
+ * A third format, "digital" — a PDF meant for a screen, not a press —
+ * sidesteps the entire bleed/gutter/crop-mark machinery above rather than
+ * threading a bleed=0 special case through it: it always shows uncut
+ * spreads (so there's no gutter to bleed past in the first place) with no
+ * marks, and hands BookSheetsView a page setup with bleed forced to 0
+ * regardless of what the book itself is configured with.
  */
 export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title: string; onClose: () => void }) {
   const { t } = useTranslation()
+  const [format, setFormat] = useState<ExportFormat>('print')
   const [mode, setMode] = useState<SheetMode>('pages')
   const [marks, setMarks] = useState(true)
   const [homeFinish, setHomeFinish] = useState<HomeFinish>('none')
   const [building, setBuilding] = useState(false)
   const stage = useRef<HTMLDivElement>(null)
 
-  const isBooklet = homeFinish === 'booklet'
-  const effectiveMode: SheetMode = homeFinish === 'none' ? mode : 'pages'
-  const effectiveMarks = isBooklet ? false : marks
+  const isDigital = format === 'digital'
+  const isBooklet = !isDigital && homeFinish === 'booklet'
+  const effectiveMode: SheetMode = isDigital ? 'spreads' : (homeFinish === 'none' ? mode : 'pages')
+  const effectiveMarks = isDigital || isBooklet ? false : marks
+  const effectiveBleed = isDigital ? 0 : doc.page.bleed
+  const exportDoc: BookDocument = isDigital ? { ...doc, page: { ...doc.page, bleed: 0 } } : doc
 
   const leaves = sheetsFor(doc, 'pages')
   const sheets = sheetsFor(doc, effectiveMode)
   const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
   const box: SheetBox = isBooklet
     ? { width: doc.page.pageWidth * 2, height: doc.page.pageHeight, left: 0, right: 0, top: 0, bottom: 0, bleed: 0 }
-    : sheetBox(widest, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
-  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
+    : sheetBox(widest, doc.page.pageHeight, effectiveBleed, effectiveMarks)
+  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, effectiveBleed, effectiveMarks)
   // A leaf cut from a spread has no bleed on its gutter side — see
   // edgesFor in bookSheets.ts — so it's narrower than `single` above,
   // which is for a sheet with no gutter at all (a cover). Only "Pages"
-  // mode ever produces leaves; a booklet skips bleed math entirely.
+  // mode ever produces leaves; a booklet skips bleed math entirely, and
+  // digital format never cuts a spread into leaves at all.
   const leaf = isBooklet || effectiveMode !== 'pages'
     ? null
-    : sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, effectiveMarks, { left: true, right: false, top: true, bottom: true })
+    : sheetBox(doc.page.pageWidth, doc.page.pageHeight, effectiveBleed, effectiveMarks, { left: true, right: false, top: true, bottom: true })
   // A saddle-stitch signature always pads to a multiple of 4 leaves (2 per side) — see imposeBooklet.
   const bookletSideCount = Math.ceil(leaves.length / 4) * 2
   const sheetCount = isBooklet ? bookletSideCount : sheets.length
@@ -109,62 +122,84 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
 
         <div style={{ padding: 18 }}>
           <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 8 }}>
-            {t('journey.studio.exportLayout')}
+            {t('journey.studio.exportFormat')}
           </div>
-          <button style={opt(effectiveMode === 'pages')} onClick={() => setMode('pages')} aria-pressed={effectiveMode === 'pages'}>
-            <FileText size={16} color="var(--text-muted)" />
+          <button style={opt(!isDigital)} onClick={() => setFormat('print')} aria-pressed={!isDigital}>
+            <Printer size={16} color="var(--text-muted)" />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportPages')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportPagesHint')}</div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportFormatPrint')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportFormatPrintHint')}</div>
             </div>
           </button>
-          <button style={{ ...opt(effectiveMode === 'spreads'), cursor: homeFinish === 'none' ? 'pointer' : 'default', opacity: homeFinish === 'none' ? 1 : 0.45 }}
-            onClick={() => homeFinish === 'none' && setMode('spreads')} disabled={homeFinish !== 'none'} aria-pressed={effectiveMode === 'spreads'}>
-            <BookOpen size={16} color="var(--text-muted)" />
+          <button style={opt(isDigital)} onClick={() => setFormat('digital')} aria-pressed={isDigital}>
+            <Monitor size={16} color="var(--text-muted)" />
             <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportSpreads')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-                {homeFinish === 'none' ? t('journey.studio.exportSpreadsHint') : t('journey.studio.exportSpreadsDisabledHint')}
-              </div>
+              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportFormatDigital')}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportFormatDigitalHint')}</div>
             </div>
           </button>
 
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
-            {t('journey.studio.exportHomeFinish')}
-          </div>
-          <button style={opt(homeFinish === 'duplex')} onClick={() => setHomeFinish(f => f === 'duplex' ? 'none' : 'duplex')} aria-pressed={homeFinish === 'duplex'}>
-            <Layers size={16} color="var(--text-muted)" />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportDuplex')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportDuplexHint')}</div>
-            </div>
-          </button>
-          <button style={opt(isBooklet)} onClick={() => setHomeFinish(f => f === 'booklet' ? 'none' : 'booklet')} aria-pressed={isBooklet}>
-            <FoldHorizontal size={16} color="var(--text-muted)" />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportBooklet')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportBookletHint')}</div>
-            </div>
-          </button>
-          {homeFinish !== 'none' && (
-            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '2px 0 0', lineHeight: 1.5 }}>
-              {t('journey.studio.exportHomeFinishNote')}
-            </p>
+          {!isDigital && (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
+                {t('journey.studio.exportLayout')}
+              </div>
+              <button style={opt(effectiveMode === 'pages')} onClick={() => setMode('pages')} aria-pressed={effectiveMode === 'pages'}>
+                <FileText size={16} color="var(--text-muted)" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportPages')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportPagesHint')}</div>
+                </div>
+              </button>
+              <button style={{ ...opt(effectiveMode === 'spreads'), cursor: homeFinish === 'none' ? 'pointer' : 'default', opacity: homeFinish === 'none' ? 1 : 0.45 }}
+                onClick={() => homeFinish === 'none' && setMode('spreads')} disabled={homeFinish !== 'none'} aria-pressed={effectiveMode === 'spreads'}>
+                <BookOpen size={16} color="var(--text-muted)" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportSpreads')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    {homeFinish === 'none' ? t('journey.studio.exportSpreadsHint') : t('journey.studio.exportSpreadsDisabledHint')}
+                  </div>
+                </div>
+              </button>
+
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
+                {t('journey.studio.exportHomeFinish')}
+              </div>
+              <button style={opt(homeFinish === 'duplex')} onClick={() => setHomeFinish(f => f === 'duplex' ? 'none' : 'duplex')} aria-pressed={homeFinish === 'duplex'}>
+                <Layers size={16} color="var(--text-muted)" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportDuplex')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportDuplexHint')}</div>
+                </div>
+              </button>
+              <button style={opt(isBooklet)} onClick={() => setHomeFinish(f => f === 'booklet' ? 'none' : 'booklet')} aria-pressed={isBooklet}>
+                <FoldHorizontal size={16} color="var(--text-muted)" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportBooklet')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.exportBookletHint')}</div>
+                </div>
+              </button>
+              {homeFinish !== 'none' && (
+                <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '2px 0 0', lineHeight: 1.5 }}>
+                  {t('journey.studio.exportHomeFinishNote')}
+                </p>
+              )}
+
+              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
+                {t('journey.studio.exportFinishing')}
+              </div>
+              <button style={{ ...opt(effectiveMarks), cursor: isBooklet ? 'default' : 'pointer', opacity: isBooklet ? 0.45 : 1 }}
+                onClick={() => !isBooklet && setMarks(!marks)} disabled={isBooklet} aria-pressed={effectiveMarks}>
+                <Scissors size={16} color="var(--text-muted)" />
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportMarks')}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                    {isBooklet ? t('journey.studio.exportMarksDisabledHint') : t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}
+                  </div>
+                </div>
+              </button>
+            </>
           )}
-
-          <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
-            {t('journey.studio.exportFinishing')}
-          </div>
-          <button style={{ ...opt(effectiveMarks), cursor: isBooklet ? 'default' : 'pointer', opacity: isBooklet ? 0.45 : 1 }}
-            onClick={() => !isBooklet && setMarks(!marks)} disabled={isBooklet} aria-pressed={effectiveMarks}>
-            <Scissors size={16} color="var(--text-muted)" />
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 600 }}>{t('journey.studio.exportMarks')}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
-                {isBooklet ? t('journey.studio.exportMarksDisabledHint') : t('journey.studio.exportMarksHint', { bleed: doc.page.bleed })}
-              </div>
-            </div>
-          </button>
 
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.5 }}>
             {t('journey.studio.exportNote', { sheets: sheetCount, width: round1((leaf ?? box).width), height: round1((leaf ?? box).height) })}
@@ -212,7 +247,7 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
           same CSS that will print them) rather than measuring zero. */}
       {building && (
         <div ref={stage} aria-hidden="true" style={{ position: 'fixed', left: '-20000mm', top: 0, pointerEvents: 'none' }}>
-          {isBooklet ? <BookletSheetsView doc={doc} /> : <BookSheetsView doc={doc} mode={effectiveMode} marks={effectiveMarks} />}
+          {isBooklet ? <BookletSheetsView doc={doc} /> : <BookSheetsView doc={exportDoc} mode={effectiveMode} marks={effectiveMarks} />}
         </div>
       )}
     </div>
