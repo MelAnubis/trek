@@ -160,6 +160,21 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.5 }}>
             {t('journey.studio.exportNote', { sheets: sheetCount, width: round1(box.width), height: round1(box.height) })}
           </p>
+
+          {/* The single most common way this comes out wrong: the print
+              dialog silently defaults its own paper size to A4/Letter,
+              which is a different size from the sheet CSS actually
+              declares — the browser then scales the (correctly sized)
+              content into a corner of that bigger sheet, and it prints
+              or saves looking mostly blank. Nothing in the app can force
+              the dialog's own paper-size field, so the fix is telling
+              people to set it themselves, right before they hit print. */}
+          <p style={{
+            fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a',
+            borderRadius: 8, padding: '8px 10px', margin: '10px 0 0', lineHeight: 1.5,
+          }}>
+            {t('journey.studio.exportPaperSizeWarning', { width: round1(box.width), height: round1(box.height) })}
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '14px 18px', borderTop: '1px solid var(--border-secondary)' }}>

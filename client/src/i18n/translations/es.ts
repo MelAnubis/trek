@@ -2105,6 +2105,7 @@ const es: Record<string, string> = {
   'journey.studio.exportMarksHint': 'Añade {bleed}mm de sangrado en cada borde y marca dónde cortar',
   'journey.studio.exportMarksDisabledHint': 'No disponible en un folleto plegado — no hay nada que recortar',
   'journey.studio.exportNote': '{sheets} hojas, {width}×{height}mm cada una',
+  'journey.studio.exportPaperSizeWarning': '⚠️ Importante: en el diálogo de impresión, cambia el "Tamaño del papel" a Personalizado y pon {width} × {height} mm. Si lo dejas en A4 o Carta, el navegador encoge el contenido dentro de una hoja más grande y sale con márgenes en blanco enormes.',
   'journey.checkin.add': 'Registrar ubicación',
   'journey.checkin.namePlaceholder': 'Nombre del lugar',
   'journey.checkin.notesPlaceholder': 'Notas (opcional)',

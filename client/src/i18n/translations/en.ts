@@ -2296,6 +2296,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.exportMarksHint': 'Adds {bleed}mm bleed on every edge and marks where to cut',
   'journey.studio.exportMarksDisabledHint': 'Not available for a folded booklet — there\'s no trim to mark',
   'journey.studio.exportNote': '{sheets} sheets, {width}×{height}mm each',
+  'journey.studio.exportPaperSizeWarning': '⚠️ Important: in the print dialog, change "Paper size" to Custom and enter {width} × {height} mm. If you leave it on A4 or Letter, the browser shrinks your content into a corner of a bigger sheet, printing with huge blank margins.',
   'journey.checkin.add': 'Check in',
   'journey.checkin.namePlaceholder': 'Location name',
   'journey.checkin.notesPlaceholder': 'Notes (optional)',
