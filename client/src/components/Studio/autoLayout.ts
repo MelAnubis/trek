@@ -109,6 +109,58 @@ function formatMeta(date: string | null, location: string | null, locale: string
   return parts.join(' · ')
 }
 
+/**
+ * Rough estimate of how tall a block of body text will render, in
+ * millimetres, before it's actually laid out. Word-wrapped against an
+ * average character width rather than measured in a real font — exact
+ * wrapping depends on font metrics the layout step doesn't have — but close
+ * enough to tell a three-line story from a three-paragraph one, which is
+ * all `entrySpread` needs it for: deciding whether a template's fixed-height
+ * text box would leave most of itself blank.
+ */
+export function estimateTextHeight(text: string, boxWidthMm: number, fontSizePt: number, leading: number): number {
+  const MM_PER_PT = 0.3528
+  // A proportional sans-serif's average character advance is close to half
+  // its em size — narrow letters and wide ones average out.
+  const avgCharWidthMm = fontSizePt * MM_PER_PT * 0.5
+  const charsPerLine = Math.max(1, Math.floor(boxWidthMm / avgCharWidthMm))
+
+  const words = text.trim().split(/\s+/).filter(Boolean)
+  let lines = words.length ? 1 : 0
+  let lineLen = 0
+  for (const word of words) {
+    const wordLen = word.length + 1
+    if (lineLen && lineLen + wordLen > charsPerLine) { lines++; lineLen = wordLen } else { lineLen += wordLen }
+  }
+  return lines * fontSizePt * MM_PER_PT * leading
+}
+
+/**
+ * hero-story pins its small photo grid to the bottom of the page, with the
+ * story's text box filling everything above it — sized for a long story. A
+ * short one leaves most of that box blank, and the grid stays pinned at the
+ * bottom regardless, so the page reads as mostly empty. Pull the grid up to
+ * sit just under the text it actually has, never lower than the template's
+ * own position (a long story still fills the box and the grid stays put).
+ */
+function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
+  const body = spread.elements.find((e): e is BookTextElement => e.kind === 'text' && e.size === 10)
+  const grid = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < page.pageWidth * 0.4)
+  if (!body || grid.length < 3 || !body.text.trim()) return spread
+
+  const needed = estimateTextHeight(body.text, body.frame.w, 10, 1.6)
+  const gap = 10
+  const minY = body.frame.y + needed + gap
+  const originalY = Math.min(...grid.map(e => e.frame.y))
+  const y = Math.min(originalY, Math.max(minY, body.frame.y))
+  if (y >= originalY) return spread
+
+  return {
+    ...spread,
+    elements: spread.elements.map(e => (e.kind === 'photo' && grid.includes(e) ? { ...e, frame: { ...e.frame, y } } : e)),
+  }
+}
+
 /** One spread for one journal entry: seed its content, pick the best-fit layout, pour it in. */
 function entrySpread(entry: AutoEntry, page: BookPageSetup, locale: string, seed: number): BookSpread {
   const elements: BookElement[] = []
@@ -122,7 +174,8 @@ function entrySpread(entry: AutoEntry, page: BookPageSetup, locale: string, seed
   const hasStory = !!entry.story?.trim()
   const tpl = bestTemplate(TEMPLATES, entry.photos.length, hasStory, page, seed)
   const raw = seedSpread(elementId('sp'), 'inner', elements, entry.id)
-  return applyTemplate(raw, tpl, page)
+  const laidOut = applyTemplate(raw, tpl, page)
+  return tpl.id === 'hero-story' ? tightenHeroStory(laidOut, page) : laidOut
 }
 
 /**

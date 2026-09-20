@@ -1,5 +1,5 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-010
-import { buildBook, emptyBook, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-020
+import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
 
@@ -185,5 +185,44 @@ describe('buildBook — route spreads', () => {
     const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
     const images = routeSpread.elements.filter(e => e.kind === 'image')
     expect(images).toHaveLength(2)
+  })
+})
+
+describe('estimateTextHeight', () => {
+  it('FE-AUTOLAYOUT-017: grows with text length for a fixed box width', () => {
+    const short = estimateTextHeight('A short line.', 172, 10, 1.6)
+    const long = estimateTextHeight('A much longer paragraph '.repeat(20), 172, 10, 1.6)
+    expect(long).toBeGreaterThan(short)
+  })
+
+  it('FE-AUTOLAYOUT-018: empty text has zero height', () => {
+    expect(estimateTextHeight('   ', 172, 10, 1.6)).toBe(0)
+  })
+
+  it('FE-AUTOLAYOUT-019: a narrower box wraps the same text into more, taller lines', () => {
+    const text = 'word '.repeat(60)
+    const wide = estimateTextHeight(text, 172, 10, 1.6)
+    const narrow = estimateTextHeight(text, 60, 10, 1.6)
+    expect(narrow).toBeGreaterThan(wide)
+  })
+})
+
+describe('buildBook — hero-story avoids a blank gap above its photo grid', () => {
+  // hero-story is only picked when the photo count exactly matches its 4
+  // slots — see templateFit's scoring in autoLayout.ts.
+  const fourPhotos = [{ photoId: 1 }, { photoId: 2 }, { photoId: 3 }, { photoId: 4 }]
+
+  function heroStoryGridY(story: string) {
+    const doc = buildBook(input({ entries: [entry({ id: 1, story, photos: fourPhotos })] }))
+    const spread = doc.spreads.find(s => s.entryId === 1)!
+    const small = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < PAGE.pageWidth * 0.4)
+    expect(small).toHaveLength(3)
+    return Math.min(...small.map(e => e.frame.y))
+  }
+
+  it('FE-AUTOLAYOUT-020: a short story pulls the photo grid up, closer to the text', () => {
+    const pinnedY = heroStoryGridY('A long story. '.repeat(120)) // fills the box — grid stays at its template position
+    const shortY = heroStoryGridY('Just arrived.')
+    expect(shortY).toBeLessThan(pinnedY)
   })
 })
