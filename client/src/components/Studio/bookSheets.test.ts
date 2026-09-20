@@ -1,5 +1,5 @@
-// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-013
-import { imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
+// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-019
+import { edgesFor, imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
 import type { BookDocument, BookSpread } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -13,17 +13,42 @@ function doc(spreads: BookSpread[]): BookDocument {
 }
 
 describe('sheetBox', () => {
-  it('FE-BOOKSHEETS-001: with marks, the margin is bleed plus mark length', () => {
+  it('FE-BOOKSHEETS-001: with marks, each edge reserves bleed plus mark length', () => {
     const box = sheetBox(210, 210, 3, true)
-    expect(box.margin).toBe(3 + 4) // MARK_LENGTH = 4
-    expect(box.width).toBe(210 + box.margin * 2)
-    expect(box.height).toBe(210 + box.margin * 2)
+    expect(box.left).toBe(3 + 4) // MARK_LENGTH = 4
+    expect(box.width).toBe(210 + box.left * 2)
+    expect(box.height).toBe(210 + box.top * 2)
   })
 
-  it('FE-BOOKSHEETS-002: without marks, the margin is just the bleed', () => {
+  it('FE-BOOKSHEETS-002: without marks, each edge reserves just the bleed', () => {
     const box = sheetBox(210, 210, 3, false)
-    expect(box.margin).toBe(3)
+    expect(box.left).toBe(3)
     expect(box.width).toBe(216)
+  })
+
+  it('FE-BOOKSHEETS-017: an edge marked false in `edges` reserves no room at all', () => {
+    const box = sheetBox(210, 210, 3, true, { left: false, right: true, top: true, bottom: true })
+    expect(box.left).toBe(0)
+    expect(box.right).toBe(7)
+    expect(box.width).toBe(210 + 0 + 7)
+  })
+})
+
+describe('edgesFor', () => {
+  it('FE-BOOKSHEETS-018: a leaf cut from a spread has no bleed on its gutter side, but does on the other three', () => {
+    const spreadWidth = 420
+    const left = edgesFor({ spread: spread('inner'), spreadIndex: 0, offset: 0, width: 210, height: 210, spreadWidth, single: true, label: '' })
+    expect(left).toEqual({ left: true, right: false, top: true, bottom: true })
+
+    const right = edgesFor({ spread: spread('inner'), spreadIndex: 0, offset: 210, width: 210, height: 210, spreadWidth, single: true, label: '' })
+    expect(right).toEqual({ left: false, right: true, top: true, bottom: true })
+  })
+
+  it('FE-BOOKSHEETS-019: a sheet that isn\'t cut from a wider spread (a cover, or an uncut spread) gets bleed on all four edges', () => {
+    expect(edgesFor({ spread: spread('cover'), spreadIndex: 0, offset: 0, width: 210, height: 210, spreadWidth: 210, single: true, label: '' }))
+      .toEqual({ left: true, right: true, top: true, bottom: true })
+    expect(edgesFor({ spread: spread('inner'), spreadIndex: 0, offset: 0, width: 420, height: 210, spreadWidth: 420, single: false, label: '' }))
+      .toEqual({ left: true, right: true, top: true, bottom: true })
   })
 })
 

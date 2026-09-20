@@ -25,6 +25,9 @@ export interface PrintSheetsInput {
   /** The size of a one-page sheet, when the document also holds two-page ones (spread mode mixes covers and spreads). Omitted when every sheet is the same size. */
   singleWidth?: number
   singleHeight?: number
+  /** The size of a leaf cut from a spread ("Páginas sueltas" export) — narrower than a cover-like single sheet, since a leaf's gutter side carries no bleed. Omitted when the export has no such leaves (spread mode, or a booklet). */
+  leafWidth?: number
+  leafHeight?: number
   title: string
   labels: { save: string; close: string; count: string; preparing: string }
 }
@@ -64,6 +67,18 @@ function singleRule(input: PrintSheetsInput): string {
 }
 
 /**
+ * A page box for leaves cut from a spread — narrower than the plain
+ * single-page box above, since a leaf's gutter edge carries no bleed. Comes
+ * after singleRule's own CSS in source order so `.is-leaf` wins over
+ * `.is-single` on an element that carries both classes, which every leaf does.
+ */
+function leafRule(input: PrintSheetsInput): string {
+  if (!input.leafWidth || !input.leafHeight) return ''
+  return `  @page leaf { size: ${input.leafWidth}mm ${input.leafHeight}mm; margin: 0; }
+  .bx-sheet.is-leaf { page: leaf; }`
+}
+
+/**
  * Open the print view. Resolves once the document is on screen and ready
  * to print — after its images and fonts have loaded, not merely after the
  * markup is in place, which is how a book avoids coming out with blank
@@ -82,6 +97,7 @@ ${collectStyles()}
 <style>
   @page { size: ${input.sheetWidth}mm ${input.sheetHeight}mm; margin: 0; }
 ${singleRule(input)}
+${leafRule(input)}
   @media screen { .bx-book { zoom: var(--bx-fit, 1); } }
   /* Overrides the host app's own SPA shell rules (index.css sets
      html{height:100%;overflow:hidden} so the app scrolls on body, not

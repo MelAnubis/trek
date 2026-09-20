@@ -3,7 +3,7 @@ import { BookOpen, FileText, FoldHorizontal, Layers, Printer, Scissors, X } from
 import type { BookDocument } from '../../types/book'
 import { BookSheetsView } from './BookSheetsView'
 import { BookletSheetsView } from './BookletSheetsView'
-import { sheetBox, sheetsFor, type SheetMode } from './bookSheets'
+import { sheetBox, sheetsFor, type SheetBox, type SheetMode } from './bookSheets'
 import { printSheets } from './printSheets'
 import { useTranslation } from '../../i18n'
 
@@ -44,10 +44,17 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
   const leaves = sheetsFor(doc, 'pages')
   const sheets = sheetsFor(doc, effectiveMode)
   const widest = Math.max(...sheets.map(s => s.width), doc.page.pageWidth)
-  const box = isBooklet
-    ? { width: doc.page.pageWidth * 2, height: doc.page.pageHeight, margin: 0, bleed: 0 }
+  const box: SheetBox = isBooklet
+    ? { width: doc.page.pageWidth * 2, height: doc.page.pageHeight, left: 0, right: 0, top: 0, bottom: 0, bleed: 0 }
     : sheetBox(widest, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
   const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, effectiveMarks)
+  // A leaf cut from a spread has no bleed on its gutter side — see
+  // edgesFor in bookSheets.ts — so it's narrower than `single` above,
+  // which is for a sheet with no gutter at all (a cover). Only "Pages"
+  // mode ever produces leaves; a booklet skips bleed math entirely.
+  const leaf = isBooklet || effectiveMode !== 'pages'
+    ? null
+    : sheetBox(doc.page.pageWidth, doc.page.pageHeight, doc.page.bleed, effectiveMarks, { left: true, right: false, top: true, bottom: true })
   // A saddle-stitch signature always pads to a multiple of 4 leaves (2 per side) — see imposeBooklet.
   const bookletSideCount = Math.ceil(leaves.length / 4) * 2
   const sheetCount = isBooklet ? bookletSideCount : sheets.length
@@ -63,6 +70,8 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
       sheetHeight: box.height,
       singleWidth: isBooklet ? undefined : single.width,
       singleHeight: isBooklet ? undefined : single.height,
+      leafWidth: leaf?.width,
+      leafHeight: leaf?.height,
       title,
       labels: {
         save: t('journey.studio.exportSave'),
@@ -158,8 +167,18 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
           </button>
 
           <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 0', lineHeight: 1.5 }}>
-            {t('journey.studio.exportNote', { sheets: sheetCount, width: round1(box.width), height: round1(box.height) })}
+            {t('journey.studio.exportNote', { sheets: sheetCount, width: round1((leaf ?? box).width), height: round1((leaf ?? box).height) })}
           </p>
+          {/* Only the cover-like sheets (no gutter, bleed on all four sides)
+              are a different size from the leaves above — worth saying,
+              since it's the number people copy into the print dialog's
+              custom paper size field, and a mismatched cover otherwise
+              looks like a fresh bug rather than an expected difference. */}
+          {leaf && (leaf.width !== box.width || leaf.height !== box.height) && (
+            <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '4px 0 0', lineHeight: 1.5 }}>
+              {t('journey.studio.exportCoverSizeNote', { width: round1(box.width), height: round1(box.height) })}
+            </p>
+          )}
 
           {/* The single most common way this comes out wrong: the print
               dialog silently defaults its own paper size to A4/Letter,
@@ -173,7 +192,7 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
             fontSize: 11, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a',
             borderRadius: 8, padding: '8px 10px', margin: '10px 0 0', lineHeight: 1.5,
           }}>
-            {t('journey.studio.exportPaperSizeWarning', { width: round1(box.width), height: round1(box.height) })}
+            {t('journey.studio.exportPaperSizeWarning', { width: round1((leaf ?? box).width), height: round1((leaf ?? box).height) })}
           </p>
         </div>
 

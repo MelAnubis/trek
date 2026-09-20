@@ -40,18 +40,50 @@ export interface Sheet {
   label: string
 }
 
+/** Which of a sheet's four edges get bleed (and, when on, a crop mark) at all. */
+export interface BleedEdges {
+  left: boolean
+  right: boolean
+  top: boolean
+  bottom: boolean
+}
+
+const ALL_EDGES: BleedEdges = { left: true, right: true, top: true, bottom: true }
+
 export interface SheetBox {
   width: number
   height: number
-  margin: number
+  /** Room reserved on each edge — bleed, plus mark room when marks are on. 0 on an edge that isn't a real trim edge. */
+  left: number
+  right: number
+  top: number
+  bottom: number
   bleed: number
 }
 
-export function sheetBox(trimWidth: number, trimHeight: number, bleed: number, marks: boolean): SheetBox {
+/** `edges` defaults to all four — a plain rectangular sheet with bleed and a crop mark all the way round. Pass `edgesFor(sheet)`'s result for a leaf cut from a spread, where the gutter side isn't a trim edge at all. */
+export function sheetBox(trimWidth: number, trimHeight: number, bleed: number, marks: boolean, edges: BleedEdges = ALL_EDGES): SheetBox {
   // Marks are drawn outside the bleed, not inside it — inside would mean
   // printing them onto the part of the sheet that gets cut off.
-  const margin = marks ? bleed + MARK_LENGTH : bleed
-  return { width: trimWidth + margin * 2, height: trimHeight + margin * 2, margin, bleed }
+  const room = marks ? bleed + MARK_LENGTH : bleed
+  const left = edges.left ? room : 0
+  const right = edges.right ? room : 0
+  const top = edges.top ? room : 0
+  const bottom = edges.bottom ? room : 0
+  return { width: trimWidth + left + right, height: trimHeight + top + bottom, left, right, top, bottom, bleed }
+}
+
+/**
+ * Which of a sheet's edges are real trim edges. A sheet that isn't cut from
+ * a wider spread — a cover, or an uncut "Dobles páginas" sheet — has no
+ * gutter at all, so all four are trim edges. A leaf cut from a spread
+ * ("Páginas sueltas" export) has one edge that is the gutter — the fold
+ * where it joins the facing leaf, not a cut — and bleeding past it just
+ * shows a sliver of the facing leaf's own artwork through the window.
+ */
+export function edgesFor(sheet: Sheet): BleedEdges {
+  if (sheet.width >= sheet.spreadWidth) return ALL_EDGES
+  return { top: true, bottom: true, left: sheet.offset === 0, right: sheet.offset !== 0 }
 }
 
 /** Where the folio numbering starts — this fork doesn't yet expose page-number configuration, so this mirrors upstream's own default (2: the cover is a separate sheet and doesn't count). */
