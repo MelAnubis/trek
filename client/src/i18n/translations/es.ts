@@ -2074,6 +2074,7 @@ const es: Record<string, string> = {
   'journey.studio.entriesTab': 'Entradas',
   'journey.studio.layoutsTab': 'Diseños',
   'journey.studio.layoutsHint': 'Aplica un diseño a la página actual — tus fotos y textos se conservan y se colocan en la nueva disposición.',
+  'journey.studio.layoutsCoverHint': 'Esta página es de una sola cara (portada o contraportada), así que solo aplican estos 5 diseños. Selecciona una página interior para ver el resto.',
   'journey.studio.autoLayout': 'Auto-maquetar',
   'journey.studio.autoLayoutSpread': 'Esta página',
   'journey.studio.autoLayoutBook': 'Todo el libro',

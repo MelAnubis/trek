@@ -2265,6 +2265,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.entriesTab': 'Entries',
   'journey.studio.layoutsTab': 'Layouts',
   'journey.studio.layoutsHint': 'Apply a layout to the current page — your photos and text are kept and poured into the new arrangement.',
+  'journey.studio.layoutsCoverHint': "This page is single-sided (a cover or back cover), so only these 5 layouts apply. Select an inside page to see the full set.",
   'journey.studio.autoLayout': 'Auto layout',
   'journey.studio.autoLayoutSpread': 'This page',
   'journey.studio.autoLayoutBook': 'The whole book',

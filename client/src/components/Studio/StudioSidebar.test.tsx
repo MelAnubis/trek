@@ -66,3 +66,23 @@ describe('StudioSidebar — collapsible sections', () => {
     expect(useStudioStore.getState().doc?.spreads.length).toBe(3)
   })
 })
+
+describe('StudioSidebar — cover vs inner layout set', () => {
+  it('FE-COMP-STUDIOSIDEBAR-006: on the cover page, only the 5 single-page layouts show, with a hint explaining why', () => {
+    useStudioStore.getState().load(doc())
+    render(<StudioSidebar galleryPhotos={[]} />)
+    // doc()'s active spread (index 0) is the cover.
+    expect(screen.getByText('journey.studio.layoutsCoverHint')).toBeInTheDocument()
+    expect(screen.getByTitle('Full')).toBeInTheDocument()
+    expect(screen.queryByTitle('Grid 3')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-007: on an inner page, the full spread layout set shows, with no cover hint', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setActiveSpread(1)
+    render(<StudioSidebar galleryPhotos={[]} />)
+    expect(screen.queryByText('journey.studio.layoutsCoverHint')).not.toBeInTheDocument()
+    expect(screen.getByTitle('Grid 3')).toBeInTheDocument()
+    expect(screen.queryByTitle('Full')).not.toBeInTheDocument()
+  })
+})

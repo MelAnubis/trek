@@ -189,6 +189,11 @@ export function StudioSidebar({
         <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
           {t('journey.studio.layoutsHint')}
         </p>
+        {isSingle && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.4, padding: '6px 8px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+            {t('journey.studio.layoutsCoverHint')}
+          </p>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           {layoutOptions.map(tpl => (
             <button key={tpl.id} onClick={() => applyLayout(tpl.id)} className="st-sb-layout" title={prettyId(tpl.id)}>
