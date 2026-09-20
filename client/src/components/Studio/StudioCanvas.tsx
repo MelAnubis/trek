@@ -310,7 +310,7 @@ export function StudioCanvas({
         }}
         onPointerDown={() => select([])}
       >
-        <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} />
+        <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} spreadIndex={spreadIndex} />
 
         {cursors && cursors.length > 0 && (
           <PeerCursors cursors={cursors} spreadIndex={spreadIndex} zoom={zoom} />

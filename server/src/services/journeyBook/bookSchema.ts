@@ -156,6 +156,7 @@ export const bookPageSetupSchema = z.object({
   pageHeight: mm.refine(v => v > 0, 'page height must be positive').catch(210).default(210),
   bleed: mm.refine(v => v >= 0, 'bleed cannot be negative').catch(3).default(3),
   safe: mm.refine(v => v >= 0, 'safe margin cannot be negative').catch(5).default(5),
+  pageNumbers: z.object({ show: z.boolean().default(false) }).default(() => ({ show: false })),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 

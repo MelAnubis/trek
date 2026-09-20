@@ -1,4 +1,4 @@
-// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-025
+// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-029
 import { useStudioStore } from './studioStore'
 import type { BookDocument, BookTextElement } from '../types/book'
 
@@ -249,5 +249,41 @@ describe('studioStore — copy / paste', () => {
     useStudioStore.getState().load(doc())
     useStudioStore.getState().paste(1)
     expect(useStudioStore.getState().doc?.spreads[1].elements).toHaveLength(1)
+  })
+})
+
+describe('studioStore — page setup', () => {
+  it('FE-STORE-STUDIO-026: setPagePreset switches to a named preset\'s own dimensions and bleed', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPagePreset('a4-portrait')
+    const page = useStudioStore.getState().doc!.page
+    expect(page.preset).toBe('a4-portrait')
+    expect(page.pageWidth).toBe(210)
+    expect(page.pageHeight).toBe(297)
+  })
+
+  it('FE-STORE-STUDIO-027: switching to "custom" keeps the page\'s current dimensions rather than resetting them', () => {
+    useStudioStore.getState().load(doc({ page: { preset: 'a4-portrait', pageWidth: 210, pageHeight: 297, bleed: 3, safe: 5 } }))
+    useStudioStore.getState().setPagePreset('custom')
+    const page = useStudioStore.getState().doc!.page
+    expect(page.preset).toBe('custom')
+    expect(page.pageWidth).toBe(210)
+    expect(page.pageHeight).toBe(297)
+  })
+
+  it('FE-STORE-STUDIO-028: setPagePreset is a single undo step', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPagePreset('a4-portrait')
+    expect(useStudioStore.getState().canUndo()).toBe(true)
+    useStudioStore.getState().undo()
+    expect(useStudioStore.getState().doc!.page.preset).toBe('square-210')
+  })
+
+  it('FE-STORE-STUDIO-029: setPageNumbers turns the show flag on and off', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageNumbers(true)
+    expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true })
+    useStudioStore.getState().setPageNumbers(false)
+    expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: false })
   })
 })

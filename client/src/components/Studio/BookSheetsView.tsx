@@ -78,7 +78,7 @@ function SheetView({ sheet, doc, marks, last }: { sheet: Sheet; doc: BookDocumen
             height: `${sheet.height}mm`,
           }}
         >
-          <SpreadView spread={sheet.spread} page={doc.page} big print />
+          <SpreadView spread={sheet.spread} page={doc.page} big print spreadIndex={sheet.spreadIndex} />
         </div>
       </div>
 

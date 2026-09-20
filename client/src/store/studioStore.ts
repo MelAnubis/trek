@@ -1,6 +1,7 @@
 import { create } from 'zustand'
-import type { BookDocument, BookElement, BookFrame, BookSpread } from '../types/book'
+import type { BookDocument, BookElement, BookFrame, BookPageSetup, BookSpread } from '../types/book'
 import { elementId } from '../components/Studio/bookIds'
+import { PAGE_PRESETS } from '../components/Studio/pagePresets'
 
 /**
  * The book being edited. Ported from liketrek/trek's
@@ -71,6 +72,10 @@ interface StudioState {
   moveSpread: (index: number, dir: -1 | 1) => void
   /** Whether a spread may be moved, deleted or duplicated at all. */
   canEditSpread: (index: number) => boolean
+
+  /** Switch to a named page preset — elements keep their own mm frames, unrescaled, the same as upstream: a size change is a format decision, not a request to relayout. */
+  setPagePreset: (preset: BookPageSetup['preset']) => void
+  setPageNumbers: (show: boolean) => void
 
   undo: () => void
   redo: () => void
@@ -241,6 +246,15 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     const sp = get().doc?.spreads[index]
     return !!sp && sp.role === 'inner'
   },
+
+  setPagePreset: preset => get().commit(doc => ({
+    ...doc,
+    page: preset === 'custom'
+      ? { ...doc.page, preset }
+      : { ...doc.page, preset, pageWidth: PAGE_PRESETS[preset].pageWidth, pageHeight: PAGE_PRESETS[preset].pageHeight, bleed: PAGE_PRESETS[preset].bleed },
+  })),
+
+  setPageNumbers: show => get().commit(doc => ({ ...doc, page: { ...doc.page, pageNumbers: { show } } })),
 
   addSpread: index => {
     const doc = get().doc

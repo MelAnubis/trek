@@ -1,5 +1,5 @@
-// BOOKSCHEMA-001 to BOOKSCHEMA-006
-import { bookElementSchema, normalizeBookDocument, MAX_IMAGE_SRC_LENGTH } from '../../../src/services/journeyBook/bookSchema';
+// BOOKSCHEMA-001 to BOOKSCHEMA-008
+import { bookElementSchema, bookPageSetupSchema, normalizeBookDocument, MAX_IMAGE_SRC_LENGTH } from '../../../src/services/journeyBook/bookSchema';
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false };
 
@@ -50,5 +50,17 @@ describe('bookElementSchema — image kind', () => {
     const ids = doc.spreads[0].elements.map(e => e.id);
     expect(ids).toContain('good');
     expect(ids).not.toContain('bad');
+  });
+});
+
+describe('bookPageSetupSchema — pageNumbers', () => {
+  it('BOOKSCHEMA-007: a page saved before pageNumbers existed defaults to off', () => {
+    const parsed = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 });
+    expect(parsed.pageNumbers).toEqual({ show: false });
+  });
+
+  it('BOOKSCHEMA-008: an explicit show:true round-trips', () => {
+    const parsed = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5, pageNumbers: { show: true } });
+    expect(parsed.pageNumbers).toEqual({ show: true });
   });
 });

@@ -89,7 +89,8 @@ export function edgesFor(sheet: Sheet): BleedEdges {
 /** Where the folio numbering starts — this fork doesn't yet expose page-number configuration, so this mirrors upstream's own default (2: the cover is a separate sheet and doesn't count). */
 const FOLIO_START_AT = 2
 
-function folio(spreadIndex: number): number {
+/** The left page's number for an inner spread at this position — the right page is one more. Exported for SpreadView's own on-page folio numbers, which need the same arithmetic as the Pages panel's label. */
+export function folio(spreadIndex: number): number {
   return FOLIO_START_AT + (spreadIndex - 1) * 2
 }
 function folioRange(spreadIndex: number): string {

@@ -56,7 +56,7 @@ function BookletSide({ side, pageWidth, pageHeight, doc, last }: {
             // uses — a leaf is a page-wide opening into its parent spread,
             // shifted left by however far into that spread this leaf sits.
             <div style={{ position: 'absolute', left: `${-leaf.offset}mm`, top: 0, width: `${leaf.spreadWidth}mm`, height: `${pageHeight}mm` }}>
-              <SpreadView spread={leaf.spread} page={doc.page} big print />
+              <SpreadView spread={leaf.spread} page={doc.page} big print spreadIndex={leaf.spreadIndex} />
             </div>
           )}
         </div>

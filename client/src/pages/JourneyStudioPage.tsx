@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Check, ChevronDown, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -57,12 +57,18 @@ export default function JourneyStudioPage() {
   const clipboard = useStudioStore(s => s.clipboard)
   const copySelection = useStudioStore(s => s.copy)
   const pasteClipboard = useStudioStore(s => s.paste)
+  const setDocPagePreset = useStudioStore(s => s.setPagePreset)
 
   const [zoom, setZoom] = useState(0.4)
   const [showExport, setShowExport] = useState(false)
   const [autoBookBuilding, setAutoBookBuilding] = useState(false)
   const [pagePreset, setPagePreset] = useState<BookPageSetup['preset']>('square-210')
   const [customPage, setCustomPage] = useState({ pageWidth: 210, pageHeight: 210, bleed: 3 })
+  // Per-viewer editing convenience, not part of the document — whether the
+  // spread fold is drawn, same as upstream's own bookView toggle.
+  const [bookView, setBookView] = useState(true)
+  const [showPageMenu, setShowPageMenu] = useState(false)
+  const pageMenuRef = useRef<HTMLDivElement>(null)
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
 
   const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
@@ -115,6 +121,15 @@ export default function JourneyStudioPage() {
     if (!doc || !bookLoaded) return
     queueSave(doc, current?.title || '')
   }, [doc, bookLoaded, queueSave, current?.title])
+
+  useEffect(() => {
+    if (!showPageMenu) return
+    const close = (e: PointerEvent) => {
+      if (!pageMenuRef.current?.contains(e.target as Node)) setShowPageMenu(false)
+    }
+    document.addEventListener('pointerdown', close)
+    return () => document.removeEventListener('pointerdown', close)
+  }, [showPageMenu])
 
   const backToJourney = () => {
     void saveNow()
@@ -226,6 +241,48 @@ export default function JourneyStudioPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <PeerBadges peers={peers} t={t} />
+          {doc && (
+            <button onClick={() => setBookView(v => !v)} aria-pressed={bookView} title={t('journey.studio.bookView')} style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
+              border: bookView ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+              background: bookView ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
+              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+            }}>
+              <BookOpen size={14} /> {t('journey.studio.bookView')}
+            </button>
+          )}
+          {doc && (
+            <div ref={pageMenuRef} style={{ position: 'relative' }}>
+              <button onClick={() => setShowPageMenu(v => !v)} title={t('journey.studio.format')} style={{
+                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
+                border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)',
+                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
+              }}>
+                {doc.page.preset === 'custom'
+                  ? `${Math.round(doc.page.pageWidth)} × ${Math.round(doc.page.pageHeight)} mm`
+                  : t(PAGE_PRESETS[doc.page.preset].labelKey)}
+                <ChevronDown size={13} style={{ opacity: 0.6 }} />
+              </button>
+              {showPageMenu && (
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 4, minWidth: 180, borderRadius: 10,
+                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                  padding: 4, zIndex: 20,
+                }}>
+                  {(Object.keys(PAGE_PRESETS) as (keyof typeof PAGE_PRESETS)[]).map(key => (
+                    <button key={key} onClick={() => { setDocPagePreset(key); setShowPageMenu(false) }} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%',
+                      textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none',
+                      fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit',
+                    }}>
+                      {t(PAGE_PRESETS[key].labelKey)}
+                      {doc.page.preset === key && <Check size={13} />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {doc && autoInput && (
             <div className="relative group" style={{ position: 'relative' }}>
               <button style={{
@@ -355,7 +412,7 @@ export default function JourneyStudioPage() {
                   page={doc.page}
                   zoom={zoom}
                   pxPerMm={BASE_PX_PER_MM}
-                  bookView
+                  bookView={bookView}
                   dropLabel={t('journey.studio.dropLabel')}
                   cursors={cursors}
                   onCursor={(x, y) => moveCursor(activeSpread, x, y)}

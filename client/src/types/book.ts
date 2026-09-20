@@ -108,6 +108,8 @@ export interface BookPageSetup {
   pageHeight: number;
   bleed: number;
   safe: number;
+  /** Optional — a document saved before this existed just has none, same as no bleed/safe override before those had a default. */
+  pageNumbers?: { show: boolean };
 }
 
 export interface BookDocument {

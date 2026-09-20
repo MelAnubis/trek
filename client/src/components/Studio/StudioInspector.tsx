@@ -2,7 +2,8 @@ import { Lock, Unlock } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
-import type { BookElement, BookFontFamily, BookPhotoElement, BookShapeId } from '../../types/book'
+import ToggleSwitch from '../Settings/ToggleSwitch'
+import type { BookDocument, BookElement, BookFontFamily, BookPhotoElement, BookShapeId } from '../../types/book'
 
 /**
  * The right panel: properties for whatever is selected. Simpler than
@@ -14,6 +15,38 @@ import type { BookElement, BookFontFamily, BookPhotoElement, BookShapeId } from 
 const FIELD: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, marginBottom: 12 }
 const LABEL: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)' }
 const INPUT: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'inherit', width: '100%' }
+
+/**
+ * Shown whenever nothing is selected — the page setup, rather than only an
+ * empty-state message. Simpler than upstream's own Document panel (just the
+ * one on/off switch, no position/font/colour pickers for the folios yet).
+ */
+function DocumentPanel({ doc }: { doc: BookDocument }) {
+  const { t } = useTranslation()
+  const setPageNumbers = useStudioStore(s => s.setPageNumbers)
+  const pageNumbersOn = doc.page.pageNumbers?.show ?? false
+
+  return (
+    <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14 }}>
+      <span style={{ ...LABEL, display: 'block', marginBottom: 14 }}>{t('journey.studio.document')}</span>
+
+      <div style={FIELD}>
+        <span style={LABEL}>{t('journey.studio.pageNumbers')}</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('journey.studio.pageNumbers')}</span>
+          <ToggleSwitch on={pageNumbersOn} onToggle={() => setPageNumbers(!pageNumbersOn)} />
+        </div>
+      </div>
+
+      <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 40, marginBottom: 8 }}>
+        {t('journey.studio.inspectorEmpty')}
+      </p>
+      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center' }}>
+        {t('journey.studio.pageDimensions', { w: Math.round(doc.page.pageWidth), h: Math.round(doc.page.pageHeight) })}
+      </p>
+    </div>
+  )
+}
 
 export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
   const { t } = useTranslation()
@@ -27,7 +60,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
     ?? spread?.elements.find(e => selection.includes(e.id))
 
   if (!el) {
-    return (
+    return doc ? <DocumentPanel doc={doc} /> : (
       <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 40 }}>
           {t('journey.studio.inspectorEmpty')}

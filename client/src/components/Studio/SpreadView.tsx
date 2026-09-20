@@ -2,6 +2,7 @@ import type { CSSProperties } from 'react'
 import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
+import { folio } from './bookSheets'
 
 /**
  * One spread, drawn. Ported (Phase 1 subset: photo/text/shape only — no
@@ -230,6 +231,42 @@ export function ElementView({
   )
 }
 
+/**
+ * The folios — drawn by the renderer rather than stored as elements, since
+ * the number a page carries is a function of where the spread sits in the
+ * book, not something that survives the spread being moved or deleted.
+ * Simpler than upstream's own PageNumbers.tsx: a fixed position (outer
+ * corner) and colour rather than a position/font/auto-contrast picker — see
+ * StudioInspector's Document panel for the one setting this fork exposes.
+ * The cover carries none, same as upstream: a folio on a cover is a mistake
+ * in every book ever bound.
+ */
+function PageNumbers({ spread, page, spreadIndex }: { spread: BookSpread; page: BookPageSetup; spreadIndex: number }) {
+  if (!page.pageNumbers?.show || spread.role !== 'inner') return null
+  const left = folio(spreadIndex)
+  const right = left + 1
+  const W = page.pageWidth
+  const boxW = W * 0.4
+  const common: CSSProperties = {
+    position: 'absolute',
+    top: `${page.pageHeight - 12}mm`,
+    width: `${boxW}mm`,
+    fontSize: '8pt',
+    fontWeight: 500,
+    letterSpacing: '0.08em',
+    lineHeight: 1,
+    color: '#8a8578',
+    fontVariantNumeric: 'tabular-nums',
+    pointerEvents: 'none',
+  }
+  return (
+    <>
+      <div style={{ ...common, left: '6mm', textAlign: 'left' }}>{left}</div>
+      <div style={{ ...common, left: `${W * 2 - boxW - 6}mm`, textAlign: 'right' }}>{right}</div>
+    </>
+  )
+}
+
 /** The sheet. `print` is exactly what the print renderer will produce; the editor (Phase 2) draws the same thing and layers its chrome above it. */
 export function SpreadView({
   spread,
@@ -237,12 +274,15 @@ export function SpreadView({
   big = false,
   print = false,
   dropLabel = '',
+  spreadIndex,
 }: {
   spread: BookSpread
   page: BookPageSetup
   big?: boolean
   print?: boolean
   dropLabel?: string
+  /** Position in the document, cover included — needed to number the page. Omit where a spread is shown out of book context (e.g. a template swatch) and folios don't apply. */
+  spreadIndex?: number
 }) {
   return (
     <div
@@ -256,6 +296,7 @@ export function SpreadView({
       {spread.elements.map(el => (
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
       ))}
+      {spreadIndex != null && <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} />}
     </div>
   )
 }
