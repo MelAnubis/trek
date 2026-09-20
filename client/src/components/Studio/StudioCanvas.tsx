@@ -9,6 +9,9 @@ import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
 import { PeerCursors } from './PeerCursors'
 import type { PeerCursor } from './useBookPresence'
+import { estimateTextHeight } from './autoLayout'
+import { encodeImageForPaste, fitImageFrame } from './pastedImage'
+import { useToast } from '../shared/Toast'
 
 /**
  * The sheet plus everything you do to it. Ported from liketrek/trek's
@@ -82,6 +85,8 @@ export function StudioCanvas({
   const duplicate = useStudioStore(s => s.duplicate)
   const copyToClipboard = useStudioStore(s => s.copy)
   const pasteFromClipboard = useStudioStore(s => s.paste)
+  const clipboard = useStudioStore(s => s.clipboard)
+  const toast = useToast()
   const raise = useStudioStore(s => s.raise)
   const commit = useStudioStore(s => s.commit)
   const addElement = useStudioStore(s => s.addElement)
@@ -146,24 +151,86 @@ export function StudioCanvas({
         if (next >= 0 && next < spreadCount) setActiveSpread(next)
         return
       }
-      // Ctrl/Cmd+C and Ctrl/Cmd+V, from anywhere in Studio, same as
-      // Delete/Backspace above — the clipboard is in-memory, not the
-      // document, so copying works even with nothing selected (a no-op)
-      // and pasting works from any panel that has focus.
+      // Ctrl/Cmd+C, from anywhere in Studio, same as Delete/Backspace above
+      // — the clipboard is in-memory, not the document, so copying works
+      // even with nothing selected (a no-op). Ctrl/Cmd+V is handled by the
+      // native `paste` listener below instead of here: preventDefault on
+      // keydown would stop the browser's own paste action, and with it the
+      // `paste` event that carries the OS clipboard's actual content.
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
         if (!selection.length) return
         e.preventDefault()
         copyToClipboard(spreadIndex, selection)
-        return
-      }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
-        e.preventDefault()
-        pasteFromClipboard(spreadIndex)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread, copyToClipboard, pasteFromClipboard])
+  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread, copyToClipboard])
+
+  useEffect(() => {
+    // Computed fresh from the prop rather than the render-body `single`
+    // below, since this effect (like every hook) has to sit above that
+    // early `if (!spread) return null`.
+    const sheetW = spread && spread.role === 'inner' ? page.pageWidth * 2 : page.pageWidth
+
+    const onPaste = (e: ClipboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return
+
+      // An image on the OS clipboard — a screenshot, a photo copied out of
+      // a file browser or another app — always wins: nothing else on the
+      // clipboard is worth more than an explicit "here's a picture."
+      const imageItem = Array.from(e.clipboardData?.items ?? []).find(i => i.kind === 'file' && i.type.startsWith('image/'))
+      const file = imageItem?.getAsFile()
+      if (file) {
+        e.preventDefault()
+        void pasteImageFile(file)
+        return
+      }
+
+      // Plain text from outside only if there's nothing already copied
+      // inside Studio — a Ctrl+C on an element followed by Ctrl+V should
+      // paste that element even if the OS clipboard happens to hold some
+      // unrelated leftover text from before the browser was even open.
+      const text = e.clipboardData?.getData('text/plain')
+      if (text?.trim() && !clipboard.length) {
+        e.preventDefault()
+        const w = sheetW * 0.6
+        const h = Math.max(20, estimateTextHeight(text, w, 12, 1.4) + 6)
+        addElement(spreadIndex, {
+          id: elementId('t'), kind: 'text',
+          frame: { x: (sheetW - w) / 2, y: (page.pageHeight - h) / 2, w, h },
+          rotation: 0, opacity: 1, locked: false,
+          text: text.trim(), font: 'sans', size: 12, weight: 400, italic: false, align: 'left',
+          leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true,
+        } as BookElement)
+        return
+      }
+
+      // Nothing usable on the OS clipboard — fall back to Studio's own
+      // in-app clipboard, the same one Ctrl+C above fills.
+      e.preventDefault()
+      pasteFromClipboard(spreadIndex)
+    }
+
+    const pasteImageFile = async (file: File) => {
+      const encoded = await encodeImageForPaste(file)
+      if (!encoded) {
+        toast.error(t('journey.studio.pasteImageError'))
+        return
+      }
+      const { w, h } = fitImageFrame(encoded.naturalWidth, encoded.naturalHeight, page)
+      addElement(spreadIndex, {
+        id: elementId('im'), kind: 'image',
+        frame: { x: (sheetW - w) / 2, y: (page.pageHeight - h) / 2, w, h },
+        rotation: 0, opacity: 1, locked: false,
+        src: encoded.src, fit: 'cover', radius: 0,
+      } as BookElement)
+    }
+
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [spreadIndex, page, spread, clipboard, addElement, pasteFromClipboard, toast, t])
 
   if (!spread) return null
 

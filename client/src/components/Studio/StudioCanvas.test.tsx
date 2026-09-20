@@ -1,4 +1,4 @@
-// FE-COMP-STUDIOCANVAS-001 to FE-COMP-STUDIOCANVAS-007
+// FE-COMP-STUDIOCANVAS-001 to FE-COMP-STUDIOCANVAS-010
 import { act, render } from '@testing-library/react'
 import { StudioCanvas } from './StudioCanvas'
 import { useStudioStore } from '../../store/studioStore'
@@ -26,6 +26,19 @@ function doc(spreadCount: number): BookDocument {
     spreads: Array.from({ length: spreadCount }, (_, i) => spread(`sp-${i}`, i === 0 ? 'cover' : 'inner', i === 1 ? [textEl('t-1')] : [])),
   }
 }
+
+function pasteEvent(data: { items?: { kind: string; type: string; getAsFile: () => File | null }[]; text?: string }): Event {
+  const e = new Event('paste', { bubbles: true, cancelable: true })
+  Object.defineProperty(e, 'clipboardData', {
+    value: {
+      items: data.items ?? [],
+      getData: (type: string) => (type === 'text/plain' ? data.text ?? '' : ''),
+    },
+  })
+  return e
+}
+const emptyPasteEvent = () => pasteEvent({})
+const textPasteEvent = (text: string) => pasteEvent({ text })
 
 const initialState = useStudioStore.getState()
 
@@ -100,7 +113,10 @@ describe('StudioCanvas — Ctrl/Cmd+C / Ctrl/Cmd+V', () => {
     act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true })) })
     expect(useStudioStore.getState().clipboard).toHaveLength(1)
 
-    act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'v', ctrlKey: true })) })
+    // Ctrl+V itself is a native `paste` event, not a keydown — the OS
+    // clipboard is empty here (no items/text), so it falls through to
+    // Studio's own in-app clipboard.
+    act(() => { window.dispatchEvent(emptyPasteEvent()) })
     const els = useStudioStore.getState().doc!.spreads[1].elements
     expect(els).toHaveLength(2)
     expect(els[1].id).not.toBe('t-1')
@@ -113,5 +129,45 @@ describe('StudioCanvas — Ctrl/Cmd+C / Ctrl/Cmd+V', () => {
     renderCanvas()
     act(() => { window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true })) })
     expect(useStudioStore.getState().clipboard).toEqual([])
+  })
+})
+
+describe('StudioCanvas — pasting from outside the app', () => {
+  it('FE-COMP-STUDIOCANVAS-008: pasting OS clipboard text (with nothing copied in-app) adds a new text element', () => {
+    useStudioStore.getState().load(doc(3))
+    useStudioStore.getState().setActiveSpread(1)
+    renderCanvas()
+    act(() => { window.dispatchEvent(textPasteEvent('Pasted from outside')) })
+    const els = useStudioStore.getState().doc!.spreads[1].elements
+    expect(els).toHaveLength(2)
+    const pasted = els.find(e => e.id !== 't-1')!
+    expect(pasted.kind).toBe('text')
+    expect((pasted as BookTextElement).text).toBe('Pasted from outside')
+  })
+
+  it('FE-COMP-STUDIOCANVAS-009: OS clipboard text is ignored in favour of Studio\'s own clipboard when something was copied in-app', () => {
+    useStudioStore.getState().load(doc(3))
+    useStudioStore.getState().setActiveSpread(1)
+    useStudioStore.getState().select(['t-1'])
+    useStudioStore.getState().copy(1, ['t-1'])
+    renderCanvas()
+    act(() => { window.dispatchEvent(textPasteEvent('Unrelated OS clipboard text')) })
+    const els = useStudioStore.getState().doc!.spreads[1].elements
+    expect(els).toHaveLength(2)
+    // The in-app copy of t-1 was pasted, not a new text element from the OS clipboard.
+    expect(els.some(e => e.kind === 'text' && (e as BookTextElement).text === 'Unrelated OS clipboard text')).toBe(false)
+    expect(els.some(e => e.kind === 'text' && (e as BookTextElement).text === 'hi')).toBe(true)
+  })
+
+  it('FE-COMP-STUDIOCANVAS-010: pasting while focus is in a text field is left to the browser\'s own default paste', () => {
+    useStudioStore.getState().load(doc(3))
+    useStudioStore.getState().setActiveSpread(1)
+    renderCanvas()
+    const input = document.createElement('input')
+    document.body.appendChild(input)
+    input.focus()
+    act(() => { input.dispatchEvent(textPasteEvent('should not be intercepted')) })
+    expect(useStudioStore.getState().doc?.spreads[1].elements).toHaveLength(1)
+    document.body.removeChild(input)
   })
 })
