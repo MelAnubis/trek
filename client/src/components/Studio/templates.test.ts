@@ -1,5 +1,5 @@
-// FE-TEMPLATES-001 to FE-TEMPLATES-004
-import { TEMPLATES, COVER_TEMPLATES } from './templates'
+// FE-TEMPLATES-001 to FE-TEMPLATES-006
+import { TEMPLATES, COVER_TEMPLATES, crossesGutter } from './templates'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
 
@@ -34,5 +34,17 @@ describe('TEMPLATES + COVER_TEMPLATES — structural invariants', () => {
       const slots = tpl.build(PAGE)
       expect(slots.some(s => s.kind === 'heading' || s.kind === 'body'), tpl.id).toBe(true)
     }
+  })
+
+  it('FE-TEMPLATES-005: at least a handful of spread templates never straddle the gutter — auto-layout needs a real pool to pick single-leaf-safe designs from', () => {
+    const safe = TEMPLATES.filter(t => !crossesGutter(t, PAGE))
+    expect(safe.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('FE-TEMPLATES-006: photo-text-split\'s photo starts exactly at the gutter, not bled into the facing page', () => {
+    const tpl = TEMPLATES.find(t => t.id === 'photo-text-split')!
+    const photo = tpl.build(PAGE).find(s => s.kind === 'photo')!
+    expect(photo.frame.x).toBe(PAGE.pageWidth)
+    expect(crossesGutter(tpl, PAGE)).toBe(false)
   })
 })

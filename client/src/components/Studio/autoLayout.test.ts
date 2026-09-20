@@ -226,3 +226,28 @@ describe('buildBook — hero-story avoids a blank gap above its photo grid', () 
     expect(shortY).toBeLessThan(pinnedY)
   })
 })
+
+describe('buildBook — every auto-generated entry spread stands on its own single leaf', () => {
+  // Single-leaf ("Páginas sueltas") export cuts a spread exactly at
+  // page.pageWidth — a template picked here that straddles that line comes
+  // out as two disconnected fragments on two separate sheets, which is
+  // exactly the "queda fatal en todas" report this guards against.
+  function crossesGutter(x: number, w: number) {
+    return x < PAGE.pageWidth && x + w > PAGE.pageWidth
+  }
+
+  it('FE-AUTOLAYOUT-021: no element in an auto-generated entry spread straddles the gutter, across a range of photo counts and story lengths', () => {
+    for (let photoCount = 0; photoCount <= 9; photoCount++) {
+      for (const story of ['', 'A short story.']) {
+        const doc = buildBook(input({
+          entries: [entry({ id: 1, story, photos: Array.from({ length: photoCount }, (_, i) => ({ photoId: i })) })],
+        }))
+        const spread = doc.spreads.find(s => s.entryId === 1)
+        if (!spread) continue // no content at all (0 photos, no story) is skipped entirely — nothing to check
+        for (const el of spread.elements) {
+          expect(crossesGutter(el.frame.x, el.frame.w), `${el.kind} in a ${photoCount}-photo${story ? '+story' : ''} spread`).toBe(false)
+        }
+      }
+    }
+  })
+})

@@ -1,5 +1,5 @@
 import type { BookDocument, BookElement, BookImageElement, BookPageSetup, BookSpread, BookTextElement } from '../../types/book'
-import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
+import { TEMPLATES, COVER_TEMPLATES, applyTemplate, crossesGutter, type Template } from './templates'
 import { elementId } from './bookIds'
 import type { RouteImages } from './buildRouteImages'
 
@@ -87,6 +87,12 @@ function templateFit(tpl: Template, photos: number, hasStory: boolean, page: Boo
   const wantsBody = slots.some(s => s.kind === 'body')
   if (frames > photos + 1) return -1
   if (wantsBody && !hasStory) return -1
+  // A slot that straddles the gutter reads as one picture (or one line of
+  // text) only when the spread is viewed uncut. Auto-layout targets
+  // single-leaf export — what a print vendor's PDF uploader actually
+  // requires — so a template that depends on the facing page is never a
+  // candidate: each generated page has to stand on its own.
+  if (crossesGutter(tpl, page)) return -1
   return 100 - Math.abs(frames - photos) * 10 - (wantsBody === hasStory ? 0 : 5)
 }
 

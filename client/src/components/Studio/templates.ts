@@ -250,7 +250,7 @@ export const TEMPLATES: Template[] = [
       const W = page.pageWidth
       const H = page.pageHeight
       return [
-        { kind: 'photo', frame: { x: W - page.bleed, y: -page.bleed, w: W + page.bleed, h: H + page.bleed * 2 } },
+        { kind: 'photo', frame: { x: W, y: -page.bleed, w: W + page.bleed, h: H + page.bleed * 2 } },
         { kind: 'meta', frame: { x: M, y: H * 0.28, w: W - M * 2, h: 5 } },
         { kind: 'heading', frame: { x: M, y: H * 0.28 + 8, w: W - M * 2, h: 14 } },
         { kind: 'body', frame: { x: M, y: H * 0.28 + 26, w: (W - M * 2) * 0.82, h: H * 0.4 } },
@@ -310,6 +310,25 @@ export const TEMPLATES: Template[] = [
     },
   },
 ]
+
+/**
+ * Whether any slot in this template straddles the gutter — the seam
+ * between the spread's two pages, at x = page.pageWidth. A slot that
+ * starts left of it and ends right of it (a photo running across both
+ * pages, say) reads as one continuous picture only when the two halves
+ * sit side by side, the way "Dobles páginas" export shows them. Cut down
+ * the middle for single-leaf ("Páginas sueltas") export — the format an
+ * actual print vendor's PDF uploader requires — each half prints on its
+ * own sheet, and a straddling slot comes out as two unrelated fragments
+ * rather than the one picture or line of text it was drawn as.
+ *
+ * A cover template never straddles anything — it has no gutter, it's one
+ * page — so this only means anything for the spread (`TEMPLATES`) set.
+ */
+export function crossesGutter(tpl: Template, page: BookPageSetup): boolean {
+  const W = page.pageWidth
+  return tpl.build(page).some(slot => slot.frame.x < W && slot.frame.x + slot.frame.w > W)
+}
 
 /** Layouts for a single page — the cover and the back. A spread layout applied here would put half its frames past the edge of the page. */
 export const COVER_TEMPLATES: Template[] = [
