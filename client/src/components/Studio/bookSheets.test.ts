@@ -1,4 +1,4 @@
-// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-019
+// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-021
 import { edgesFor, imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
 import type { BookDocument, BookSpread } from '../../types/book'
 
@@ -91,6 +91,22 @@ describe('sheetsFor — spreads mode', () => {
     const sheets = sheetsFor(doc([spread('cover')]), 'spreads')
     expect(sheets).toHaveLength(1)
     expect(sheets[0].single).toBe(true)
+  })
+
+  it('FE-BOOKSHEETS-020: in spreads mode, a cover\'s own sheet is as wide as an inner one — mixing a narrower cover into an otherwise-landscape export is what makes some print engines auto-rotate it', () => {
+    const sheets = sheetsFor(doc([spread('cover'), spread('inner')]), 'spreads')
+    const cover = sheets.find(s => s.spread.role === 'cover')!
+    const inner = sheets.find(s => s.spread.role === 'inner')!
+    expect(cover.width).toBe(inner.width)
+    expect(cover.width).toBe(420)
+    // The cover's own content is still only one page wide — the extra
+    // room is blank, standing in for the inside of the cover.
+    expect(cover.spreadWidth).toBe(210)
+  })
+
+  it('FE-BOOKSHEETS-021: in pages mode, a cover stays exactly one page wide — no landscape sheets there to match', () => {
+    const sheets = sheetsFor(doc([spread('cover')]), 'pages')
+    expect(sheets[0].width).toBe(210)
   })
 
   it('FE-BOOKSHEETS-008: sheet count is always <= pages-mode count for the same book', () => {

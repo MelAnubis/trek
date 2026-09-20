@@ -59,7 +59,11 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
   const box: SheetBox = isBooklet
     ? { width: doc.page.pageWidth * 2, height: doc.page.pageHeight, left: 0, right: 0, top: 0, bottom: 0, bleed: 0 }
     : sheetBox(widest, doc.page.pageHeight, effectiveBleed, effectiveMarks)
-  const single = sheetBox(doc.page.pageWidth, doc.page.pageHeight, effectiveBleed, effectiveMarks)
+  // In "spreads" mode a cover's own sheet is now as wide as an inner one
+  // too — see sheetsFor's own comment on why — so this has to match that
+  // width, or the stale narrower size here would keep emitting the
+  // alternate `single` @page rule that the fix was meant to make a no-op.
+  const single = sheetBox(effectiveMode === 'spreads' ? doc.page.pageWidth * 2 : doc.page.pageWidth, doc.page.pageHeight, effectiveBleed, effectiveMarks)
   // A leaf cut from a spread has no bleed on its gutter side — see
   // edgesFor in bookSheets.ts — so it's narrower than `single` above,
   // which is for a sheet with no gutter at all (a cover). Only "Pages"

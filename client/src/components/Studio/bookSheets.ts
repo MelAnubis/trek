@@ -107,8 +107,16 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
     const spreadWidth = single ? pageWidth : pageWidth * 2
 
     if (single || mode === 'spreads') {
+      // In "spreads" mode every sheet shares one physical size, cover
+      // included — a lone-page cover next to full-width inner spreads
+      // gives the two a different aspect ratio (portrait-ish vs.
+      // landscape), and some print engines auto-rotate whichever sheet
+      // doesn't match the orientation the person picked, no matter which
+      // they pick. The room next to the cover's own content is left
+      // blank, standing in for the inside of the cover.
+      const width = mode === 'spreads' ? pageWidth * 2 : spreadWidth
       out.push({
-        spread, spreadIndex, offset: 0, width: spreadWidth, height: pageHeight, spreadWidth, single,
+        spread, spreadIndex, offset: 0, width, height: pageHeight, spreadWidth, single,
         label: single ? '' : folioRange(spreadIndex),
       })
       return
