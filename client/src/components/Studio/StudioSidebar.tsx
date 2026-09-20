@@ -8,7 +8,8 @@ import { useStudioStore } from '../../store/studioStore'
 import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
-import type { BookElement, BookPageSetup } from '../../types/book'
+import { SHAPE_GROUPS, SHAPE_PATHS, HOLED_SHAPES } from './shapes'
+import type { BookElement, BookPageSetup, BookShapeId } from '../../types/book'
 import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
 
 /**
@@ -91,6 +92,15 @@ function LayoutSwatch({ template, single, page }: { template: Template; single: 
   )
 }
 
+/** A small filled preview of one shape from the library, for the picker grid. */
+function ShapeSwatch({ shape }: { shape: BookShapeId }) {
+  return (
+    <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
+      <path d={SHAPE_PATHS[shape]} fill="#52525b" fillRule={HOLED_SHAPES.has(shape) ? 'evenodd' : 'nonzero'} />
+    </svg>
+  )
+}
+
 export function StudioSidebar({
   galleryPhotos,
   journeyStats,
@@ -104,6 +114,7 @@ export function StudioSidebar({
 }) {
   const { t, locale } = useTranslation()
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
+  const [showShapePicker, setShowShapePicker] = useState(false)
   const toggleSection = (id: string) => setCollapsedSections(prev => {
     const next = { ...prev, [id]: !prev[id] }
     try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)) } catch { /* private-mode/blocked storage — collapse state just won't persist */ }
@@ -139,6 +150,14 @@ export function StudioSidebar({
     if (!onGenerateMap) return
     const src = await onGenerateMap().catch(() => null)
     if (src) updateElement(activeSpread, id, { src })
+  }
+
+  const addShape = (shape: BookShapeId) => {
+    addCentered(60, 60, (id, frame) => ({
+      id, frame, kind: 'shape', rotation: 0, opacity: 1, locked: false,
+      shape, fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
+    }))
+    setShowShapePicker(false)
   }
 
   const spread = doc.spreads[activeSpread]
@@ -241,14 +260,38 @@ export function StudioSidebar({
             id, frame, kind: 'photo', rotation: 0, opacity: 1, locked: false,
             photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
           }))} className="st-sb-add"><ImageIcon size={15} /> {t('journey.studio.addPhotoFrame')}</button>
-          <button onClick={() => addCentered(60, 60, (id, frame) => ({
-            id, frame, kind: 'shape', rotation: 0, opacity: 1, locked: false,
-            shape: 'rect', fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
-          }))} className="st-sb-add"><Square size={15} /> {t('journey.studio.addRect')}</button>
-          <button onClick={() => addCentered(60, 60, (id, frame) => ({
-            id, frame, kind: 'shape', rotation: 0, opacity: 1, locked: false,
-            shape: 'ellipse', fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
-          }))} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
+          <button onClick={() => addShape('rect')} className="st-sb-add"><Square size={15} /> {t('journey.studio.addRect')}</button>
+          <button onClick={() => addShape('ellipse')} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
+        </div>
+        <div style={{ position: 'relative', marginTop: 6 }}>
+          <button onClick={() => setShowShapePicker(v => !v)} className="st-sb-add" style={{ width: '100%', flexDirection: 'row', gap: 6, padding: '8px 10px' }}>
+            <Sparkles size={13} /> {t('journey.studio.moreShapes')}
+          </button>
+          {showShapePicker && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 260, overflowY: 'auto',
+              borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 8, zIndex: 20,
+            }}>
+              {SHAPE_GROUPS.map(group => (
+                <div key={group.id} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 4 }}>
+                    {t(`journey.studio.shapeGroup.${group.id}`)}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+                    {group.shapes.map(s => (
+                      <button key={s} onClick={() => addShape(s)} title={s} style={{
+                        aspectRatio: '1', padding: 4, borderRadius: 6, border: '1px solid var(--border-primary)',
+                        background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <ShapeSwatch shape={s} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </CollapsibleSection>
 

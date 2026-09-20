@@ -33,8 +33,22 @@ export const MAX_BOOK_TITLE = 200;
 export const MAX_TEXT_LENGTH = 8000;
 export const MAX_SPREAD_ELEMENTS = 90;
 
-/** Phase 1 subset. The full BOOK_SHAPES decorative library arrives in Phase 2. */
-export const BOOK_SHAPES = ['rect', 'ellipse'] as const;
+/** Ported from upstream's own shapes.ts decorative library — see the client's shapes.ts for the path data and generator functions. */
+export const BOOK_SHAPES = [
+  'rect', 'ellipse', 'line', 'triangle',
+  'triangle-down', 'diamond', 'parallelogram', 'trapezoid',
+  'pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon',
+  'arch', 'half-circle', 'quarter-circle', 'capsule', 'squircle',
+  'star-4', 'star-5', 'star-6', 'star-8', 'star-12', 'burst', 'seal', 'sparkle',
+  'arrow-right', 'arrow-left', 'arrow-up', 'arrow-down', 'arrow-both',
+  'chevron-right', 'chevron-left', 'arrow-bent',
+  'bubble-round', 'bubble-square', 'bubble-oval', 'bubble-think',
+  'heart', 'cloud', 'cloud-puffy', 'drop', 'moon', 'sun',
+  'flower-5', 'flower-6', 'leaf', 'cross', 'plus', 'shield', 'gear',
+  'ticket', 'wave', 'mountain', 'compass', 'pin',
+  'blob-1', 'blob-2', 'blob-3', 'blob-4',
+  'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
 /**

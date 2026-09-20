@@ -8,7 +8,23 @@
  * Keep this in sync with the server schema by hand.
  */
 
-export type BookShapeId = 'rect' | 'ellipse';
+/** Mirrors the server's own BOOK_SHAPES — see shapes.ts for the path data. */
+export const BOOK_SHAPES = [
+  'rect', 'ellipse', 'line', 'triangle',
+  'triangle-down', 'diamond', 'parallelogram', 'trapezoid',
+  'pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon',
+  'arch', 'half-circle', 'quarter-circle', 'capsule', 'squircle',
+  'star-4', 'star-5', 'star-6', 'star-8', 'star-12', 'burst', 'seal', 'sparkle',
+  'arrow-right', 'arrow-left', 'arrow-up', 'arrow-down', 'arrow-both',
+  'chevron-right', 'chevron-left', 'arrow-bent',
+  'bubble-round', 'bubble-square', 'bubble-oval', 'bubble-think',
+  'heart', 'cloud', 'cloud-puffy', 'drop', 'moon', 'sun',
+  'flower-5', 'flower-6', 'leaf', 'cross', 'plus', 'shield', 'gear',
+  'ticket', 'wave', 'mountain', 'compass', 'pin',
+  'blob-1', 'blob-2', 'blob-3', 'blob-4',
+  'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+] as const;
+export type BookShapeId = (typeof BOOK_SHAPES)[number];
 export type BookFontFamily = 'sans' | 'serif' | 'display';
 
 export interface BookFrame {

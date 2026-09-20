@@ -5,11 +5,26 @@ import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { flagEmoji } from './countryFlags'
+import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import {
   BOOK_BADGES, BOOK_METRICS, type BookBadgeElement, type BookBadgeVariant, type BookCountriesElement,
   type BookDocument, type BookElement, type BookFontFamily, type BookIconElement, type BookListElement,
-  type BookMapElement, type BookMetric, type BookPhotoElement, type BookShapeId, type BookStatsElement,
+  type BookMapElement, type BookMetric, type BookPhotoElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
 } from '../../types/book'
+
+/** "star-5" -> "Star 5", "half-circle" -> "Half circle" */
+function prettyShapeName(id: string): string {
+  const words = id.split('-')
+  return words.map((w, i) => (i === 0 ? w[0].toUpperCase() + w.slice(1) : w)).join(' ')
+}
+
+const SHAPE_GROUP_NAMES: Record<string, string> = {
+  basic: 'Basic', polygons: 'Polygons', stars: 'Stars', arrows: 'Arrows',
+  speech: 'Speech', travel: 'Travel', decor: 'Decoration', banners: 'Banners',
+}
+function prettyShapeGroupName(id: string): string {
+  return SHAPE_GROUP_NAMES[id] ?? id
+}
 
 /**
  * The right panel: properties for whatever is selected. Simpler than
@@ -118,6 +133,19 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             </select>
           </div>
           <div style={FIELD}>
+            <span style={LABEL}>Focal point</span>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 2 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>X {Math.round(el.focalX * 100)}%</span>
+                <input type="range" min={0} max={1} step={0.02} value={el.focalX} onChange={e => patch({ focalX: Number(e.target.value) })} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Y {Math.round(el.focalY * 100)}%</span>
+                <input type="range" min={0} max={1} step={0.02} value={el.focalY} onChange={e => patch({ focalY: Number(e.target.value) })} />
+              </label>
+            </div>
+          </div>
+          <div style={FIELD}>
             <span style={LABEL}>Filter</span>
             <select style={INPUT} value={el.filter} onChange={e => patch({ filter: e.target.value as BookPhotoElement['filter'] })}>
               {['none', 'bw', 'warm', 'cool', 'fade', 'contrast'].map(f => <option key={f} value={f}>{f}</option>)}
@@ -127,6 +155,12 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             <span style={LABEL}>Frame</span>
             <select style={INPUT} value={el.frameStyle} onChange={e => patch({ frameStyle: e.target.value as BookPhotoElement['frameStyle'] })}>
               {['none', 'polaroid', 'white', 'shadow', 'film', 'tape'].map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+          <div style={FIELD}>
+            <span style={LABEL}>Mask</span>
+            <select style={INPUT} value={el.mask ?? 'rect'} onChange={e => patch({ mask: e.target.value === 'rect' ? null : e.target.value as BookShapeId })}>
+              {FRAME_SHAPES.map(s => <option key={s} value={s}>{prettyShapeName(s)}</option>)}
             </select>
           </div>
           <div style={FIELD}>
@@ -174,19 +208,54 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
           <div style={FIELD}>
             <span style={LABEL}>Shape</span>
             <select style={INPUT} value={el.shape} onChange={e => patch({ shape: e.target.value as BookShapeId })}>
-              <option value="rect">Rectangle</option>
-              <option value="ellipse">Ellipse</option>
+              {SHAPE_GROUPS.map(group => (
+                <optgroup key={group.id} label={prettyShapeGroupName(group.id)}>
+                  {group.shapes.map(s => <option key={s} value={s}>{prettyShapeName(s)}</option>)}
+                </optgroup>
+              ))}
             </select>
           </div>
           <div style={FIELD}>
             <span style={LABEL}>Fill</span>
             <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.fill ?? '#111827'} onChange={e => patch({ fill: e.target.value })} />
           </div>
+          <div style={FIELD}>
+            <span style={LABEL}>Gradient</span>
+            <select style={INPUT} value={el.gradient} onChange={e => patch({ gradient: e.target.value as BookShapeElement['gradient'] })}>
+              <option value="none">None</option>
+              <option value="up">Fades up</option>
+              <option value="down">Fades down</option>
+            </select>
+          </div>
           {el.shape === 'rect' && (
             <div style={FIELD}>
               <span style={LABEL}>Corner radius</span>
               <input type="number" min={0} style={INPUT} value={el.radius} onChange={e => patch({ radius: Number(e.target.value) || 0 })} />
             </div>
+          )}
+          <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={LABEL}>Stroke</span>
+            <ToggleSwitch on={el.stroke != null} onToggle={() => patch({ stroke: el.stroke != null ? null : '#111827', strokeWidth: el.stroke != null ? el.strokeWidth : (el.strokeWidth || 1) })} />
+          </div>
+          {el.stroke != null && (
+            <>
+              <div style={FIELD}>
+                <span style={LABEL}>Stroke color</span>
+                <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.stroke} onChange={e => patch({ stroke: e.target.value })} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+                <div style={FIELD}>
+                  <span style={LABEL}>Width (mm)</span>
+                  <input type="number" min={0.1} step={0.1} style={INPUT} value={el.strokeWidth} onChange={e => patch({ strokeWidth: Number(e.target.value) || 1 })} />
+                </div>
+                <div style={FIELD}>
+                  <span style={LABEL}>Style</span>
+                  <select style={INPUT} value={el.strokeStyle} onChange={e => patch({ strokeStyle: e.target.value as BookShapeElement['strokeStyle'] })}>
+                    {['solid', 'dashed', 'dotted'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+            </>
           )}
         </>
       )}

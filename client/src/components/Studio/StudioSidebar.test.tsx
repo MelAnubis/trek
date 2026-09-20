@@ -1,4 +1,4 @@
-// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-013
+// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-016
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { StudioSidebar } from './StudioSidebar'
 import { useStudioStore } from '../../store/studioStore'
@@ -144,5 +144,35 @@ describe('StudioSidebar — Travel panel', () => {
     render(<StudioSidebar galleryPhotos={[]} />)
     fireEvent.click(screen.getByText(label))
     expect(lastElement().kind).toBe(kind)
+  })
+})
+
+describe('StudioSidebar — decorative shape picker', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setActiveSpread(1)
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-014: the picker grid is hidden until "More shapes…" is clicked', () => {
+    render(<StudioSidebar galleryPhotos={[]} />)
+    expect(screen.queryByTitle('heart')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByText('journey.studio.moreShapes'))
+    expect(screen.getByTitle('heart')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-015: clicking a shape tile adds that shape, centered, and closes the picker', () => {
+    render(<StudioSidebar galleryPhotos={[]} />)
+    fireEvent.click(screen.getByText('journey.studio.moreShapes'))
+    fireEvent.click(screen.getByTitle('star-5'))
+    const el = lastElement() as any
+    expect(el.kind).toBe('shape')
+    expect(el.shape).toBe('star-5')
+    expect(screen.queryByTitle('star-5')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-016: "Add rectangle" and "Add circle" still add plain rect/ellipse shapes directly, without opening the picker', () => {
+    render(<StudioSidebar galleryPhotos={[]} />)
+    fireEvent.click(screen.getByText('journey.studio.addRect'))
+    expect((lastElement() as any).shape).toBe('rect')
   })
 })

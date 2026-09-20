@@ -1,9 +1,10 @@
-// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-013
+// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-021
 import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioInspector } from './StudioInspector'
 import { useStudioStore } from '../../store/studioStore'
 import type {
-  BookBadgeElement, BookCountriesElement, BookDocument, BookIconElement, BookListElement, BookMapElement, BookSpread, BookStatsElement,
+  BookBadgeElement, BookCountriesElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
+  BookPhotoElement, BookShapeElement, BookSpread, BookStatsElement,
 } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -27,6 +28,18 @@ function listEl(): BookListElement {
 }
 function mapEl(): BookMapElement {
   return { ...base, id: 'map-1', kind: 'map', src: null, fit: 'cover', radius: 0 }
+}
+function photoEl(overrides: Partial<BookPhotoElement> = {}): BookPhotoElement {
+  return {
+    ...base, id: 'photo-1', kind: 'photo', photoId: 101, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0,
+    filter: 'none', frameStyle: 'none', mask: null, ...overrides,
+  }
+}
+function shapeEl(overrides: Partial<BookShapeElement> = {}): BookShapeElement {
+  return {
+    ...base, id: 'shape-1', kind: 'shape', shape: 'rect', fill: '#111827', gradient: 'none',
+    stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0, ...overrides,
+  }
 }
 
 function spread(id: string, elements: BookSpread['elements']): BookSpread {
@@ -158,5 +171,81 @@ describe('StudioInspector — travel element fields', () => {
     expect(screen.getByText('Pro label')).toBeInTheDocument()
     fireEvent.change(screen.getByDisplayValue('Columns (pro / con)'), { target: { value: 'stacked' } })
     expect(screen.queryByText('Pro label')).not.toBeInTheDocument()
+  })
+})
+
+function selectedPhotoEl() { return selectedEl() as BookPhotoElement }
+function selectedShapeEl() { return selectedEl() as BookShapeElement }
+
+describe('StudioInspector — photo focal point and mask', () => {
+  it('FE-COMP-STUDIOINSPECTOR-014: dragging the X focal-point slider updates focalX only', () => {
+    useStudioStore.getState().load(doc([photoEl()]))
+    useStudioStore.getState().select(['photo-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    const sliders = screen.getAllByRole('slider')
+    // Opacity is the first slider on every element; focal X/Y follow it for a photo.
+    fireEvent.change(sliders[1], { target: { value: '0.2' } })
+    expect(selectedPhotoEl().focalX).toBe(0.2)
+    expect(selectedPhotoEl().focalY).toBe(0.5)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-015: dragging the Y focal-point slider updates focalY only', () => {
+    useStudioStore.getState().load(doc([photoEl()]))
+    useStudioStore.getState().select(['photo-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    const sliders = screen.getAllByRole('slider')
+    fireEvent.change(sliders[2], { target: { value: '0.8' } })
+    expect(selectedPhotoEl().focalY).toBe(0.8)
+    expect(selectedPhotoEl().focalX).toBe(0.5)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-016: picking a mask from the Mask select sets it; "Rect" clears it back to null', () => {
+    useStudioStore.getState().load(doc([photoEl()]))
+    useStudioStore.getState().select(['photo-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByDisplayValue('Rect'), { target: { value: 'heart' } })
+    expect(selectedPhotoEl().mask).toBe('heart')
+  })
+})
+
+describe('StudioInspector — shape gradient and stroke', () => {
+  it('FE-COMP-STUDIOINSPECTOR-017: the Shape select offers the full decorative library, not just rect/ellipse', () => {
+    useStudioStore.getState().load(doc([shapeEl()]))
+    useStudioStore.getState().select(['shape-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByDisplayValue('Rect'), { target: { value: 'heart' } })
+    expect(selectedShapeEl().shape).toBe('heart')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-018: changing Gradient updates the store', () => {
+    useStudioStore.getState().load(doc([shapeEl()]))
+    useStudioStore.getState().select(['shape-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByDisplayValue('None'), { target: { value: 'up' } })
+    expect(selectedShapeEl().gradient).toBe('up')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-019: stroke fields are hidden until the Stroke toggle is on', () => {
+    useStudioStore.getState().load(doc([shapeEl()]))
+    useStudioStore.getState().select(['shape-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    expect(screen.queryByText('Stroke color')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-020: turning on the Stroke toggle gives the shape a real stroke color and default width', () => {
+    useStudioStore.getState().load(doc([shapeEl()]))
+    useStudioStore.getState().select(['shape-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByText('Stroke').closest('div')!.querySelector('button')!)
+    expect(selectedShapeEl().stroke).not.toBeNull()
+    expect(selectedShapeEl().strokeWidth).toBeGreaterThan(0)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-021: turning the Stroke toggle back off clears the stroke color to null', () => {
+    useStudioStore.getState().load(doc([shapeEl({ stroke: '#ff0000', strokeWidth: 2 })]))
+    useStudioStore.getState().select(['shape-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByText('Stroke').closest('div')!.querySelector('button')!)
+    expect(selectedShapeEl().stroke).toBeNull()
   })
 })

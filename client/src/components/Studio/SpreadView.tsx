@@ -4,6 +4,7 @@ import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
 import { folio } from './bookSheets'
 import { BadgeView, CountriesView, IconView, ListView, MapView, StatsView } from './TravelElements'
+import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 
 /**
  * One spread, drawn. Ported from liketrek/trek's
@@ -51,10 +52,18 @@ const FILTERS: Record<string, string | undefined> = {
   contrast: 'contrast(1.22) saturate(1.06)',
 }
 
-/** Phase 1 only draws rect/ellipse — the decorative shape library (lines, stars, banners…) arrives in Phase 2. */
+/**
+ * `rect` and `ellipse` draw as plain boxes — a box genuinely is a better
+ * rectangle than a path (exact corner radii, an even border on every side).
+ * Everything else in the decorative library (shapes.ts) draws as an SVG
+ * path, scaled in millimetres rather than through the viewBox so a stroke
+ * width means one thing regardless of the shape's aspect ratio — see
+ * shapes.ts's own comment for why.
+ */
 function ShapeView({ el }: { el: BookShapeElement }) {
   const fill = el.fill ?? 'transparent'
   const gradient = el.gradient !== 'none' && el.fill
+  const gradientId = `shape-grad-${el.id}`
 
   const background = !gradient
     ? fill
@@ -63,16 +72,45 @@ function ShapeView({ el }: { el: BookShapeElement }) {
       + ` ${hexToRgba(el.fill!, 0.55)} 46%,`
       + ` ${hexToRgba(el.fill!, 1)} 100%)`
 
+  if (el.shape === 'rect' || el.shape === 'ellipse') {
+    return (
+      <div
+        style={{
+          ...frameStyle(el),
+          background,
+          border: el.stroke ? `${el.strokeWidth}mm ${el.strokeStyle} ${el.stroke}` : undefined,
+          boxSizing: 'border-box',
+          borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
+        }}
+      />
+    )
+  }
+
+  const path = scalePath(SHAPE_PATHS[el.shape] ?? SHAPE_PATHS.rect, el.frame.w, el.frame.h)
+  const dashArray = el.strokeStyle === 'dashed' ? `${el.strokeWidth * 3} ${el.strokeWidth * 2}`
+    : el.strokeStyle === 'dotted' ? `${el.strokeWidth} ${el.strokeWidth * 1.6}` : undefined
+
   return (
-    <div
-      style={{
-        ...frameStyle(el),
-        background,
-        border: el.stroke ? `${el.strokeWidth}mm ${el.strokeStyle} ${el.stroke}` : undefined,
-        boxSizing: 'border-box',
-        borderRadius: el.shape === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
-      }}
-    />
+    <svg style={frameStyle(el)} viewBox={`0 0 ${el.frame.w} ${el.frame.h}`} preserveAspectRatio="none">
+      {gradient && (
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1={el.gradient === 'up' ? '1' : '0'} x2="0" y2={el.gradient === 'up' ? '0' : '1'}>
+            <stop offset="0%" stopColor={hexToRgba(el.fill!, 0)} />
+            <stop offset="46%" stopColor={hexToRgba(el.fill!, 0.55)} />
+            <stop offset="100%" stopColor={hexToRgba(el.fill!, 1)} />
+          </linearGradient>
+        </defs>
+      )}
+      <path
+        d={path}
+        fill={gradient ? `url(#${gradientId})` : fill}
+        fillRule={HOLED_SHAPES.has(el.shape) ? 'evenodd' : 'nonzero'}
+        stroke={el.stroke ?? undefined}
+        strokeWidth={el.stroke ? el.strokeWidth : undefined}
+        strokeDasharray={dashArray}
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
@@ -138,6 +176,15 @@ function PhotoView({ el, big, print, dropLabel }: {
     </div>
   )
 
+  // A mask past the two basic shapes clips through an objectBoundingBox
+  // SVG clipPath rather than CSS clip-path: path() — the latter takes its
+  // numbers as bare CSS px, and this box is sized in mm, so the path would
+  // clip to the wrong region without converting units. objectBoundingBox
+  // sidesteps that entirely: its 0..1 coordinates are fractions of the
+  // clipped element's own box, whatever that box is sized in.
+  const clipId = `photo-mask-${el.id}`
+  const needsClipPath = el.mask != null && el.mask !== 'ellipse' && el.mask !== 'rect'
+
   const picture = (
     <div
       style={{
@@ -148,8 +195,18 @@ function PhotoView({ el, big, print, dropLabel }: {
         bottom: `${bottom || pad}mm`,
         overflow: 'hidden',
         borderRadius: el.mask === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
+        clipPath: needsClipPath ? `url(#${clipId})` : undefined,
       }}
     >
+      {needsClipPath && (
+        <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden>
+          <defs>
+            <clipPath id={clipId} clipPathUnits="objectBoundingBox">
+              <path d={unitPath(SHAPE_PATHS[el.mask!] ?? SHAPE_PATHS.rect)} />
+            </clipPath>
+          </defs>
+        </svg>
+      )}
       {empty ? hatch : (
         <BookPhotoImg
           photoId={el.photoId!}
