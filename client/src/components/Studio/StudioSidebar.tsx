@@ -1,4 +1,5 @@
-import { Circle, Copy, ImageIcon, Plus, Square, Trash2, Type, ChevronUp, ChevronDown, LayoutGrid } from 'lucide-react'
+import { useState } from 'react'
+import { Circle, Copy, ImageIcon, Plus, Square, Trash2, Type, ChevronUp, ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { elementId } from './bookIds'
@@ -17,12 +18,59 @@ import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosB
  */
 
 const PANEL_SECTION: React.CSSProperties = { padding: '14px 14px 16px', borderBottom: '1px solid var(--border-secondary)' }
-const PANEL_TITLE: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-faint)', marginBottom: 10 }
+const PANEL_TITLE: React.CSSProperties = { fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-faint)' }
 
 /** "hero-story" -> "Hero story" */
 function prettyId(id: string): string {
   const words = id.replace(/^cover-/, '').split('-')
   return words.map((w, i) => (i === 0 ? w[0].toUpperCase() + w.slice(1) : w)).join(' ')
+}
+
+const SIDEBAR_COLLAPSE_KEY = 'trek-studio-sidebar-collapsed'
+
+function loadCollapsedSections(): Record<string, boolean> {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_COLLAPSE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+/**
+ * One rail section, with a clickable header that collapses its body —
+ * state remembered per browser (localStorage), not per document, since
+ * it's a per-viewer convenience (which panels you like open) rather than
+ * anything that belongs in the saved book.
+ */
+function CollapsibleSection({
+  icon, title, collapsed, onToggle, headerExtra, children,
+}: {
+  icon?: React.ReactNode
+  title: string
+  collapsed: boolean
+  onToggle: () => void
+  /** Rendered in the header, outside the toggle button — e.g. Pages' own "add spread" button, which must stay clickable independent of collapsing. */
+  headerExtra?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div style={PANEL_SECTION}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 10 }}>
+        <button
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
+        >
+          {collapsed ? <ChevronRight size={12} color="var(--text-faint)" /> : <ChevronDown size={12} color="var(--text-faint)" />}
+          {icon}
+          <span style={PANEL_TITLE}>{title}</span>
+        </button>
+        {headerExtra}
+      </div>
+      {!collapsed && children}
+    </div>
+  )
 }
 
 /** A miniature preview of what a template's frames look like, from its own `build()` output. */
@@ -46,6 +94,12 @@ export function StudioSidebar({
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
 }) {
   const { t, locale } = useTranslation()
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
+  const toggleSection = (id: string) => setCollapsedSections(prev => {
+    const next = { ...prev, [id]: !prev[id] }
+    try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)) } catch { /* private-mode/blocked storage — collapse state just won't persist */ }
+    return next
+  })
   const doc = useStudioStore(s => s.doc)
   const activeSpread = useStudioStore(s => s.activeSpread)
   const setActiveSpread = useStudioStore(s => s.setActiveSpread)
@@ -81,14 +135,17 @@ export function StudioSidebar({
   return (
     <div style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--border-secondary)', overflowY: 'auto', height: '100%' }}>
       {/* Pages */}
-      <div style={PANEL_SECTION}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <span style={PANEL_TITLE}>{t('journey.studio.pageTab')}</span>
+      <CollapsibleSection
+        title={t('journey.studio.pageTab')}
+        collapsed={!!collapsedSections.pages}
+        onToggle={() => toggleSection('pages')}
+        headerExtra={
           <button onClick={() => addSpread(activeSpread)} title={t('journey.studio.addSpread')}
             style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
             <Plus size={13} />
           </button>
-        </div>
+        }
+      >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {doc.spreads.map((sp, i) => {
             const active = i === activeSpread
@@ -120,14 +177,15 @@ export function StudioSidebar({
             )
           })}
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Layouts */}
-      <div style={PANEL_SECTION}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-          <LayoutGrid size={12} color="var(--text-faint)" />
-          <span style={PANEL_TITLE}>{t('journey.studio.layoutsTab')}</span>
-        </div>
+      <CollapsibleSection
+        icon={<LayoutGrid size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.layoutsTab')}
+        collapsed={!!collapsedSections.layouts}
+        onToggle={() => toggleSection('layouts')}
+      >
         <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
           {t('journey.studio.layoutsHint')}
         </p>
@@ -139,11 +197,14 @@ export function StudioSidebar({
             </button>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Elements */}
-      <div style={PANEL_SECTION}>
-        <div style={PANEL_TITLE}>{t('journey.studio.elementsTab')}</div>
+      <CollapsibleSection
+        title={t('journey.studio.elementsTab')}
+        collapsed={!!collapsedSections.elements}
+        onToggle={() => toggleSection('elements')}
+      >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button onClick={() => addCentered(80, 20, (id, frame) => ({
             id, frame, kind: 'text', rotation: 0, opacity: 1, locked: false,
@@ -162,11 +223,14 @@ export function StudioSidebar({
             shape: 'ellipse', fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
           }))} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
         </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Photos */}
-      <div style={PANEL_SECTION}>
-        <div style={PANEL_TITLE}>{t('journey.studio.photosTab')}</div>
+      <CollapsibleSection
+        title={t('journey.studio.photosTab')}
+        collapsed={!!collapsedSections.photos}
+        onToggle={() => toggleSection('photos')}
+      >
         {groupPhotosByDay(galleryPhotos).map(group => (
           <div key={group.dayKey} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 6 }}>
@@ -184,7 +248,7 @@ export function StudioSidebar({
             </div>
           </div>
         ))}
-      </div>
+      </CollapsibleSection>
 
       <style>{`
         .st-sb-btn { display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; border: none; background: none; border-radius: 4px; cursor: pointer; color: var(--text-faint); }

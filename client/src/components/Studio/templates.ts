@@ -235,6 +235,80 @@ export const TEMPLATES: Template[] = [
       ]
     },
   },
+  {
+    id: 'grid-3',
+    labelKey: 'journey.studio.tpl.grid3',
+    photoSlots: 3,
+    build: page => grid(page, 3, 1).map(frame => ({ kind: 'photo' as const, frame })),
+  },
+  {
+    id: 'photo-text-split',
+    labelKey: 'journey.studio.tpl.photoTextSplit',
+    photoSlots: 1,
+    // full-text's mirror image — photo on the right half, text on the left, for when the story should read first.
+    build: page => {
+      const W = page.pageWidth
+      const H = page.pageHeight
+      return [
+        { kind: 'photo', frame: { x: W - page.bleed, y: -page.bleed, w: W + page.bleed, h: H + page.bleed * 2 } },
+        { kind: 'meta', frame: { x: M, y: H * 0.28, w: W - M * 2, h: 5 } },
+        { kind: 'heading', frame: { x: M, y: H * 0.28 + 8, w: W - M * 2, h: 14 } },
+        { kind: 'body', frame: { x: M, y: H * 0.28 + 26, w: (W - M * 2) * 0.82, h: H * 0.4 } },
+      ]
+    },
+  },
+  {
+    id: 'title-page',
+    labelKey: 'journey.studio.tpl.titlePage',
+    photoSlots: 0,
+    // A chapter-divider spread — just a big centred heading and date line, no photo and no story, for marking the start of a new day or leg of the trip.
+    build: page => {
+      const W = page.pageWidth * 2
+      const H = page.pageHeight
+      return [
+        { kind: 'heading', frame: { x: W * 0.15, y: H * 0.44, w: W * 0.7, h: 20 } },
+        { kind: 'meta', frame: { x: W * 0.15, y: H * 0.44 + 24, w: W * 0.7, h: 8 } },
+      ]
+    },
+  },
+  {
+    id: 'frame-inset',
+    labelKey: 'journey.studio.tpl.frameInset',
+    photoSlots: 2,
+    // A full-bleed photo with a smaller detail shot inset over its corner — a wide scene plus a close-up.
+    build: page => {
+      const W = page.pageWidth * 2
+      const H = page.pageHeight
+      const insetW = W * 0.22
+      const insetH = insetW * 0.72
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: W + page.bleed * 2, h: H + page.bleed * 2 } },
+        { kind: 'photo', frame: { x: W - insetW - M, y: H - insetH - M, w: insetW, h: insetH } },
+        { kind: 'meta', frame: { x: M, y: H - M - 12, w: W * 0.4, h: 8 } },
+      ]
+    },
+  },
+  {
+    id: 'highlight-strip',
+    labelKey: 'journey.studio.tpl.highlightStrip',
+    photoSlots: 7,
+    // One big photo on top, a row of six small ones underneath — a day's best shots at a glance.
+    build: page => {
+      const W = page.pageWidth * 2
+      const H = page.pageHeight
+      const bigH = H * 0.66
+      const stripH = H - bigH - G - M
+      const cw = (W - M * 2 - G * 5) / 6
+      const strip = Array.from({ length: 6 }, (_, i) => ({
+        kind: 'photo' as const,
+        frame: { x: M + i * (cw + G), y: bigH + G, w: cw, h: stripH },
+      }))
+      return [
+        { kind: 'photo', frame: { x: -page.bleed, y: -page.bleed, w: W + page.bleed * 2, h: bigH + page.bleed } },
+        ...strip,
+      ]
+    },
+  },
 ]
 
 /** Layouts for a single page — the cover and the back. A spread layout applied here would put half its frames past the edge of the page. */
