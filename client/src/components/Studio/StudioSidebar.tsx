@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { Circle, Copy, ImageIcon, Plus, Square, Trash2, Type, ChevronUp, ChevronDown, ChevronRight, LayoutGrid } from 'lucide-react'
+import {
+  Award, BarChart3, Circle, Compass, Copy, Flag, ImageIcon, ListChecks, Map as MapIconLucide, Plus, Sparkles,
+  Square, Trash2, Type, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
+} from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { elementId } from './bookIds'
@@ -10,7 +13,7 @@ import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosB
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
- * photo-frame element, and the journey's own photos to drag onto the
+ * photo-frame/travel element, and the journey's own photos to drag onto the
  * canvas. Simpler than upstream's Studio (single scrollable rail with
  * sections, not separate tabs; no journal-entry browser yet, and the
  * layout gallery is the 12 programmatic templates from templates.ts rather
@@ -90,8 +93,14 @@ function LayoutSwatch({ template, single, page }: { template: Template; single: 
 
 export function StudioSidebar({
   galleryPhotos,
+  journeyStats,
+  onGenerateMap,
 }: {
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
+  /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. */
+  journeyStats?: { days: number; entries: number; photos: number; places: number }
+  /** Renders a route-map raster image (gpxDrawing's canvas renderer, the same one auto-layout's route spread already uses) for a freshly-added map element — see BookMapElement's own comment on why this fork bakes a snapshot rather than rendering a live map. Omitted where the caller has no track/entry data to draw from (map elements can still be added, just start blank). */
+  onGenerateMap?: () => Promise<string | null>
 }) {
   const { t, locale } = useTranslation()
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
@@ -109,6 +118,7 @@ export function StudioSidebar({
   const moveSpread = useStudioStore(s => s.moveSpread)
   const canEditSpread = useStudioStore(s => s.canEditSpread)
   const addElement = useStudioStore(s => s.addElement)
+  const updateElement = useStudioStore(s => s.updateElement)
   const commit = useStudioStore(s => s.commit)
 
   if (!doc) return null
@@ -117,6 +127,18 @@ export function StudioSidebar({
     const x = (doc.page.pageWidth - w) / 2
     const y = (doc.page.pageHeight - h) / 2
     addElement(activeSpread, make(elementId('el'), { x, y, w, h }))
+  }
+
+  const addMap = async () => {
+    const w = 100
+    const h = 70
+    const id = elementId('el')
+    const x = (doc.page.pageWidth - w) / 2
+    const y = (doc.page.pageHeight - h) / 2
+    addElement(activeSpread, { id, frame: { x, y, w, h }, kind: 'map', rotation: 0, opacity: 1, locked: false, src: null, fit: 'cover', radius: 0 })
+    if (!onGenerateMap) return
+    const src = await onGenerateMap().catch(() => null)
+    if (src) updateElement(activeSpread, id, { src })
   }
 
   const spread = doc.spreads[activeSpread]
@@ -227,6 +249,43 @@ export function StudioSidebar({
             id, frame, kind: 'shape', rotation: 0, opacity: 1, locked: false,
             shape: 'ellipse', fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
           }))} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
+        </div>
+      </CollapsibleSection>
+
+      {/* Travel */}
+      <CollapsibleSection
+        icon={<Compass size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.travelTab')}
+        collapsed={!!collapsedSections.travel}
+        onToggle={() => toggleSection('travel')}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
+          <button onClick={() => addCentered(100, 40, (id, frame) => ({
+            id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
+            font: 'sans', color: '#1a1a1a', accent: '#111111',
+            metrics: ['days', 'photos', 'places'], layout: 'row', showIcons: true, units: 'metric',
+            values: journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {},
+          }))} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
+          <button onClick={() => addCentered(80, 50, (id, frame) => ({
+            id, frame, kind: 'countries', rotation: 0, opacity: 1, locked: false,
+            font: 'sans', color: '#1a1a1a', accent: '#111111',
+            codes: [], names: [], layout: 'list', showFlag: true, showName: true, align: 'center',
+          }))} className="st-sb-add"><Flag size={15} /> {t('journey.studio.addCountries')}</button>
+          <button onClick={() => addCentered(40, 24, (id, frame) => ({
+            id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
+            font: 'sans', color: '#1a1a1a', accent: '#111111',
+            variant: 'date', text: '', sub: '', code: null, style: 'plain',
+          }))} className="st-sb-add"><Award size={15} /> {t('journey.studio.addBadge')}</button>
+          <button onClick={() => addCentered(20, 20, (id, frame) => ({
+            id, frame, kind: 'icon', rotation: 0, opacity: 1, locked: false,
+            name: 'Compass', color: '#111827', lineWidth: 2,
+          }))} className="st-sb-add"><Sparkles size={15} /> {t('journey.studio.addIcon')}</button>
+          <button onClick={() => addCentered(90, 60, (id, frame) => ({
+            id, frame, kind: 'list', rotation: 0, opacity: 1, locked: false,
+            font: 'sans', color: '#1a1a1a', accent: '#111111',
+            items: [], layout: 'columns', showMarks: true, proLabel: 'Pros', conLabel: 'Cons',
+          }))} className="st-sb-add"><ListChecks size={15} /> {t('journey.studio.addList')}</button>
         </div>
       </CollapsibleSection>
 

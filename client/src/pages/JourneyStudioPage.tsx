@@ -18,14 +18,13 @@ import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
-import { DEFAULT_TILE_URL, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
+import { DEFAULT_TILE_URL, buildRouteMapImage, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
 /**
- * TREK Studio — Phase 2 (editing canvas) + Phase 3 (auto layout from the
- * journal) + Phase 4 (print export). The travel-specific elements (route
- * maps, country lists, stat badges) and real-time multi-cursor presence
- * are the remaining, explicitly deferred pieces — see autoLayout.ts for
+ * TREK Studio — editing canvas, auto layout from the journal, travel
+ * elements (map/stats/countries/badge/icon/list — see TravelElements.tsx),
+ * print export, and real-time multi-cursor presence. See autoLayout.ts for
  * why "the whole book" is built from the 12 programmatic templates rather
  * than upstream's hand-drawn set.
  */
@@ -142,6 +141,16 @@ export default function JourneyStudioPage() {
     (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null, taken_at: p.taken_at, created_at: p.created_at })),
     [current])
 
+  // Reuses gpxDrawing's own canvas map renderer — the same one auto-layout's
+  // route spread already draws with — rather than a second map-rendering
+  // path, for a manually-added `map` travel element (see BookMapElement's
+  // own comment on why this fork bakes a snapshot instead of a live map).
+  const generateMapImage = async (): Promise<string | null> => {
+    if (!current) return null
+    const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
+    return buildRouteMapImage(entries, gpxTracks, mapTileUrl || DEFAULT_TILE_URL).catch(() => null)
+  }
+
   const autoInput: AutoInput | null = useMemo(() => {
     if (!current || !doc) return null
     const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
@@ -160,6 +169,7 @@ export default function JourneyStudioPage() {
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
         photos: (e.photos || []).map(p => ({ photoId: p.photo_id })),
+        prosCons: e.pros_cons ?? null,
       })),
       page: doc.page,
       journeyStats: {
@@ -401,7 +411,7 @@ export default function JourneyStudioPage() {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <StudioSidebar galleryPhotos={galleryPhotos} />
+          <StudioSidebar galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>

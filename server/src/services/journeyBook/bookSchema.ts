@@ -5,14 +5,15 @@ import { z } from 'zod';
  * it is edited or rendered.
  *
  * Ported from liketrek/trek's shared/src/book/book.schema.ts (same AGPLv3
- * license), trimmed to what Phase 1 needs: `photo`, `text` and a small
- * `shape` subset (rect/ellipse only — the rest of the decorative shape
- * library, plus `stats`/`countries`/`badge`/`icon`/`list`, land in later
- * phases). `image` (a self-contained data: URI, used for auto-layout's
- * route map/elevation profile) was added outside that plan — see its own
- * comment for why it doesn't need upstream's live `map` element kind.
- * Extending the discriminated union later is additive and does not require
- * a document migration — `version` stays 1.
+ * license). `photo`, `text` and a small `shape` subset (rect/ellipse only —
+ * the rest of the decorative shape library lands in a later phase) came
+ * first; `image` (a self-contained data: URI, used for auto-layout's route
+ * map/elevation profile) was added outside that plan. The travel-specific
+ * kinds — `stats`, `countries`, `badge`, `icon`, `list`, `map` — are ported
+ * here too, each simplified where upstream's own version depends on assets
+ * or live rendering this fork doesn't carry (see `bookMapElementSchema`'s
+ * own comment for the biggest of those). Extending the discriminated union
+ * is additive and does not require a document migration — `version` stays 1.
  *
  * Two decisions carry the rest of the format (kept from upstream):
  *
@@ -128,17 +129,162 @@ export const bookImageElementSchema = z.object({
   radius: mm.default(0),
 });
 
+/**
+ * Fields several travel elements share — a stat, a country list and a
+ * pros/cons list are all "typography plus one accent colour" rather than a
+ * bespoke style system each. Mirrors upstream's own `typeset` mixin, minus
+ * the `weight`/`textScale` fields this fork doesn't expose a control for
+ * yet (text elements don't either — see bookTextElementSchema's own size).
+ */
+const typeset = {
+  font: z.enum(BOOK_FONTS_IDS).default('sans'),
+  color: hex.default('#1a1a1a'),
+  /** The one colour that carries emphasis — the figure in a stat, the fill of a chip. */
+  accent: hex.default('#111111'),
+};
+
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
+export type BookMetric = (typeof BOOK_METRICS)[number];
+
+export const bookStatsElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('stats'),
+  /** Which figures, in the order they are drawn. */
+  metrics: z.array(z.enum(BOOK_METRICS)).max(7).default(['distance', 'days', 'photos']),
+  layout: z.enum(['grid', 'row', 'column']).default('grid'),
+  showIcons: z.boolean().default(true),
+  units: z.enum(['metric', 'imperial']).default('metric'),
+  /**
+   * Metric to value, baked in at placement time — same reasoning as
+   * `bookImageElement`'s self-contained `src`: a page whose figures update
+   * from live trip data every time someone reopens the book is a page that
+   * silently disagrees with whatever was actually printed.
+   *
+   * Filtered rather than typed as an exhaustive record: a stray key from a
+   * future metric this build doesn't know about would otherwise fail the
+   * whole element instead of just being dropped.
+   */
+  values: z.record(z.string(), z.number().finite()).default({})
+    .transform(v => Object.fromEntries(
+      Object.entries(v).filter(([k]) => (BOOK_METRICS as readonly string[]).includes(k)),
+    )),
+});
+
+export const MAX_BOOK_COUNTRIES = 60;
+export const MAX_COUNTRY_NAME = 80;
+
+export const bookCountriesElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('countries'),
+  /** ISO-3166-1 alpha-2, in visit order. */
+  codes: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
+  /** Names as resolved when placed (the client's own Intl.DisplayNames), so the page does not depend on a lookup at render time. */
+  names: z.array(z.string().max(MAX_COUNTRY_NAME)).max(MAX_BOOK_COUNTRIES).default([]),
+  layout: z.enum(['list', 'grid', 'column']).default('list'),
+  showFlag: z.boolean().default(true),
+  showName: z.boolean().default(true),
+  align: z.enum(['left', 'center', 'right']).default('center'),
+});
+
+export const BOOK_BADGES = [
+  'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude', 'mood',
+] as const;
+export type BookBadgeVariant = (typeof BOOK_BADGES)[number];
+
+export const bookBadgeElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('badge'),
+  variant: z.enum(BOOK_BADGES).default('date'),
+  /** The resolved value — "13", "48°51'N 2°21'E", "ICELAND". */
+  text: z.string().max(200).default(''),
+  /** The line under it — a month, a place, a unit. */
+  sub: z.string().max(200).default(''),
+  /** ISO-3166-1 alpha-2 for a flag/country badge, or the journal's own mood/weather key. */
+  code: z.string().max(24).nullable().default(null),
+  style: z.enum(['plain', 'chip', 'outline', 'stacked']).default('plain'),
+});
+
+export const bookIconElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('icon'),
+  /** A lucide export name, PascalCase — "Compass", "Plane", "MountainSnow". */
+  name: z.string().regex(/^[A-Z][A-Za-z0-9]*$/, 'expected a lucide icon name').max(60),
+  color: hex.default('#111827'),
+  /** Against lucide's own 24-unit grid, not millimetres — an icon's weight is not a length. */
+  lineWidth: z.number().min(0.25).max(4).default(2),
+});
+
+export const MAX_LIST_ITEMS = 60;
+
+/**
+ * A journal entry's pros and cons, set as a page — two lists is exactly
+ * what a `text` element cannot express: run together as a paragraph they
+ * lose the pairing, and run as one column they lose which side each line
+ * is on.
+ */
+export const bookListElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('list'),
+  items: z
+    .array(z.object({
+      text: z.string().max(400),
+      tone: z.enum(['pro', 'con', 'plain']).default('plain'),
+    }))
+    .max(MAX_LIST_ITEMS)
+    .default([]),
+  layout: z.enum(['columns', 'stacked']).default('columns'),
+  showMarks: z.boolean().default(true),
+  proLabel: z.string().max(80).default(''),
+  conLabel: z.string().max(80).default(''),
+});
+
+/**
+ * Simplified from upstream's live vector/raster map (mapTiles.ts,
+ * mapSources.ts, countryShapes.ts — pan/zoom state, a bundled country-outline
+ * dataset, on-demand tile fetches): a pre-rendered raster snapshot, baked in
+ * once (and re-bakeable on demand) the same way auto-layout's route-map
+ * image already is. The print export's sandboxed iframe runs no script and
+ * fetches nothing at export time regardless (see printSheets.ts), so a
+ * "live" map element would still have to fall back to a static image the
+ * moment it's printed — this just skips straight to that, and reuses
+ * gpxDrawing's already-tested, rate-limited tile renderer instead of a
+ * second one.
+ */
+export const bookMapElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('map'),
+  src: z.string().max(MAX_IMAGE_SRC_LENGTH).regex(/^data:image\/(png|jpeg|svg\+xml);base64,/, 'expected a data: URI').nullable().default(null),
+  fit: z.enum(['cover', 'contain']).default('cover'),
+  radius: mm.default(0),
+});
+
 export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
   bookTextElementSchema,
   bookShapeElementSchema,
   bookImageElementSchema,
+  bookStatsElementSchema,
+  bookCountriesElementSchema,
+  bookBadgeElementSchema,
+  bookIconElementSchema,
+  bookListElementSchema,
+  bookMapElementSchema,
 ]);
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
 export type BookTextElement = z.infer<typeof bookTextElementSchema>;
 export type BookShapeElement = z.infer<typeof bookShapeElementSchema>;
 export type BookImageElement = z.infer<typeof bookImageElementSchema>;
+export type BookStatsElement = z.infer<typeof bookStatsElementSchema>;
+export type BookCountriesElement = z.infer<typeof bookCountriesElementSchema>;
+export type BookBadgeElement = z.infer<typeof bookBadgeElementSchema>;
+export type BookIconElement = z.infer<typeof bookIconElementSchema>;
+export type BookListElement = z.infer<typeof bookListElementSchema>;
+export type BookMapElement = z.infer<typeof bookMapElementSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),

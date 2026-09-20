@@ -1,4 +1,4 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-023
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-030
 import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -329,6 +329,54 @@ describe('buildBook — every auto-generated entry spread stands on its own sing
           }
         }
       }
+    }
+  })
+})
+
+describe('buildBook — pros/cons spread', () => {
+  it('FE-AUTOLAYOUT-026: an entry with both pros and cons gets its own spread right after it, with a list element on each page', () => {
+    const doc = buildBook(input({
+      entries: [entry({ id: 1, prosCons: { pros: ['Great views'], cons: ['Rained all day'] } })],
+    }))
+    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
+    const pcSpread = doc.spreads[entryIdx + 1]
+    expect(pcSpread.entryId).toBeNull()
+    const lists = pcSpread.elements.filter(e => e.kind === 'list')
+    expect(lists).toHaveLength(2)
+  })
+
+  it('FE-AUTOLAYOUT-027: an entry with only pros gets one list element, on the left page, nothing on the right', () => {
+    const doc = buildBook(input({
+      entries: [entry({ id: 1, prosCons: { pros: ['Great views'], cons: [] } })],
+    }))
+    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
+    const pcSpread = doc.spreads[entryIdx + 1]
+    const lists = pcSpread.elements.filter(e => e.kind === 'list')
+    expect(lists).toHaveLength(1)
+    expect(lists[0].frame.x).toBeLessThan(PAGE.pageWidth)
+  })
+
+  it('FE-AUTOLAYOUT-028: an entry with no prosCons at all gets no extra spread', () => {
+    const withPc = buildBook(input({ entries: [entry({ id: 1 })] })).spreads.length
+    const without = buildBook(input({ entries: [entry({ id: 1, prosCons: undefined })] })).spreads.length
+    expect(withPc).toBe(without)
+  })
+
+  it('FE-AUTOLAYOUT-029: an entry with prosCons present but both arrays empty gets no extra spread (blank strings don\'t count either)', () => {
+    const without = buildBook(input({ entries: [entry({ id: 1 })] })).spreads.length
+    const withEmpty = buildBook(input({ entries: [entry({ id: 1, prosCons: { pros: ['  '], cons: [] } })] })).spreads.length
+    expect(withEmpty).toBe(without)
+  })
+
+  it('FE-AUTOLAYOUT-030: neither list element in a pros/cons spread straddles the gutter', () => {
+    const doc = buildBook(input({
+      entries: [entry({ id: 1, prosCons: { pros: ['Great views', 'Friendly locals'], cons: ['Rained all day', 'Expensive food'] } })],
+    }))
+    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
+    const pcSpread = doc.spreads[entryIdx + 1]
+    for (const el of pcSpread.elements) {
+      const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
+      expect(crosses, el.kind).toBe(false)
     }
   })
 })

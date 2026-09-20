@@ -5,8 +5,7 @@
  *
  * No zod here: the server is the validation boundary (it normalizes on every
  * read and write), so the client only needs the shapes to type against.
- * Keep this in sync with the server schema by hand — see the comment there
- * for why it's trimmed to `photo`/`text`/`shape(rect|ellipse)` in Phase 1.
+ * Keep this in sync with the server schema by hand.
  */
 
 export type BookShapeId = 'rect' | 'ellipse';
@@ -90,7 +89,90 @@ export interface BookImageElement extends BookElementBase {
   radius: number;
 }
 
-export type BookElement = BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement;
+/** Fields several travel elements share — see the server schema's own comment on `typeset`. */
+interface BookTypeset {
+  font: BookFontFamily;
+  color: string;
+  accent: string;
+}
+
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
+export type BookMetric = (typeof BOOK_METRICS)[number];
+
+export interface BookStatsElement extends BookElementBase, BookTypeset {
+  kind: 'stats';
+  metrics: BookMetric[];
+  layout: 'grid' | 'row' | 'column';
+  showIcons: boolean;
+  units: 'metric' | 'imperial';
+  values: Partial<Record<BookMetric, number>>;
+}
+
+export interface BookCountriesElement extends BookElementBase, BookTypeset {
+  kind: 'countries';
+  /** ISO-3166-1 alpha-2, in visit order. */
+  codes: string[];
+  /** Names as resolved when placed (Intl.DisplayNames) — the page does not depend on a lookup at render time. */
+  names: string[];
+  layout: 'list' | 'grid' | 'column';
+  showFlag: boolean;
+  showName: boolean;
+  align: 'left' | 'center' | 'right';
+}
+
+export const BOOK_BADGES = [
+  'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude', 'mood',
+] as const;
+export type BookBadgeVariant = (typeof BOOK_BADGES)[number];
+
+export interface BookBadgeElement extends BookElementBase, BookTypeset {
+  kind: 'badge';
+  variant: BookBadgeVariant;
+  text: string;
+  sub: string;
+  code: string | null;
+  style: 'plain' | 'chip' | 'outline' | 'stacked';
+}
+
+export interface BookIconElement extends BookElementBase {
+  kind: 'icon';
+  /** A lucide export name, PascalCase — "Compass", "Plane", "MountainSnow". */
+  name: string;
+  color: string;
+  lineWidth: number;
+}
+
+export interface BookListItem {
+  text: string;
+  tone: 'pro' | 'con' | 'plain';
+}
+
+export interface BookListElement extends BookElementBase, BookTypeset {
+  kind: 'list';
+  items: BookListItem[];
+  layout: 'columns' | 'stacked';
+  showMarks: boolean;
+  proLabel: string;
+  conLabel: string;
+}
+
+/**
+ * A pre-rendered raster snapshot rather than upstream's live vector/tile
+ * map — see the server schema's own comment for why. `src` is null right
+ * after the element is added and before the first render finishes (the
+ * inspector's "Regenerate map" is what fills it), the one travel element
+ * kind that can legitimately be empty on the page for a moment.
+ */
+export interface BookMapElement extends BookElementBase {
+  kind: 'map';
+  src: string | null;
+  fit: 'cover' | 'contain';
+  radius: number;
+}
+
+export type BookElement =
+  | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
+  | BookStatsElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement;
 
 export interface BookSpread {
   id: string;

@@ -8,19 +8,19 @@ import type { RouteImages } from './buildRouteImages'
  *
  * This is a from-scratch, deliberately narrower reimplementation of
  * liketrek/trek's autoLayout.ts (1650+ lines) — that version scores entries
- * against six hand-drawn reference templates *and* a travel-specific
- * element vocabulary (route maps, country lists, stat badges, flags) that
- * this fork hasn't ported yet (see the schema's comment on why `map`/
- * `stats`/`countries`/`badge`/`icon`/`list` element kinds are deferred).
+ * against six hand-drawn reference templates, a vocabulary this fork's own
+ * 12 programmatic templates (templates.ts) stand in for.
  *
  * What's kept, and why it's still real auto-layout rather than a stub:
  * every entry's actual photos, title, story and date land on the page
  * through the SAME template-and-reflow mechanism `templates.ts` already
  * gives "This spread" — an entry's content is seeded as plain elements,
  * scored against the 12 programmatic spread templates by photo count and
- * story presence, and poured into the best fit via `applyTemplate`. A
- * follow-up phase can add the hand-drawn templates and travel elements on
- * top of this without changing the shape of `buildBook`.
+ * story presence, and poured into the best fit via `applyTemplate`. Pros
+ * and cons and the day's route get their own dedicated spreads
+ * (`prosConsSpread`, `routeSpread`) rather than being squeezed into a
+ * template's fixed slots, the same reasoning either way: a travel element
+ * has its own shape a photo/heading/body template was never drawn for.
  */
 
 export interface AutoPhoto {
@@ -34,6 +34,8 @@ export interface AutoEntry {
   location: string | null
   date: string | null
   photos: AutoPhoto[]
+  /** Omitted or both-empty entries just don't get a pros/cons spread — additive, not a new requirement on every caller. */
+  prosCons?: { pros: string[]; cons: string[] } | null
 }
 
 export interface AutoInput {
@@ -193,6 +195,52 @@ function entrySpread(entry: AutoEntry, page: BookPageSetup, locale: string, seed
   const raw = seedSpread(elementId('sp'), 'inner', elements, entry.id)
   const laidOut = applyTemplate(raw, tpl, page)
   return tpl.id === 'hero-story' ? tightenHeroStory(laidOut, page) : laidOut
+}
+
+/**
+ * A journal entry's pros and cons, as their own spread right after the
+ * entry's own. Two lists is exactly what a text element cannot express —
+ * run together as a paragraph they lose the pairing — hence the dedicated
+ * `list` element kind (see its schema comment) rather than folding them
+ * into `entrySpread`'s own text elements.
+ *
+ * Pros on the left page, cons on the right — never both on the same page,
+ * the same reason `routeSpread` splits its map and label: a spread built
+ * for uncut reading is still exported one leaf at a time for a real print
+ * vendor, so nothing here may depend on the facing page. An entry with
+ * only one side filled just leaves the other page blank rather than
+ * stretching one list across the gutter to fill it.
+ */
+function prosConsSpread(prosCons: { pros: string[]; cons: string[] }, page: BookPageSetup): BookSpread | null {
+  const pros = prosCons.pros.map(s => s.trim()).filter(Boolean)
+  const cons = prosCons.cons.map(s => s.trim()).filter(Boolean)
+  if (!pros.length && !cons.length) return null
+
+  const W = page.pageWidth
+  const H = page.pageHeight
+  const M = 20
+  const elements: BookElement[] = []
+
+  const column = (items: string[], x: number, heading: string, tone: 'pro' | 'con', accent: string) => {
+    if (!items.length) return
+    elements.push({
+      ...textEl(elementId('t'), heading, 15),
+      frame: { x, y: M, w: W - M * 2, h: 10 },
+      weight: 700,
+      color: accent,
+    })
+    elements.push({
+      id: elementId('el'), kind: 'list', frame: { x, y: M + 14, w: W - M * 2, h: H - M * 2 - 14 },
+      rotation: 0, opacity: 1, locked: false,
+      font: 'sans', color: '#1a1a1a', accent,
+      items: items.map(text => ({ text, tone })), layout: 'stacked', showMarks: true, proLabel: '', conLabel: '',
+    })
+  }
+
+  column(pros, M, 'Pros', 'pro', '#16a34a')
+  column(cons, W + M, 'Cons', 'con', '#dc2626')
+
+  return seedSpread(elementId('sp'), 'inner', elements)
 }
 
 /**
@@ -372,6 +420,10 @@ export function buildBook(input: AutoInput): BookDocument {
       spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
     }
     spreads.push(entrySpread(entry, input.page, input.locale, i))
+    if (entry.prosCons) {
+      const pc = prosConsSpread(entry.prosCons, input.page)
+      if (pc) spreads.push(pc)
+    }
   })
   spreads.push(summarySpread(input, dateRange))
 

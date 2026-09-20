@@ -3,12 +3,14 @@ import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, Bo
 import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
 import { folio } from './bookSheets'
+import { BadgeView, CountriesView, IconView, ListView, MapView, StatsView } from './TravelElements'
 
 /**
- * One spread, drawn. Ported (Phase 1 subset: photo/text/shape only — no
- * icon/map/stats/countries/badge/list yet, those land with the travel
- * elements in a later phase) from liketrek/trek's
- * client/src/components/Studio/SpreadView.tsx (same AGPLv3 license).
+ * One spread, drawn. Ported from liketrek/trek's
+ * client/src/components/Studio/SpreadView.tsx (same AGPLv3 license) —
+ * `ElementView` dispatches photo/text/shape/image locally and the
+ * travel-specific kinds (map/stats/countries/badge/icon/list) out to
+ * TravelElements.tsx.
  *
  * This component is the whole reason Studio renders in DOM rather than on a
  * canvas: the *same* tree the editor draws is what the print renderer will
@@ -22,7 +24,8 @@ import { folio } from './bookSheets'
  * model the printer gets at 1:1.
  */
 
-function frameStyle(el: BookElement): CSSProperties {
+/** Exported for TravelElements.tsx's renderers, which need the same absolute-mm placement every other element kind gets. */
+export function frameStyle(el: BookElement): CSSProperties {
   return {
     position: 'absolute',
     left: `${el.frame.x}mm`,
@@ -208,6 +211,12 @@ export function ElementView({
 
   if (el.kind === 'shape') return <ShapeView el={el} />
   if (el.kind === 'image') return <ImageView el={el} />
+  if (el.kind === 'map') return <MapView el={el} />
+  if (el.kind === 'stats') return <StatsView el={el} />
+  if (el.kind === 'countries') return <CountriesView el={el} />
+  if (el.kind === 'badge') return <BadgeView el={el} />
+  if (el.kind === 'icon') return <IconView el={el} />
+  if (el.kind === 'list') return <ListView el={el} />
 
   return (
     <div

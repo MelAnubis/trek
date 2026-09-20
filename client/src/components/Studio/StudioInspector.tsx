@@ -1,9 +1,15 @@
-import { Lock, Unlock } from 'lucide-react'
+import { Lock, Plus, Trash2, Unlock } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
 import ToggleSwitch from '../Settings/ToggleSwitch'
-import type { BookDocument, BookElement, BookFontFamily, BookPhotoElement, BookShapeId } from '../../types/book'
+import { flagEmoji } from './countryFlags'
+import {
+  BOOK_BADGES, BOOK_METRICS, type BookBadgeElement, type BookBadgeVariant, type BookCountriesElement,
+  type BookDocument, type BookElement, type BookFontFamily, type BookIconElement, type BookListElement,
+  type BookMapElement, type BookMetric, type BookPhotoElement, type BookShapeId, type BookStatsElement,
+} from '../../types/book'
 
 /**
  * The right panel: properties for whatever is selected. Simpler than
@@ -184,6 +190,261 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
           )}
         </>
       )}
+
+      {el.kind === 'map' && <MapFields el={el} patch={patch} />}
+      {el.kind === 'stats' && <StatsFields el={el} patch={patch} />}
+      {el.kind === 'countries' && <CountriesFields el={el as BookCountriesElement} patch={patch} />}
+      {el.kind === 'badge' && <BadgeFields el={el} patch={patch} />}
+      {el.kind === 'icon' && <IconFields el={el} patch={patch} />}
+      {el.kind === 'list' && <ListFields el={el} patch={patch} />}
     </div>
+  )
+}
+
+type Patch = (p: Partial<BookElement>) => void
+
+function MapFields({ el, patch }: { el: BookMapElement; patch: Patch }) {
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Map</span>
+        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '2px 0 0' }}>
+          {el.src ? 'Generated from the Travel panel.' : 'No map yet — add one from the Travel panel, then drop it here.'}
+        </p>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Fit</span>
+        <select style={INPUT} value={el.fit} onChange={e => patch({ fit: e.target.value as 'cover' | 'contain' })}>
+          <option value="cover">Cover</option>
+          <option value="contain">Contain</option>
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Corner radius</span>
+        <input type="number" min={0} style={INPUT} value={el.radius} onChange={e => patch({ radius: Number(e.target.value) || 0 })} />
+      </div>
+    </>
+  )
+}
+
+function StatsFields({ el, patch }: { el: BookStatsElement; patch: Patch }) {
+  const toggleMetric = (m: BookMetric) => {
+    const on = el.metrics.includes(m)
+    const metrics = on ? el.metrics.filter(x => x !== m) : [...el.metrics, m].slice(0, 7)
+    patch({ metrics })
+  }
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Metrics (up to 7)</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+          {BOOK_METRICS.map(m => (
+            <button key={m} onClick={() => toggleMetric(m)} style={{
+              padding: '3px 8px', borderRadius: 999, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
+              border: el.metrics.includes(m) ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+              background: el.metrics.includes(m) ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
+            }}>
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+      {el.metrics.map(m => (
+        <div key={m} style={FIELD}>
+          <span style={LABEL}>{m} value {m === 'distance' || m === 'furthest' ? '(metres)' : ''}</span>
+          <input type="number" style={INPUT} value={el.values[m] ?? 0}
+            onChange={e => patch({ values: { ...el.values, [m]: Number(e.target.value) || 0 } })} />
+        </div>
+      ))}
+      <div style={FIELD}>
+        <span style={LABEL}>Layout</span>
+        <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookStatsElement['layout'] })}>
+          {['grid', 'row', 'column'].map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Units</span>
+        <select style={INPUT} value={el.units} onChange={e => patch({ units: e.target.value as BookStatsElement['units'] })}>
+          <option value="metric">Metric</option>
+          <option value="imperial">Imperial</option>
+        </select>
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Icons</span>
+        <ToggleSwitch on={el.showIcons} onToggle={() => patch({ showIcons: !el.showIcons })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Accent color</span>
+        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+      </div>
+    </>
+  )
+}
+
+function CountriesFields({ el, patch }: { el: BookCountriesElement; patch: Patch }) {
+  const [draft, setDraft] = useState('')
+
+  const addCountry = () => {
+    const code = draft.trim().toUpperCase()
+    if (!/^[A-Z]{2}$/.test(code) || el.codes.includes(code)) { setDraft(''); return }
+    let name = code
+    try { name = new Intl.DisplayNames(['en'], { type: 'region' }).of(code) || code } catch { /* Intl.DisplayNames unavailable — keep the code as the name */ }
+    patch({ codes: [...el.codes, code], names: [...el.names, name] })
+    setDraft('')
+  }
+  const removeAt = (i: number) => patch({ codes: el.codes.filter((_, j) => j !== i), names: el.names.filter((_, j) => j !== i) })
+
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Countries</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 4 }}>
+          {el.codes.map((code, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>{flagEmoji(code)}</span>
+              <span style={{ flex: 1, fontSize: 12, color: 'var(--text-primary)' }}>{el.names[i] ?? code}</span>
+              <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+          <input style={{ ...INPUT, textTransform: 'uppercase' }} maxLength={2} placeholder="IS" value={draft}
+            onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && addCountry()} />
+          <button onClick={addCountry} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <Plus size={14} />
+          </button>
+        </div>
+        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '4px 0 0' }}>ISO country code, e.g. IS for Iceland</p>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Layout</span>
+        <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookCountriesElement['layout'] })}>
+          {['list', 'grid', 'column'].map(l => <option key={l} value={l}>{l}</option>)}
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Align</span>
+        <select style={INPUT} value={el.align} onChange={e => patch({ align: e.target.value as BookCountriesElement['align'] })}>
+          {['left', 'center', 'right'].map(a => <option key={a} value={a}>{a}</option>)}
+        </select>
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Flags</span>
+        <ToggleSwitch on={el.showFlag} onToggle={() => patch({ showFlag: !el.showFlag })} />
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Names</span>
+        <ToggleSwitch on={el.showName} onToggle={() => patch({ showName: !el.showName })} />
+      </div>
+    </>
+  )
+}
+
+function BadgeFields({ el, patch }: { el: BookBadgeElement; patch: Patch }) {
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Variant</span>
+        <select style={INPUT} value={el.variant} onChange={e => patch({ variant: e.target.value as BookBadgeVariant })}>
+          {BOOK_BADGES.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Text</span>
+        <input style={INPUT} value={el.text} onChange={e => patch({ text: e.target.value })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Sub-line</span>
+        <input style={INPUT} value={el.sub} onChange={e => patch({ sub: e.target.value })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Style</span>
+        <select style={INPUT} value={el.style} onChange={e => patch({ style: e.target.value as BookBadgeElement['style'] })}>
+          {['plain', 'chip', 'outline', 'stacked'].map(s => <option key={s} value={s}>{s}</option>)}
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Accent color</span>
+        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+      </div>
+    </>
+  )
+}
+
+function IconFields({ el, patch }: { el: BookIconElement; patch: Patch }) {
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Icon name (lucide, PascalCase)</span>
+        <input style={INPUT} value={el.name} placeholder="Compass" onChange={e => patch({ name: e.target.value })} />
+        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '4px 0 0' }}>See lucide.dev/icons for names — Compass, Plane, MountainSnow…</p>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Color</span>
+        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.color} onChange={e => patch({ color: e.target.value })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Line weight</span>
+        <input type="number" min={0.25} max={4} step={0.25} style={INPUT} value={el.lineWidth} onChange={e => patch({ lineWidth: Number(e.target.value) || 2 })} />
+      </div>
+    </>
+  )
+}
+
+function ListFields({ el, patch }: { el: BookListElement; patch: Patch }) {
+  const setItem = (i: number, p: Partial<BookListElement['items'][number]>) =>
+    patch({ items: el.items.map((it, j) => (j === i ? { ...it, ...p } : it)) })
+  const removeItem = (i: number) => patch({ items: el.items.filter((_, j) => j !== i) })
+  const addItem = () => patch({ items: [...el.items, { text: '', tone: 'pro' }] })
+
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Items</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          {el.items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+              <select style={{ ...INPUT, width: 64, flexShrink: 0 }} value={it.tone} onChange={e => setItem(i, { tone: e.target.value as 'pro' | 'con' | 'plain' })}>
+                <option value="pro">+</option>
+                <option value="con">–</option>
+                <option value="plain">•</option>
+              </select>
+              <input style={INPUT} value={it.text} onChange={e => setItem(i, { text: e.target.value })} />
+              <button onClick={() => removeItem(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <button onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)' }}>
+          <Plus size={12} /> Add item
+        </button>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Layout</span>
+        <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookListElement['layout'] })}>
+          <option value="columns">Columns (pro / con)</option>
+          <option value="stacked">Stacked</option>
+        </select>
+      </div>
+      {el.layout === 'columns' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+          <div style={FIELD}>
+            <span style={LABEL}>Pro label</span>
+            <input style={INPUT} value={el.proLabel} onChange={e => patch({ proLabel: e.target.value })} />
+          </div>
+          <div style={FIELD}>
+            <span style={LABEL}>Con label</span>
+            <input style={INPUT} value={el.conLabel} onChange={e => patch({ conLabel: e.target.value })} />
+          </div>
+        </div>
+      )}
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Marks</span>
+        <ToggleSwitch on={el.showMarks} onToggle={() => patch({ showMarks: !el.showMarks })} />
+      </div>
+    </>
   )
 }
