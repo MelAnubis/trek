@@ -28,6 +28,12 @@ interface StudioState {
   future: BookDocument[]
   /** The document as it was when the current gesture started. */
   gestureBase: BookDocument | null
+  /** Elements most recently copied, held in memory only — not part of the document, not undoable. */
+  clipboard: BookElement[]
+  /** Which spread `clipboard` was copied from, so pasting back onto it can offset instead of exactly overlaying. */
+  clipboardSource: number | null
+  /** How many times `clipboard` has been pasted onto `clipboardSource` in a row, so repeated same-spread pastes cascade rather than stack. */
+  clipboardPasteCount: number
 
   load: (doc: BookDocument) => void
   /** Back to the empty pre-load state — switching to a different journey's book, whose own load hasn't arrived yet, must not leave the previous journey's document on screen or open to edits. */
@@ -51,6 +57,10 @@ interface StudioState {
   removeElements: (spreadIndex: number, ids: string[]) => void
   duplicate: (spreadIndex: number, ids: string[]) => void
   raise: (spreadIndex: number, id: string, to: 'front' | 'back' | 'up' | 'down') => void
+  /** Snapshot the selected elements into the in-memory clipboard. */
+  copy: (spreadIndex: number, ids: string[]) => void
+  /** Paste the clipboard into a spread: offset when pasting back onto its source, exact position otherwise (placing a repeated element in the same spot across pages). */
+  paste: (spreadIndex: number) => void
 
   /** Insert an empty spread after `index`, and select it. */
   addSpread: (index: number) => void
@@ -82,9 +92,12 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   past: [],
   future: [],
   gestureBase: null,
+  clipboard: [],
+  clipboardSource: null,
+  clipboardPasteCount: 0,
 
   load: doc => set({ doc, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
-  reset: () => set({ doc: null, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null }),
+  reset: () => set({ doc: null, selection: [], activeSpread: 0, past: [], future: [], gestureBase: null, clipboard: [], clipboardSource: null, clipboardPasteCount: 0 }),
   setActiveSpread: i => set({ activeSpread: i, selection: [] }),
   select: ids => set({ selection: ids }),
   toggleSelect: (id, additive) => set(s => {
@@ -163,6 +176,43 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       return { ...sp, elements: [...sp.elements, ...copies] }
     }))
     if (made.length) set({ selection: made })
+  },
+
+  copy: (spreadIndex, ids) => {
+    const sp = get().doc?.spreads[spreadIndex]
+    if (!sp) return
+    const elements = sp.elements.filter(e => ids.includes(e.id))
+    if (!elements.length) return
+    set({ clipboard: elements, clipboardSource: spreadIndex, clipboardPasteCount: 0 })
+  },
+
+  paste: (spreadIndex) => {
+    const { clipboard, clipboardSource, clipboardPasteCount } = get()
+    if (!clipboard.length) return
+    // Offset the copy so it is visibly a second thing rather than an exact
+    // overlay you cannot tell apart from the original — but only when
+    // pasting back onto the spread it was copied from. Pasting onto another
+    // page keeps the exact position, useful for placing a repeated element
+    // (a badge, a page number) in the same spot across pages.
+    const OFFSET = 4
+    const sameSpread = clipboardSource === spreadIndex
+    const factor = sameSpread ? clipboardPasteCount + 1 : 0
+    const made: string[] = []
+    get().commit(doc => replaceSpread(doc, spreadIndex, sp => {
+      const copies = clipboard.map(e => {
+        const id = elementId(e.kind)
+        made.push(id)
+        return {
+          ...e,
+          id,
+          frame: { ...e.frame, x: e.frame.x + OFFSET * factor, y: e.frame.y + OFFSET * factor },
+        }
+      })
+      return { ...sp, elements: [...sp.elements, ...copies] }
+    }))
+    if (made.length) {
+      set({ selection: made, clipboardPasteCount: sameSpread ? clipboardPasteCount + 1 : 0 })
+    }
   },
 
   raise: (spreadIndex, id, to) => get().commit(doc =>

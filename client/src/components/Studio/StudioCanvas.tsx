@@ -80,6 +80,8 @@ export function StudioCanvas({
   const spreadCount = useStudioStore(s => s.doc?.spreads.length ?? 0)
   const setActiveSpread = useStudioStore(s => s.setActiveSpread)
   const duplicate = useStudioStore(s => s.duplicate)
+  const copyToClipboard = useStudioStore(s => s.copy)
+  const pasteFromClipboard = useStudioStore(s => s.paste)
   const raise = useStudioStore(s => s.raise)
   const commit = useStudioStore(s => s.commit)
   const addElement = useStudioStore(s => s.addElement)
@@ -142,11 +144,26 @@ export function StudioCanvas({
         e.preventDefault()
         const next = spreadIndex + (e.key === 'PageDown' ? 1 : -1)
         if (next >= 0 && next < spreadCount) setActiveSpread(next)
+        return
+      }
+      // Ctrl/Cmd+C and Ctrl/Cmd+V, from anywhere in Studio, same as
+      // Delete/Backspace above — the clipboard is in-memory, not the
+      // document, so copying works even with nothing selected (a no-op)
+      // and pasting works from any panel that has focus.
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+        if (!selection.length) return
+        e.preventDefault()
+        copyToClipboard(spreadIndex, selection)
+        return
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+        e.preventDefault()
+        pasteFromClipboard(spreadIndex)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread])
+  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread, copyToClipboard, pasteFromClipboard])
 
   if (!spread) return null
 

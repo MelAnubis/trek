@@ -1,4 +1,4 @@
-// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-020
+// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-025
 import { useStudioStore } from './studioStore'
 import type { BookDocument, BookTextElement } from '../types/book'
 
@@ -202,5 +202,52 @@ describe('studioStore — spread management', () => {
 
     useStudioStore.getState().moveSpread(1, 1) // swaps with the other inner spread — allowed
     expect(useStudioStore.getState().doc?.spreads[2].id).toBe('sp-1')
+  })
+})
+
+describe('studioStore — copy / paste', () => {
+  it('FE-STORE-STUDIO-022: copy with nothing matching is a no-op', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().copy(1, ['no-such-id'])
+    expect(useStudioStore.getState().clipboard).toEqual([])
+  })
+
+  it('FE-STORE-STUDIO-023: paste onto the same spread offsets each successive paste', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().copy(1, ['t-1'])
+    useStudioStore.getState().paste(1)
+    let els = useStudioStore.getState().doc!.spreads[1].elements
+    expect(els).toHaveLength(2)
+    expect(els[1].frame.x).toBe(4)
+    expect(els[1].frame.y).toBe(4)
+    expect(useStudioStore.getState().selection).toEqual([els[1].id])
+
+    useStudioStore.getState().paste(1)
+    els = useStudioStore.getState().doc!.spreads[1].elements
+    expect(els).toHaveLength(3)
+    expect(els[2].frame.x).toBe(8)
+    expect(els[2].frame.y).toBe(8)
+  })
+
+  it('FE-STORE-STUDIO-024: paste onto a different spread keeps the exact original position', () => {
+    const d = doc({ spreads: [
+      { id: 'cover', role: 'cover', background: null, elements: [], parked: [], entryId: null },
+      { id: 'sp-1', role: 'inner', background: null, elements: [textEl('t-1')], parked: [], entryId: null },
+      { id: 'sp-2', role: 'inner', background: null, elements: [], parked: [], entryId: null },
+    ] })
+    useStudioStore.getState().load(d)
+    useStudioStore.getState().copy(1, ['t-1'])
+    useStudioStore.getState().paste(2)
+    const els = useStudioStore.getState().doc!.spreads[2].elements
+    expect(els).toHaveLength(1)
+    expect(els[0].frame.x).toBe(0)
+    expect(els[0].frame.y).toBe(0)
+    expect(els[0].id).not.toBe('t-1')
+  })
+
+  it('FE-STORE-STUDIO-025: paste with an empty clipboard is a no-op', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().paste(1)
+    expect(useStudioStore.getState().doc?.spreads[1].elements).toHaveLength(1)
   })
 })
