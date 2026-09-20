@@ -77,6 +77,8 @@ export function StudioCanvas({
   const selection = useStudioStore(s => s.selection)
   const select = useStudioStore(s => s.select)
   const removeElements = useStudioStore(s => s.removeElements)
+  const spreadCount = useStudioStore(s => s.doc?.spreads.length ?? 0)
+  const setActiveSpread = useStudioStore(s => s.setActiveSpread)
   const duplicate = useStudioStore(s => s.duplicate)
   const raise = useStudioStore(s => s.raise)
   const commit = useStudioStore(s => s.commit)
@@ -129,11 +131,22 @@ export function StudioCanvas({
         e.preventDefault()
         const ids = deletable(spread, selection)
         if (ids.length) removeElements(spreadIndex, ids)
+        return
+      }
+      // Page Down/Up move a page at a time, from anywhere in Studio — this
+      // listener is on window, not the canvas element, so it fires
+      // regardless of which panel (sidebar, inspector, canvas itself) has
+      // focus, the same way Delete/Backspace above already does.
+      if (e.key === 'PageDown' || e.key === 'PageUp') {
+        if (!spreadCount) return
+        e.preventDefault()
+        const next = spreadIndex + (e.key === 'PageDown' ? 1 : -1)
+        if (next >= 0 && next < spreadCount) setActiveSpread(next)
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spread, spreadIndex, removeElements])
+  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread])
 
   if (!spread) return null
 
