@@ -78,6 +78,17 @@ function textEl(id: string, text: string, size: number): BookTextElement {
   }
 }
 
+/**
+ * A text element tied to a live fact about the journey — `overridden: false`
+ * is what tells resolveBindings.ts it's still allowed to re-read the
+ * source, so fixing a typo in the journal fixes it in the book without
+ * regenerating the whole spread. Editing the text by hand in Studio flips
+ * `overridden` to true and the link ends there, same as upstream.
+ */
+function boundTextEl(id: string, text: string, size: number, binding: BookTextElement['binding']): BookTextElement {
+  return { ...textEl(id, text, size), binding, overridden: false }
+}
+
 function seedSpread(id: string, role: BookSpread['role'], elements: BookElement[], entryId: number | null = null): BookSpread {
   return { id, role, background: null, elements, parked: [], entryId }
 }
@@ -185,10 +196,10 @@ function entrySpread(entry: AutoEntry, page: BookPageSetup, locale: string, seed
   const elements: BookElement[] = []
   entry.photos.forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
   const heading = entry.title || entry.location || ''
-  if (heading) elements.push(textEl(elementId('t'), heading, 22))
+  if (heading) elements.push(boundTextEl(elementId('t'), heading, 22, { source: 'entry.title', entryId: entry.id }))
   const meta = formatMeta(entry.date, entry.title ? entry.location : null, locale)
   if (meta) elements.push(textEl(elementId('t'), meta, 7.5))
-  if (entry.story?.trim()) elements.push(textEl(elementId('t'), entry.story.trim(), 10))
+  if (entry.story?.trim()) elements.push(boundTextEl(elementId('t'), entry.story.trim(), 10, { source: 'entry.story', entryId: entry.id }))
 
   const hasStory = !!entry.story?.trim()
   const tpl = bestTemplate(TEMPLATES, entry.photos.length, hasStory, page, seed)
@@ -263,9 +274,9 @@ function coverSpread(input: AutoInput): BookSpread {
     if (slot.kind === 'photo' && input.coverPhotoId) {
       elements.push({ ...photoEl(elementId('p'), input.coverPhotoId), frame: slot.frame })
     } else if (slot.kind === 'heading' && input.title) {
-      elements.push({ ...textEl(elementId('t'), input.title, 28), frame: slot.frame, weight: 700 })
+      elements.push({ ...boundTextEl(elementId('t'), input.title, 28, { source: 'journey.title' }), frame: slot.frame, weight: 700 })
     } else if ((slot.kind === 'meta' || slot.kind === 'body') && input.subtitle) {
-      elements.push({ ...textEl(elementId('t'), input.subtitle, 9), frame: slot.frame, weight: 400 })
+      elements.push({ ...boundTextEl(elementId('t'), input.subtitle, 9, { source: 'journey.subtitle' }), frame: slot.frame, weight: 400 })
     }
   }
   return seedSpread(elementId('sp'), 'cover', elements)

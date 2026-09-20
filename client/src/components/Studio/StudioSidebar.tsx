@@ -1,10 +1,14 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Award, BarChart3, Circle, Compass, Copy, Flag, ImageIcon, ListChecks, Map as MapIconLucide, Plus, Sparkles,
-  Square, Trash2, Type, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
+  Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
+import { useJourneyStore } from '../../store/journeyStore'
+import { useToast } from '../shared/Toast'
+import { normalizeImageFiles } from '../../utils/convertHeic'
+import { getApiErrorMessage } from '../../types'
 import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
@@ -102,10 +106,13 @@ function ShapeSwatch({ shape }: { shape: BookShapeId }) {
 }
 
 export function StudioSidebar({
+  journeyId,
   galleryPhotos,
   journeyStats,
   onGenerateMap,
 }: {
+  /** Lets the Photos panel upload straight into the journey's gallery, same action the journey editor's own uploader uses — the newly-added photos then show up here via the caller's own galleryPhotos, no separate refresh plumbing needed. */
+  journeyId: number
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
   /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. */
   journeyStats?: { days: number; entries: number; photos: number; places: number }
@@ -113,8 +120,11 @@ export function StudioSidebar({
   onGenerateMap?: () => Promise<string | null>
 }) {
   const { t, locale } = useTranslation()
+  const toast = useToast()
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
   const [showShapePicker, setShowShapePicker] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const photoFileRef = useRef<HTMLInputElement>(null)
   const toggleSection = (id: string) => setCollapsedSections(prev => {
     const next = { ...prev, [id]: !prev[id] }
     try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)) } catch { /* private-mode/blocked storage — collapse state just won't persist */ }
@@ -158,6 +168,26 @@ export function StudioSidebar({
       shape, fill: '#111827', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
     }))
     setShowShapePicker(false)
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    setUploading(true)
+    try {
+      const normalized = await normalizeImageFiles(files)
+      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized)
+      if (failed.length > 0) {
+        toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) }))
+      } else {
+        toast.success(t('journey.photosUploaded', { count: String(normalized.length) }))
+      }
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
+    } finally {
+      setUploading(false)
+    }
+    e.target.value = ''
   }
 
   const spread = doc.spreads[activeSpread]
@@ -337,6 +367,15 @@ export function StudioSidebar({
         title={t('journey.studio.photosTab')}
         collapsed={!!collapsedSections.photos}
         onToggle={() => toggleSection('photos')}
+        headerExtra={
+          <>
+            <input ref={photoFileRef} type="file" accept="image/*" multiple hidden onChange={e => void handlePhotoUpload(e)} />
+            <button onClick={() => photoFileRef.current?.click()} disabled={uploading} title={t('journey.studio.uploadPhotos')}
+              style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.5 : 1, color: 'var(--text-muted)' }}>
+              <Upload size={13} />
+            </button>
+          </>
+        }
       >
         {groupPhotosByDay(galleryPhotos).map(group => (
           <div key={group.dayKey} style={{ marginBottom: 10 }}>

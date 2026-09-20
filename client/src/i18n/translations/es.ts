@@ -2104,6 +2104,7 @@ const es: Record<string, string> = {
   'journey.studio.keepMine': 'Conservar mis cambios',
   'journey.studio.takeTheirs': 'Tomar su versión',
   'journey.studio.photosTab': 'Fotos',
+  'journey.studio.uploadPhotos': 'Subir fotos',
   'journey.studio.entriesTab': 'Entradas',
   'journey.studio.layoutsTab': 'Diseños',
   'journey.studio.layoutsHint': 'Aplica un diseño a la página actual — tus fotos y textos se conservan y se colocan en la nueva disposición.',

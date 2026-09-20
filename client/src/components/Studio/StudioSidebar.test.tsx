@@ -1,7 +1,8 @@
-// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-016
+// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-018
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { StudioSidebar } from './StudioSidebar'
 import { useStudioStore } from '../../store/studioStore'
+import { useJourneyStore } from '../../store/journeyStore'
 import type { BookDocument, BookSpread } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -24,21 +25,21 @@ beforeEach(() => {
 describe('StudioSidebar — collapsible sections', () => {
   it('FE-COMP-STUDIOSIDEBAR-001: every section starts expanded by default', () => {
     useStudioStore.getState().load(doc())
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     // The Elements panel's "add text" button is only in the DOM while its section is expanded.
     expect(screen.getByText('journey.studio.addText')).toBeInTheDocument()
   })
 
   it('FE-COMP-STUDIOSIDEBAR-002: clicking a section header collapses its body', () => {
     useStudioStore.getState().load(doc())
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.elementsTab'))
     expect(screen.queryByText('journey.studio.addText')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-STUDIOSIDEBAR-003: clicking a collapsed section\'s header expands it again', () => {
     useStudioStore.getState().load(doc())
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     const header = screen.getByText('journey.studio.elementsTab')
     fireEvent.click(header)
     fireEvent.click(header)
@@ -47,18 +48,18 @@ describe('StudioSidebar — collapsible sections', () => {
 
   it('FE-COMP-STUDIOSIDEBAR-004: collapse state persists to localStorage and survives a remount', () => {
     useStudioStore.getState().load(doc())
-    const { unmount } = render(<StudioSidebar galleryPhotos={[]} />)
+    const { unmount } = render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.elementsTab'))
     expect(screen.queryByText('journey.studio.addText')).not.toBeInTheDocument()
     unmount()
 
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     expect(screen.queryByText('journey.studio.addText')).not.toBeInTheDocument()
   })
 
   it('FE-COMP-STUDIOSIDEBAR-005: collapsing the Pages section still leaves its "add spread" button clickable', () => {
     useStudioStore.getState().load(doc())
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.pageTab'))
     const addButton = screen.getByTitle('journey.studio.addSpread')
     expect(addButton).toBeInTheDocument()
@@ -70,7 +71,7 @@ describe('StudioSidebar — collapsible sections', () => {
 describe('StudioSidebar — cover vs inner layout set', () => {
   it('FE-COMP-STUDIOSIDEBAR-006: on the cover page, only the 5 single-page layouts show, with a hint explaining why', () => {
     useStudioStore.getState().load(doc())
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     // doc()'s active spread (index 0) is the cover.
     expect(screen.getByText('journey.studio.layoutsCoverHint')).toBeInTheDocument()
     expect(screen.getByTitle('Full')).toBeInTheDocument()
@@ -80,7 +81,7 @@ describe('StudioSidebar — cover vs inner layout set', () => {
   it('FE-COMP-STUDIOSIDEBAR-007: on an inner page, the full spread layout set shows, with no cover hint', () => {
     useStudioStore.getState().load(doc())
     useStudioStore.getState().setActiveSpread(1)
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     expect(screen.queryByText('journey.studio.layoutsCoverHint')).not.toBeInTheDocument()
     expect(screen.getByTitle('Grid 3')).toBeInTheDocument()
     expect(screen.queryByTitle('Full')).not.toBeInTheDocument()
@@ -99,7 +100,7 @@ describe('StudioSidebar — Travel panel', () => {
   })
 
   it('FE-COMP-STUDIOSIDEBAR-008: adding a map inserts it immediately with no src, before the render finishes', () => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.addMap'))
     const el = lastElement()
     expect(el.kind).toBe('map')
@@ -108,21 +109,21 @@ describe('StudioSidebar — Travel panel', () => {
 
   it('FE-COMP-STUDIOSIDEBAR-009: once onGenerateMap resolves, the just-added map element is patched with the src', async () => {
     const onGenerateMap = vi.fn().mockResolvedValue('data:image/png;base64,AAAA')
-    render(<StudioSidebar galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
     fireEvent.click(screen.getByText('journey.studio.addMap'))
     await waitFor(() => expect((lastElement() as any).src).toBe('data:image/png;base64,AAAA'))
   })
 
   it('FE-COMP-STUDIOSIDEBAR-010: onGenerateMap rejecting leaves the map element with a null src rather than throwing', async () => {
     const onGenerateMap = vi.fn().mockRejectedValue(new Error('network'))
-    render(<StudioSidebar galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
     fireEvent.click(screen.getByText('journey.studio.addMap'))
     await waitFor(() => expect(onGenerateMap).toHaveBeenCalled())
     expect((lastElement() as any).src).toBeNull()
   })
 
   it('FE-COMP-STUDIOSIDEBAR-011: adding stats prefills its values from the journeyStats prop', () => {
-    render(<StudioSidebar galleryPhotos={[]} journeyStats={{ days: 7, entries: 12, photos: 240, places: 9 }} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} journeyStats={{ days: 7, entries: 12, photos: 240, places: 9 }} />)
     fireEvent.click(screen.getByText('journey.studio.addStats'))
     const el = lastElement() as any
     expect(el.kind).toBe('stats')
@@ -130,7 +131,7 @@ describe('StudioSidebar — Travel panel', () => {
   })
 
   it('FE-COMP-STUDIOSIDEBAR-012: adding stats with no journeyStats prop starts with empty values, not a crash', () => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.addStats'))
     expect((lastElement() as any).values).toEqual({})
   })
@@ -141,7 +142,7 @@ describe('StudioSidebar — Travel panel', () => {
     ['journey.studio.addIcon', 'icon'],
     ['journey.studio.addList', 'list'],
   ])('FE-COMP-STUDIOSIDEBAR-013: clicking "%s" adds an element of kind "%s"', (label, kind) => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText(label))
     expect(lastElement().kind).toBe(kind)
   })
@@ -154,14 +155,14 @@ describe('StudioSidebar — decorative shape picker', () => {
   })
 
   it('FE-COMP-STUDIOSIDEBAR-014: the picker grid is hidden until "More shapes…" is clicked', () => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     expect(screen.queryByTitle('heart')).not.toBeInTheDocument()
     fireEvent.click(screen.getByText('journey.studio.moreShapes'))
     expect(screen.getByTitle('heart')).toBeInTheDocument()
   })
 
   it('FE-COMP-STUDIOSIDEBAR-015: clicking a shape tile adds that shape, centered, and closes the picker', () => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.moreShapes'))
     fireEvent.click(screen.getByTitle('star-5'))
     const el = lastElement() as any
@@ -171,8 +172,38 @@ describe('StudioSidebar — decorative shape picker', () => {
   })
 
   it('FE-COMP-STUDIOSIDEBAR-016: "Add rectangle" and "Add circle" still add plain rect/ellipse shapes directly, without opening the picker', () => {
-    render(<StudioSidebar galleryPhotos={[]} />)
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText('journey.studio.addRect'))
     expect((lastElement() as any).shape).toBe('rect')
+  })
+})
+
+describe('StudioSidebar — Photos panel upload', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(doc())
+  })
+
+  function makeFile(name = 'beach.jpg', type = 'image/jpeg') {
+    return new File(['x'], name, { type })
+  }
+
+  it('FE-COMP-STUDIOSIDEBAR-017: choosing a file uploads it into the journey named by journeyId', async () => {
+    const upload = vi.spyOn(useJourneyStore.getState(), 'uploadGalleryPhotos').mockResolvedValue({ succeeded: [], failed: [] })
+    render(<StudioSidebar journeyId={42} galleryPhotos={[]} />)
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const file = makeFile()
+    fireEvent.change(input, { target: { files: [file] } })
+    await waitFor(() => expect(upload).toHaveBeenCalled())
+    expect(upload.mock.calls[0][0]).toBe(42)
+    expect(upload.mock.calls[0][1].map(f => f.name)).toEqual(['beach.jpg'])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-018: a failed upload never throws out of the handler — the button is usable again once it settles', async () => {
+    vi.spyOn(useJourneyStore.getState(), 'uploadGalleryPhotos').mockRejectedValue(new Error('network'))
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
+    const input = document.querySelector('input[type="file"]') as HTMLInputElement
+    const uploadButton = screen.getByTitle('journey.studio.uploadPhotos')
+    fireEvent.change(input, { target: { files: [makeFile()] } })
+    await waitFor(() => expect(uploadButton).not.toBeDisabled())
   })
 })

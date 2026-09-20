@@ -2295,6 +2295,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.keepMine': 'Keep my changes',
   'journey.studio.takeTheirs': 'Take their version',
   'journey.studio.photosTab': 'Photos',
+  'journey.studio.uploadPhotos': 'Upload photos',
   'journey.studio.entriesTab': 'Entries',
   'journey.studio.layoutsTab': 'Layouts',
   'journey.studio.layoutsHint': 'Apply a layout to the current page — your photos and text are kept and poured into the new arrangement.',

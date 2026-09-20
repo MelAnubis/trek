@@ -15,6 +15,7 @@ import { StudioExport } from '../components/Studio/StudioExport'
 import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
+import { resolveBindings, type BindingSource } from '../components/Studio/resolveBindings'
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
@@ -105,15 +106,20 @@ export default function JourneyStudioPage() {
 
   // Load the stored book once it arrives — an existing book always wins
   // over a fresh document. Runs once per journey; re-running it on every
-  // record change would throw away the user's in-progress work.
+  // record change would throw away the user's in-progress work. Waits for
+  // the journey itself so bound text (see resolveBindings.ts) resolves
+  // against real journal data on this first read, not an empty one — a
+  // binding whose source is still missing is left untouched anyway (rule
+  // one there), so this never risks blanking a page, only delays it.
   useEffect(() => {
     if (!bookLoaded || builtRef.current.built) return
+    if (!current || current.id !== journeyId) return
     if (record) {
-      loadDoc(record.document)
+      loadDoc(bindingSource ? resolveBindings(record.document, bindingSource, locale) : record.document)
     }
     builtRef.current.built = true
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookLoaded, record])
+  }, [bookLoaded, record, current, journeyId])
 
   // Autosave: every doc change is queued, debounced inside useBookStore.
   useEffect(() => {
@@ -140,6 +146,29 @@ export default function JourneyStudioPage() {
   const galleryPhotos = useMemo(() =>
     (current?.gallery || []).map(p => ({ photoId: p.photo_id, caption: p.caption ?? null, taken_at: p.taken_at, created_at: p.created_at })),
     [current])
+
+  // What a bound text element reads back from — see resolveBindings.ts.
+  // Built from the same journal fields autoInput draws from, plus lat/lng
+  // (autoInput has no use for those) so an `entry.location` binding set to
+  // a coordinate format can tell whether the point itself moved.
+  const bindingSource: BindingSource | null = useMemo(() => {
+    if (!current) return null
+    const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
+    return {
+      title: current.title,
+      subtitle: current.subtitle || null,
+      entries: entries.map(e => ({
+        id: e.id,
+        title: e.title ?? null,
+        story: e.story ?? null,
+        location: e.location_name ?? null,
+        date: e.entry_date ?? null,
+        lat: e.location_lat ?? null,
+        lng: e.location_lng ?? null,
+      })),
+      photos: galleryPhotos.map(p => ({ photoId: p.photoId, caption: p.caption })),
+    }
+  }, [current, galleryPhotos])
 
   // Reuses gpxDrawing's own canvas map renderer — the same one auto-layout's
   // route spread already draws with — rather than a second map-rendering
@@ -411,7 +440,7 @@ export default function JourneyStudioPage() {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <StudioSidebar galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} />
+          <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
