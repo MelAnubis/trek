@@ -237,6 +237,25 @@ function coverSpread(input: AutoInput): BookSpread {
  * "Páginas sueltas" export (what a real print vendor's PDF uploader
  * requires), it comes out as two unrelated fragments on two sheets.
  */
+/**
+ * The same headline figures ElevationDetail's own stats grid shows for a
+ * trip's stages (Distancia, Desnivel +/-, Alt. máx/mín, Pend. máx, IBP) —
+ * as one line rather than a grid of cards, since a route spread's `text`
+ * element is plain text, not a layout of its own. Empty stats (a day with
+ * no elevation data on its track) return '' so routeSpread can skip the
+ * line entirely rather than showing a row of dashes.
+ */
+function formatRouteStats(stats: RouteImages['stats']): string {
+  const parts: string[] = []
+  if (stats.totalDist > 0) parts.push(`${stats.totalDist.toFixed(1)} km`)
+  if (stats.gain > 0) parts.push(`↑ ${Math.round(stats.gain)} m`)
+  if (stats.loss > 0) parts.push(`↓ ${Math.round(stats.loss)} m`)
+  if (stats.minEle != null && stats.maxEle != null) parts.push(`Alt. ${Math.round(stats.minEle)}–${Math.round(stats.maxEle)} m`)
+  if (stats.maxSlope > 0) parts.push(`Max slope ${stats.maxSlope}%`)
+  if (stats.ibp != null) parts.push(`IBP ${stats.ibp}`)
+  return parts.join('   ·   ')
+}
+
 function routeSpread(date: string, images: RouteImages, page: BookPageSetup, locale: string): BookSpread {
   const W = page.pageWidth
   const H = page.pageHeight
@@ -257,8 +276,24 @@ function routeSpread(date: string, images: RouteImages, page: BookPageSetup, loc
       color: '#1a1a1a',
     })
   }
+
+  // Stats line pushes the elevation chart down by however much room it
+  // needs — a day whose track has no elevation data at all keeps the
+  // original layout (chart right under the date).
+  const statsLine = formatRouteStats(images.stats)
+  let eleY = M + 20
+  if (statsLine) {
+    elements.push({
+      ...textEl(elementId('t'), statsLine, 9),
+      frame: { x: W + M, y: M + 12, w: W - M * 2, h: 12 },
+      weight: 600,
+      color: '#4a4a4a',
+    })
+    eleY = M + 27
+  }
+
   if (images.elevationSrc) {
-    elements.push(imageEl(elementId('im'), images.elevationSrc, { x: W + M, y: M + 20, w: W - M * 2, h: H - M * 2 - 20 }, 'contain'))
+    elements.push(imageEl(elementId('im'), images.elevationSrc, { x: W + M, y: eleY, w: W - M * 2, h: H - M - eleY }, 'contain'))
   }
 
   return seedSpread(elementId('sp'), 'inner', elements)
@@ -325,17 +360,18 @@ export function buildBook(input: AutoInput): BookDocument {
 
   const spreads: BookSpread[] = [coverSpread(input)]
   const routeImages = input.routeImagesByDate
-  // The last entry (in withContent's own order) for each date, so a day's
-  // route spread lands right after that day's own last entry rather than
-  // wherever iteration happens to be when its date is first seen.
-  const lastIndexForDate = new Map<string, number>()
-  withContent.forEach((entry, i) => { if (entry.date) lastIndexForDate.set(entry.date, i) })
+  // The first entry (in withContent's own order) for each date, so a day's
+  // route spread — its map and elevation profile — opens that day, the same
+  // place JourneyBookPDF.tsx's own per-day route pages already sit, rather
+  // than trailing behind it where it reads as a coda to the last entry.
+  const firstIndexForDate = new Map<string, number>()
+  withContent.forEach((entry, i) => { if (entry.date && !firstIndexForDate.has(entry.date)) firstIndexForDate.set(entry.date, i) })
 
   withContent.forEach((entry, i) => {
-    spreads.push(entrySpread(entry, input.page, input.locale, i))
-    if (entry.date && routeImages?.has(entry.date) && lastIndexForDate.get(entry.date) === i) {
+    if (entry.date && routeImages?.has(entry.date) && firstIndexForDate.get(entry.date) === i) {
       spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
     }
+    spreads.push(entrySpread(entry, input.page, input.locale, i))
   })
   spreads.push(summarySpread(input, dateRange))
 

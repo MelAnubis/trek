@@ -92,6 +92,69 @@ function computeTrackStats(points: PdfGpxTrack['points']): Pick<PdfGpxTrack, 'to
   return { total_distance, total_elevation_gain, total_elevation_loss, max_elevation, min_elevation }
 }
 
+// ── Aggregate route stats (distance, gain/loss, altitude range, max slope, IBP) ──
+// Shared by JourneyBookPDF's route page and Studio's auto-generated route
+// spread, so both show the same "full profile" info as the trip planner's
+// own ElevationDetail panel (Distancia, Desnivel +/-, Alt. máx/mín, Pend.
+// máx, IBP) instead of each re-deriving a different subset of it.
+export interface RouteStats {
+  totalDist: number
+  gain: number
+  loss: number
+  minEle: number | null
+  maxEle: number | null
+  maxSlope: number
+  ibp: number | null
+}
+
+/**
+ * Steepest sustained grade in the track, as a percentage. Mirrors
+ * ElevationDetail's own distance-based (not point-count-based) lookback
+ * window: with dense GPS tracks a point-count window can be only 10-25m,
+ * making a couple of metres of GPS noise read as an 8-20% slope. Sampled
+ * down to ~1000 points first — same as ElevationDetail's profile builder —
+ * so this stays fast on tracks with tens of thousands of points.
+ */
+function computeMaxSlopePercent(points: PdfGpxTrack['points']): number {
+  const withEle = points.filter(p => p.ele != null)
+  if (withEle.length < 2) return 0
+  const step = Math.max(1, Math.floor(withEle.length / 1000))
+  const sampled = withEle.filter((_, i) => i % step === 0)
+
+  const cumM: number[] = [0]
+  for (let i = 1; i < sampled.length; i++) {
+    cumM.push(cumM[i - 1] + haversineKm(sampled[i - 1].lat, sampled[i - 1].lng, sampled[i].lat, sampled[i].lng) * 1000)
+  }
+
+  const MIN_SLOPE_DIST_M = 200
+  let max = 0
+  for (let i = 0; i < sampled.length; i++) {
+    let pi = -1
+    for (let j = i - 1; j >= 0; j--) {
+      if (cumM[i] - cumM[j] >= MIN_SLOPE_DIST_M) { pi = j; break }
+    }
+    if (pi < 0) continue
+    const dD = cumM[i] - cumM[pi]
+    const dE = sampled[i].ele! - sampled[pi].ele!
+    max = Math.max(max, Math.abs(dE / dD) * 100)
+  }
+  return Math.round(max)
+}
+
+export function computeRouteStats(tracks: PdfGpxTrack[]): RouteStats {
+  const totalDist = tracks.reduce((s, t) => s + (t.total_distance || 0), 0)
+  const gain = tracks.reduce((s, t) => s + (t.total_elevation_gain || 0), 0)
+  const loss = tracks.reduce((s, t) => s + (t.total_elevation_loss || 0), 0)
+  const maxEle = tracks.reduce((m: number | null, t) =>
+    t.max_elevation != null ? (m == null ? t.max_elevation : Math.max(m, t.max_elevation)) : m, null)
+  const minEle = tracks.reduce((m: number | null, t) =>
+    t.min_elevation != null ? (m == null ? t.min_elevation : Math.min(m, t.min_elevation)) : m, null)
+  const ibpValues = tracks.map(t => t.ibp).filter((v): v is number => v != null && v > 0)
+  const ibp = ibpValues.length ? Math.max(...ibpValues) : null
+  const maxSlope = tracks.length ? Math.max(0, ...tracks.map(t => computeMaxSlopePercent(t.points))) : 0
+  return { totalDist, gain, loss, minEle, maxEle, maxSlope, ibp }
+}
+
 export function splitTrackByDate(track: PdfGpxTrack): Map<string, PdfGpxTrack> {
   const byDate = new Map<string, PdfGpxTrack['points']>()
   for (const p of track.points) {

@@ -2,7 +2,7 @@
 import { marked } from 'marked'
 import type { JourneyDetail, JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 import { formatMoney, currencyLocale } from '../../utils/formatters'
-import { buildElevationSvg, buildRouteMapImage, withTimeout, DEFAULT_TILE_URL, groupTracksByDate, type PdfGpxTrack } from './gpxDrawing'
+import { buildElevationSvg, buildRouteMapImage, computeRouteStats, withTimeout, DEFAULT_TILE_URL, groupTracksByDate, type PdfGpxTrack } from './gpxDrawing'
 
 export type { PdfGpxTrack }
 
@@ -231,13 +231,11 @@ async function buildRoutePage(
     : buildRouteCardSvg(entries, tracks)
   if (!mapMarkup) return ''  // no coordinates at all
 
-  // Aggregate stats across all tracks
-  const totalDist = tracks.reduce((s, t) => s + (t.total_distance || 0), 0)
-  const totalGain = tracks.reduce((s, t) => s + (t.total_elevation_gain || 0), 0)
-  const totalLoss = tracks.reduce((s, t) => s + (t.total_elevation_loss || 0), 0)
-  const maxEle    = tracks.reduce((m: number | null, t) =>
-    t.max_elevation != null ? (m == null ? t.max_elevation : Math.max(m, t.max_elevation)) : m, null)
-  const hasIbp    = tracks.some(t => t.ibp != null && t.ibp > 0)
+  // Aggregate stats across all tracks — same figures ElevationDetail's own
+  // stats grid shows for a trip's stages, so the printed book matches what
+  // the planner already displays rather than a thinner subset of it.
+  const { totalDist, gain: totalGain, loss: totalLoss, minEle, maxEle, maxSlope, ibp } = computeRouteStats(tracks)
+  const hasIbp    = ibp != null
   const hasEle    = tracks.some(t => t.total_elevation_gain > 50 &&
     t.points.some(p => p.ele != null))
 
@@ -254,6 +252,9 @@ async function buildRoutePage(
     totalGain > 0  ? `<div class="rstat"><div class="rstat-val">↑ ${Math.round(totalGain).toLocaleString()} m</div><div class="rstat-lbl">Elevation gain</div></div>` : '',
     totalLoss > 0  ? `<div class="rstat"><div class="rstat-val">↓ ${Math.round(totalLoss).toLocaleString()} m</div><div class="rstat-lbl">Elevation loss</div></div>` : '',
     maxEle != null ? `<div class="rstat"><div class="rstat-val">${Math.round(maxEle).toLocaleString()} m</div><div class="rstat-lbl">Max elevation</div></div>` : '',
+    minEle != null ? `<div class="rstat"><div class="rstat-val">${Math.round(minEle).toLocaleString()} m</div><div class="rstat-lbl">Min elevation</div></div>` : '',
+    maxSlope > 0   ? `<div class="rstat"><div class="rstat-val">${maxSlope}%</div><div class="rstat-lbl">Max slope</div></div>` : '',
+    hasIbp         ? `<div class="rstat"><div class="rstat-val">${ibp}</div><div class="rstat-lbl">IBP</div></div>` : '',
     expensePills,
   ].filter(Boolean).join('')
 

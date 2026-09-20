@@ -1,5 +1,5 @@
-// FE-GPXDRAW-001 to FE-GPXDRAW-014
-import { groupTracksByDate, resolveSafeTileUrl, runWithConcurrency, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
+// FE-GPXDRAW-001 to FE-GPXDRAW-021
+import { computeRouteStats, groupTracksByDate, resolveSafeTileUrl, runWithConcurrency, DEFAULT_TILE_URL, type PdfGpxTrack } from './gpxDrawing'
 
 function track(overrides: Partial<PdfGpxTrack> = {}): PdfGpxTrack {
   return {
@@ -119,5 +119,74 @@ describe('runWithConcurrency', () => {
 
   it('FE-GPXDRAW-014: an empty job list resolves immediately without error', async () => {
     await expect(runWithConcurrency([], 6)).resolves.toBeUndefined()
+  })
+})
+
+// Points spaced ~222m apart (0.002° latitude), climbing 50m per step — a
+// sustained ~22% grade, well past the 200m lookback window's minimum
+// distance, so computeRouteStats' slope detection has a real climb to find.
+function climbTrack(overrides: Partial<PdfGpxTrack> = {}): PdfGpxTrack {
+  return track({
+    points: [
+      { lat: 41, lng: 2, ele: 100 },
+      { lat: 41.002, lng: 2, ele: 150 },
+      { lat: 41.004, lng: 2, ele: 200 },
+      { lat: 41.006, lng: 2, ele: 250 },
+      { lat: 41.008, lng: 2, ele: 300 },
+      { lat: 41.010, lng: 2, ele: 350 },
+    ],
+    ...overrides,
+  })
+}
+
+describe('computeRouteStats', () => {
+  it('FE-GPXDRAW-015: distance and elevation gain/loss sum across every track', () => {
+    const stats = computeRouteStats([
+      track({ total_distance: 10, total_elevation_gain: 100, total_elevation_loss: 80 }),
+      track({ total_distance: 15, total_elevation_gain: 200, total_elevation_loss: 120 }),
+    ])
+    expect(stats.totalDist).toBe(25)
+    expect(stats.gain).toBe(300)
+    expect(stats.loss).toBe(200)
+  })
+
+  it('FE-GPXDRAW-016: min/max elevation are the extremes across tracks, not a sum', () => {
+    const stats = computeRouteStats([
+      track({ max_elevation: 500, min_elevation: 100 }),
+      track({ max_elevation: 900, min_elevation: 50 }),
+    ])
+    expect(stats.maxEle).toBe(900)
+    expect(stats.minEle).toBe(50)
+  })
+
+  it('FE-GPXDRAW-017: IBP is the highest of any track that has one; tracks without one are ignored', () => {
+    const stats = computeRouteStats([
+      track({ ibp: 40 }),
+      track({ ibp: null }),
+      track({ ibp: 92 }),
+    ])
+    expect(stats.ibp).toBe(92)
+  })
+
+  it('FE-GPXDRAW-018: IBP is null when no track has one', () => {
+    const stats = computeRouteStats([track({ ibp: null }), track({ ibp: undefined })])
+    expect(stats.ibp).toBeNull()
+  })
+
+  it('FE-GPXDRAW-019: max slope is 0 for a track with fewer than two elevation points', () => {
+    const stats = computeRouteStats([track({ points: [{ lat: 41, lng: 2, ele: 100 }] })])
+    expect(stats.maxSlope).toBe(0)
+  })
+
+  it('FE-GPXDRAW-020: max slope is a real positive percentage for a track with a sustained climb', () => {
+    const stats = computeRouteStats([climbTrack()])
+    expect(stats.maxSlope).toBeGreaterThan(10)
+    expect(stats.maxSlope).toBeLessThan(40)
+  })
+
+  it('FE-GPXDRAW-021: an empty tracks array returns all-zero/null stats without throwing', () => {
+    expect(computeRouteStats([])).toEqual({
+      totalDist: 0, gain: 0, loss: 0, minEle: null, maxEle: null, maxSlope: 0, ibp: null,
+    })
   })
 })

@@ -1,8 +1,10 @@
-import { buildElevationSvg, buildRouteMapImage, groupTracksByDate, withTimeout, type PdfGpxTrack } from '../PDF/gpxDrawing'
+import { buildElevationSvg, buildRouteMapImage, computeRouteStats, groupTracksByDate, withTimeout, type PdfGpxTrack, type RouteStats } from '../PDF/gpxDrawing'
 
 export interface RouteImages {
   mapSrc: string | null
   elevationSrc: string | null
+  /** Same aggregate figures ElevationDetail's own stats grid shows for a trip's stages. */
+  stats: RouteStats
 }
 
 /** btoa is latin1-only; encodeURIComponent+unescape round-trips any UTF-8 the SVG's own text (place names, etc.) might carry. */
@@ -34,7 +36,7 @@ export async function buildRouteImagesByDate(
     const mapSrc = await withTimeout(buildRouteMapImage([], dayTracks, tileUrlTemplate), MAP_TIMEOUT_MS).catch(() => null)
     const svg = buildElevationSvg(dayTracks)
     const elevationSrc = svg ? svgToDataUri(svg) : null
-    if (mapSrc || elevationSrc) result.set(date, { mapSrc, elevationSrc })
+    if (mapSrc || elevationSrc) result.set(date, { mapSrc, elevationSrc, stats: computeRouteStats(dayTracks) })
   }))
 
   return result

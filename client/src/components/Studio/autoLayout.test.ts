@@ -136,15 +136,18 @@ describe('relayoutSpread', () => {
   })
 })
 
+const EMPTY_STATS = { totalDist: 0, gain: 0, loss: 0, minEle: null, maxEle: null, maxSlope: 0, ibp: null }
+const FULL_STATS = { totalDist: 26.33, gain: 843, loss: 612, minEle: 12, maxEle: 621, maxSlope: 18, ibp: 92 }
+
 describe('buildBook — route spreads', () => {
-  it('FE-AUTOLAYOUT-012: a day with a matching route image gets its own spread, right after that day\'s entry', () => {
+  it('FE-AUTOLAYOUT-012: a day with a matching route image gets its own spread, right before that day\'s entry', () => {
     const inp = input({
-      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null }]]),
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS }]]),
     })
     const doc = buildBook(inp)
     const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
     expect(entryIdx).toBeGreaterThan(-1)
-    const routeSpread = doc.spreads[entryIdx + 1]
+    const routeSpread = doc.spreads[entryIdx - 1]
     expect(routeSpread.entryId).toBeNull()
     expect(routeSpread.elements.some(e => e.kind === 'image')).toBe(true)
   })
@@ -156,18 +159,18 @@ describe('buildBook — route spreads', () => {
     expect(withImages).toBe(without)
   })
 
-  it('FE-AUTOLAYOUT-014: with entries sharing a date, the route spread lands after the last of that day\'s entries, not the first', () => {
+  it('FE-AUTOLAYOUT-014: with entries sharing a date, the route spread lands before the first of that day\'s entries, not the last', () => {
     const inp = input({
       entries: [
         entry({ id: 1, date: '2026-04-02', title: 'Morning' }),
         entry({ id: 2, date: '2026-04-02', title: 'Evening' }),
       ],
-      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null }]]),
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS }]]),
     })
     const doc = buildBook(inp)
     const entryIndices = doc.spreads.map((s, i) => s.entryId != null ? i : -1).filter(i => i >= 0)
-    expect(entryIndices).toEqual([1, 2])
-    expect(doc.spreads[3].elements.some(e => e.kind === 'image')).toBe(true)
+    expect(entryIndices).toEqual([2, 3])
+    expect(doc.spreads[1].elements.some(e => e.kind === 'image')).toBe(true)
   })
 
   it('FE-AUTOLAYOUT-015: with no routeImagesByDate at all, behaves exactly as before (backward compatible)', () => {
@@ -179,7 +182,7 @@ describe('buildBook — route spreads', () => {
 
   it('FE-AUTOLAYOUT-016: both a map and an elevation image are placed when both are available', () => {
     const inp = input({
-      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB' }]]),
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: EMPTY_STATS }]]),
     })
     const doc = buildBook(inp)
     const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
@@ -189,7 +192,7 @@ describe('buildBook — route spreads', () => {
 
   it('FE-AUTOLAYOUT-022: no element in a route spread straddles the gutter — the map (left page) and the label+elevation (right page) each stand on their own leaf', () => {
     const inp = input({
-      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB' }]]),
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: FULL_STATS }]]),
     })
     const doc = buildBook(inp)
     const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
@@ -197,6 +200,34 @@ describe('buildBook — route spreads', () => {
       const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
       expect(crosses, el.kind).toBe(false)
     }
+  })
+
+  it('FE-AUTOLAYOUT-024: a full stats line (distance, gain, loss, altitude range, slope, IBP) renders as one text element', () => {
+    const inp = input({
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: FULL_STATS }]]),
+    })
+    const doc = buildBook(inp)
+    const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
+    const statsText = routeSpread.elements.find((e): e is Extract<typeof e, { kind: 'text' }> => e.kind === 'text' && (e as any).text.includes('km'))
+    expect(statsText).toBeDefined()
+    const text = (statsText as any).text as string
+    expect(text).toContain('26.3 km')
+    expect(text).toContain('843 m')
+    expect(text).toContain('612 m')
+    expect(text).toContain('12–621 m')
+    expect(text).toContain('18%')
+    expect(text).toContain('IBP 92')
+  })
+
+  it('FE-AUTOLAYOUT-025: with no elevation data on the track (all-zero stats), the stats line is skipped entirely (only the date label text remains)', () => {
+    const inp = input({
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS }]]),
+    })
+    const doc = buildBook(inp)
+    const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
+    const texts = routeSpread.elements.filter(e => e.kind === 'text')
+    expect(texts).toHaveLength(1)
+    expect((texts[0] as any).text).not.toContain('km')
   })
 })
 
