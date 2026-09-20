@@ -1,4 +1,4 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-020
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-022
 import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -185,6 +185,18 @@ describe('buildBook — route spreads', () => {
     const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
     const images = routeSpread.elements.filter(e => e.kind === 'image')
     expect(images).toHaveLength(2)
+  })
+
+  it('FE-AUTOLAYOUT-022: no element in a route spread straddles the gutter — the map (left page) and the label+elevation (right page) each stand on their own leaf', () => {
+    const inp = input({
+      routeImagesByDate: new Map([['2026-04-02', { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB' }]]),
+    })
+    const doc = buildBook(inp)
+    const routeSpread = doc.spreads.find(s => s.entryId === null && s.elements.some(e => e.kind === 'image'))!
+    for (const el of routeSpread.elements) {
+      const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
+      expect(crosses, el.kind).toBe(false)
+    }
   })
 })
 

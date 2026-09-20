@@ -213,32 +213,41 @@ function coverSpread(input: AutoInput): BookSpread {
 }
 
 /**
- * A day's route map + elevation profile, full-bleed across the spread —
- * the same content JourneyBookPDF.tsx's fixed route pages already show,
- * pre-rendered by buildRouteImagesByDate into the self-contained `image`
- * elements this needs (see BookImageElement's own comment on why).
+ * A day's route map + elevation profile — the same content
+ * JourneyBookPDF.tsx's fixed route pages already show, pre-rendered by
+ * buildRouteImagesByDate into the self-contained `image` elements this
+ * needs (see BookImageElement's own comment on why).
+ *
+ * The map is full-bleed on the left page only, and the label + elevation
+ * profile sit entirely on the right page — never spanning both, the same
+ * reason entrySpread only ever picks a template that passes
+ * `crossesGutter`. A map crossing the gutter reads as one continuous route
+ * only when the spread is viewed uncut; cut into single leaves for
+ * "Páginas sueltas" export (what a real print vendor's PDF uploader
+ * requires), it comes out as two unrelated fragments on two sheets.
  */
 function routeSpread(date: string, images: RouteImages, page: BookPageSetup, locale: string): BookSpread {
   const W = page.pageWidth
   const H = page.pageHeight
+  const M = 16
   const elements: BookElement[] = []
 
   const parsed = new Date(`${date}T00:00:00`)
   const label = Number.isNaN(parsed.getTime()) ? '' : parsed.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
 
   if (images.mapSrc) {
-    elements.push(imageEl(elementId('im'), images.mapSrc, { x: -page.bleed, y: -page.bleed, w: W * 2 + page.bleed * 2, h: H * 0.6 + page.bleed }, 'cover'))
+    elements.push(imageEl(elementId('im'), images.mapSrc, { x: -page.bleed, y: -page.bleed, w: W + page.bleed, h: H + page.bleed * 2 }, 'cover'))
   }
   if (label) {
     elements.push({
       ...textEl(elementId('t'), label, 15),
-      frame: { x: W * 0.15, y: H * 0.6 + 10, w: W * 1.7, h: 10 },
+      frame: { x: W + M, y: M, w: W - M * 2, h: 10 },
       weight: 700,
       color: '#1a1a1a',
     })
   }
   if (images.elevationSrc) {
-    elements.push(imageEl(elementId('im'), images.elevationSrc, { x: W * 0.1, y: H * 0.6 + 22, w: W * 1.8, h: H * 0.3 }, 'contain'))
+    elements.push(imageEl(elementId('im'), images.elevationSrc, { x: W + M, y: M + 20, w: W - M * 2, h: H - M * 2 - 20 }, 'contain'))
   }
 
   return seedSpread(elementId('sp'), 'inner', elements)
