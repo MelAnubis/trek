@@ -1,5 +1,7 @@
 // FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-030
-import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, type AutoInput, type AutoEntry } from './autoLayout'
+import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, tightenHeroStory, type AutoInput, type AutoEntry } from './autoLayout'
+import { TEMPLATES, applyTemplate } from './templates'
+import type { BookElement, BookSpread } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
 
@@ -251,14 +253,31 @@ describe('estimateTextHeight', () => {
 })
 
 describe('buildBook — hero-story avoids a blank gap above its photo grid', () => {
-  // hero-story is only picked when the photo count exactly matches its 4
-  // slots — see templateFit's scoring in autoLayout.ts.
-  const fourPhotos = [{ photoId: 1 }, { photoId: 2 }, { photoId: 3 }, { photoId: 4 }]
+  // Unit-tests tightenHeroStory directly against the hero-story template's
+  // own output, rather than through buildBook/entrySpread — since the
+  // reference templates (referenceTemplates.ts) are now tried first and a
+  // 4-photo entry with a story is exactly what one of them (ref-6) also
+  // wants, buildBook can no longer be relied on to land on hero-story
+  // specifically for a fixture built to probe its own tightening logic.
+  const heroStoryTpl = TEMPLATES.find(t => t.id === 'hero-story')!
 
-  function heroStoryGridY(story: string) {
-    const doc = buildBook(input({ entries: [entry({ id: 1, story, photos: fourPhotos })] }))
-    const spread = doc.spreads.find(s => s.entryId === 1)!
-    const small = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < PAGE.pageWidth * 0.4)
+  function heroStorySpread(story: string, page = PAGE): BookSpread {
+    const elements: BookElement[] = [
+      { id: 'p1', kind: 'photo', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, photoId: 1, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null },
+      { id: 'p2', kind: 'photo', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, photoId: 2, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null },
+      { id: 'p3', kind: 'photo', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, photoId: 3, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null },
+      { id: 'p4', kind: 'photo', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, photoId: 4, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null },
+      { id: 't1', kind: 'text', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, text: 'Day in Kyoto', font: 'sans', size: 22, weight: 700, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true },
+      { id: 't2', kind: 'text', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, text: 'April 2, 2026 · Kyoto', font: 'sans', size: 7.5, weight: 400, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true },
+      { id: 't3', kind: 'text', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false, text: story, font: 'sans', size: 10, weight: 400, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true },
+    ]
+    const raw: BookSpread = { id: 'sp1', role: 'inner', background: null, elements, parked: [], entryId: 1 }
+    return applyTemplate(raw, heroStoryTpl, page)
+  }
+
+  function heroStoryGridY(story: string, page = PAGE) {
+    const laidOut = tightenHeroStory(heroStorySpread(story, page), page)
+    const small = laidOut.elements.filter(e => e.kind === 'photo' && e.frame.w < page.pageWidth * 0.4)
     expect(small).toHaveLength(3)
     return Math.min(...small.map(e => e.frame.y))
   }
@@ -276,12 +295,8 @@ describe('buildBook — hero-story avoids a blank gap above its photo grid', () 
     // up once the page is meaningfully taller than the ~210mm square
     // default every template was written against.
     const tallPage = { ...PAGE, pageWidth: 203.2, pageHeight: 254 }
-    const doc = buildBook(input({
-      page: tallPage,
-      entries: [entry({ id: 1, story: 'Just arrived.', photos: fourPhotos })],
-    }))
-    const spread = doc.spreads.find(s => s.entryId === 1)!
-    const small = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < tallPage.pageWidth * 0.4)
+    const laidOut = tightenHeroStory(heroStorySpread('Just arrived.', tallPage), tallPage)
+    const small = laidOut.elements.filter(e => e.kind === 'photo' && e.frame.w < tallPage.pageWidth * 0.4)
     expect(small).toHaveLength(3)
     const gridBottom = Math.max(...small.map(e => e.frame.y + e.frame.h))
     const marginBelow = tallPage.pageHeight - gridBottom

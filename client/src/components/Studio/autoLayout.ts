@@ -1,26 +1,23 @@
 import type { BookDocument, BookElement, BookImageElement, BookPageSetup, BookSpread, BookTextElement } from '../../types/book'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, crossesGutter, type Template } from './templates'
+import { pickReferenceTemplate, applyReferenceTemplate, type ReferenceEntry } from './referenceTemplates'
 import { elementId } from './bookIds'
 import type { RouteImages } from './buildRouteImages'
 
 /**
  * Auto layout: turn a journey's own material into a populated book.
  *
- * This is a from-scratch, deliberately narrower reimplementation of
- * liketrek/trek's autoLayout.ts (1650+ lines) — that version scores entries
- * against six hand-drawn reference templates, a vocabulary this fork's own
- * 12 programmatic templates (templates.ts) stand in for.
- *
- * What's kept, and why it's still real auto-layout rather than a stub:
- * every entry's actual photos, title, story and date land on the page
- * through the SAME template-and-reflow mechanism `templates.ts` already
- * gives "This spread" — an entry's content is seeded as plain elements,
- * scored against the 12 programmatic spread templates by photo count and
- * story presence, and poured into the best fit via `applyTemplate`. Pros
- * and cons and the day's route get their own dedicated spreads
- * (`prosConsSpread`, `routeSpread`) rather than being squeezed into a
- * template's fixed slots, the same reasoning either way: a travel element
- * has its own shape a photo/heading/body template was never drawn for.
+ * Every entry is first tried against the six hand-drawn reference templates
+ * (bookTemplates.data.ts + referenceTemplates.ts, ported from upstream
+ * liketrek/trek) — a page somebody designed beats a page a function
+ * reasoned its way to. When none of the six fit an entry's photo count or
+ * lack of a story, it falls back to this file's own 12 programmatic
+ * templates (templates.ts): an entry's content is seeded as plain elements,
+ * scored by photo count and story presence, and poured into the best fit
+ * via `applyTemplate`. Pros and cons and the day's route get their own
+ * dedicated spreads (`prosConsSpread`, `routeSpread`) rather than being
+ * squeezed into either template set's fixed slots, the same reasoning
+ * either way: a travel element has its own shape neither was drawn for.
  */
 
 export interface AutoPhoto {
@@ -36,6 +33,9 @@ export interface AutoEntry {
   photos: AutoPhoto[]
   /** Omitted or both-empty entries just don't get a pros/cons spread — additive, not a new requirement on every caller. */
   prosCons?: { pros: string[]; cons: string[] } | null
+  /** For a reference template's `coords` badge or a coordinate-format `entry.location` binding — see referenceTemplates.ts. Omitted entries just don't fill those, same as a missing story. */
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface AutoInput {
@@ -46,7 +46,7 @@ export interface AutoInput {
   entries: AutoEntry[]
   page: BookPageSetup
   /** Pre-computed — buildBook does no fetching or aggregation of its own. */
-  journeyStats: { days: number; entries: number; photos: number; places: number }
+  journeyStats: { days: number; entries: number; photos: number; places: number; /** From the linked trip(s)' GPX tracks, when any exist — see referenceTemplates.ts's `distance` badge/stat. */ distanceKm?: number }
   /**
    * A day's route map + elevation profile, pre-rendered by
    * buildRouteImagesByDate (async — network tile fetches — which is why
@@ -173,7 +173,7 @@ export function estimateTextHeight(text: string, boxWidthMm: number, fontSizePt:
  * of a dead zone, on any page shape. A long story still fills the box (no
  * room to free) and the grid stays exactly at its template position.
  */
-function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
+export function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
   const body = spread.elements.find((e): e is BookTextElement => e.kind === 'text' && e.size === 10)
   const grid = spread.elements.filter(e => e.kind === 'photo' && e.frame.w < page.pageWidth * 0.4)
   if (!body || grid.length < 3 || !body.text.trim()) return spread
@@ -191,8 +191,23 @@ function tightenHeroStory(spread: BookSpread, page: BookPageSetup): BookSpread {
   }
 }
 
-/** One spread for one journal entry: seed its content, pick the best-fit layout, pour it in. */
-function entrySpread(entry: AutoEntry, page: BookPageSetup, locale: string, seed: number): BookSpread {
+function toReferenceEntry(entry: AutoEntry): ReferenceEntry {
+  return { id: entry.id, title: entry.title, story: entry.story, location: entry.location, date: entry.date, photos: entry.photos, lat: entry.lat, lng: entry.lng }
+}
+
+/**
+ * One spread for one journal entry: a hand-drawn reference template first
+ * (see this file's own header), then this file's programmatic templates
+ * when none of the six fit.
+ */
+function entrySpread(entry: AutoEntry, input: AutoInput, seed: number): BookSpread {
+  const { page, locale } = input
+  const refEntry = toReferenceEntry(entry)
+  const refTemplate = pickReferenceTemplate(refEntry, seed)
+  if (refTemplate) {
+    return applyReferenceTemplate(refTemplate, refEntry, { page, locale, journeyStats: input.journeyStats })
+  }
+
   const elements: BookElement[] = []
   entry.photos.forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
   const heading = entry.title || entry.location || ''
@@ -405,7 +420,7 @@ export function relayoutSpread(spread: BookSpread, input: AutoInput, seed = 0): 
   if (spread.entryId == null) return null
   const entry = input.entries.find(e => e.id === spread.entryId)
   if (!entry) return null
-  return { ...entrySpread(entry, input.page, input.locale, seed), id: spread.id }
+  return { ...entrySpread(entry, input, seed), id: spread.id }
 }
 
 export function buildBook(input: AutoInput): BookDocument {
@@ -430,7 +445,7 @@ export function buildBook(input: AutoInput): BookDocument {
     if (entry.date && routeImages?.has(entry.date) && firstIndexForDate.get(entry.date) === i) {
       spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
     }
-    spreads.push(entrySpread(entry, input.page, input.locale, i))
+    spreads.push(entrySpread(entry, input, i))
     if (entry.prosCons) {
       const pc = prosConsSpread(entry.prosCons, input.page)
       if (pc) spreads.push(pc)

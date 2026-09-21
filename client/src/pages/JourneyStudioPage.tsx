@@ -19,7 +19,7 @@ import { resolveBindings, type BindingSource } from '../components/Studio/resolv
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
-import { DEFAULT_TILE_URL, buildRouteMapImage, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
+import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
 /**
@@ -199,6 +199,8 @@ export default function JourneyStudioPage() {
         date: e.entry_date ?? null,
         photos: (e.photos || []).map(p => ({ photoId: p.photo_id })),
         prosCons: e.pros_cons ?? null,
+        lat: e.location_lat ?? null,
+        lng: e.location_lng ?? null,
       })),
       page: doc.page,
       journeyStats: {
@@ -206,10 +208,11 @@ export default function JourneyStudioPage() {
         entries: current.stats?.entries ?? withContent.length,
         photos: current.stats?.photos ?? allPhotos.length,
         places: current.stats?.places ?? 0,
+        distanceKm: gpxTracks.length ? computeRouteStats(gpxTracks).totalDist : undefined,
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, doc?.page, locale])
+  }, [current, doc?.page, locale, gpxTracks])
 
   const spread = doc?.spreads[activeSpread] ?? null
 
