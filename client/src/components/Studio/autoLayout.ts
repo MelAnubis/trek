@@ -14,10 +14,13 @@ import type { RouteImages } from './buildRouteImages'
  * lack of a story, it falls back to this file's own 12 programmatic
  * templates (templates.ts): an entry's content is seeded as plain elements,
  * scored by photo count and story presence, and poured into the best fit
- * via `applyTemplate`. Pros and cons and the day's route get their own
- * dedicated spreads (`prosConsSpread`, `routeSpread`) rather than being
- * squeezed into either template set's fixed slots, the same reasoning
- * either way: a travel element has its own shape neither was drawn for.
+ * via `applyTemplate`. The day's route gets its own dedicated spread
+ * (`routeSpread`) rather than being squeezed into either template set's
+ * fixed slots — a full map and elevation profile has its own shape neither
+ * was drawn for. Pros and cons instead ride along on the entry's own page,
+ * as a compact footer (`prosConsFooterElements`) below whatever the entry's
+ * own template drew: a spread of their own was two pages for two or three
+ * lines of text on most entries.
  */
 
 export interface AutoPhoto {
@@ -202,71 +205,106 @@ function toReferenceEntry(entry: AutoEntry): ReferenceEntry {
  */
 function entrySpread(entry: AutoEntry, input: AutoInput, seed: number): BookSpread {
   const { page, locale } = input
+  const pros = (entry.prosCons?.pros ?? []).map(s => s.trim()).filter(Boolean)
+  const cons = (entry.prosCons?.cons ?? []).map(s => s.trim()).filter(Boolean)
+  const footerH = prosConsFooterHeight(pros, cons)
+  // A page this much shorter is what keeps the main layout below drawn from
+  // ever reaching into the footer strip — every template here computes its
+  // frames from `page.pageHeight`, so handing it a smaller one is enough,
+  // with no need to know what any given template actually drew.
+  const layoutPage: BookPageSetup = footerH > 0 ? { ...page, pageHeight: page.pageHeight - footerH } : page
+
   const refEntry = toReferenceEntry(entry)
   const refTemplate = pickReferenceTemplate(refEntry, seed)
+  let spread: BookSpread
   if (refTemplate) {
-    return applyReferenceTemplate(refTemplate, refEntry, { page, locale, journeyStats: input.journeyStats })
+    spread = applyReferenceTemplate(refTemplate, refEntry, { page: layoutPage, locale, journeyStats: input.journeyStats })
+  } else {
+    const elements: BookElement[] = []
+    entry.photos.forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
+    const heading = entry.title || entry.location || ''
+    if (heading) elements.push(boundTextEl(elementId('t'), heading, 22, { source: 'entry.title', entryId: entry.id }))
+    const meta = formatMeta(entry.date, entry.title ? entry.location : null, locale)
+    if (meta) elements.push(textEl(elementId('t'), meta, 7.5))
+    if (entry.story?.trim()) elements.push(boundTextEl(elementId('t'), entry.story.trim(), 10, { source: 'entry.story', entryId: entry.id }))
+
+    const hasStory = !!entry.story?.trim()
+    const tpl = bestTemplate(TEMPLATES, entry.photos.length, hasStory, layoutPage, seed)
+    const raw = seedSpread(elementId('sp'), 'inner', elements, entry.id)
+    const laidOut = applyTemplate(raw, tpl, layoutPage)
+    spread = tpl.id === 'hero-story' ? tightenHeroStory(laidOut, layoutPage) : laidOut
   }
 
-  const elements: BookElement[] = []
-  entry.photos.forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
-  const heading = entry.title || entry.location || ''
-  if (heading) elements.push(boundTextEl(elementId('t'), heading, 22, { source: 'entry.title', entryId: entry.id }))
-  const meta = formatMeta(entry.date, entry.title ? entry.location : null, locale)
-  if (meta) elements.push(textEl(elementId('t'), meta, 7.5))
-  if (entry.story?.trim()) elements.push(boundTextEl(elementId('t'), entry.story.trim(), 10, { source: 'entry.story', entryId: entry.id }))
+  if (footerH > 0) {
+    spread = { ...spread, elements: [...spread.elements, ...prosConsFooterElements(pros, cons, page, footerH)] }
+  }
+  return spread
+}
 
-  const hasStory = !!entry.story?.trim()
-  const tpl = bestTemplate(TEMPLATES, entry.photos.length, hasStory, page, seed)
-  const raw = seedSpread(elementId('sp'), 'inner', elements, entry.id)
-  const laidOut = applyTemplate(raw, tpl, page)
-  return tpl.id === 'hero-story' ? tightenHeroStory(laidOut, page) : laidOut
+const PROS_CONS_MAX_ITEMS = 6
+const PROS_CONS_LINE_H = 6
+const PROS_CONS_HEADING_H = 10
+const PROS_CONS_MARGIN = 16
+const PROS_CONS_MAX_FOOTER_H = 70
+
+/**
+ * How tall a footer needs to be for this many pros/cons — 0 when there are
+ * none, which is what tells `entrySpread` not to shrink the layout page at
+ * all. Capped: a very long list still gets a compact footer rather than
+ * growing to swallow the page, on the theory that the journal entry itself
+ * (where the full list still lives) is the place to read all of it — the
+ * printed page just needs to say pros and cons existed, not reproduce them
+ * verbatim. `pickReferenceTemplate`/`bestTemplate` see the shrunk page
+ * before this runs, so a long list never fights the main layout for room.
+ */
+function prosConsFooterHeight(pros: string[], cons: string[]): number {
+  if (!pros.length && !cons.length) return 0
+  const maxItems = Math.min(Math.max(pros.length, cons.length), PROS_CONS_MAX_ITEMS)
+  return Math.min(PROS_CONS_HEADING_H + maxItems * PROS_CONS_LINE_H + PROS_CONS_MARGIN, PROS_CONS_MAX_FOOTER_H)
 }
 
 /**
- * A journal entry's pros and cons, as their own spread right after the
- * entry's own. Two lists is exactly what a text element cannot express —
- * run together as a paragraph they lose the pairing — hence the dedicated
- * `list` element kind (see its schema comment) rather than folding them
- * into `entrySpread`'s own text elements.
+ * A journal entry's pros and cons, as a compact strip along the bottom of
+ * the entry's own page — not a spread of their own, which for the two or
+ * three lines an entry usually carries meant two almost entirely blank
+ * pages (see the report this replaced: "un gasto ridículo de espacio").
+ * `entrySpread` already shrank the page these sit below before laying out
+ * the entry's own photo/text/reference-template content, so this never
+ * overlaps it.
  *
  * Pros on the left page, cons on the right — never both on the same page,
  * the same reason `routeSpread` splits its map and label: a spread built
  * for uncut reading is still exported one leaf at a time for a real print
  * vendor, so nothing here may depend on the facing page. An entry with
- * only one side filled just leaves the other page blank rather than
- * stretching one list across the gutter to fill it.
+ * only one side filled just leaves the other page's footer blank rather
+ * than stretching one list across the gutter to fill it.
  */
-function prosConsSpread(prosCons: { pros: string[]; cons: string[] }, page: BookPageSetup): BookSpread | null {
-  const pros = prosCons.pros.map(s => s.trim()).filter(Boolean)
-  const cons = prosCons.cons.map(s => s.trim()).filter(Boolean)
-  if (!pros.length && !cons.length) return null
-
+function prosConsFooterElements(pros: string[], cons: string[], page: BookPageSetup, footerH: number): BookElement[] {
   const W = page.pageWidth
-  const H = page.pageHeight
-  const M = 20
+  const M = PROS_CONS_MARGIN
+  const y = page.pageHeight - footerH
   const elements: BookElement[] = []
 
   const column = (items: string[], x: number, heading: string, tone: 'pro' | 'con', accent: string) => {
     if (!items.length) return
     elements.push({
-      ...textEl(elementId('t'), heading, 15),
-      frame: { x, y: M, w: W - M * 2, h: 10 },
+      ...textEl(elementId('t'), heading, 11),
+      frame: { x, y: y + 4, w: W - M * 2, h: 6 },
       weight: 700,
       color: accent,
     })
     elements.push({
-      id: elementId('el'), kind: 'list', frame: { x, y: M + 14, w: W - M * 2, h: H - M * 2 - 14 },
+      id: elementId('el'), kind: 'list', frame: { x, y: y + 12, w: W - M * 2, h: footerH - 16 },
       rotation: 0, opacity: 1, locked: false,
       font: 'sans', color: '#1a1a1a', accent,
-      items: items.map(text => ({ text, tone })), layout: 'stacked', showMarks: true, proLabel: '', conLabel: '',
+      items: items.slice(0, PROS_CONS_MAX_ITEMS).map(text => ({ text, tone })), layout: 'stacked', showMarks: true, proLabel: '', conLabel: '',
     })
   }
 
   column(pros, M, 'Pros', 'pro', '#16a34a')
   column(cons, W + M, 'Cons', 'con', '#dc2626')
 
-  return seedSpread(elementId('sp'), 'inner', elements)
+  return elements
 }
 
 /**
@@ -446,10 +484,6 @@ export function buildBook(input: AutoInput): BookDocument {
       spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
     }
     spreads.push(entrySpread(entry, input, i))
-    if (entry.prosCons) {
-      const pc = prosConsSpread(entry.prosCons, input.page)
-      if (pc) spreads.push(pc)
-    }
   })
   spreads.push(summarySpread(input, dateRange))
 

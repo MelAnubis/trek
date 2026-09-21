@@ -1,4 +1,4 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-030
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-032
 import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, tightenHeroStory, type AutoInput, type AutoEntry } from './autoLayout'
 import { TEMPLATES, applyTemplate } from './templates'
 import type { BookElement, BookSpread } from '../../types/book'
@@ -348,15 +348,19 @@ describe('buildBook — every auto-generated entry spread stands on its own sing
   })
 })
 
-describe('buildBook — pros/cons spread', () => {
-  it('FE-AUTOLAYOUT-026: an entry with both pros and cons gets its own spread right after it, with a list element on each page', () => {
-    const doc = buildBook(input({
+describe('buildBook — pros/cons footer', () => {
+  // A spread of their own was two whole pages for two or three lines of
+  // text on most entries ("un gasto ridículo de espacio") — pros/cons now
+  // ride along on the entry's own page as a compact footer instead.
+  it('FE-AUTOLAYOUT-026: pros and cons ride on the entry\'s own spread — never a spread of their own', () => {
+    const withPc = buildBook(input({
       entries: [entry({ id: 1, prosCons: { pros: ['Great views'], cons: ['Rained all day'] } })],
     }))
-    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
-    const pcSpread = doc.spreads[entryIdx + 1]
-    expect(pcSpread.entryId).toBeNull()
-    const lists = pcSpread.elements.filter(e => e.kind === 'list')
+    const without = buildBook(input({ entries: [entry({ id: 1, prosCons: undefined })] }))
+    expect(withPc.spreads.length).toBe(without.spreads.length)
+
+    const entrySpreadRow = withPc.spreads.find(s => s.entryId === 1)!
+    const lists = entrySpreadRow.elements.filter(e => e.kind === 'list')
     expect(lists).toHaveLength(2)
   })
 
@@ -364,34 +368,67 @@ describe('buildBook — pros/cons spread', () => {
     const doc = buildBook(input({
       entries: [entry({ id: 1, prosCons: { pros: ['Great views'], cons: [] } })],
     }))
-    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
-    const pcSpread = doc.spreads[entryIdx + 1]
-    const lists = pcSpread.elements.filter(e => e.kind === 'list')
+    const entrySpreadRow = doc.spreads.find(s => s.entryId === 1)!
+    const lists = entrySpreadRow.elements.filter(e => e.kind === 'list')
     expect(lists).toHaveLength(1)
     expect(lists[0].frame.x).toBeLessThan(PAGE.pageWidth)
   })
 
-  it('FE-AUTOLAYOUT-028: an entry with no prosCons at all gets no extra spread', () => {
-    const withPc = buildBook(input({ entries: [entry({ id: 1 })] })).spreads.length
-    const without = buildBook(input({ entries: [entry({ id: 1, prosCons: undefined })] })).spreads.length
-    expect(withPc).toBe(without)
+  it('FE-AUTOLAYOUT-028: an entry with no prosCons at all gets no list element and no shrunk layout', () => {
+    const withPc = buildBook(input({ entries: [entry({ id: 1 })] }))
+    const without = buildBook(input({ entries: [entry({ id: 1, prosCons: undefined })] }))
+    expect(withPc.spreads.length).toBe(without.spreads.length)
+    const entrySpreadRow = without.spreads.find(s => s.entryId === 1)!
+    expect(entrySpreadRow.elements.some(e => e.kind === 'list')).toBe(false)
   })
 
-  it('FE-AUTOLAYOUT-029: an entry with prosCons present but both arrays empty gets no extra spread (blank strings don\'t count either)', () => {
-    const without = buildBook(input({ entries: [entry({ id: 1 })] })).spreads.length
-    const withEmpty = buildBook(input({ entries: [entry({ id: 1, prosCons: { pros: ['  '], cons: [] } })] })).spreads.length
-    expect(withEmpty).toBe(without)
+  it('FE-AUTOLAYOUT-029: an entry with prosCons present but both arrays empty gets no list element either (blank strings don\'t count)', () => {
+    const doc = buildBook(input({ entries: [entry({ id: 1, prosCons: { pros: ['  '], cons: [] } })] }))
+    const entrySpreadRow = doc.spreads.find(s => s.entryId === 1)!
+    expect(entrySpreadRow.elements.some(e => e.kind === 'list')).toBe(false)
   })
 
-  it('FE-AUTOLAYOUT-030: neither list element in a pros/cons spread straddles the gutter', () => {
+  it('FE-AUTOLAYOUT-030: neither list element in the footer straddles the gutter', () => {
     const doc = buildBook(input({
       entries: [entry({ id: 1, prosCons: { pros: ['Great views', 'Friendly locals'], cons: ['Rained all day', 'Expensive food'] } })],
     }))
-    const entryIdx = doc.spreads.findIndex(s => s.entryId === 1)
-    const pcSpread = doc.spreads[entryIdx + 1]
-    for (const el of pcSpread.elements) {
+    const entrySpreadRow = doc.spreads.find(s => s.entryId === 1)!
+    for (const el of entrySpreadRow.elements.filter(e => e.kind === 'list')) {
       const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
       expect(crosses, el.kind).toBe(false)
     }
+  })
+
+  it('FE-AUTOLAYOUT-031: the footer sits below the entry\'s own readable content — no text/photo/list reaches into it', () => {
+    // Decorative `shape` elements are exempt: some reference templates draw
+    // one deliberately larger than the page (a circle cropped by the trim
+    // edge) — ref-4's own ellipse already ran ~27mm past a real 210mm page
+    // before this feature existed. Painted first (the back of the stack),
+    // it never obscures anything; only content someone actually reads has
+    // to stay clear of the footer.
+    const doc = buildBook(input({
+      entries: [entry({ id: 1, photos: [{ photoId: 1 }, { photoId: 2 }], prosCons: { pros: ['Great views', 'Friendly locals', 'Cheap food'], cons: ['Rained all day'] } })],
+    }))
+    const entrySpreadRow = doc.spreads.find(s => s.entryId === 1)!
+    const footer = entrySpreadRow.elements.filter(e => e.kind === 'list' || (e.kind === 'text' && (e.text === 'Pros' || e.text === 'Cons')))
+    const rest = entrySpreadRow.elements.filter(e => !footer.includes(e) && e.kind !== 'shape')
+    expect(footer.length).toBeGreaterThan(0)
+    const footerTop = Math.min(...footer.map(e => e.frame.y))
+    for (const el of rest) {
+      // A small tolerance for print bleed (elements are allowed to run past
+      // the trim edge on purpose) — not for genuinely overlapping the footer.
+      expect(el.frame.y + el.frame.h, el.kind).toBeLessThanOrEqual(footerTop + PAGE.bleed + 0.5)
+    }
+  })
+
+  it('FE-AUTOLAYOUT-032: a long pros/cons list is capped rather than growing the footer past a third of the page', () => {
+    const many = Array.from({ length: 20 }, (_, i) => `Reason ${i}`)
+    const doc = buildBook(input({ entries: [entry({ id: 1, prosCons: { pros: many, cons: many } })] }))
+    const entrySpreadRow = doc.spreads.find(s => s.entryId === 1)!
+    const list = entrySpreadRow.elements.find(e => e.kind === 'list')! as { items: unknown[] }
+    expect(list.items.length).toBeLessThan(many.length)
+    const footer = entrySpreadRow.elements.filter(e => e.kind === 'list' || (e.kind === 'text' && (e.text === 'Pros' || e.text === 'Cons')))
+    const footerH = PAGE.pageHeight - Math.min(...footer.map(e => e.frame.y))
+    expect(footerH).toBeLessThan(PAGE.pageHeight / 3)
   })
 })

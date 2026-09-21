@@ -44,11 +44,9 @@ describe('SPREAD_TEMPLATES — structural invariants', () => {
     }
   })
 
-  it('FE-BOOKTPLDATA-006: no list element carries upstream\'s leftover placeholder items — this fork has real pros/cons data and a dedicated spread for it (autoLayout.ts\'s prosConsSpread), so these ship empty', () => {
+  it('FE-BOOKTPLDATA-006: no template carries a list element — this fork fills pros/cons itself, as a compact footer on the entry\'s own page (autoLayout.ts\'s prosConsFooterElements), so a second, always-empty list panel baked into the template would just be dead space', () => {
     for (const t of SPREAD_TEMPLATES) {
-      for (const el of t.elements) {
-        if (el.kind === 'list') expect(el.items, t.id).toEqual([])
-      }
+      expect(t.elements.some(el => el.kind === 'list'), t.id).toBe(false)
     }
   })
 

@@ -24,16 +24,15 @@
  *    server-side zod would silently strip them on save anyway (no
  *    `.strict()` on these objects), but keeping them here would claim they
  *    do something in a fork whose renderer never reads them.
- * 2. `list` elements (a pros/cons panel folded into a photo spread) had
- *    their items stripped to `[]`. Upstream's own `applyTemplate` never
- *    fills a `list` element — its `TemplateEntry` has no pros/cons field to
- *    fill it from — so a template applied there always showed literal
- *    leftover debug text ("TEST1"/"TEST1") from whoever drew it. This fork
- *    already has real pros/cons data and a dedicated, better spread for it
- *    (`prosConsSpread` in autoLayout.ts, a full page per side rather than a
- *    corner of a photo page), so the emptied `list` elements here just draw
- *    as a blank labelled panel — honest about having nothing to say, not
- *    someone else's trip.
+ * 2. `list` elements (a pros/cons panel folded into a photo spread) were
+ *    removed outright, not just emptied. Upstream's own `applyTemplate`
+ *    never fills a `list` element — its `TemplateEntry` has no pros/cons
+ *    field to fill it from — so a template applied there always showed
+ *    literal leftover debug text ("TEST1"/"TEST1") from whoever drew it.
+ *    This fork has real pros/cons data and fills it itself, as a compact
+ *    footer on the entry's own page — see autoLayout.ts's `entrySpread`
+ *    and `prosConsFooterElements` — so a second, always-empty list panel
+ *    baked into the template would just be dead space next to a live one.
  * 3. Two of upstream's six spreads (`ref-2`, `ref-3`) carry a full-bleed
  *    "hero" photo that runs from one page straight across the gutter into
  *    the other. That is a legitimate choice on a spread meant to be viewed
@@ -64,7 +63,6 @@
  * or figure the entry cannot answer keeps the words it was drawn with,
  * rather than showing a blank or a zero.
  */
-
 import type { BookElement } from '../../types/book'
 
 export interface SpreadTemplate {
@@ -360,27 +358,6 @@ export const SPREAD_TEMPLATES: SpreadTemplate[] = [
           entryId: 62,
         },
         overridden: false,
-      } as BookElement,
-      {
-        id: 'li-w82p1lh',
-        frame: {
-          x: 1.1161,
-          y: 0.6769,
-          w: 0.7837,
-          h: 0.0731,
-        },
-        rotation: 0,
-        opacity: 1,
-        locked: false,
-        font: 'sans',
-        color: '#ffffff',
-        accent: '#ffffff',
-        kind: 'list',
-        items: [],
-        layout: 'columns',
-        showMarks: true,
-        proLabel: 'PROS',
-        conLabel: 'Cons',
       } as BookElement,
       {
         id: 't-gabkf9x',
@@ -764,27 +741,6 @@ export const SPREAD_TEMPLATES: SpreadTemplate[] = [
           entryId: 62,
         },
         overridden: false,
-      } as BookElement,
-      {
-        id: 'li-dukbgme',
-        frame: {
-          x: 1.0762,
-          y: 0.5116,
-          w: 0.72,
-          h: 0.0731,
-        },
-        rotation: 0,
-        opacity: 1,
-        locked: false,
-        font: 'sans',
-        color: '#1a1a1a',
-        accent: '#c2410c',
-        kind: 'list',
-        items: [],
-        layout: 'columns',
-        showMarks: true,
-        proLabel: 'Pros',
-        conLabel: 'Cons',
       } as BookElement,
       {
         id: 't-x3ysuxa',
@@ -1190,27 +1146,6 @@ export const SPREAD_TEMPLATES: SpreadTemplate[] = [
           entryId: 62,
         },
         overridden: false,
-      } as BookElement,
-      {
-        id: 'li-93gcznw',
-        frame: {
-          x: 1.0592,
-          y: 0.7876,
-          w: 0.72,
-          h: 0.0731,
-        },
-        rotation: 0,
-        opacity: 1,
-        locked: false,
-        font: 'sans',
-        color: '#1a1a1a',
-        accent: '#c2410c',
-        kind: 'list',
-        items: [],
-        layout: 'columns',
-        showMarks: true,
-        proLabel: 'Pros',
-        conLabel: 'Cons',
       } as BookElement,
     ],
   },
