@@ -23,6 +23,21 @@ describe('referenceTemplateFit', () => {
     expect(referenceTemplateFit(ref3, entry())).toBe(-1)
   })
 
+  it('FE-REFTEMPLATES-001b: a template carrying any travel element (ref-1\'s stats/countries, ref-5\'s coords badges) is never usable — travel elements are always something a person chose, never something auto-layout adds on its own', () => {
+    const ref1 = SPREAD_TEMPLATES.find(t => t.id === 'ref-1')!
+    const ref5 = SPREAD_TEMPLATES.find(t => t.id === 'ref-5')!
+    expect(referenceTemplateFit(ref1, entry())).toBe(-1)
+    expect(referenceTemplateFit(ref1, entry({ story: '', photos: [] }))).toBe(-1)
+    expect(referenceTemplateFit(ref5, entry({ photos: [{ photoId: 1 }, { photoId: 2 }, { photoId: 3 }] }))).toBe(-1)
+  })
+
+  it('FE-REFTEMPLATES-001c: ref-4 and ref-6 (pure photo/text, no travel element) remain usable — the exclusion is about content, not about excluding most of the set', () => {
+    const ref4 = SPREAD_TEMPLATES.find(t => t.id === 'ref-4')!
+    const ref6 = SPREAD_TEMPLATES.find(t => t.id === 'ref-6')!
+    expect(referenceTemplateFit(ref4, entry({ photos: [{ photoId: 1 }, { photoId: 2 }, { photoId: 3 }] }))).toBeGreaterThan(-1)
+    expect(referenceTemplateFit(ref6, entry({ photos: [{ photoId: 1 }, { photoId: 2 }, { photoId: 3 }, { photoId: 4 }] }))).toBeGreaterThan(-1)
+  })
+
   it('FE-REFTEMPLATES-002: a template wanting more photo frames than the entry has (with slack of one) is rejected', () => {
     // ref-6 has 4 photo frames.
     const ref6 = SPREAD_TEMPLATES.find(t => t.id === 'ref-6')!
@@ -51,23 +66,24 @@ describe('referenceTemplateFit', () => {
 })
 
 describe('pickReferenceTemplate', () => {
-  it('FE-REFTEMPLATES-006: ref-1 (a single lenient photo frame, no story requirement) is the catch-all — a completely empty entry still resolves to it rather than null', () => {
-    // Every other template either wants more than one photo frame or
-    // requires a story, so ref-1 is the only one that can answer for an
-    // entry with neither — this documents that pickReferenceTemplate has no
-    // real "nothing fits" case with the current six-template set, the same
-    // way buildBook itself never calls entrySpread for such an entry (it's
-    // filtered out before that — see autoLayout.ts's own `withContent`).
+  it('FE-REFTEMPLATES-006: a completely empty entry resolves to null — with ref-1 excluded, nothing in the set answers for zero photos and no story', () => {
+    // With ref-1 (the only template that would have taken this) excluded,
+    // pickReferenceTemplate correctly has no "nothing fits" case reach the
+    // caller as a false positive — matching buildBook itself, which never
+    // calls entrySpread for such an entry anyway (filtered out before that
+    // — see autoLayout.ts's own `withContent`).
     const picked = pickReferenceTemplate(entry({ story: '', photos: [] }), 0)
-    expect(picked?.id).toBe('ref-1')
+    expect(picked).toBeNull()
   })
 
-  it('FE-REFTEMPLATES-007: never returns ref-2 or ref-3, whatever the entry looks like', () => {
+  it('FE-REFTEMPLATES-007: never returns ref-1, ref-2, ref-3 or ref-5, whatever the entry looks like', () => {
     for (let photoCount = 0; photoCount <= 5; photoCount++) {
       for (const story of ['', 'A short story.']) {
         const picked = pickReferenceTemplate(entry({ story, photos: Array.from({ length: photoCount }, (_, i) => ({ photoId: i })) }), photoCount)
+        expect(picked?.id).not.toBe('ref-1')
         expect(picked?.id).not.toBe('ref-2')
         expect(picked?.id).not.toBe('ref-3')
+        expect(picked?.id).not.toBe('ref-5')
       }
     }
   })

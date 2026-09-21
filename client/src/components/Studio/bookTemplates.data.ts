@@ -43,6 +43,22 @@
  *    them out of automatic selection the same way `crossesGutter` already
  *    filters the 12 programmatic templates in autoLayout.ts — both spreads
  *    are kept here, complete and unedited, simply never auto-picked.
+ * 4. Any template carrying a travel element — map, stats, countries,
+ *    badge, icon or list — is excluded from automatic picking too
+ *    (`hasTravelElement` in referenceTemplates.ts), for a content reason
+ *    rather than a geometric one: everywhere else in this fork, a travel
+ *    element is something a person chose from Studio's own "Travel" panel,
+ *    never something auto-layout decides to add on its own. `ref-1`'s
+ *    `stats`/`countries` panel is what surfaced this — the journey's own
+ *    totals, the same on every page, not anything about whichever entry
+ *    the page got attached to, and scored purely by its one photo frame it
+ *    kept winning nearly every one-photo, no-story entry (a common shape),
+ *    so the same SUMMARY/COUNTRIES panel kept repeating across the book —
+ *    but the rule covers every kind, not just ref-1's own, which is also
+ *    why `ref-5`'s two coords badges keep it out of automatic picking.
+ *    Every one of the six is kept here complete and unedited; three of
+ *    them (`ref-1`, `ref-2`, `ref-3`) are simply never auto-picked because
+ *    of this, and a fourth (`ref-5`) because of it too.
  *
  * ── Why the numbers are fractions ────────────────────────────────────────
  *

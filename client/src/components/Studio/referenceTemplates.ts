@@ -50,9 +50,36 @@ function crossesGutter(template: SpreadTemplate): boolean {
   return template.elements.some(el => el.frame.x < 1 && el.frame.x + el.frame.w > 1)
 }
 
+const TRAVEL_ELEMENT_KINDS = new Set(['map', 'stats', 'countries', 'badge', 'icon', 'list'])
+
+/**
+ * Whether a template carries a travel element — map, stats, countries,
+ * badge, icon or list. Auto-layout never decides to add one of these on
+ * its own anywhere else in this fork: they're always something a person
+ * chose from Studio's own "Travel" panel. A reference template that pours
+ * one in automatically — a coords badge, a COUNTRIES panel — breaks that,
+ * putting the same kind of content on the page without anyone asking for
+ * it, whatever it happens to say.
+ *
+ * `referenceTemplateFit`'s own `usesEntry` check doesn't catch this on its
+ * own: a template like this can still have an empty photo frame, which is
+ * real per-entry content by itself. But scored purely by photo count, that
+ * one frame was enough to win ref-1 nearly every entry with exactly one
+ * photo and no story — a common shape — so its SUMMARY/COUNTRIES panel
+ * kept showing up "por todos lados" across the book even before this rule
+ * widened to cover every travel-element kind, not just ref-1's own.
+ * Excluded from automatic picking for the same reason ref-2/ref-3 are: not
+ * a flaw in the drawing, just the wrong fit for something poured in
+ * without being asked for.
+ */
+function hasTravelElement(template: SpreadTemplate): boolean {
+  return template.elements.some(e => TRAVEL_ELEMENT_KINDS.has(e.kind))
+}
+
 /** How well a template suits an entry: more is better, -1 means unusable. */
 export function referenceTemplateFit(template: SpreadTemplate, entry: ReferenceEntry): number {
   if (crossesGutter(template)) return -1
+  if (hasTravelElement(template)) return -1
 
   const frames = template.elements.filter(e => e.kind === 'photo').length
   const photos = entry.photos.length
