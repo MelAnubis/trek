@@ -483,6 +483,25 @@ export const journeyApi = {
   deleteBook: (id: number) => apiClient.delete(`/journeys/${id}/book`),
 }
 
+export const immichApi = {
+  // Provider-agnostic (no tripId) — the same album list MemoriesPanel.tsx's
+  // per-trip picker uses, reused here for the "import a whole Travesía" flow.
+  listAlbums: () => apiClient.get('/integrations/memories/immich/albums').then(r => r.data as { albums: ImmichAlbum[] }),
+  importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number }) =>
+    apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, opts || {})
+      .then(r => r.data as { journeyId: number; tripId: number; stopCount: number; photoCount: number }),
+}
+
+export interface ImmichAlbum {
+  id: string
+  albumName: string
+  assetCount: number
+  startDate: string | null
+  endDate: string | null
+  albumThumbnailAssetId: string | null
+  shared: boolean
+}
+
 export const mapsApi = {
   search: (query: string, lang?: string) => apiClient.post(`/maps/search?lang=${lang || 'en'}`, { query }).then(r => r.data),
   autocomplete: (input: string, lang?: string, locationBias?: { low: { lat: number; lng: number }; high: { lat: number; lng: number } }, signal?: AbortSignal) =>

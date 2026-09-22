@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
-import { journeyApi } from '../api/client'
+import { journeyApi, immichApi, type ImmichAlbum } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
 import { useTranslation } from '../i18n'
@@ -48,6 +48,20 @@ export default function JourneyPage() {
   const [searchQuery, setSearchQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
+  // Create-journey modal: either pick from existing trips, or import a whole
+  // Travesía from an Immich album's EXIF GPS (route/stops/places built
+  // automatically). The import also creates a real Trip to hold the route —
+  // see the "advanced" note in the modal body.
+  const [createMode, setCreateMode] = useState<'trips' | 'immich'>('trips')
+  const [immichAlbums, setImmichAlbums] = useState<ImmichAlbum[]>([])
+  const [immichLoading, setImmichLoading] = useState(false)
+  const [immichError, setImmichError] = useState<string | null>(null)
+  const [selectedAlbumId, setSelectedAlbumId] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [maxGapHours, setMaxGapHours] = useState('3')
+  const [maxRadiusMeters, setMaxRadiusMeters] = useState('400')
+
   // suggestion
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<number>>(new Set())
@@ -79,7 +93,10 @@ export default function JourneyPage() {
 
   const openCreateModal = async (preSelectedTripId?: number) => {
     setShowCreate(true)
+    setCreateMode('trips')
     setNewTitle('')
+    setSelectedAlbumId(null)
+    setShowAdvanced(false)
     const initial = new Set<number>()
     if (preSelectedTripId) initial.add(preSelectedTripId)
     setSelectedTripIds(initial)
@@ -87,6 +104,41 @@ export default function JourneyPage() {
       const data = await journeyApi.availableTrips()
       setAvailableTrips(data.trips || [])
     } catch {}
+  }
+
+  const openImmichMode = async () => {
+    setCreateMode('immich')
+    if (immichAlbums.length || immichLoading) return
+    setImmichLoading(true)
+    setImmichError(null)
+    try {
+      const data = await immichApi.listAlbums()
+      setImmichAlbums(data.albums || [])
+    } catch {
+      setImmichError(t('journey.frontpage.immichError'))
+    } finally {
+      setImmichLoading(false)
+    }
+  }
+
+  const handleImportFromImmich = async () => {
+    if (!selectedAlbumId || importing) return
+    setImporting(true)
+    try {
+      const gapMinutes = Number(maxGapHours) > 0 ? Math.round(Number(maxGapHours) * 60) : undefined
+      const radiusMeters = Number(maxRadiusMeters) > 0 ? Math.round(Number(maxRadiusMeters)) : undefined
+      const result = await immichApi.importJourney(selectedAlbumId, {
+        title: newTitle.trim() || undefined,
+        maxGapMinutes: gapMinutes,
+        maxRadiusMeters: radiusMeters,
+      })
+      setShowCreate(false)
+      navigate(`/journey/${result.journeyId}`)
+    } catch {
+      toast.error(t('journey.frontpage.immichImportError'))
+    } finally {
+      setImporting(false)
+    }
   }
 
   const handleCreate = async () => {
@@ -372,9 +424,33 @@ export default function JourneyPage() {
             <div className="px-7 pt-6 pb-5" style={{ borderBottom: '1px solid var(--modal-border)' }}>
               <h2 className="text-[18px] font-bold tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>{t("journey.frontpage.createJourney")}</h2>
               <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>{t('journey.frontpage.createNewSub')}</p>
+
+              <div className="flex gap-1.5 mt-4">
+                <button
+                  onClick={() => setCreateMode('trips')}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors ${
+                    createMode === 'trips'
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                      : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <MapPin size={13} /> {t('journey.frontpage.fromTrips')}
+                </button>
+                <button
+                  onClick={openImmichMode}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12.5px] font-medium transition-colors ${
+                    createMode === 'immich'
+                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900'
+                      : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                  }`}
+                >
+                  <Camera size={13} /> {t('journey.frontpage.fromImmich')}
+                </button>
+              </div>
             </div>
 
             {/* Body */}
+            {createMode === 'trips' ? (
             <div className="flex-1 overflow-y-auto px-7 py-5">
               <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.frontpage.journeyName')}</label>
               <input
@@ -443,13 +519,103 @@ export default function JourneyPage() {
                 })}
               </div>
             </div>
+            ) : (
+            <div className="flex-1 overflow-y-auto px-7 py-5">
+              <p className="text-[12px] mb-4 px-3 py-2.5 rounded-lg" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+                {t('journey.frontpage.immichNote')}
+              </p>
+
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.frontpage.journeyName')}</label>
+              <input
+                value={newTitle}
+                onChange={e => setNewTitle(e.target.value)}
+                placeholder={t('journey.frontpage.immichNamePlaceholder')}
+                className="w-full px-3.5 py-2.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none mb-5"
+              />
+
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2.5">{t('journey.frontpage.selectAlbum')}</label>
+
+              {immichLoading && <p className="text-[13px] text-zinc-500 py-3">{t('common.loading')}</p>}
+              {immichError && <p className="text-[13px] text-red-500 py-3">{immichError}</p>}
+              {!immichLoading && !immichError && immichAlbums.length === 0 && (
+                <p className="text-[13px] text-zinc-500 py-3">{t('journey.frontpage.immichNoAlbums')}</p>
+              )}
+
+              <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto">
+                {immichAlbums.map(album => {
+                  const selected = selectedAlbumId === album.id
+                  return (
+                    <div
+                      key={album.id}
+                      onClick={() => setSelectedAlbumId(album.id)}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-[border-color,background-color] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                        selected
+                          ? 'border-zinc-900 dark:border-zinc-400 bg-zinc-50 dark:bg-zinc-800'
+                          : 'border-zinc-200 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-500'
+                      }`}
+                    >
+                      <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
+                        selected
+                          ? 'bg-zinc-900 dark:bg-white border-zinc-900 dark:border-white'
+                          : 'border-zinc-300 dark:border-zinc-600'
+                      }`}>
+                        {selected && <Check size={12} className="text-white dark:text-zinc-900" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[14px] font-semibold text-zinc-900 dark:text-white truncate">{album.albumName}</div>
+                        <div className="text-[12px] text-zinc-500 flex items-center gap-2.5 mt-0.5">
+                          <span className="flex items-center gap-1"><Camera size={11} /> {album.assetCount}</span>
+                          {album.startDate && (
+                            <span className="flex items-center gap-1"><Calendar size={11} /> {new Date(album.startDate).toLocaleDateString()}{album.endDate && album.endDate !== album.startDate ? ` – ${new Date(album.endDate).toLocaleDateString()}` : ''}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <button
+                onClick={() => setShowAdvanced(v => !v)}
+                className="text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 mt-4"
+              >
+                {showAdvanced ? t('journey.frontpage.hideAdvanced') : t('journey.frontpage.showAdvanced')}
+              </button>
+              {showAdvanced && (
+                <div className="grid grid-cols-2 gap-3 mt-3 p-3 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
+                  <div>
+                    <label className="text-[10px] font-semibold tracking-[0.1em] uppercase text-zinc-500 block mb-1.5">{t('journey.frontpage.maxGapHours')}</label>
+                    <input
+                      type="number" min={0.5} step={0.5} value={maxGapHours}
+                      onChange={e => setMaxGapHours(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold tracking-[0.1em] uppercase text-zinc-500 block mb-1.5">{t('journey.frontpage.maxRadiusMeters')}</label>
+                    <input
+                      type="number" min={50} step={50} value={maxRadiusMeters}
+                      onChange={e => setMaxRadiusMeters(e.target.value)}
+                      className="w-full px-2.5 py-1.5 border border-zinc-200 dark:border-zinc-700 rounded-lg text-[13px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white focus:border-zinc-900 dark:focus:border-zinc-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+            )}
 
             {/* Footer */}
             <div className="px-7 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--modal-border)' }}>
-              <div className="text-[12px] text-zinc-500">
-                <strong className="text-zinc-900 dark:text-white">{selectedTripIds.size}</strong> <span className="hidden md:inline">{t('journey.frontpage.tripsSelected')}</span><span className="md:hidden">{t('journey.frontpage.trips')}</span>
-                {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
-              </div>
+              {createMode === 'trips' ? (
+                <div className="text-[12px] text-zinc-500">
+                  <strong className="text-zinc-900 dark:text-white">{selectedTripIds.size}</strong> <span className="hidden md:inline">{t('journey.frontpage.tripsSelected')}</span><span className="md:hidden">{t('journey.frontpage.trips')}</span>
+                  {selectedTripIds.size > 0 && <> · <strong className="text-zinc-900 dark:text-white">{totalPlaces}</strong> <span className="hidden md:inline">{t('journey.frontpage.placesImported')}</span><span className="md:hidden">{t('journey.frontpage.places')}</span></>}
+                </div>
+              ) : (
+                <div className="text-[12px] text-zinc-500">
+                  {selectedAlbumId ? immichAlbums.find(a => a.id === selectedAlbumId)?.albumName : t('journey.frontpage.immichPickAlbum')}
+                </div>
+              )}
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowCreate(false)}
@@ -457,13 +623,23 @@ export default function JourneyPage() {
                 >
                   {t('common.cancel')}
                 </button>
-                <button
-                  onClick={handleCreate}
-                  disabled={!newTitle.trim()}
-                  className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <span className="md:hidden">{t('journey.create')}</span><span className="hidden md:inline">{t('journey.frontpage.createJourney')}</span>
-                </button>
+                {createMode === 'trips' ? (
+                  <button
+                    onClick={handleCreate}
+                    disabled={!newTitle.trim()}
+                    className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <span className="md:hidden">{t('journey.create')}</span><span className="hidden md:inline">{t('journey.frontpage.createJourney')}</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleImportFromImmich}
+                    disabled={!selectedAlbumId || importing}
+                    className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {importing ? t('common.loading') : t('journey.frontpage.importJourney')}
+                  </button>
+                )}
               </div>
             </div>
           </div>

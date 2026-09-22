@@ -373,6 +373,12 @@ export async function getAlbumPhotos(
       takenAt: a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
+      // Already present on the same /search/metadata asset DTO getAssetInfo()
+      // reads elsewhere in this file — surfaced here too so a caller building
+      // a route/stops from an album's photos (see immichJourneyImport.ts)
+      // doesn't need a second per-asset call just to get GPS.
+      lat: a.exifInfo?.latitude ?? null,
+      lng: a.exifInfo?.longitude ?? null,
     }));
     return { assets };
   } catch {

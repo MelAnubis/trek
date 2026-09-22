@@ -46,7 +46,9 @@ const uploadGpx = multer({
 });
 
 // ── Haversine distance in meters ──────────────────────────────────────────────
-function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
+// Exported: reused by immichJourneyImport.ts's stop-clustering, so an
+// EXIF-photo importer measures distance the same way a real GPX track does.
+export function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
   const R = 6371000;
   const dLa = (la2 - la1) * Math.PI / 180;
   const dLo = (lo2 - lo1) * Math.PI / 180;
@@ -476,7 +478,10 @@ async function enrichWithElevation(
 }
 
 // ── Save track to DB ──────────────────────────────────────────────────────────
-function saveTrack(
+// Exported: reused by immichJourneyImport.ts to persist a synthetic track
+// built from EXIF photo points, sharing the same stats computation
+// (computeStats -> computeElevationStats) a real uploaded GPX file gets.
+export function saveTrack(
   tripId: string | number,
   userId: number,
   trackName: string,

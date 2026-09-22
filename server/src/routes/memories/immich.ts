@@ -20,6 +20,7 @@ import {
   isValidAssetId,
 } from '../../services/memories/immichService';
 import { canAccessUserPhoto } from '../../services/memories/helpersService';
+import { importJourneyFromAlbum } from '../../services/memories/immichJourneyImport';
 
 const router = express.Router();
 
@@ -136,6 +137,23 @@ router.post('/trips/:tripId/album-links/:linkId/sync', authenticate, async (req:
   res.json({ success: true, added: result.added, total: result.total });
   if (result.added! > 0) {
     broadcast(tripId, 'memories:updated', { userId: authReq.user.id }, req.headers['x-socket-id'] as string);
+  }
+});
+
+// ── Import a Travesía from an album ─────────────────────────────────────────
+
+router.post('/albums/:albumId/import-journey', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { title, maxGapMinutes, maxRadiusMeters } = req.body || {};
+  try {
+    const result = await importJourneyFromAlbum(authReq.user.id, req.params.albumId, {
+      title: typeof title === 'string' ? title : undefined,
+      maxGapMinutes: typeof maxGapMinutes === 'number' ? maxGapMinutes : undefined,
+      maxRadiusMeters: typeof maxRadiusMeters === 'number' ? maxRadiusMeters : undefined,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(err.status || 500).json({ error: err.message || 'Import failed' });
   }
 });
 
