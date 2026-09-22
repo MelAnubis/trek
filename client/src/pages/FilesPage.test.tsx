@@ -60,7 +60,7 @@ describe('FilesPage', () => {
 
   describe('FE-PAGE-FILES-002: Trip name displayed in Navbar after load', () => {
     it('passes the trip name to Navbar after data loads', async () => {
-      const trip = buildTrip({ id: 1, name: 'Rome Trip' });
+      const trip = buildTrip({ id: 1, title: 'Rome Trip' });
       server.use(
         http.get('/api/trips/:id', () => HttpResponse.json({ trip })),
       );

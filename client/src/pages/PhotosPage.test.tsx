@@ -78,7 +78,7 @@ describe('PhotosPage', () => {
 
   describe('FE-PAGE-PHOTOS-002: Trip name in Navbar after load', () => {
     it('passes the trip name to Navbar after data loads', async () => {
-      const trip = buildTrip({ id: 1, name: 'Venice Trip' });
+      const trip = buildTrip({ id: 1, title: 'Venice Trip' });
       server.use(
         http.get('/api/trips/:id', () => HttpResponse.json({ trip })),
       );

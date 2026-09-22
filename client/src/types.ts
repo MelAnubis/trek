@@ -16,11 +16,11 @@ export interface User {
 
 export interface Trip {
   id: number
-  name: string
+  title: string
   description: string | null
   start_date: string
   end_date: string
-  cover_url: string | null
+  cover_image: string | null
   is_archived: boolean
   reminder_days: number
   trip_type: string | null  // 'general' | 'cycling'
@@ -29,6 +29,14 @@ export interface Trip {
   user_id?: number  // server-side alias for owner_id
   created_at: string
   updated_at: string
+  /** Computed by the server's TRIP_SELECT — not present on a bare create/update payload sent to the API. */
+  day_count?: number
+  place_count?: number
+  shared_count?: number
+  owner_username?: string
+  is_owner?: boolean
+  /** Comma-joined, deduplicated place names for this trip (GROUP_CONCAT) — for search/filter, not display formatting. */
+  place_names?: string | null
 }
 
 export interface Day {

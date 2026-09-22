@@ -72,7 +72,7 @@ export default function PhotosPage(): React.ReactElement {
 
   return (
     <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
-      <Navbar tripTitle={trip?.name} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
+      <Navbar tripTitle={trip?.title} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
 
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-7xl mx-auto px-4 py-6">
@@ -90,7 +90,7 @@ export default function PhotosPage(): React.ReactElement {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t('photos.title')}</h1>
-              <p className="text-gray-500 text-sm">{t('photos.subtitle', { count: photos.length, trip: trip?.name })}</p>
+              <p className="text-gray-500 text-sm">{t('photos.subtitle', { count: photos.length, trip: trip?.title })}</p>
             </div>
           </div>
 

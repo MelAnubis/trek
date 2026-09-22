@@ -63,7 +63,7 @@ export default function FilesPage(): React.ReactElement {
 
   return (
     <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
-      <Navbar tripTitle={trip?.name} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
+      <Navbar tripTitle={trip?.title} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
 
       <div style={{ paddingTop: 'var(--nav-h)' }}>
         <div className="max-w-5xl mx-auto px-4 py-6">
@@ -80,7 +80,7 @@ export default function FilesPage(): React.ReactElement {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t('files.pageTitle')}</h1>
-              <p className="text-gray-500 text-sm">{t('files.subtitle', { count: files.length, trip: trip?.name })}</p>
+              <p className="text-gray-500 text-sm">{t('files.subtitle', { count: files.length, trip: trip?.title })}</p>
             </div>
           </div>
 

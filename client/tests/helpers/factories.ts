@@ -66,13 +66,14 @@ export function buildTrip(overrides: Partial<Trip> = {}): Trip {
   const id = next();
   return {
     id,
-    name: `Trip ${id}`,
+    title: `Trip ${id}`,
     description: null,
     start_date: '2025-06-01',
     end_date: '2025-06-05',
-    cover_url: null,
+    cover_image: null,
     is_archived: false,
     reminder_days: 7,
+    trip_type: 'general',
     owner_id: 1,
     created_at: '2025-01-01T00:00:00.000Z',
     updated_at: '2025-01-01T00:00:00.000Z',

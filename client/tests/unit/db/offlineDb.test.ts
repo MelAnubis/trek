@@ -33,13 +33,14 @@ import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, 
 
 const makeTrip = (id = 1): Trip => ({
   id,
-  name: `Trip ${id}`,
+  title: `Trip ${id}`,
   description: null,
   start_date: '2026-07-01',
   end_date: '2026-07-05',
-  cover_url: null,
+  cover_image: null,
   is_archived: false,
   reminder_days: 3,
+  trip_type: 'general',
   owner_id: 42,
   created_at: '2026-01-01T00:00:00Z',
   updated_at: '2026-01-01T00:00:00Z',
@@ -102,14 +103,14 @@ describe('offlineDb — trips', () => {
     await upsertTrip(trip);
     const stored = await offlineDb.trips.get(10);
     expect(stored).toBeDefined();
-    expect(stored!.name).toBe('Trip 10');
+    expect(stored!.title).toBe('Trip 10');
   });
 
   it('upsertTrip overwrites an existing trip (put semantics)', async () => {
     await upsertTrip(makeTrip(1));
-    await upsertTrip({ ...makeTrip(1), name: 'Updated' });
+    await upsertTrip({ ...makeTrip(1), title: 'Updated' });
     const stored = await offlineDb.trips.get(1);
-    expect(stored!.name).toBe('Updated');
+    expect(stored!.title).toBe('Updated');
   });
 });
 
