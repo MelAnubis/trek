@@ -19,12 +19,13 @@ import { resolveBindings, type BindingSource } from '../components/Studio/resolv
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
+import { fetchJourneyPlaces } from '../components/Journey/journeyPlaces'
 import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
 /**
  * TREK Studio — editing canvas, auto layout from the journal, travel
- * elements (map/stats/countries/badge/icon/list — see TravelElements.tsx),
+ * elements (map/stats/places/badge/icon/list — see TravelElements.tsx),
  * print export, and real-time multi-cursor presence. See autoLayout.ts for
  * why "the whole book" is built from the 12 programmatic templates rather
  * than upstream's hand-drawn set.
@@ -180,12 +181,20 @@ export default function JourneyStudioPage() {
     return buildRouteMapImage(entries, gpxTracks, mapTileUrl || DEFAULT_TILE_URL).catch(() => null)
   }
 
+  // The journey's own places — from its linked trips' real place data, not
+  // every place in the app (see StudioSidebar's own comment on why).
+  const generatePlacesList = async (): Promise<{ name: string; note?: string }[]> => {
+    if (!current?.trips?.length) return []
+    return fetchJourneyPlaces(current.trips).catch(() => [])
+  }
+
   const autoInput: AutoInput | null = useMemo(() => {
     if (!current || !doc) return null
     const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
     const allPhotos = entries.flatMap(e => e.photos || [])
     const withContent = entries.filter(e => (e.photos?.length || 0) > 0 || !!e.story?.trim())
     const days = new Set(withContent.map(e => e.entry_date).filter(Boolean)).size
+    const routeStats = gpxTracks.length ? computeRouteStats(gpxTracks) : null
     return {
       locale,
       title: current.title,
@@ -208,7 +217,9 @@ export default function JourneyStudioPage() {
         entries: current.stats?.entries ?? withContent.length,
         photos: current.stats?.photos ?? allPhotos.length,
         places: current.stats?.places ?? 0,
-        distanceKm: gpxTracks.length ? computeRouteStats(gpxTracks).totalDist : undefined,
+        distanceKm: routeStats?.totalDist,
+        elevationGainM: routeStats?.gain,
+        elevationLossM: routeStats?.loss,
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -443,7 +454,7 @@ export default function JourneyStudioPage() {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} />
+          <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>

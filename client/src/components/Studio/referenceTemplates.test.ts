@@ -23,7 +23,7 @@ describe('referenceTemplateFit', () => {
     expect(referenceTemplateFit(ref3, entry())).toBe(-1)
   })
 
-  it('FE-REFTEMPLATES-001b: a template carrying any travel element (ref-1\'s stats/countries, ref-5\'s coords badges) is never usable — travel elements are always something a person chose, never something auto-layout adds on its own', () => {
+  it('FE-REFTEMPLATES-001b: a template carrying any travel element (ref-1\'s stats/places, ref-5\'s coords badges) is never usable — travel elements are always something a person chose, never something auto-layout adds on its own', () => {
     const ref1 = SPREAD_TEMPLATES.find(t => t.id === 'ref-1')!
     const ref5 = SPREAD_TEMPLATES.find(t => t.id === 'ref-5')!
     expect(referenceTemplateFit(ref1, entry())).toBe(-1)
@@ -142,16 +142,19 @@ describe('applyReferenceTemplate', () => {
     expect(badgeNoCoords.text).toBe("51°10'N 10°27'E") // left exactly as drawn
   })
 
-  it('FE-REFTEMPLATES-013: stats values fill only the metrics this fork can answer (days/photos/places/distance), leaving the rest as drawn', () => {
+  it('FE-REFTEMPLATES-013: stats values fill only the metrics this fork can answer (days/photos/places/distance/elevation), leaving the rest as drawn', () => {
     const ref1 = SPREAD_TEMPLATES.find(t => t.id === 'ref-1')!
     const withStats = applyReferenceTemplate(ref1, entry({ photos: [] }), {
-      page: PAGE, locale: 'en', journeyStats: { days: 9, photos: 42, places: 7, distanceKm: 100 },
+      page: PAGE, locale: 'en',
+      journeyStats: { days: 9, photos: 42, places: 7, distanceKm: 100, elevationGainM: 843, elevationLossM: 621 },
     })
     const stats = withStats.elements.find((e): e is BookStatsElement => e.kind === 'stats')!
     expect(stats.values.days).toBe(9)
     expect(stats.values.photos).toBe(42)
     expect(stats.values.places).toBe(7)
     expect(stats.values.distance).toBe(100000) // km -> metres
+    expect(stats.values.elevationGain).toBe(843)
+    expect(stats.values.elevationLoss).toBe(621)
     // steps/countries/furthest have no source here — left at whatever ref-1 was drawn with.
     expect(stats.values.steps).toBe(2)
     expect(stats.values.countries).toBe(2)

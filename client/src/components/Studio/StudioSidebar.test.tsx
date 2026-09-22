@@ -136,8 +136,17 @@ describe('StudioSidebar — Travel panel', () => {
     expect((lastElement() as any).values).toEqual({})
   })
 
+  it('FE-COMP-STUDIOSIDEBAR-022: adding stats also prefills distance/elevation once the journey has a GPX track, without a manual metric toggle first', () => {
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} journeyStats={{
+      days: 7, entries: 12, photos: 240, places: 9, distanceKm: 100, elevationGainM: 843, elevationLossM: 621,
+    }} />)
+    fireEvent.click(screen.getByText('journey.studio.addStats'))
+    const el = lastElement() as any
+    expect(el.metrics).toEqual(expect.arrayContaining(['days', 'photos', 'places', 'distance', 'elevationGain', 'elevationLoss']))
+    expect(el.values).toEqual({ days: 7, photos: 240, places: 9, distance: 100000, elevationGain: 843, elevationLoss: 621 })
+  })
+
   it.each([
-    ['journey.studio.addCountries', 'countries'],
     ['journey.studio.addBadge', 'badge'],
     ['journey.studio.addIcon', 'icon'],
     ['journey.studio.addList', 'list'],
@@ -145,6 +154,29 @@ describe('StudioSidebar — Travel panel', () => {
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     fireEvent.click(screen.getByText(label))
     expect(lastElement().kind).toBe(kind)
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-019: adding places inserts it immediately with an empty list, before onGeneratePlaces resolves', () => {
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
+    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    const el = lastElement()
+    expect(el.kind).toBe('places')
+    expect((el as any).places).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-020: once onGeneratePlaces resolves, the just-added places element is patched with the fetched list', async () => {
+    const onGeneratePlaces = vi.fn().mockResolvedValue([{ name: 'Kyoto', note: 'Bamboo grove' }])
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePlaces={onGeneratePlaces} />)
+    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    await waitFor(() => expect((lastElement() as any).places).toEqual([{ name: 'Kyoto', note: 'Bamboo grove' }]))
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-021: onGeneratePlaces rejecting leaves the places element with an empty list rather than throwing', async () => {
+    const onGeneratePlaces = vi.fn().mockRejectedValue(new Error('network'))
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePlaces={onGeneratePlaces} />)
+    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    await waitFor(() => expect(onGeneratePlaces).toHaveBeenCalled())
+    expect((lastElement() as any).places).toEqual([])
   })
 })
 

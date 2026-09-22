@@ -2,7 +2,7 @@
 import { render } from '@testing-library/react'
 import { ElementView } from './SpreadView'
 import { formatMetricValue } from './TravelElements'
-import type { BookBadgeElement, BookCountriesElement, BookIconElement, BookListElement, BookMapElement, BookStatsElement } from '../../types/book'
+import type { BookBadgeElement, BookIconElement, BookListElement, BookMapElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 40, h: 40 }, rotation: 0, opacity: 1, locked: false }
 const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
@@ -14,10 +14,11 @@ function statsEl(overrides: Partial<BookStatsElement> = {}): BookStatsElement {
   }
 }
 
-function countriesEl(overrides: Partial<BookCountriesElement> = {}): BookCountriesElement {
+function placesEl(overrides: Partial<BookPlacesElement> = {}): BookPlacesElement {
   return {
-    ...base, ...typeset, kind: 'countries', codes: ['IS', 'NO'], names: ['Iceland', 'Norway'],
-    layout: 'list', showFlag: true, showName: true, align: 'center', ...overrides,
+    ...base, ...typeset, kind: 'places',
+    places: [{ name: 'Reykjavik', note: 'Blue Lagoon' }, { name: 'Oslo' }],
+    layout: 'list', align: 'center', ...overrides,
   }
 }
 
@@ -54,6 +55,15 @@ describe('formatMetricValue', () => {
     expect(formatMetricValue('days', 5, 'metric')).toBe('5')
     expect(formatMetricValue('photos', 1234, 'imperial')).toBe('1,234')
   })
+
+  it('FE-TRAVELELEMENTS-017: elevation gain/loss in metres formats to whole metres under metric units', () => {
+    expect(formatMetricValue('elevationGain', 843, 'metric')).toBe('843 m')
+    expect(formatMetricValue('elevationLoss', 621, 'metric')).toBe('621 m')
+  })
+
+  it('FE-TRAVELELEMENTS-018: elevation gain/loss converts to feet under imperial units', () => {
+    expect(formatMetricValue('elevationGain', 843, 'imperial')).toBe('2,766 ft')
+  })
 })
 
 describe('StatsView (via ElementView)', () => {
@@ -70,21 +80,21 @@ describe('StatsView (via ElementView)', () => {
   })
 })
 
-describe('CountriesView (via ElementView)', () => {
-  it('FE-TRAVELELEMENTS-006: renders one row per code, pairing each with its matching name by index', () => {
-    const { container } = render(<ElementView el={countriesEl()} big />)
-    expect(container.textContent).toContain('Iceland')
-    expect(container.textContent).toContain('Norway')
+describe('PlacesView (via ElementView)', () => {
+  it('FE-TRAVELELEMENTS-006: renders every place\'s name', () => {
+    const { container } = render(<ElementView el={placesEl()} big />)
+    expect(container.textContent).toContain('Reykjavik')
+    expect(container.textContent).toContain('Oslo')
   })
 
-  it('FE-TRAVELELEMENTS-007: a code with no matching name falls back to the code itself rather than blank', () => {
-    const { container } = render(<ElementView el={countriesEl({ codes: ['IS', 'FR'], names: ['Iceland'] })} big />)
-    expect(container.textContent).toContain('FR')
+  it('FE-TRAVELELEMENTS-007: a place with a note renders it alongside the name', () => {
+    const { container } = render(<ElementView el={placesEl()} big />)
+    expect(container.textContent).toContain('Blue Lagoon')
   })
 
-  it('FE-TRAVELELEMENTS-008: showName false hides the names but keeps the flags', () => {
-    const { container } = render(<ElementView el={countriesEl({ showName: false })} big />)
-    expect(container.textContent).not.toContain('Iceland')
+  it('FE-TRAVELELEMENTS-008: a place with no note renders just the name, no stray empty line', () => {
+    const { container } = render(<ElementView el={placesEl({ places: [{ name: 'Oslo' }] })} big />)
+    expect(container.textContent).toBe('Oslo')
   })
 })
 

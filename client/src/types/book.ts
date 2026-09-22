@@ -112,7 +112,7 @@ interface BookTypeset {
   accent: string;
 }
 
-export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss'] as const;
 export type BookMetric = (typeof BOOK_METRICS)[number];
 
 export interface BookStatsElement extends BookElementBase, BookTypeset {
@@ -124,15 +124,23 @@ export interface BookStatsElement extends BookElementBase, BookTypeset {
   values: Partial<Record<BookMetric, number>>;
 }
 
-export interface BookCountriesElement extends BookElementBase, BookTypeset {
-  kind: 'countries';
-  /** ISO-3166-1 alpha-2, in visit order. */
-  codes: string[];
-  /** Names as resolved when placed (Intl.DisplayNames) — the page does not depend on a lookup at render time. */
-  names: string[];
+export interface BookPlaceItem {
+  name: string;
+  note?: string;
+}
+
+/**
+ * Replaces the earlier `countries` element (removed, not kept alongside
+ * this one — see bookSchema.ts's own note on why a straight swap is safe
+ * here): a per-journey place, with an optional short note, rather than an
+ * ISO-code country list. Auto-fillable from the journey's linked trips'
+ * real places (see JourneyStudioPage.tsx's `onGeneratePlaces`), same
+ * fetch-then-update pattern the `map` element already uses.
+ */
+export interface BookPlacesElement extends BookElementBase, BookTypeset {
+  kind: 'places';
+  places: BookPlaceItem[];
   layout: 'list' | 'grid' | 'column';
-  showFlag: boolean;
-  showName: boolean;
   align: 'left' | 'center' | 'right';
 }
 
@@ -188,7 +196,7 @@ export interface BookMapElement extends BookElementBase {
 
 export type BookElement =
   | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
-  | BookStatsElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement;
+  | BookStatsElement | BookPlacesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement;
 
 export interface BookSpread {
   id: string;

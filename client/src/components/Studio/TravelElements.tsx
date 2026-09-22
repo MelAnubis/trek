@@ -1,9 +1,8 @@
 import type { CSSProperties } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass } from 'lucide-react'
-import type { BookBadgeElement, BookCountriesElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookStatsElement } from '../../types/book'
+import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown } from 'lucide-react'
+import type { BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPlacesElement, BookStatsElement } from '../../types/book'
 import { fontStack } from './bookFonts'
-import { flagEmoji } from './countryFlags'
 import { frameStyle } from './SpreadView'
 
 /**
@@ -53,17 +52,22 @@ export function MapView({ el }: { el: BookMapElement }) {
 
 const METRIC_ICON: Record<BookMetric, React.ComponentType<{ style?: CSSProperties; color?: string }>> = {
   distance: Route, days: CalendarDays, steps: Footprints, photos: Camera, countries: Flag, places: MapPin, furthest: Compass,
+  elevationGain: TrendingUp, elevationLoss: TrendingDown,
 }
 
 const METRIC_LABEL: Record<BookMetric, string> = {
   distance: 'Distance', days: 'Days', steps: 'Steps', photos: 'Photos', countries: 'Countries', places: 'Places', furthest: 'Furthest',
+  elevationGain: 'Elevation gain', elevationLoss: 'Elevation loss',
 }
 
-/** Distance/furthest are stored in metres — everything else is a plain count, per the schema's own comment. */
+/** Distance/furthest are stored in metres and shown as km; elevation gain/loss are also stored in metres but shown as-is — a day's climb rarely reaches a whole kilometre. Everything else is a plain count, per the schema's own comment. */
 export function formatMetricValue(metric: BookMetric, value: number, units: 'metric' | 'imperial'): string {
   if (metric === 'distance' || metric === 'furthest') {
     const km = value / 1000
     return units === 'imperial' ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${Math.round(km).toLocaleString()} km`
+  }
+  if (metric === 'elevationGain' || metric === 'elevationLoss') {
+    return units === 'imperial' ? `${Math.round(value * 3.28084).toLocaleString()} ft` : `${Math.round(value).toLocaleString()} m`
   }
   return Math.round(value).toLocaleString()
 }
@@ -108,10 +112,9 @@ export function StatsView({ el }: { el: BookStatsElement }) {
   )
 }
 
-// ── countries ────────────────────────────────────────────────────────────────
+// ── places ───────────────────────────────────────────────────────────────────
 
-export function CountriesView({ el }: { el: BookCountriesElement }) {
-  const rows = el.codes.map((code, i) => ({ code, name: el.names[i] ?? code }))
+export function PlacesView({ el }: { el: BookPlacesElement }) {
   const justify = el.align === 'center' ? 'center' : el.align === 'right' ? 'flex-end' : 'flex-start'
   return (
     <div
@@ -121,16 +124,16 @@ export function CountriesView({ el }: { el: BookCountriesElement }) {
         flexDirection: el.layout === 'grid' ? 'row' : 'column',
         flexWrap: el.layout === 'grid' ? 'wrap' : 'nowrap',
         justifyContent: justify,
-        alignItems: justify,
-        gap: '2mm',
+        alignItems: el.layout === 'grid' ? 'flex-start' : justify,
+        gap: '3mm',
         overflow: 'hidden',
       }}
     >
-      {rows.map((r, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.5mm' }}>
-          {el.showFlag && <span style={{ fontSize: '4mm', lineHeight: 1 }}>{flagEmoji(r.code)}</span>}
-          {el.showName && (
-            <span style={{ fontFamily: fontStack(el.font), fontSize: '3mm', color: el.color, textAlign: el.align }}>{r.name}</span>
+      {el.places.map((p, i) => (
+        <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '0.5mm', textAlign: el.align }}>
+          <span style={{ fontFamily: fontStack(el.font), fontSize: '3mm', fontWeight: 700, color: el.color }}>{p.name}</span>
+          {p.note && (
+            <span style={{ fontFamily: fontStack(el.font), fontSize: '2.4mm', color: el.color, opacity: 0.65 }}>{p.note}</span>
           )}
         </div>
       ))}

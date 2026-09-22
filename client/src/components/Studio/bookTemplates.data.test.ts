@@ -1,7 +1,7 @@
 // FE-BOOKTPLDATA-001 to FE-BOOKTPLDATA-007
 import { SPREAD_TEMPLATES } from './bookTemplates.data'
 
-const SUPPORTED_KINDS = new Set(['photo', 'text', 'shape', 'stats', 'countries', 'badge', 'icon', 'list', 'map', 'image'])
+const SUPPORTED_KINDS = new Set(['photo', 'text', 'shape', 'stats', 'places', 'badge', 'icon', 'list', 'map', 'image'])
 
 describe('SPREAD_TEMPLATES — structural invariants', () => {
   it('FE-BOOKTPLDATA-001: ships all six of upstream\'s reference templates', () => {

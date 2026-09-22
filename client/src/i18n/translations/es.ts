@@ -2080,7 +2080,7 @@ const es: Record<string, string> = {
   'journey.studio.travelTab': 'Viaje',
   'journey.studio.addMap': 'Añadir mapa',
   'journey.studio.addStats': 'Añadir estadísticas',
-  'journey.studio.addCountries': 'Añadir países',
+  'journey.studio.addPlaces': 'Añadir lugares',
   'journey.studio.addBadge': 'Añadir insignia',
   'journey.studio.addIcon': 'Añadir icono',
   'journey.studio.addList': 'Añadir pros/contras',

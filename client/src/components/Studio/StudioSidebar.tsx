@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import {
-  Award, BarChart3, Circle, Compass, Copy, Flag, ImageIcon, ListChecks, Map as MapIconLucide, Plus, Sparkles,
+  Award, BarChart3, Circle, Compass, Copy, ImageIcon, ListChecks, Map as MapIconLucide, MapPin, Plus, Sparkles,
   Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -13,7 +13,7 @@ import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
 import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './templates'
 import { SHAPE_GROUPS, SHAPE_PATHS, HOLED_SHAPES } from './shapes'
-import type { BookElement, BookPageSetup, BookShapeId } from '../../types/book'
+import type { BookElement, BookMetric, BookPageSetup, BookShapeId } from '../../types/book'
 import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
 
 /**
@@ -110,14 +110,17 @@ export function StudioSidebar({
   galleryPhotos,
   journeyStats,
   onGenerateMap,
+  onGeneratePlaces,
 }: {
   /** Lets the Photos panel upload straight into the journey's gallery, same action the journey editor's own uploader uses — the newly-added photos then show up here via the caller's own galleryPhotos, no separate refresh plumbing needed. */
   journeyId: number
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
-  /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. */
-  journeyStats?: { days: number; entries: number; photos: number; places: number }
+  /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. distanceKm/elevation are only known once the journey's linked trips have a GPX track. */
+  journeyStats?: { days: number; entries: number; photos: number; places: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number }
   /** Renders a route-map raster image (gpxDrawing's canvas renderer, the same one auto-layout's route spread already uses) for a freshly-added map element — see BookMapElement's own comment on why this fork bakes a snapshot rather than rendering a live map. Omitted where the caller has no track/entry data to draw from (map elements can still be added, just start blank). */
   onGenerateMap?: () => Promise<string | null>
+  /** Collects the journey's own places — from its linked trips' real place data, not every place in the app — for a freshly-added places element. Same fetch-then-update pattern as onGenerateMap. Omitted where the caller has no trip data to draw from (places elements can still be added, just start empty). */
+  onGeneratePlaces?: () => Promise<{ name: string; note?: string }[]>
 }) {
   const { t, locale } = useTranslation()
   const toast = useToast()
@@ -160,6 +163,22 @@ export function StudioSidebar({
     if (!onGenerateMap) return
     const src = await onGenerateMap().catch(() => null)
     if (src) updateElement(activeSpread, id, { src })
+  }
+
+  const addPlaces = async () => {
+    const w = 80
+    const h = 50
+    const id = elementId('el')
+    const x = (doc.page.pageWidth - w) / 2
+    const y = (doc.page.pageHeight - h) / 2
+    addElement(activeSpread, {
+      id, frame: { x, y, w, h }, kind: 'places', rotation: 0, opacity: 1, locked: false,
+      font: 'sans', color: '#1a1a1a', accent: '#111111',
+      places: [], layout: 'list', align: 'center',
+    })
+    if (!onGeneratePlaces) return
+    const places = await onGeneratePlaces().catch(() => null)
+    if (places && places.length) updateElement(activeSpread, id, { places })
   }
 
   const addShape = (shape: BookShapeId) => {
@@ -334,17 +353,20 @@ export function StudioSidebar({
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
-          <button onClick={() => addCentered(100, 40, (id, frame) => ({
-            id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
-            font: 'sans', color: '#1a1a1a', accent: '#111111',
-            metrics: ['days', 'photos', 'places'], layout: 'row', showIcons: true, units: 'metric',
-            values: journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {},
-          }))} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
-          <button onClick={() => addCentered(80, 50, (id, frame) => ({
-            id, frame, kind: 'countries', rotation: 0, opacity: 1, locked: false,
-            font: 'sans', color: '#1a1a1a', accent: '#111111',
-            codes: [], names: [], layout: 'list', showFlag: true, showName: true, align: 'center',
-          }))} className="st-sb-add"><Flag size={15} /> {t('journey.studio.addCountries')}</button>
+          <button onClick={() => {
+            const metrics: BookMetric[] = ['days', 'photos', 'places']
+            const values: Partial<Record<BookMetric, number>> = journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {}
+            if (journeyStats?.distanceKm != null) { metrics.push('distance'); values.distance = Math.round(journeyStats.distanceKm * 1000) }
+            if (journeyStats?.elevationGainM != null) { metrics.push('elevationGain'); values.elevationGain = Math.round(journeyStats.elevationGainM) }
+            if (journeyStats?.elevationLossM != null) { metrics.push('elevationLoss'); values.elevationLoss = Math.round(journeyStats.elevationLossM) }
+            addCentered(100, 40, (id, frame) => ({
+              id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
+              font: 'sans', color: '#1a1a1a', accent: '#111111',
+              metrics, layout: 'row', showIcons: true, units: 'metric',
+              values,
+            }))
+          }} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
+          <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
           <button onClick={() => addCentered(40, 24, (id, frame) => ({
             id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
             font: 'sans', color: '#1a1a1a', accent: '#111111',

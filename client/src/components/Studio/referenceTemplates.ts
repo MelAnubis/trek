@@ -31,7 +31,7 @@ export interface ReferenceContext {
   page: BookPageSetup
   locale: string
   /** Only the figures this fork actually has — see fillStats/fillBadge below for what stays as drawn. */
-  journeyStats?: { days?: number; photos?: number; places?: number; distanceKm?: number }
+  journeyStats?: { days?: number; photos?: number; places?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number }
 }
 
 let seq = 0
@@ -50,22 +50,22 @@ function crossesGutter(template: SpreadTemplate): boolean {
   return template.elements.some(el => el.frame.x < 1 && el.frame.x + el.frame.w > 1)
 }
 
-const TRAVEL_ELEMENT_KINDS = new Set(['map', 'stats', 'countries', 'badge', 'icon', 'list'])
+const TRAVEL_ELEMENT_KINDS = new Set(['map', 'stats', 'places', 'badge', 'icon', 'list'])
 
 /**
- * Whether a template carries a travel element — map, stats, countries,
+ * Whether a template carries a travel element — map, stats, places,
  * badge, icon or list. Auto-layout never decides to add one of these on
  * its own anywhere else in this fork: they're always something a person
  * chose from Studio's own "Travel" panel. A reference template that pours
- * one in automatically — a coords badge, a COUNTRIES panel — breaks that,
- * putting the same kind of content on the page without anyone asking for
- * it, whatever it happens to say.
+ * one in automatically — a coords badge, a SUMMARY/PLACES panel — breaks
+ * that, putting the same kind of content on the page without anyone asking
+ * for it, whatever it happens to say.
  *
  * `referenceTemplateFit`'s own `usesEntry` check doesn't catch this on its
  * own: a template like this can still have an empty photo frame, which is
  * real per-entry content by itself. But scored purely by photo count, that
  * one frame was enough to win ref-1 nearly every entry with exactly one
- * photo and no story — a common shape — so its SUMMARY/COUNTRIES panel
+ * photo and no story — a common shape — so its SUMMARY/PLACES panel
  * kept showing up "por todos lados" across the book even before this rule
  * widened to cover every travel-element kind, not just ref-1's own.
  * Excluded from automatic picking for the same reason ref-2/ref-3 are: not
@@ -194,9 +194,10 @@ function fillBadge(el: BookElement & { kind: 'badge' }, entry: ReferenceEntry, c
 
 /**
  * The figures this fork tracks — days, photos, places and (when a linked
- * trip has a GPX track) distance. `steps`, `countries` and `furthest` have
- * no source here yet, so they're left at whatever the template was drawn
- * showing, the same bargain every other unanswerable figure gets.
+ * trip has a GPX track) distance and elevation gain/loss. `steps` and
+ * `countries` have no source here yet, so they're left at whatever the
+ * template was drawn showing, the same bargain every other unanswerable
+ * figure gets.
  */
 function fillStats(el: BookElement & { kind: 'stats' }, ctx: ReferenceContext) {
   if (!ctx.journeyStats) return
@@ -205,6 +206,8 @@ function fillStats(el: BookElement & { kind: 'stats' }, ctx: ReferenceContext) {
   if (ctx.journeyStats.photos != null) values.photos = ctx.journeyStats.photos
   if (ctx.journeyStats.places != null) values.places = ctx.journeyStats.places
   if (ctx.journeyStats.distanceKm != null) values.distance = Math.round(ctx.journeyStats.distanceKm * 1000)
+  if (ctx.journeyStats.elevationGainM != null) values.elevationGain = Math.round(ctx.journeyStats.elevationGainM)
+  if (ctx.journeyStats.elevationLossM != null) values.elevationLoss = Math.round(ctx.journeyStats.elevationLossM)
   el.values = values
 }
 

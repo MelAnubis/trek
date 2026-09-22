@@ -1,4 +1,4 @@
-// BOOKSCHEMA-001 to BOOKSCHEMA-021
+// BOOKSCHEMA-001 to BOOKSCHEMA-023
 import { bookElementSchema, bookPageSetupSchema, normalizeBookDocument, MAX_IMAGE_SRC_LENGTH } from '../../../src/services/journeyBook/bookSchema';
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false };
@@ -85,15 +85,18 @@ describe('bookElementSchema — travel element kinds', () => {
     expect(parsed.success).toBe(false);
   });
 
-  it('BOOKSCHEMA-011: a countries element accepts parallel codes/names arrays', () => {
+  it('BOOKSCHEMA-011: a places element accepts a list of places, each with an optional note', () => {
     const parsed = bookElementSchema.safeParse({
-      ...base, kind: 'countries', codes: ['IS', 'NO'], names: ['Iceland', 'Norway'], layout: 'list', showFlag: true, showName: true, align: 'center',
+      ...base, kind: 'places', places: [{ name: 'Reykjavik', note: 'Blue Lagoon' }, { name: 'Oslo' }], layout: 'list', align: 'center',
     });
     expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.kind === 'places') {
+      expect(parsed.data.places).toEqual([{ name: 'Reykjavik', note: 'Blue Lagoon' }, { name: 'Oslo', note: '' }]);
+    }
   });
 
-  it('BOOKSCHEMA-012: a countries element rejects a code that isn\'t exactly 2 characters', () => {
-    const parsed = bookElementSchema.safeParse({ ...base, kind: 'countries', codes: ['ISL'], names: ['Iceland'] });
+  it('BOOKSCHEMA-012: a places element rejects a place name longer than MAX_PLACE_NAME', () => {
+    const parsed = bookElementSchema.safeParse({ ...base, kind: 'places', places: [{ name: 'A'.repeat(81) }] });
     expect(parsed.success).toBe(false);
   });
 
@@ -159,5 +162,34 @@ describe('bookElementSchema — travel element kinds', () => {
     const ids = doc.spreads[0].elements.map(e => e.id);
     expect(ids).toContain('good');
     expect(ids).not.toContain('bad');
+  });
+
+  it('BOOKSCHEMA-022: a stats element accepts the elevationGain/elevationLoss metrics', () => {
+    const parsed = bookElementSchema.safeParse({
+      ...base, kind: 'stats', metrics: ['elevationGain', 'elevationLoss'], layout: 'grid', showIcons: true, units: 'metric',
+      values: { elevationGain: 843, elevationLoss: 621 },
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.kind === 'stats') {
+      expect(parsed.data.values).toEqual({ elevationGain: 843, elevationLoss: 621 });
+    }
+  });
+
+  it('BOOKSCHEMA-023: an old book still carrying the removed "countries" element kind degrades gracefully — that one element is dropped, not the whole document', () => {
+    const doc = normalizeBookDocument({
+      version: 1,
+      title: 'Trip',
+      page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
+      spreads: [{
+        id: 'sp-1', role: 'inner', background: null, entryId: null, parked: [],
+        elements: [
+          { ...base, id: 'good', kind: 'icon', name: 'Compass', color: '#111827', lineWidth: 2 },
+          { ...base, id: 'stale-countries', kind: 'countries', codes: ['IS'], names: ['Iceland'], layout: 'list', showFlag: true, showName: true, align: 'center' },
+        ],
+      }],
+    });
+    const ids = doc.spreads[0].elements.map(e => e.id);
+    expect(ids).toContain('good');
+    expect(ids).not.toContain('stale-countries');
   });
 });

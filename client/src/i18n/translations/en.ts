@@ -2271,7 +2271,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.travelTab': 'Travel',
   'journey.studio.addMap': 'Add map',
   'journey.studio.addStats': 'Add stats',
-  'journey.studio.addCountries': 'Add countries',
+  'journey.studio.addPlaces': 'Add places',
   'journey.studio.addBadge': 'Add badge',
   'journey.studio.addIcon': 'Add icon',
   'journey.studio.addList': 'Add pros/cons',

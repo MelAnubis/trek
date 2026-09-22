@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioInspector } from './StudioInspector'
 import { useStudioStore } from '../../store/studioStore'
 import type {
-  BookBadgeElement, BookCountriesElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
-  BookPhotoElement, BookShapeElement, BookSpread, BookStatsElement,
+  BookBadgeElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
+  BookPhotoElement, BookPlacesElement, BookShapeElement, BookSpread, BookStatsElement,
 } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -14,8 +14,8 @@ const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
 function statsEl(): BookStatsElement {
   return { ...base, ...typeset, id: 'stats-1', kind: 'stats', metrics: ['distance'], layout: 'grid', showIcons: true, units: 'metric', values: { distance: 1000 } }
 }
-function countriesEl(): BookCountriesElement {
-  return { ...base, ...typeset, id: 'ctry-1', kind: 'countries', codes: ['IS'], names: ['Iceland'], layout: 'list', showFlag: true, showName: true, align: 'center' }
+function placesEl(): BookPlacesElement {
+  return { ...base, ...typeset, id: 'places-1', kind: 'places', places: [{ name: 'Iceland' }], layout: 'list', align: 'center' }
 }
 function badgeEl(): BookBadgeElement {
   return { ...base, ...typeset, id: 'badge-1', kind: 'badge', variant: 'date', text: '13', sub: '', code: null, style: 'plain' }
@@ -100,34 +100,31 @@ describe('StudioInspector — travel element fields', () => {
     expect((selectedEl() as BookStatsElement).values.distance).toBe(5000)
   })
 
-  it('FE-COMP-STUDIOINSPECTOR-006: adding a country by ISO code resolves a name and appends it', () => {
-    useStudioStore.getState().load(doc([countriesEl()]))
-    useStudioStore.getState().select(['ctry-1'])
+  it('FE-COMP-STUDIOINSPECTOR-006: adding a place with a name appends it', () => {
+    useStudioStore.getState().load(doc([placesEl()]))
+    useStudioStore.getState().select(['places-1'])
     render(<StudioInspector spreadIndex={1} />)
-    fireEvent.change(screen.getByPlaceholderText('IS'), { target: { value: 'fr' } })
-    fireEvent.keyDown(screen.getByPlaceholderText('IS'), { key: 'Enter' })
-    const el = selectedEl() as BookCountriesElement
-    expect(el.codes).toEqual(['IS', 'FR'])
-    expect(el.names.length).toBe(2)
+    fireEvent.change(screen.getByPlaceholderText('Place name'), { target: { value: 'Paris' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Place name'), { key: 'Enter' })
+    const el = selectedEl() as BookPlacesElement
+    expect(el.places.map(p => p.name)).toEqual(['Iceland', 'Paris'])
   })
 
-  it('FE-COMP-STUDIOINSPECTOR-007: removing a country removes both the code and the paired name', () => {
-    useStudioStore.getState().load(doc([countriesEl()]))
-    useStudioStore.getState().select(['ctry-1'])
+  it('FE-COMP-STUDIOINSPECTOR-007: removing a place removes it from the list', () => {
+    useStudioStore.getState().load(doc([placesEl()]))
+    useStudioStore.getState().select(['places-1'])
     render(<StudioInspector spreadIndex={1} />)
     fireEvent.click(screen.getByText('Iceland').parentElement!.querySelector('button')!)
-    const el = selectedEl() as BookCountriesElement
-    expect(el.codes).toEqual([])
-    expect(el.names).toEqual([])
+    const el = selectedEl() as BookPlacesElement
+    expect(el.places).toEqual([])
   })
 
-  it('FE-COMP-STUDIOINSPECTOR-008: a malformed country code (not 2 letters) is ignored, not added', () => {
-    useStudioStore.getState().load(doc([countriesEl()]))
-    useStudioStore.getState().select(['ctry-1'])
+  it('FE-COMP-STUDIOINSPECTOR-008: an empty place name is ignored, not added', () => {
+    useStudioStore.getState().load(doc([placesEl()]))
+    useStudioStore.getState().select(['places-1'])
     render(<StudioInspector spreadIndex={1} />)
-    fireEvent.change(screen.getByPlaceholderText('IS'), { target: { value: 'ISL' } })
-    fireEvent.keyDown(screen.getByPlaceholderText('IS'), { key: 'Enter' })
-    expect((selectedEl() as BookCountriesElement).codes).toEqual(['IS'])
+    fireEvent.keyDown(screen.getByPlaceholderText('Place name'), { key: 'Enter' })
+    expect((selectedEl() as BookPlacesElement).places.length).toBe(1)
   })
 
   it('FE-COMP-STUDIOINSPECTOR-009: changing a badge\'s style updates the store', () => {

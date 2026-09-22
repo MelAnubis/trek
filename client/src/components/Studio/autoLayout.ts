@@ -49,7 +49,14 @@ export interface AutoInput {
   entries: AutoEntry[]
   page: BookPageSetup
   /** Pre-computed — buildBook does no fetching or aggregation of its own. */
-  journeyStats: { days: number; entries: number; photos: number; places: number; /** From the linked trip(s)' GPX tracks, when any exist — see referenceTemplates.ts's `distance` badge/stat. */ distanceKm?: number }
+  journeyStats: {
+    days: number; entries: number; photos: number; places: number
+    /** From the linked trip(s)' GPX tracks, when any exist — see referenceTemplates.ts's `distance` badge/stat. */
+    distanceKm?: number
+    /** Total climb/descent across the linked trip(s)' GPX tracks, in metres — see referenceTemplates.ts's `fillStats`. */
+    elevationGainM?: number
+    elevationLossM?: number
+  }
   /**
    * A day's route map + elevation profile, pre-rendered by
    * buildRouteImagesByDate (async — network tile fetches — which is why

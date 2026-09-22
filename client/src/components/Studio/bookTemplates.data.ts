@@ -43,17 +43,17 @@
  *    them out of automatic selection the same way `crossesGutter` already
  *    filters the 12 programmatic templates in autoLayout.ts — both spreads
  *    are kept here, complete and unedited, simply never auto-picked.
- * 4. Any template carrying a travel element — map, stats, countries,
+ * 4. Any template carrying a travel element — map, stats, places,
  *    badge, icon or list — is excluded from automatic picking too
  *    (`hasTravelElement` in referenceTemplates.ts), for a content reason
  *    rather than a geometric one: everywhere else in this fork, a travel
  *    element is something a person chose from Studio's own "Travel" panel,
  *    never something auto-layout decides to add on its own. `ref-1`'s
- *    `stats`/`countries` panel is what surfaced this — the journey's own
+ *    `stats`/`places` panel is what surfaced this — the journey's own
  *    totals, the same on every page, not anything about whichever entry
  *    the page got attached to, and scored purely by its one photo frame it
  *    kept winning nearly every one-photo, no-story entry (a common shape),
- *    so the same SUMMARY/COUNTRIES panel kept repeating across the book —
+ *    so the same SUMMARY/PLACES panel kept repeating across the book —
  *    but the rule covers every kind, not just ref-1's own, which is also
  *    why `ref-5`'s two coords badges keep it out of automatic picking.
  *    Every one of the six is kept here complete and unedited; three of
@@ -146,7 +146,7 @@ export const SPREAD_TEMPLATES: SpreadTemplate[] = [
         opacity: 1,
         locked: false,
         kind: 'text',
-        text: 'COUNTRIES',
+        text: 'PLACES',
         font: 'sans',
         size: 0.1429,
         weight: 700,
@@ -246,12 +246,9 @@ export const SPREAD_TEMPLATES: SpreadTemplate[] = [
         font: 'sans',
         color: '#ffffff',
         accent: '#ffffff',
-        kind: 'countries',
-        codes: ['DE', 'NL'],
-        names: ['Germany', 'Netherlands'],
+        kind: 'places',
+        places: [{ name: 'Germany' }, { name: 'Netherlands' }],
         layout: 'list',
-        showFlag: false,
-        showName: true,
         align: 'center',
       } as BookElement,
     ],

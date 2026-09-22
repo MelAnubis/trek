@@ -9,7 +9,7 @@ import { z } from 'zod';
  * the rest of the decorative shape library lands in a later phase) came
  * first; `image` (a self-contained data: URI, used for auto-layout's route
  * map/elevation profile) was added outside that plan. The travel-specific
- * kinds — `stats`, `countries`, `badge`, `icon`, `list`, `map` — are ported
+ * kinds — `stats`, `places`, `badge`, `icon`, `list`, `map` — are ported
  * here too, each simplified where upstream's own version depends on assets
  * or live rendering this fork doesn't carry (see `bookMapElementSchema`'s
  * own comment for the biggest of those). Extending the discriminated union
@@ -157,7 +157,7 @@ const typeset = {
   accent: hex.default('#111111'),
 };
 
-export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest'] as const;
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss'] as const;
 export type BookMetric = (typeof BOOK_METRICS)[number];
 
 export const bookStatsElementSchema = z.object({
@@ -185,20 +185,28 @@ export const bookStatsElementSchema = z.object({
     )),
 });
 
-export const MAX_BOOK_COUNTRIES = 60;
-export const MAX_COUNTRY_NAME = 80;
+export const MAX_BOOK_PLACES = 60;
+export const MAX_PLACE_NAME = 80;
+export const MAX_PLACE_NOTE = 240;
 
-export const bookCountriesElementSchema = z.object({
+/**
+ * Replaces the earlier `countries` element (an ISO-code list with a flag
+ * toggle) — removed rather than kept alongside this one, since the
+ * discriminated union's salvage pass (see normalizeBookDocument below)
+ * already drops an unreadable element kind without failing the whole
+ * document, so an old book that still has one just loses that element on
+ * next load. A per-journey place with an optional short note, not tied to
+ * a country's political borders.
+ */
+export const bookPlacesElementSchema = z.object({
   ...elementBase,
   ...typeset,
-  kind: z.literal('countries'),
-  /** ISO-3166-1 alpha-2, in visit order. */
-  codes: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
-  /** Names as resolved when placed (the client's own Intl.DisplayNames), so the page does not depend on a lookup at render time. */
-  names: z.array(z.string().max(MAX_COUNTRY_NAME)).max(MAX_BOOK_COUNTRIES).default([]),
+  kind: z.literal('places'),
+  places: z.array(z.object({
+    name: z.string().max(MAX_PLACE_NAME),
+    note: z.string().max(MAX_PLACE_NOTE).default(''),
+  })).max(MAX_BOOK_PLACES).default([]),
   layout: z.enum(['list', 'grid', 'column']).default('list'),
-  showFlag: z.boolean().default(true),
-  showName: z.boolean().default(true),
   align: z.enum(['left', 'center', 'right']).default('center'),
 });
 
@@ -282,7 +290,7 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookShapeElementSchema,
   bookImageElementSchema,
   bookStatsElementSchema,
-  bookCountriesElementSchema,
+  bookPlacesElementSchema,
   bookBadgeElementSchema,
   bookIconElementSchema,
   bookListElementSchema,
@@ -294,7 +302,7 @@ export type BookTextElement = z.infer<typeof bookTextElementSchema>;
 export type BookShapeElement = z.infer<typeof bookShapeElementSchema>;
 export type BookImageElement = z.infer<typeof bookImageElementSchema>;
 export type BookStatsElement = z.infer<typeof bookStatsElementSchema>;
-export type BookCountriesElement = z.infer<typeof bookCountriesElementSchema>;
+export type BookPlacesElement = z.infer<typeof bookPlacesElementSchema>;
 export type BookBadgeElement = z.infer<typeof bookBadgeElementSchema>;
 export type BookIconElement = z.infer<typeof bookIconElementSchema>;
 export type BookListElement = z.infer<typeof bookListElementSchema>;
