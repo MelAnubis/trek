@@ -9,6 +9,7 @@ import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
 import MobileTopBar from '../components/Layout/MobileTopBar'
 import { useDashboard } from './dashboard/useDashboard'
+import DashboardFilterPanel from './dashboard/DashboardFilterPanel'
 import {
   type DashboardTrip, type HeroBundle, type TravelStats, type UpcomingReservation,
   MS_PER_DAY, daysUntil, getTripStatus,
@@ -16,7 +17,7 @@ import {
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X,
+  LayoutGrid, List, Ticket, X, SlidersHorizontal,
 } from 'lucide-react'
 import '../styles/dashboard.css'
 
@@ -82,6 +83,7 @@ export default function DashboardPage(): React.ReactElement {
     demoMode, locale, t, navigate,
     spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
+    filters, setFilters, activeFilterCount, showFilterPanel, setShowFilterPanel,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
@@ -126,6 +128,24 @@ export default function DashboardPage(): React.ReactElement {
                   <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
+                  <button
+                    className="tool-action"
+                    aria-label={t('dashboard.filters.title')}
+                    onClick={() => setShowFilterPanel(true)}
+                    style={{ width: 38, height: 38, borderRadius: 11, position: 'relative' }}
+                  >
+                    <SlidersHorizontal size={16} />
+                    {activeFilterCount > 0 && (
+                      <span style={{
+                        position: 'absolute', top: 3, right: 3,
+                        minWidth: 15, height: 15, padding: '0 3px', borderRadius: 999,
+                        background: 'var(--accent)', color: '#fff',
+                        fontSize: 9, fontWeight: 700, lineHeight: '15px', textAlign: 'center',
+                      }}>
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -142,7 +162,7 @@ export default function DashboardPage(): React.ReactElement {
                     onDelete={() => setDeleteTrip(trip)}
                   />
                 ))}
-                {tripFilter === 'planned' && !isLoading && (
+                {tripFilter === 'planned' && activeFilterCount === 0 && !isLoading && (
                   <button className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
                     <div>
                       <div className="circ"><Plus size={20} /></div>
@@ -152,6 +172,21 @@ export default function DashboardPage(): React.ReactElement {
                   </button>
                 )}
               </div>
+              {gridTrips.length === 0 && activeFilterCount > 0 && !isLoading && (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-3)' }}>
+                  <p style={{ margin: '0 0 10px', fontSize: 13 }}>{t('dashboard.filters.noResults')}</p>
+                  <button
+                    onClick={() => setFilters({ search: '', place: '', minDays: '', maxDays: '', sortBy: 'date' })}
+                    style={{
+                      padding: '7px 14px', borderRadius: 8, border: '1px solid var(--line)',
+                      background: 'var(--bg-2)', color: 'var(--ink)', fontSize: 12, fontWeight: 600,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                    }}
+                  >
+                    {t('dashboard.filters.clear')}
+                  </button>
+                </div>
+              )}
             </section>
           </div>
 
@@ -201,6 +236,12 @@ export default function DashboardPage(): React.ReactElement {
           onClose={() => setCopyTrip(null)}
         />
       )}
+      <DashboardFilterPanel
+        isOpen={showFilterPanel}
+        onClose={() => setShowFilterPanel(false)}
+        filters={filters}
+        onChange={setFilters}
+      />
       </div>
     </>
   )

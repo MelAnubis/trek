@@ -11,8 +11,12 @@ import {
   type TravelStats,
   type UpcomingReservation,
   type HeroBundle,
+  type TripFilters,
   getTripStatus,
   sortTrips,
+  filterAndSortTrips,
+  countActiveTripFilters,
+  EMPTY_TRIP_FILTERS,
 } from './dashboardModel'
 
 export function useDashboard() {
@@ -25,6 +29,8 @@ export function useDashboard() {
   const [deleteTrip, setDeleteTrip] = useState<DashboardTrip | null>(null)
   const [copyTrip, setCopyTrip] = useState<DashboardTrip | null>(null)
   const [tripFilter, setTripFilter] = useState<'planned' | 'archive' | 'completed'>('planned')
+  const [filters, setFilters] = useState<TripFilters>(EMPTY_TRIP_FILTERS)
+  const [showFilterPanel, setShowFilterPanel] = useState(false)
 
   const [stats, setStats] = useState<TravelStats | null>(null)
   const [upcoming, setUpcoming] = useState<UpcomingReservation[]>([])
@@ -156,14 +162,17 @@ export function useDashboard() {
     setCopyTrip(null)
   }
 
-  const gridTrips = tripFilter === 'archive' ? archivedTrips
+  const statusFiltered = tripFilter === 'archive' ? archivedTrips
     : tripFilter === 'completed' ? rest.filter(t => getTripStatus(t) === 'past')
     : rest.filter(t => getTripStatus(t) !== 'past')
+  const gridTrips = filterAndSortTrips(statusFiltered, filters)
+  const activeFilterCount = countActiveTripFilters(filters)
 
   return {
     demoMode, locale, t, navigate,
     spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
+    filters, setFilters, activeFilterCount, showFilterPanel, setShowFilterPanel,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,

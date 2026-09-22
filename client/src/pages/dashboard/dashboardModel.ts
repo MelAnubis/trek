@@ -36,6 +36,60 @@ export function getTripStatus(trip: DashboardTrip): 'ongoing' | 'today' | 'tomor
   return 'past'
 }
 
+/** How the filtered trip list is ordered. 'date' keeps sortTrips()'s own chronological order — everything else replaces it. */
+export type TripSortOption = 'date' | 'name-asc' | 'name-desc' | 'days-desc' | 'days-asc'
+
+export interface TripFilters {
+  /** Matches against title + description. */
+  search: string
+  /** Matches against place_names (a comma-joined list of the trip's own place names, from the server). */
+  place: string
+  /** Both are raw input strings, not numbers — kept as typed so a half-entered "1" doesn't get coerced away mid-keystroke. */
+  minDays: string
+  maxDays: string
+  sortBy: TripSortOption
+}
+
+export const EMPTY_TRIP_FILTERS: TripFilters = { search: '', place: '', minDays: '', maxDays: '', sortBy: 'date' }
+
+export function countActiveTripFilters(filters: TripFilters): number {
+  let n = 0
+  if (filters.search.trim()) n++
+  if (filters.place.trim()) n++
+  if (filters.minDays.trim()) n++
+  if (filters.maxDays.trim()) n++
+  if (filters.sortBy !== 'date') n++
+  return n
+}
+
+/** Applied after the planned/archive/completed segmented control — search, place, day-count range, then a sort override. */
+export function filterAndSortTrips(trips: DashboardTrip[], filters: TripFilters): DashboardTrip[] {
+  const search = filters.search.trim().toLowerCase()
+  const place = filters.place.trim().toLowerCase()
+  const min = filters.minDays.trim() ? Number(filters.minDays) : null
+  const max = filters.maxDays.trim() ? Number(filters.maxDays) : null
+
+  const filtered = trips.filter(trip => {
+    if (search) {
+      const haystack = `${trip.title || ''} ${trip.description || ''}`.toLowerCase()
+      if (!haystack.includes(search)) return false
+    }
+    if (place && !(trip.place_names || '').toLowerCase().includes(place)) return false
+    const days = trip.day_count ?? 0
+    if (min != null && !Number.isNaN(min) && days < min) return false
+    if (max != null && !Number.isNaN(max) && days > max) return false
+    return true
+  })
+
+  switch (filters.sortBy) {
+    case 'name-asc': return [...filtered].sort((a, b) => a.title.localeCompare(b.title))
+    case 'name-desc': return [...filtered].sort((a, b) => b.title.localeCompare(a.title))
+    case 'days-desc': return [...filtered].sort((a, b) => (b.day_count ?? 0) - (a.day_count ?? 0))
+    case 'days-asc': return [...filtered].sort((a, b) => (a.day_count ?? 0) - (b.day_count ?? 0))
+    default: return filtered
+  }
+}
+
 export function sortTrips(trips: DashboardTrip[]): DashboardTrip[] {
   const today = new Date().toISOString().split('T')[0]
   const rank = (t: DashboardTrip) => {

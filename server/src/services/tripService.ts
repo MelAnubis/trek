@@ -18,7 +18,8 @@ export const TRIP_SELECT = `
     (SELECT COUNT(*) FROM places p WHERE p.trip_id = t.id) as place_count,
     CASE WHEN t.user_id = :userId THEN 1 ELSE 0 END as is_owner,
     u.username as owner_username,
-    (SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as shared_count
+    (SELECT COUNT(*) FROM trip_members tm WHERE tm.trip_id = t.id) as shared_count,
+    (SELECT GROUP_CONCAT(DISTINCT p.name) FROM places p WHERE p.trip_id = t.id) as place_names
   FROM trips t
   JOIN users u ON u.id = t.user_id
 `;

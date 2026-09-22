@@ -256,6 +256,26 @@ describe('List trips', () => {
     expect(tripIds).toContain(archivedTrip.id);
     expect(tripIds).not.toContain(activeTrip.id);
   });
+
+  it('TRIP-005b — GET /api/trips includes place_names, a deduplicated comma-joined list of the trip\'s own place names', async () => {
+    const { user } = createUser(testDb);
+    const withPlaces = createTrip(testDb, user.id, { title: 'Trip With Places' });
+    createPlace(testDb, withPlaces.id, { name: 'Eiffel Tower' });
+    createPlace(testDb, withPlaces.id, { name: 'Louvre' });
+    createPlace(testDb, withPlaces.id, { name: 'Eiffel Tower' }); // duplicate name, e.g. re-added after a delete
+    const withoutPlaces = createTrip(testDb, user.id, { title: 'Trip Without Places' });
+
+    const res = await request(app)
+      .get('/api/trips')
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    const withPlacesRow = res.body.trips.find((t: any) => t.id === withPlaces.id);
+    const withoutPlacesRow = res.body.trips.find((t: any) => t.id === withoutPlaces.id);
+    const names = (withPlacesRow.place_names as string).split(',').sort();
+    expect(names).toEqual(['Eiffel Tower', 'Louvre']);
+    expect(withoutPlacesRow.place_names).toBeNull();
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
