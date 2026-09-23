@@ -134,6 +134,16 @@ export default function JourneyPage() {
         maxRadiusMeters: radiusMeters,
       })
       setShowCreate(false)
+      // Only some of the album's days made it in — most likely because most
+      // of its photos never had GPS attached (location services off, a
+      // screenshot, a re-shared image stripped of EXIF), not a bug: flag it
+      // so it isn't a silent surprise.
+      if (result.totalDatesInAlbum > result.stopCount) {
+        toast.warning(t('journey.frontpage.immichPartialImport', {
+          imported: result.stopCount, total: result.totalDatesInAlbum,
+          photos: result.photoCount, totalPhotos: result.totalAssetCount,
+        }))
+      }
       navigate(`/journey/${result.journeyId}`)
     } catch (err) {
       toast.error(getApiErrorMessage(err, t('journey.frontpage.immichImportError')))

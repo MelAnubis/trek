@@ -116,6 +116,10 @@ export interface ImportJourneyResult {
   tripId: number;
   stopCount: number;
   photoCount: number;
+  /** Total assets Immich returned for the album, geotagged or not — lets the caller see "12 of 45 photos had location data" rather than a silent gap. */
+  totalAssetCount: number;
+  /** Distinct calendar dates (UTC) across every asset in the album, geotagged or not — vs stopCount's dates, shows whether whole days were skipped purely for lacking GPS. */
+  totalDatesInAlbum: number;
 }
 
 export async function importJourneyFromAlbum(
@@ -131,11 +135,21 @@ export async function importJourneyFromAlbum(
   const photosResult = await getAlbumPhotos(userId, albumId);
   if (photosResult.error) throw Object.assign(new Error(photosResult.error), { status: photosResult.status || 502 });
 
-  const points: ExifPoint[] = (photosResult.assets || [])
+  const allAssets = photosResult.assets || [];
+  const points: ExifPoint[] = allAssets
     .filter((a: any) => a.lat != null && a.lng != null && a.takenAt)
     .map((a: any) => ({ assetId: a.id, lat: a.lat, lng: a.lng, takenAt: a.takenAt }));
 
   if (!points.length) throw Object.assign(new Error('No geotagged photos found in this album'), { status: 422 });
+
+  // Most days with photos, not most days with *geotagged* photos — the gap
+  // between these two counts is exactly what makes "only some days imported"
+  // legible instead of a silent mystery when most of an album's photos
+  // simply never had location data attached (no GPS at capture, a
+  // screenshot, a re-shared image stripped of EXIF, etc).
+  const totalDatesInAlbum = new Set(
+    allAssets.filter((a: any) => a.takenAt).map((a: any) => String(a.takenAt).slice(0, 10)),
+  ).size;
 
   const stops = clusterStops(points, { maxGapMinutes: opts.maxGapMinutes, maxRadiusMeters: opts.maxRadiusMeters });
 
@@ -242,5 +256,8 @@ export async function importJourneyFromAlbum(
     }
   }
 
-  return { journeyId: journey.id, tripId: Number(tripId), stopCount: stops.length, photoCount: points.length };
+  return {
+    journeyId: journey.id, tripId: Number(tripId), stopCount: stops.length, photoCount: points.length,
+    totalAssetCount: allAssets.length, totalDatesInAlbum,
+  };
 }

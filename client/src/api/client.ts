@@ -494,7 +494,7 @@ export const immichApi = {
   // stops routinely takes well past 8s.
   importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number }) =>
     apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, opts || {}, { timeout: 0 })
-      .then(r => r.data as { journeyId: number; tripId: number; stopCount: number; photoCount: number }),
+      .then(r => r.data as { journeyId: number; tripId: number; stopCount: number; photoCount: number; totalAssetCount: number; totalDatesInAlbum: number }),
 }
 
 export interface ImmichAlbum {

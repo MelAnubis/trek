@@ -2392,6 +2392,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.frontpage.immichNoAlbums': 'No albums found in your Immich library.',
   'journey.frontpage.immichError': 'Could not load your Immich albums — check your connection in Settings.',
   'journey.frontpage.immichImportError': 'Import failed. Make sure the album has photos with location data.',
+  'journey.frontpage.immichPartialImport': 'Only {imported} of {total} days made it in — {photos} of {totalPhotos} photos in the album had location data. Days without a geotagged photo were skipped.',
   'journey.frontpage.immichPickAlbum': 'Pick an album to import',
   'journey.frontpage.showAdvanced': 'Advanced: stop-clustering options',
   'journey.frontpage.hideAdvanced': 'Hide advanced options',

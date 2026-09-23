@@ -1,5 +1,5 @@
 /**
- * Unit/integration tests for immichJourneyImport (IMMICHIMPORT-001 through IMMICHIMPORT-014).
+ * Unit/integration tests for immichJourneyImport (IMMICHIMPORT-001 through IMMICHIMPORT-015).
  * clusterStops() is pure and tested directly; importJourneyFromAlbum() is
  * tested against a real in-memory SQLite DB (same harness journeyService.test.ts
  * uses) with the Immich HTTP layer and reverse geocoding mocked at the
@@ -186,6 +186,8 @@ describe('importJourneyFromAlbum', () => {
     const result = await importJourneyFromAlbum(user.id, 'album-1', {});
     expect(result.stopCount).toBe(2);
     expect(result.photoCount).toBe(4);
+    expect(result.totalAssetCount).toBe(4);
+    expect(result.totalDatesInAlbum).toBe(2); // every photo here is geotagged, so this matches stopCount
 
     const trip = testDb.prepare('SELECT * FROM trips WHERE id = ?').get(result.tripId) as any;
     expect(trip.title).toBe('Test Album');
@@ -290,5 +292,29 @@ describe('importJourneyFromAlbum', () => {
     const { user } = createUser(testDb);
     mockListAlbums.mockResolvedValue({ albums: [] });
     await expect(importJourneyFromAlbum(user.id, 'does-not-exist', {})).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('IMMICHIMPORT-015: reports totalAssetCount/totalDatesInAlbum even when most of the album\'s photos have no GPS, so a partial import is diagnosable rather than a silent surprise', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Mostly Ungeotagged Album' }] });
+    mockGetAlbumPhotos.mockResolvedValue({
+      assets: [
+        // Day 1: geotagged — becomes a stop.
+        { id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: 48.8584, lng: 2.2945 },
+        // Days 2-4: present in the album (so they count toward totalDatesInAlbum)
+        // but never geotagged — e.g. location services were off, or the
+        // photo was re-shared and stripped of EXIF — so they can't become a stop.
+        { id: 'a2', takenAt: '2026-06-02T10:00:00.000Z', lat: null, lng: null },
+        { id: 'a3', takenAt: '2026-06-03T10:00:00.000Z', lat: null, lng: null },
+        { id: 'a4', takenAt: '2026-06-04T10:00:00.000Z', lat: null, lng: null },
+      ],
+    });
+    mockReverseGeocode.mockResolvedValueOnce({ name: 'Eiffel Tower', address: null });
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {});
+    expect(result.stopCount).toBe(1);
+    expect(result.photoCount).toBe(1);
+    expect(result.totalAssetCount).toBe(4);
+    expect(result.totalDatesInAlbum).toBe(4);
   });
 });

@@ -2199,6 +2199,7 @@ const es: Record<string, string> = {
   'journey.frontpage.immichNoAlbums': 'No se encontraron álbumes en tu biblioteca de Immich.',
   'journey.frontpage.immichError': 'No se pudieron cargar tus álbumes de Immich — revisa la conexión en Ajustes.',
   'journey.frontpage.immichImportError': 'Falló la importación. Asegúrate de que el álbum tiene fotos con datos de ubicación.',
+  'journey.frontpage.immichPartialImport': 'Solo se importaron {imported} de {total} días — {photos} de {totalPhotos} fotos del álbum tenían datos de ubicación. Los días sin ninguna foto geolocalizada se omitieron.',
   'journey.frontpage.immichPickAlbum': 'Elige un álbum para importar',
   'journey.frontpage.showAdvanced': 'Avanzado: opciones de agrupación de paradas',
   'journey.frontpage.hideAdvanced': 'Ocultar opciones avanzadas',
