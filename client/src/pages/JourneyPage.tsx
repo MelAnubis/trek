@@ -7,7 +7,7 @@ import { useToast } from '../components/shared/Toast'
 import { useTranslation } from '../i18n'
 import {
   Plus, Search, Sparkles, Calendar, MapPin, BookOpen, Camera,
-  Check, X, ChevronRight, RefreshCw, Users,
+  Check, X, ChevronRight, RefreshCw, Users, Upload, Trash2,
 } from 'lucide-react'
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
@@ -62,6 +62,10 @@ export default function JourneyPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [maxGapHours, setMaxGapHours] = useState('3')
   const [maxRadiusMeters, setMaxRadiusMeters] = useState('400')
+  // Optional GPX track(s) attached to the import — denser and more accurate
+  // than photo EXIF, and can cover days no geotagged photo does.
+  const [gpxFiles, setGpxFiles] = useState<File[]>([])
+  const gpxFileRef = useRef<HTMLInputElement>(null)
 
   // suggestion
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -98,6 +102,8 @@ export default function JourneyPage() {
     setNewTitle('')
     setSelectedAlbumId(null)
     setShowAdvanced(false)
+    setGpxFiles([])
+    if (gpxFileRef.current) gpxFileRef.current.value = ''
     const initial = new Set<number>()
     if (preSelectedTripId) initial.add(preSelectedTripId)
     setSelectedTripIds(initial)
@@ -132,6 +138,7 @@ export default function JourneyPage() {
         title: newTitle.trim() || undefined,
         maxGapMinutes: gapMinutes,
         maxRadiusMeters: radiusMeters,
+        gpxFiles,
       })
       setShowCreate(false)
       // Only some of the album's days made it in — most likely because most
@@ -142,6 +149,11 @@ export default function JourneyPage() {
         toast.warning(t('journey.frontpage.immichPartialImport', {
           imported: result.stopCount, total: result.totalDatesInAlbum,
           photos: result.photoCount, totalPhotos: result.totalAssetCount,
+        }))
+      }
+      if (result.gpxFilesSkipped?.length) {
+        toast.warning(t('journey.frontpage.immichGpxSkipped', {
+          files: result.gpxFilesSkipped.join(', '),
         }))
       }
       navigate(`/journey/${result.journeyId}`)
@@ -584,6 +596,45 @@ export default function JourneyPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              <div className="mt-4">
+                <label className="text-[10px] font-semibold tracking-[0.1em] uppercase text-zinc-500 block mb-1.5">{t('journey.frontpage.attachGpx')}</label>
+                <p className="text-[12px] text-zinc-500 mb-2">{t('journey.frontpage.attachGpxHint')}</p>
+                <input
+                  ref={gpxFileRef}
+                  type="file"
+                  accept=".gpx,application/gpx+xml"
+                  multiple
+                  className="hidden"
+                  onChange={e => {
+                    const picked = Array.from(e.target.files || [])
+                    if (picked.length) setGpxFiles(prev => [...prev, ...picked])
+                    if (gpxFileRef.current) gpxFileRef.current.value = ''
+                  }}
+                />
+                <button
+                  onClick={() => gpxFileRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-600 text-[12px] font-medium text-zinc-600 dark:text-zinc-300 hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                >
+                  <Upload size={13} /> {t('journey.frontpage.selectGpxFiles')}
+                </button>
+                {gpxFiles.length > 0 && (
+                  <div className="flex flex-col gap-1.5 mt-2.5">
+                    {gpxFiles.map((f, i) => (
+                      <div key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
+                        <span className="text-[12px] text-zinc-700 dark:text-zinc-300 truncate">{f.name}</span>
+                        <button
+                          onClick={() => setGpxFiles(prev => prev.filter((_, idx) => idx !== i))}
+                          className="text-zinc-400 hover:text-red-500 flex-shrink-0"
+                          aria-label={t('journey.frontpage.removeGpxFile')}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <button

@@ -6,7 +6,7 @@ import { createPlace } from '../placeService';
 import { createAssignment } from '../assignmentService';
 import { createJourney, linkPhotoToEntry } from '../journeyService';
 import { reverseGeocode } from '../mapsService';
-import { haversineM, saveTrack } from '../../routes/gpxTracks';
+import { haversineM, saveTrack, parseGpxBuffer, enrichWithElevation } from '../../routes/gpxTracks';
 
 /**
  * Imports a Travesía from an Immich album: the photos' own EXIF GPS builds
@@ -17,18 +17,30 @@ import { haversineM, saveTrack } from '../../routes/gpxTracks';
  * import is backed by a real (but pre-archived — see below) Trip, and every
  * existing rendering path (Studio's map/stats/places elements, the PDF
  * export) works on the imported data for free.
+ *
+ * GPX files can optionally ride along with the import (see gpxFiles below):
+ * most phone photos never carry GPS at all (location services off, a
+ * screenshot, a re-shared image stripped of EXIF), so a handful of
+ * geotagged photos alone often can't place every day of a trip, and even
+ * when they can, a couple of photos a day makes for a near-straight-line
+ * "route" rather than the real path walked/ridden. A real GPX recording —
+ * far denser, and covering days no photo does — is the better source for
+ * both, so it takes priority over photo points wherever the two overlap.
  */
 
-export interface ExifPoint {
-  assetId: string;
+export interface GeoPoint {
+  /** Present for a photo-derived point — used to link that photo to the stop's journal entry. Absent for a GPX-derived point. */
+  assetId?: string;
+  source: 'photo' | 'gpx';
   lat: number;
   lng: number;
-  /** ISO timestamp — Immich's own fileCreatedAt/createdAt, already normalized by getAlbumPhotos(). */
+  ele?: number | null;
+  /** ISO timestamp. */
   takenAt: string;
 }
 
 export interface Stop {
-  points: ExifPoint[];
+  points: GeoPoint[];
   centroidLat: number;
   centroidLng: number;
   startTime: string;
@@ -52,19 +64,20 @@ export interface ClusterOptions {
 }
 
 /**
- * Groups a journey's photos into stops by GPS proximity — a time gap over
- * `maxGapMinutes` OR a jump past `maxRadiusMeters` from the stop's running
- * centroid starts a new one. Distance is measured from the centroid, not
- * just the previous point, so a slow walk around one plaza (each photo a
- * little further than the last) doesn't fragment into many stops.
+ * Groups a journey's photo/GPX points into stops by GPS proximity — a time
+ * gap over `maxGapMinutes` OR a jump past `maxRadiusMeters` from the stop's
+ * running centroid starts a new one. Distance is measured from the
+ * centroid, not just the previous point, so a slow walk around one plaza
+ * (each point a little further than the last) doesn't fragment into many
+ * stops.
  */
-export function clusterStops(points: ExifPoint[], opts?: ClusterOptions): Stop[] {
+export function clusterStops(points: GeoPoint[], opts?: ClusterOptions): Stop[] {
   const maxGapMs = (opts?.maxGapMinutes ?? DEFAULT_MAX_GAP_MINUTES) * 60_000;
   const maxRadiusM = opts?.maxRadiusMeters ?? DEFAULT_MAX_RADIUS_METERS;
 
   const sorted = [...points].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
   const stops: Stop[] = [];
-  let current: ExifPoint[] = [];
+  let current: GeoPoint[] = [];
   let sumLat = 0;
   let sumLng = 0;
 
@@ -107,8 +120,15 @@ async function throttleNominatim(): Promise<void> {
   lastNominatimCall = Date.now();
 }
 
+export interface GpxUpload {
+  /** Raw GPX XML text. */
+  raw: string;
+  originalName: string;
+}
+
 export interface ImportJourneyOptions extends ClusterOptions {
   title?: string;
+  gpxFiles?: GpxUpload[];
 }
 
 export interface ImportJourneyResult {
@@ -120,6 +140,18 @@ export interface ImportJourneyResult {
   totalAssetCount: number;
   /** Distinct calendar dates (UTC) across every asset in the album, geotagged or not — vs stopCount's dates, shows whether whole days were skipped purely for lacking GPS. */
   totalDatesInAlbum: number;
+  /** Points parsed out of the attached GPX file(s), if any. */
+  gpxPointCount: number;
+  /** GPX files that parsed to zero usable (timestamped) points — named so a bad upload is diagnosable rather than silently ignored. */
+  gpxFilesSkipped: string[];
+}
+
+/** Parses one GPX file into dated points; points with no <time> are dropped — a track can't be dated to a stop without one. */
+function gpxToGeoPoints(file: GpxUpload): GeoPoint[] {
+  const parsed = parseGpxBuffer(file.raw);
+  return parsed.points
+    .filter(p => p.time)
+    .map(p => ({ source: 'gpx' as const, lat: p.lat, lng: p.lng, ele: p.ele, takenAt: p.time! }));
 }
 
 export async function importJourneyFromAlbum(
@@ -136,17 +168,32 @@ export async function importJourneyFromAlbum(
   if (photosResult.error) throw Object.assign(new Error(photosResult.error), { status: photosResult.status || 502 });
 
   const allAssets = photosResult.assets || [];
-  const points: ExifPoint[] = allAssets
+  const photoPoints: GeoPoint[] = allAssets
     .filter((a: any) => a.lat != null && a.lng != null && a.takenAt)
-    .map((a: any) => ({ assetId: a.id, lat: a.lat, lng: a.lng, takenAt: a.takenAt }));
+    .map((a: any) => ({ assetId: a.id, source: 'photo' as const, lat: a.lat, lng: a.lng, takenAt: a.takenAt }));
 
-  if (!points.length) throw Object.assign(new Error('No geotagged photos found in this album'), { status: 422 });
+  const gpxFilesSkipped: string[] = [];
+  const gpxPoints: GeoPoint[] = [];
+  for (const file of opts.gpxFiles || []) {
+    const pts = gpxToGeoPoints(file);
+    if (pts.length < 2) { gpxFilesSkipped.push(file.originalName); continue; }
+    gpxPoints.push(...pts);
+  }
+
+  const points = [...photoPoints, ...gpxPoints];
+  if (!points.length) {
+    throw Object.assign(
+      new Error('No geotagged photos or usable GPX points found for this import'),
+      { status: 422 },
+    );
+  }
 
   // Most days with photos, not most days with *geotagged* photos — the gap
   // between these two counts is exactly what makes "only some days imported"
   // legible instead of a silent mystery when most of an album's photos
   // simply never had location data attached (no GPS at capture, a
-  // screenshot, a re-shared image stripped of EXIF, etc).
+  // screenshot, a re-shared image stripped of EXIF, etc). Attached GPX days
+  // don't count here — they're not a gap, they're the point of attaching one.
   const totalDatesInAlbum = new Set(
     allAssets.filter((a: any) => a.takenAt).map((a: any) => String(a.takenAt).slice(0, 10)),
   ).size;
@@ -193,11 +240,15 @@ export async function importJourneyFromAlbum(
     placeIdByStopIndex.set(i, place.id);
   }
 
-  // One synthetic GPX track per day that has enough points to draw a route —
-  // reuses the same distance/elevation math (computeStats -> saveTrack) a
-  // real uploaded GPX file gets, so Studio's map/stats elements and the PDF
-  // export render this exactly like a recorded track.
-  const pointsByDate = new Map<string, ExifPoint[]>();
+  // One track per day that has enough points to draw a route. A day with
+  // any GPX-sourced points uses ONLY those (far denser and more accurate
+  // than a couple of photo positions) rather than mixing the two; a day
+  // with photo points alone falls back to those, sparse as they are —
+  // still better than no route at all. Reuses the same distance/elevation
+  // math (computeStats -> saveTrack) a real uploaded GPX file gets, so
+  // Studio's map/stats elements and the PDF export render this exactly
+  // like a recorded track.
+  const pointsByDate = new Map<string, GeoPoint[]>();
   for (const stop of stops) {
     if (!dayIdByDate.has(stop.date)) continue;
     const arr = pointsByDate.get(stop.date) || [];
@@ -206,20 +257,32 @@ export async function importJourneyFromAlbum(
   }
   let sortOrder = 0;
   for (const [date, pts] of pointsByDate) {
-    if (pts.length < 2) continue;
-    const sortedPts = [...pts].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
-    saveTrack(
-      tripId, userId, title, 'immich-import',
-      sortedPts.map(p => ({ lat: p.lat, lng: p.lng, ele: null, time: p.takenAt })),
-      [], sortOrder++, dayIdByDate.get(date),
-    );
+    const gpxPts = pts.filter(p => p.source === 'gpx');
+    const trackPts = gpxPts.length >= 2 ? gpxPts : pts;
+    if (trackPts.length < 2) continue;
+
+    const sortedPts = [...trackPts].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
+    const trackPoints: { lat: number; lng: number; ele: number | null; time: string | null }[] =
+      sortedPts.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele ?? null, time: p.takenAt }));
+
+    // Elevation-enrich a day built from photo points alone (they never
+    // carry altitude); a GPX day keeps whatever elevation the file itself
+    // recorded (or lack of it — split-by-days routes make the same choice).
+    const source = gpxPts.length >= 2 ? 'gpx-import' : 'immich-import';
+    let finalPoints = trackPoints;
+    if (source === 'immich-import' && trackPoints.every(p => p.ele == null)) {
+      const enriched = await enrichWithElevation(trackPoints).catch(() => trackPoints);
+      finalPoints = enriched.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele ?? null, time: p.time ?? null }));
+    }
+
+    saveTrack(tripId, userId, title, source, finalPoints, [], sortOrder++, dayIdByDate.get(date));
   }
 
   // Pull the album's actual photos into the trip's pool. taken_at is set
   // directly from the EXIF already fetched above — no second per-photo
   // Immich round-trip the way resolveAndStoreTakenAt's lazy backfill would need.
-  for (const p of points) {
-    const trekPhotoId = getOrCreateTrekPhoto('immich', p.assetId, userId);
+  for (const p of photoPoints) {
+    const trekPhotoId = getOrCreateTrekPhoto('immich', p.assetId!, userId);
     db.prepare('UPDATE trek_photos SET taken_at = COALESCE(taken_at, ?) WHERE id = ?').run(p.takenAt, trekPhotoId);
     db.prepare(
       'INSERT OR IGNORE INTO trip_photos (trip_id, user_id, photo_id, shared, album_link_id) VALUES (?, ?, ?, 0, ?)'
@@ -232,7 +295,9 @@ export async function importJourneyFromAlbum(
   const journey = createJourney(userId, { title, trip_ids: [tripId] }) as { id: number };
 
   // Associate each stop's own photos with its (now-promoted) entry, instead
-  // of leaving every imported photo sitting in the gallery unlinked.
+  // of leaving every imported photo sitting in the gallery unlinked. GPX
+  // points carry no assetId, so they never match here and are naturally
+  // skipped — they contributed to the route/day, not to a specific photo.
   const entryRows = db.prepare(
     'SELECT id, source_place_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?'
   ).all(journey.id, tripId) as { id: number; source_place_id: number }[];
@@ -251,13 +316,15 @@ export async function importJourneyFromAlbum(
     const entryId = entryIdByPlaceId.get(placeId);
     if (!entryId) continue;
     for (const p of stops[i].points) {
+      if (!p.assetId) continue;
       const galleryId = galleryIdByAssetId.get(p.assetId);
       if (galleryId != null) linkPhotoToEntry(entryId, galleryId, userId);
     }
   }
 
   return {
-    journeyId: journey.id, tripId: Number(tripId), stopCount: stops.length, photoCount: points.length,
+    journeyId: journey.id, tripId: Number(tripId), stopCount: stops.length, photoCount: photoPoints.length,
     totalAssetCount: allAssets.length, totalDatesInAlbum,
+    gpxPointCount: gpxPoints.length, gpxFilesSkipped,
   };
 }

@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import multer from 'multer';
 import { canAccessTrip } from '../../db/database';
 import { authenticate } from '../../middleware/auth';
 import { broadcast } from '../../websocket';
@@ -142,19 +143,39 @@ router.post('/trips/:tripId/album-links/:linkId/sync', authenticate, async (req:
 
 // ── Import a Travesía from an album ─────────────────────────────────────────
 
-router.post('/albums/:albumId/import-journey', authenticate, async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const { title, maxGapMinutes, maxRadiusMeters } = req.body || {};
-  try {
-    const result = await importJourneyFromAlbum(authReq.user.id, req.params.albumId, {
-      title: typeof title === 'string' ? title : undefined,
-      maxGapMinutes: typeof maxGapMinutes === 'number' ? maxGapMinutes : undefined,
-      maxRadiusMeters: typeof maxRadiusMeters === 'number' ? maxRadiusMeters : undefined,
-    });
-    res.json(result);
-  } catch (err: any) {
-    res.status(err.status || 500).json({ error: err.message || 'Import failed' });
-  }
+// Memory storage: the raw GPX text is parsed once (into points) and never
+// needs to touch disk the way a trip's own persistent GPX upload does.
+const uploadGpxMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024, files: 10 },
+  fileFilter: (_req, file, cb) => {
+    const ok = /gpx|xml/i.test(file.mimetype) || file.originalname.toLowerCase().endsWith('.gpx');
+    if (!ok) return cb(Object.assign(new Error('Only GPX files are accepted'), { statusCode: 400 }));
+    cb(null, true);
+  },
 });
+
+router.post(
+  '/albums/:albumId/import-journey',
+  authenticate,
+  uploadGpxMemory.array('gpxFiles', 10),
+  async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    // multipart/form-data — every text field arrives as a string, unlike a JSON body.
+    const { title, maxGapMinutes, maxRadiusMeters } = req.body || {};
+    const files = (req.files as Express.Multer.File[] | undefined) || [];
+    try {
+      const result = await importJourneyFromAlbum(authReq.user.id, req.params.albumId, {
+        title: typeof title === 'string' && title.trim() ? title : undefined,
+        maxGapMinutes: maxGapMinutes ? Number(maxGapMinutes) : undefined,
+        maxRadiusMeters: maxRadiusMeters ? Number(maxRadiusMeters) : undefined,
+        gpxFiles: files.map(f => ({ raw: f.buffer.toString('utf8'), originalName: f.originalname })),
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(err.status || 500).json({ error: err.message || 'Import failed' });
+    }
+  },
+);
 
 export default router;

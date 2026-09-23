@@ -492,9 +492,23 @@ export const immichApi = {
   // reverse-geocodes every stop sequentially, throttled to Nominatim's
   // usage policy (~1.1s apart) — an album with more than a handful of
   // stops routinely takes well past 8s.
-  importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number }) =>
-    apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, opts || {}, { timeout: 0 })
-      .then(r => r.data as { journeyId: number; tripId: number; stopCount: number; photoCount: number; totalAssetCount: number; totalDatesInAlbum: number }),
+  //
+  // Always sent as multipart/form-data (even with zero gpxFiles) so the
+  // server has one body-parsing path rather than switching on Content-Type.
+  importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number; gpxFiles?: File[] }) => {
+    const formData = new FormData()
+    if (opts?.title) formData.append('title', opts.title)
+    if (opts?.maxGapMinutes != null) formData.append('maxGapMinutes', String(opts.maxGapMinutes))
+    if (opts?.maxRadiusMeters != null) formData.append('maxRadiusMeters', String(opts.maxRadiusMeters))
+    for (const f of opts?.gpxFiles || []) formData.append('gpxFiles', f)
+    return apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, formData, {
+      headers: { 'Content-Type': undefined as any },
+      timeout: 0,
+    }).then(r => r.data as {
+      journeyId: number; tripId: number; stopCount: number; photoCount: number
+      totalAssetCount: number; totalDatesInAlbum: number; gpxPointCount: number; gpxFilesSkipped: string[]
+    })
+  },
 }
 
 export interface ImmichAlbum {

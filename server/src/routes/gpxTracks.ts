@@ -148,7 +148,10 @@ function computeElevationStats(
 //  2. Handles both lat-before-lon and lon-before-lat attribute order.
 //  3. Falls back to treating all <trkpt> as one segment if no <trkseg> found.
 //
-function parseGpxBuffer(raw: string): {
+// Exported: reused by immichJourneyImport.ts to parse GPX files the user
+// attaches alongside an Immich album, for an accurate route/elevation
+// profile no photo's sparse EXIF GPS can match.
+export function parseGpxBuffer(raw: string): {
   trackName: string;
   points: { lat: number; lng: number; ele: number | null; time: string | null }[];
   waypoints: { lat: number; lng: number; name: string }[];
@@ -404,7 +407,8 @@ function computeStats(points: { lat: number; lng: number; ele: number | null }[]
 // ── Open Elevation enrichment ────────────────────────────────────────────────
 // Default: Open-Meteo (free, no API key, no rate limit, global SRTM 90m, up to 1000 pts/batch).
 // Override with a custom Open-Elevation-compatible server via OPEN_ELEVATION_URL.
-async function enrichWithElevation(
+// Exported: reused by immichJourneyImport.ts for the same elevation-less-GPX case this upload route already handles.
+export async function enrichWithElevation(
   points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
 ): Promise<{ lat: number; lng: number; ele: number | null; time?: string | null }[]> {
   const result = [...points];

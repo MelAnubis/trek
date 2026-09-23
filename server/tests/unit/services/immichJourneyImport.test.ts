@@ -77,7 +77,7 @@ import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
 import {
-  clusterStops, importJourneyFromAlbum, type ExifPoint,
+  clusterStops, importJourneyFromAlbum, type GeoPoint,
 } from '../../../src/services/memories/immichJourneyImport';
 
 beforeAll(() => {
@@ -93,8 +93,8 @@ beforeEach(() => {
 });
 afterAll(() => testDb.close());
 
-function point(overrides: Partial<ExifPoint> = {}): ExifPoint {
-  return { assetId: 'a', lat: 48.8584, lng: 2.2945, takenAt: '2026-06-01T10:00:00.000Z', ...overrides };
+function point(overrides: Partial<GeoPoint> = {}): GeoPoint {
+  return { assetId: 'a', source: 'photo', lat: 48.8584, lng: 2.2945, takenAt: '2026-06-01T10:00:00.000Z', ...overrides };
 }
 
 describe('clusterStops', () => {
@@ -316,5 +316,107 @@ describe('importJourneyFromAlbum', () => {
     expect(result.photoCount).toBe(1);
     expect(result.totalAssetCount).toBe(4);
     expect(result.totalDatesInAlbum).toBe(4);
+  });
+
+  function gpx(points: { lat: number; lng: number; time: string; ele?: number }[]): string {
+    const trkpts = points
+      .map(p => `<trkpt lat="${p.lat}" lon="${p.lng}">${p.ele != null ? `<ele>${p.ele}</ele>` : ''}<time>${p.time}</time></trkpt>`)
+      .join('');
+    return `<?xml version="1.0"?><gpx><trk><name>Track</name><trkseg>${trkpts}</trkseg></trk></gpx>`;
+  }
+
+  it('IMMICHIMPORT-016: an attached GPX track fills a day with no geotagged photo at all', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'GPX Fill' }] });
+    mockGetAlbumPhotos.mockResolvedValue({
+      assets: [{ id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: 48.8584, lng: 2.2945 }],
+    });
+    mockReverseGeocode
+      .mockResolvedValueOnce({ name: 'Eiffel Tower', address: null })
+      .mockResolvedValueOnce({ name: 'GPX Stop', address: null });
+
+    const gpxRaw = gpx([
+      { lat: 41.4036, lng: 2.1744, time: '2026-06-02T09:00:00.000Z' },
+      { lat: 41.4040, lng: 2.1750, time: '2026-06-02T09:05:00.000Z' },
+    ]);
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [{ raw: gpxRaw, originalName: 'day2.gpx' }],
+    });
+
+    expect(result.stopCount).toBe(2); // photo stop (06-01) + GPX-only stop (06-02)
+    expect(result.gpxPointCount).toBe(2);
+    expect(result.gpxFilesSkipped).toEqual([]);
+
+    const days = testDb.prepare('SELECT * FROM days WHERE trip_id = ? ORDER BY date').all(result.tripId) as any[];
+    expect(days.map(d => d.date)).toContain('2026-06-02');
+
+    // Only one track: the 06-01 day has a single photo point (not enough to
+    // draw a route on its own), while the GPX-covered 06-02 day has two.
+    const tracks = testDb.prepare('SELECT * FROM gpx_tracks WHERE trip_id = ? ORDER BY id').all(result.tripId) as any[];
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].orig_name).toBe('gpx-import');
+    expect(tracks[0].point_count).toBe(2);
+  });
+
+  it('IMMICHIMPORT-017: GPX points take priority over photo points for a day\'s saved track when both are present', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'GPX Priority' }] });
+    // Two sparse photo points on 06-01 — would normally become the day's track.
+    mockGetAlbumPhotos.mockResolvedValue({
+      assets: [
+        { id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: 48.8584, lng: 2.2945 },
+        { id: 'a2', takenAt: '2026-06-01T18:00:00.000Z', lat: 48.8590, lng: 2.2950 },
+      ],
+    });
+    mockReverseGeocode.mockResolvedValue({ name: 'Some Stop', address: null });
+
+    // A denser GPX for the same day (06-01) with 3 points — should win.
+    const gpxRaw = gpx([
+      { lat: 48.8580, lng: 2.2940, time: '2026-06-01T09:00:00.000Z' },
+      { lat: 48.8585, lng: 2.2946, time: '2026-06-01T09:30:00.000Z' },
+      { lat: 48.8595, lng: 2.2955, time: '2026-06-01T10:00:00.000Z' },
+    ]);
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [{ raw: gpxRaw, originalName: 'day1.gpx' }],
+      maxGapMinutes: 24 * 60, // keep photos + GPX in the same stop window
+    });
+
+    const tracks = testDb.prepare('SELECT * FROM gpx_tracks WHERE trip_id = ?').all(result.tripId) as any[];
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].orig_name).toBe('gpx-import');
+    expect(tracks[0].point_count).toBe(3); // the GPX's own 3 points, not the 2 photo points
+  });
+
+  it('IMMICHIMPORT-018: a GPX file with fewer than 2 usable (timestamped) points is skipped and reported', async () => {
+    const { user } = createUser(testDb);
+    seedAlbum();
+
+    const singlePointGpx = gpx([{ lat: 10, lng: 10, time: '2026-06-01T10:00:00.000Z' }]);
+    const noTimeGpx = '<?xml version="1.0"?><gpx><trk><trkseg><trkpt lat="10" lon="10"></trkpt><trkpt lat="11" lon="11"></trkpt></trkseg></trk></gpx>';
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [
+        { raw: singlePointGpx, originalName: 'too-short.gpx' },
+        { raw: noTimeGpx, originalName: 'no-time.gpx' },
+      ],
+    });
+
+    expect(result.gpxPointCount).toBe(0);
+    expect(result.gpxFilesSkipped.sort()).toEqual(['no-time.gpx', 'too-short.gpx']);
+  });
+
+  it('IMMICHIMPORT-019: an import with only unusable GPX files and no geotagged photos still throws', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Nothing Usable' }] });
+    mockGetAlbumPhotos.mockResolvedValue({ assets: [{ id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: null, lng: null }] });
+
+    const singlePointGpx = gpx([{ lat: 10, lng: 10, time: '2026-06-01T10:00:00.000Z' }]);
+
+    await expect(importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [{ raw: singlePointGpx, originalName: 'too-short.gpx' }],
+    })).rejects.toThrow();
+    expect(testDb.prepare('SELECT COUNT(*) as n FROM trips').get()).toEqual({ n: 0 });
   });
 });

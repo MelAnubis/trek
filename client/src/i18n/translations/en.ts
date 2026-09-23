@@ -2398,6 +2398,11 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.frontpage.hideAdvanced': 'Hide advanced options',
   'journey.frontpage.maxGapHours': 'New stop after (hours)',
   'journey.frontpage.maxRadiusMeters': 'New stop past (metres)',
+  'journey.frontpage.attachGpx': 'Attach GPX track(s)',
+  'journey.frontpage.attachGpxHint': 'Optional, but recommended: a GPX file is denser and more accurate than photo GPS, and can cover days with no geotagged photo at all.',
+  'journey.frontpage.selectGpxFiles': 'Select GPX file(s)',
+  'journey.frontpage.removeGpxFile': 'Remove file',
+  'journey.frontpage.immichGpxSkipped': 'Some GPX files could not be used (no usable track points): {files}',
   'journey.frontpage.importJourney': 'Import Journey',
 
   // Journey Detail
