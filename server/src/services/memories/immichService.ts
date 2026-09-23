@@ -172,6 +172,11 @@ export async function searchPhotos(
         type: 'IMAGE',
         size,
         page,
+        // Immich omits exifInfo (city/country/lat/lng) entirely unless
+        // explicitly asked for — without this every asset comes back with
+        // exifInfo undefined, silently. Immich's own web client always
+        // passes this on its search calls.
+        withExif: true,
       }),
       signal: AbortSignal.timeout(15000) as any,
     });
@@ -183,6 +188,8 @@ export async function searchPhotos(
       takenAt: a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
+      lat: a.exifInfo?.latitude ?? null,
+      lng: a.exifInfo?.longitude ?? null,
     }));
     return { assets, hasMore: items.length >= size };
   } catch {
@@ -346,7 +353,9 @@ async function fetchAlbumAssets(
     const resp = await safeFetch(`${creds.immich_url}/api/search/metadata`, {
       method: 'POST',
       headers: { 'x-api-key': creds.immich_api_key, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ albumIds: [albumId], type: 'IMAGE', size, page }),
+      // withExif: Immich omits exifInfo (city/country/lat/lng) entirely
+      // unless explicitly asked for — see searchPhotos()'s own note above.
+      body: JSON.stringify({ albumIds: [albumId], type: 'IMAGE', size, page, withExif: true }),
       signal: AbortSignal.timeout(15000) as any,
     });
     if (!resp.ok) return { error: 'Failed to fetch album', status: resp.status };

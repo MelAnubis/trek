@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import type { Journey } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
+import { getApiErrorMessage } from '../types'
 
 const GRADIENTS = [
   'linear-gradient(135deg, #0F172A 0%, #6366F1 45%, #EC4899 100%)',
@@ -134,8 +135,8 @@ export default function JourneyPage() {
       })
       setShowCreate(false)
       navigate(`/journey/${result.journeyId}`)
-    } catch {
-      toast.error(t('journey.frontpage.immichImportError'))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.frontpage.immichImportError')))
     } finally {
       setImporting(false)
     }

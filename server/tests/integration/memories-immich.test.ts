@@ -66,10 +66,15 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
     }
     // /api/search/metadata — used both for date-range search and (with an
     // albumIds filter) for an album's own photos, since GET /api/albums/:id
-    // no longer embeds an `assets` array — see fetchAlbumAssets().
+    // no longer embeds an `assets` array — see fetchAlbumAssets(). Immich
+    // omits exifInfo entirely unless the request body sets withExif: true
+    // (confirmed against Immich's own source — its web client always sends
+    // this) — mirrored here so a regression that drops that flag makes the
+    // exifInfo-asserting tests below fail instead of silently passing.
     if (u.includes('/api/search/metadata')) {
       let body: any = {};
       try { body = init?.body ? JSON.parse(init.body) : {}; } catch { /* ignore */ }
+      const exif = (fields: Record<string, unknown>) => body.withExif ? fields : undefined;
       if (Array.isArray(body.albumIds) && body.albumIds.length > 0) {
         return Promise.resolve({
           ok: true, status: 200,
@@ -77,7 +82,7 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
           json: () => Promise.resolve({
             assets: {
               items: (body.page ?? 1) === 1
-                ? [{ id: 'asset-sync-1', fileCreatedAt: '2024-06-02T10:00:00.000Z', exifInfo: {} }]
+                ? [{ id: 'asset-sync-1', fileCreatedAt: '2024-06-02T10:00:00.000Z', exifInfo: exif({ latitude: 48.8584, longitude: 2.2945 }) }]
                 : [],
             },
           }),
@@ -90,7 +95,7 @@ vi.mock('../../src/utils/ssrfGuard', async () => {
         json: () => Promise.resolve({
           assets: {
             items: [
-              { id: 'asset-search-1', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: { city: 'Paris', country: 'France' } },
+              { id: 'asset-search-1', fileCreatedAt: '2024-06-01T10:00:00.000Z', exifInfo: exif({ city: 'Paris', country: 'France', latitude: 48.8584, longitude: 2.2945 }) },
             ],
           },
         }),
@@ -297,6 +302,27 @@ describe('Immich browse and search', () => {
     expect(typeof res.body.hasMore).toBe('boolean');
   });
 
+  it('IMMICH-044 — POST /search requests withExif so exifInfo (city/country/lat/lng) is not silently omitted by Immich', async () => {
+    // Regression test: Immich's /search/metadata omits exifInfo entirely
+    // unless the request explicitly sets withExif — a real bug that made
+    // every geotagged-photo lookup (album import included) see no GPS data
+    // at all, for every album, with no visible error at the request layer.
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    vi.mocked(safeFetch).mockClear();
+    const res = await request(app)
+      .post(`${IMMICH}/search`)
+      .set('Cookie', authCookie(user.id))
+      .send({ page: 1, size: 50 });
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets[0]).toMatchObject({ lat: 48.8584, lng: 2.2945 });
+
+    const callBody = JSON.parse(vi.mocked(safeFetch).mock.calls[0][1]!.body as string);
+    expect(callBody.withExif).toBe(true);
+  });
+
   it('IMMICH-043 — POST /search when upstream throws returns 502', async () => {
     const { user } = createUser(testDb);
     setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
@@ -485,6 +511,22 @@ describe('Immich albums', () => {
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.albums)).toBe(true);
     expect(res.body.albums[0]).toMatchObject({ id: 'album-uuid-1', albumName: 'Vacation 2024' });
+  });
+
+  it('IMMICH-062 — GET /albums/:albumId/photos requests withExif and returns each asset\'s lat/lng (regression: the Immich import feature saw no GPS at all without this)', async () => {
+    const { user } = createUser(testDb);
+    setImmichCredentials(testDb, user.id, 'https://immich.example.com', 'test-api-key');
+
+    vi.mocked(safeFetch).mockClear();
+    const res = await request(app)
+      .get(`${IMMICH}/albums/album-uuid-1/photos`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.assets[0]).toMatchObject({ id: 'asset-sync-1', lat: 48.8584, lng: 2.2945 });
+
+    const callBody = JSON.parse(vi.mocked(safeFetch).mock.calls[0][1]!.body as string);
+    expect(callBody.withExif).toBe(true);
   });
 });
 
