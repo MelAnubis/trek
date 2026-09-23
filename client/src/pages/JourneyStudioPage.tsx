@@ -17,10 +17,10 @@ import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../compone
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
 import { resolveBindings, type BindingSource } from '../components/Studio/resolveBindings'
 import type { BookPageSetup } from '../types/book'
-import { buildRouteImagesByDate } from '../components/Studio/buildRouteImages'
+import { buildRouteImagesByDate, buildOverviewRouteImages } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
 import { fetchJourneyPlaces } from '../components/Journey/journeyPlaces'
-import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
+import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
 /**
@@ -246,10 +246,25 @@ export default function JourneyStudioPage() {
       // split JourneyBookPDF.tsx already has between fetching tracks and
       // laying out the route pages.
       const knownDates = [...new Set(autoInput.entries.map(e => e.date).filter((d): d is string => !!d))].sort()
-      const routeImagesByDate = gpxTracks.length
-        ? await buildRouteImagesByDate(gpxTracks, knownDates, mapTileUrl || DEFAULT_TILE_URL)
-        : undefined
-      commit(() => buildBook({ ...autoInput, routeImagesByDate }))
+      const tileUrl = mapTileUrl || DEFAULT_TILE_URL
+      let routeImagesByDate: Awaited<ReturnType<typeof buildRouteImagesByDate>> | undefined
+      let overviewRoute: Awaited<ReturnType<typeof buildOverviewRouteImages>> = null
+      if (gpxTracks.length) {
+        // Same day-matching JourneyBookPDF.tsx's own overview/day-page split
+        // uses: a track that couldn't be tied to one specific day (no gpx
+        // file per jornada) never gets a per-day route spread of its own —
+        // it (or, when some tracks did match, whatever's left over) goes
+        // into the closing summary's map instead, so the book still shows
+        // the real route somewhere rather than silently dropping it.
+        const { byDate, unmatched } = groupTracksByDate(gpxTracks, knownDates)
+        if (byDate.size > 0) {
+          routeImagesByDate = await buildRouteImagesByDate(gpxTracks, knownDates, tileUrl)
+          if (unmatched.length > 0) overviewRoute = await buildOverviewRouteImages(unmatched, tileUrl)
+        } else {
+          overviewRoute = await buildOverviewRouteImages(gpxTracks, tileUrl)
+        }
+      }
+      commit(() => buildBook({ ...autoInput, routeImagesByDate, overviewRoute }))
       toast.success(t('journey.studio.autoLayoutDone'))
     } finally {
       setAutoBookBuilding(false)

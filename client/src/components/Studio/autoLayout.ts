@@ -66,6 +66,18 @@ export interface AutoInput {
    * additive, not a new requirement on every caller.
    */
   routeImagesByDate?: Map<string, RouteImages>
+  /**
+   * The whole-journey map + elevation profile for the closing summary
+   * spread, pre-rendered the same way routeImagesByDate's per-day entries
+   * are (see buildOverviewRouteImages). Set when no track could be matched
+   * to a specific day at all (the "no gpx file per jornada" case — the
+   * summary is then the only route content the book gets), or from
+   * whatever tracks were left over after the ones that did match a day
+   * got their own routeSpread, so the closing spread doesn't repeat a day
+   * already shown. Omitted entirely, summarySpread falls back to its
+   * plain text-only closing card.
+   */
+  overviewRoute?: RouteImages | null
 }
 
 function photoEl(id: string, photoId: number | null): BookElement {
@@ -418,7 +430,18 @@ function routeSpread(date: string, images: RouteImages, page: BookPageSetup, loc
   return seedSpread(elementId('sp'), 'inner', elements)
 }
 
-/** A plain, non-templated closing spread — trip figures as styled text, no dedicated stats element yet. */
+/**
+ * The closing spread — trip figures as styled text over a dark card, same
+ * as before when there's no route data to show.
+ *
+ * When `overviewRoute` is given (see AutoInput's own comment on when that
+ * is: no track could be matched to any specific day at all, or the
+ * leftover after the ones that did), the map goes full-bleed on the left
+ * page and the card narrows to the right page alone — the same
+ * single-leaf reasoning routeSpread's own comment gives for never letting
+ * a map cross the gutter. Without it, the dark card still spans both
+ * pages as one poster, unchanged.
+ */
 function summarySpread(input: AutoInput, dateRange: string): BookSpread {
   const s = input.journeyStats
   const parts = [
@@ -427,23 +450,64 @@ function summarySpread(input: AutoInput, dateRange: string): BookSpread {
     `${s.photos} photos`,
     s.places > 0 ? `${s.places} places` : null,
   ].filter(Boolean)
+  const routeStats = formatRouteStats({
+    totalDist: s.distanceKm || 0, gain: s.elevationGainM || 0, loss: s.elevationLossM || 0,
+    minEle: null, maxEle: null, maxSlope: 0, ibp: null,
+  })
 
   const W = input.page.pageWidth
   const H = input.page.pageHeight
-  const elements: BookElement[] = [
-    { id: elementId('s'), kind: 'shape', frame: { x: -input.page.bleed, y: -input.page.bleed, w: W * 2 + input.page.bleed * 2, h: H + input.page.bleed * 2 },
-      rotation: 0, opacity: 1, locked: false, shape: 'rect', fill: '#0a0a0f', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0 },
-    { id: elementId('t'), kind: 'text', frame: { x: W * 0.3, y: H * 0.38, w: W * 1.4, h: 20 },
+  const B = input.page.bleed
+  const overview = input.overviewRoute
+  const hasMapLeaf = !!overview
+
+  // Centered across both pages as one poster when there's no map; confined
+  // to the right leaf alone (and centered within it) when there is.
+  const textX = hasMapLeaf ? W : W * 0.3
+  const textW = hasMapLeaf ? W : W * 1.4
+
+  const elements: BookElement[] = []
+  if (hasMapLeaf) {
+    if (overview!.mapSrc) {
+      elements.push(imageEl(elementId('im'), overview!.mapSrc, { x: -B, y: -B, w: W + B, h: H + B * 2 }, 'cover'))
+    } else {
+      elements.push({ id: elementId('s'), kind: 'shape', frame: { x: -B, y: -B, w: W + B, h: H + B * 2 },
+        rotation: 0, opacity: 1, locked: false, shape: 'rect', fill: '#0a0a0f', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0 })
+    }
+    elements.push({ id: elementId('s'), kind: 'shape', frame: { x: W, y: -B, w: W + B, h: H + B * 2 },
+      rotation: 0, opacity: 1, locked: false, shape: 'rect', fill: '#0a0a0f', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0 })
+  } else {
+    elements.push({ id: elementId('s'), kind: 'shape', frame: { x: -B, y: -B, w: W * 2 + B * 2, h: H + B * 2 },
+      rotation: 0, opacity: 1, locked: false, shape: 'rect', fill: '#0a0a0f', gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0 })
+  }
+
+  elements.push(
+    { id: elementId('t'), kind: 'text', frame: { x: textX, y: H * 0.38, w: textW, h: 20 },
       rotation: 0, opacity: 1, locked: false, text: input.title, font: 'display', size: 26, weight: 700, italic: false,
       align: 'center', leading: 1.1, tracking: -0.01, color: '#ffffff', binding: null, overridden: true },
-    { id: elementId('t'), kind: 'text', frame: { x: W * 0.3, y: H * 0.38 + 26, w: W * 1.4, h: 10 },
+    { id: elementId('t'), kind: 'text', frame: { x: textX, y: H * 0.38 + 26, w: textW, h: 10 },
       // opacity carries the fade — `color` is validated server-side as plain #rrggbb, no alpha.
       rotation: 0, opacity: 0.5, locked: false, text: dateRange, font: 'sans', size: 9, weight: 500, italic: false,
       align: 'center', leading: 1.4, tracking: 0.04, color: '#ffffff', binding: null, overridden: true },
-    { id: elementId('t'), kind: 'text', frame: { x: W * 0.3, y: H * 0.38 + 44, w: W * 1.4, h: 10 },
+    { id: elementId('t'), kind: 'text', frame: { x: textX, y: H * 0.38 + 44, w: textW, h: 10 },
       rotation: 0, opacity: 1, locked: false, text: parts.join('   ·   '), font: 'sans', size: 10, weight: 700, italic: false,
       align: 'center', leading: 1.4, tracking: 0.08, color: '#2dd4bf', binding: null, overridden: true },
-  ]
+  )
+
+  // The trip's true grand total — always from journeyStats (the whole
+  // journey's tracks), never just the overview map's own subset, so the
+  // figure reads right even when the map above is a leftover-only route.
+  if (routeStats) {
+    elements.push({ id: elementId('t'), kind: 'text', frame: { x: textX, y: H * 0.38 + 60, w: textW, h: 10 },
+      rotation: 0, opacity: 0.7, locked: false, text: routeStats, font: 'sans', size: 8.5, weight: 500, italic: false,
+      align: 'center', leading: 1.4, tracking: 0.04, color: '#ffffff', binding: null, overridden: true })
+  }
+
+  if (hasMapLeaf && overview!.elevationSrc) {
+    const eleY = H * 0.38 + (routeStats ? 76 : 60)
+    elements.push(imageEl(elementId('im'), overview!.elevationSrc, { x: W + 16, y: eleY, w: W - 32, h: H - eleY - 16 }, 'contain'))
+  }
+
   return seedSpread(elementId('sp'), 'inner', elements)
 }
 

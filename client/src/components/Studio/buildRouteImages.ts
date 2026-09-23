@@ -41,3 +41,25 @@ export async function buildRouteImagesByDate(
 
   return result
 }
+
+/**
+ * A single whole-journey map + elevation profile for the closing summary
+ * spread — same shape as a per-day RouteImages, built from every track
+ * handed to it rather than one day's slice. buildBook's own comment
+ * explains the two situations this feeds: no track could be matched to a
+ * specific day at all (nothing split "per jornada" — this is the only
+ * route content the book gets), or some tracks matched a day and this is
+ * built from just the leftover, unmatched ones so the closing spread adds
+ * new ground instead of repeating a day that already got its own page.
+ */
+export async function buildOverviewRouteImages(
+  tracks: PdfGpxTrack[],
+  tileUrlTemplate: string,
+): Promise<RouteImages | null> {
+  if (!tracks.some(t => t.points.length > 0)) return null
+  const mapSrc = await withTimeout(buildRouteMapImage([], tracks, tileUrlTemplate), MAP_TIMEOUT_MS).catch(() => null)
+  const svg = buildElevationSvg(tracks)
+  const elevationSrc = svg ? svgToDataUri(svg) : null
+  if (!mapSrc && !elevationSrc) return null
+  return { mapSrc, elevationSrc, stats: computeRouteStats(tracks) }
+}

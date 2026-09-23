@@ -233,6 +233,72 @@ describe('buildBook — route spreads', () => {
   })
 })
 
+describe('buildBook — closing summary spread', () => {
+  // "Montañas Vacías" — a journey whose GPX never got matched to any
+  // specific day (no gpx file per jornada) came out of the book with zero
+  // maps anywhere: routeImagesByDate stayed empty (correctly, no per-day
+  // spread), but the closing spread had no route content of its own to
+  // fall back to either. overviewRoute is what JourneyStudioPage now
+  // builds for exactly that gap — from every track when nothing matched a
+  // day at all, or from just the leftover ones when some did.
+  it('FE-AUTOLAYOUT-033: with no overviewRoute, the closing spread keeps its plain two-page poster — no image elements', () => {
+    const doc = buildBook(input())
+    const closing = doc.spreads[doc.spreads.length - 1]
+    expect(closing.elements.some(e => e.kind === 'image')).toBe(false)
+    const bg = closing.elements.find(e => e.kind === 'shape')!
+    expect(bg.frame.w).toBeGreaterThan(PAGE.pageWidth) // spans both pages as one poster
+  })
+
+  it('FE-AUTOLAYOUT-034: an overviewRoute map is placed full-bleed on the closing spread\'s left page', () => {
+    const doc = buildBook(input({
+      overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS },
+    }))
+    const closing = doc.spreads[doc.spreads.length - 1]
+    const map = closing.elements.find(e => e.kind === 'image')
+    expect(map).toBeDefined()
+    expect(map!.frame.x).toBeLessThan(PAGE.pageWidth)
+  })
+
+  it('FE-AUTOLAYOUT-035: no element in the closing spread straddles the gutter when an overviewRoute is given', () => {
+    const doc = buildBook(input({
+      overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: FULL_STATS },
+    }))
+    const closing = doc.spreads[doc.spreads.length - 1]
+    for (const el of closing.elements) {
+      const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
+      expect(crosses, el.kind).toBe(false)
+    }
+  })
+
+  it('FE-AUTOLAYOUT-036: an overviewRoute elevation profile is placed on the closing spread\'s right page', () => {
+    const doc = buildBook(input({
+      overviewRoute: { mapSrc: null, elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: EMPTY_STATS },
+    }))
+    const closing = doc.spreads[doc.spreads.length - 1]
+    const ele = closing.elements.find(e => e.kind === 'image')
+    expect(ele).toBeDefined()
+    expect(ele!.frame.x).toBeGreaterThanOrEqual(PAGE.pageWidth)
+  })
+
+  it('FE-AUTOLAYOUT-037: the closing spread\'s stats line shows the journey\'s true total distance/elevation, not just the (possibly leftover-only) overview map\'s own subset', () => {
+    const doc = buildBook(input({
+      journeyStats: { days: 5, entries: 3, photos: 20, places: 4, distanceKm: 26.33, elevationGainM: 843, elevationLossM: 612 },
+      overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS },
+    }))
+    const closing = doc.spreads[doc.spreads.length - 1]
+    const totalText = closing.elements.find((e): e is Extract<typeof e, { kind: 'text' }> => e.kind === 'text' && (e as any).text.includes('km'))
+    expect(totalText).toBeDefined()
+    expect((totalText as any).text).toContain('26.3 km')
+  })
+
+  it('FE-AUTOLAYOUT-038: with no route stats at all (no GPX anywhere in the journey), the closing spread has no distance/elevation line', () => {
+    const doc = buildBook(input())
+    const closing = doc.spreads[doc.spreads.length - 1]
+    const totalText = closing.elements.find(e => e.kind === 'text' && (e as any).text.includes('km'))
+    expect(totalText).toBeUndefined()
+  })
+})
+
 describe('estimateTextHeight', () => {
   it('FE-AUTOLAYOUT-017: grows with text length for a fixed box width', () => {
     const short = estimateTextHeight('A short line.', 172, 10, 1.6)
