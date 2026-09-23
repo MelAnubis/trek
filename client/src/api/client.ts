@@ -487,8 +487,13 @@ export const immichApi = {
   // Provider-agnostic (no tripId) — the same album list MemoriesPanel.tsx's
   // per-trip picker uses, reused here for the "import a whole Travesía" flow.
   listAlbums: () => apiClient.get('/integrations/memories/immich/albums').then(r => r.data as { albums: ImmichAlbum[] }),
+  // No timeout (matches uploadPhotos/uploadGalleryPhotos above, overriding
+  // apiClient's 8s default): the import fetches the album from Immich and
+  // reverse-geocodes every stop sequentially, throttled to Nominatim's
+  // usage policy (~1.1s apart) — an album with more than a handful of
+  // stops routinely takes well past 8s.
   importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number }) =>
-    apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, opts || {})
+    apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, opts || {}, { timeout: 0 })
       .then(r => r.data as { journeyId: number; tripId: number; stopCount: number; photoCount: number }),
 }
 
