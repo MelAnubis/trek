@@ -12,7 +12,12 @@ import { StudioCanvas } from '../components/Studio/StudioCanvas'
 import { StudioSidebar } from '../components/Studio/StudioSidebar'
 import { StudioInspector } from '../components/Studio/StudioInspector'
 import { StudioExport } from '../components/Studio/StudioExport'
-import { BOOK_FONTS_GOOGLE_HREF } from '../components/Studio/bookFonts'
+// Side-effect only: bundles the book's self-hosted @fontsource CSS/woff2
+// files into this page's chunk, so both the live canvas and (via
+// printSheets.ts's collectStyles(), which clones every stylesheet already
+// on the page) the print/export pipeline have every book font available
+// with no external CDN request.
+import '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
 import { resolveBindings, type BindingSource } from '../components/Studio/resolveBindings'
@@ -282,8 +287,6 @@ export default function JourneyStudioPage() {
 
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)', ...font }}>
-      <link rel="stylesheet" href={BOOK_FONTS_GOOGLE_HREF} />
-
       {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',

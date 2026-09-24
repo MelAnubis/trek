@@ -25,7 +25,7 @@ export const BOOK_SHAPES = [
   'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
-export type BookFontFamily = 'sans' | 'serif' | 'display';
+export type BookFontFamily = 'sans' | 'serif' | 'display' | 'inter' | 'garamond' | 'playfair' | 'bebas';
 
 export interface BookFrame {
   x: number;

@@ -1,5 +1,5 @@
-// BOOKSCHEMA-001 to BOOKSCHEMA-023
-import { bookElementSchema, bookPageSetupSchema, normalizeBookDocument, MAX_IMAGE_SRC_LENGTH } from '../../../src/services/journeyBook/bookSchema';
+// BOOKSCHEMA-001 to BOOKSCHEMA-025
+import { bookElementSchema, bookPageSetupSchema, normalizeBookDocument, MAX_IMAGE_SRC_LENGTH, BOOK_FONTS_IDS } from '../../../src/services/journeyBook/bookSchema';
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 10, h: 10 }, rotation: 0, opacity: 1, locked: false };
 
@@ -50,6 +50,25 @@ describe('bookElementSchema — image kind', () => {
     const ids = doc.spreads[0].elements.map(e => e.id);
     expect(ids).toContain('good');
     expect(ids).not.toContain('bad');
+  });
+});
+
+function textEl(overrides: Record<string, unknown> = {}) {
+  return { ...base, kind: 'text', text: 'Hi', font: 'sans', size: 11, weight: 400, italic: false, align: 'left', leading: 1.45, tracking: 0, color: '#1a1a1a', binding: null, ...overrides };
+}
+
+describe('bookElementSchema — text kind — self-hosted font library', () => {
+  it('BOOKSCHEMA-024: accepts every font id in the self-hosted @fontsource library, not just the original 3 back-compat slots', () => {
+    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas']);
+    for (const font of BOOK_FONTS_IDS) {
+      const parsed = bookElementSchema.safeParse(textEl({ font }));
+      expect(parsed.success, font).toBe(true);
+    }
+  });
+
+  it('BOOKSCHEMA-025: rejects a font id that isn\'t in the library', () => {
+    const parsed = bookElementSchema.safeParse(textEl({ font: 'comic-sans' }));
+    expect(parsed.success).toBe(false);
   });
 });
 

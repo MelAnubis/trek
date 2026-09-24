@@ -53,11 +53,12 @@ export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
 /**
  * `sans`, `serif` and `display` are the three original slots upstream keeps
- * for back-compat — we start with just those three; the extra named families
- * (Inter, Garamond, Playfair, Bebas) arrive with the font library in a later
- * phase.
+ * for back-compat. `inter`/`garamond`/`playfair`/`bebas` are the fuller
+ * font library's remaining four families (client/src/components/Studio/
+ * bookFonts.ts), self-hosted via @fontsource rather than a Google Fonts
+ * CDN request.
  */
-export const BOOK_FONTS_IDS = ['sans', 'serif', 'display'] as const;
+export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas'] as const;
 export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
 
 export const bookFrameSchema = z.object({
