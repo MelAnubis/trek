@@ -406,6 +406,29 @@ describe('Journey share link', () => {
     expect(get.body.link.share_map).toBe(false);
   });
 
+  it('JOURNEY-INT-048 — POST /api/journeys/:id/share-link forwards share_book through to the stored link', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id))
+      .send({ share_timeline: true, share_gallery: true, share_map: true, share_book: true });
+
+    expect(res.status).toBe(200);
+
+    const get = await request(app)
+      .get(`/api/journeys/${journey.id}/share-link`)
+      .set('Cookie', authCookie(user.id));
+    expect(get.body.link.share_book).toBe(true);
+
+    // And the public endpoint's book route becomes reachable through the
+    // same token — this is the route the earlier bug (share_book silently
+    // dropped by the request handler) actually broke.
+    const pub = await request(app).get(`/api/public/journey/${res.body.token}`);
+    expect(pub.body.permissions.share_book).toBe(true);
+  });
+
   it('JOURNEY-INT-017 — DELETE /api/journeys/:id/share-link deletes the share link', async () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id);

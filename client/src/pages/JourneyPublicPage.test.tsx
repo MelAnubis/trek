@@ -540,4 +540,61 @@ describe('JourneyPublicPage', () => {
       expect(images.length).toBeGreaterThan(0);
     });
   });
+
+  // FE-PAGE-PUBLICJOURNEY-021
+  it('FE-PAGE-PUBLICJOURNEY-021: no Book tab appears when share_book is off (the default)', async () => {
+    setupSuccess();
+    render(<JourneyPublicPage />);
+    await waitFor(() => expect(screen.getByText('Tokyo 2026')).toBeInTheDocument());
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.find(btn => btn.textContent && /^book$/i.test(btn.textContent))).toBeUndefined();
+  });
+
+  // FE-PAGE-PUBLICJOURNEY-022
+  it('FE-PAGE-PUBLICJOURNEY-022: a Book tab appears when share_book is on, and selecting it fetches and renders the book', async () => {
+    const bookDoc = {
+      version: 1,
+      title: 'Our Trip',
+      page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
+      spreads: [{ id: 'cover', role: 'cover', background: null, elements: [], parked: [], entryId: null }],
+    };
+    server.use(
+      http.get('/api/public/journey/test-share-token', () =>
+        HttpResponse.json({ ...mockJourneyData, permissions: { ...mockJourneyData.permissions, share_book: true } }),
+      ),
+      http.get('/api/public/journey/test-share-token/book', () =>
+        HttpResponse.json({ book: { id: 1, journeyId: 1, title: 'Our Trip', version: 1, updatedAt: null, updatedBy: null, document: bookDoc } }),
+      ),
+    );
+
+    render(<JourneyPublicPage />);
+    await waitFor(() => expect(screen.getByText('Tokyo 2026')).toBeInTheDocument());
+
+    const bookBtn = screen.getAllByRole('button').find(btn => btn.textContent && /^book$/i.test(btn.textContent));
+    expect(bookBtn).toBeDefined();
+    fireEvent.click(bookBtn!);
+
+    await waitFor(() => expect(document.querySelectorAll('[style*="position: absolute"]').length).toBeGreaterThan(0));
+  });
+
+  // FE-PAGE-PUBLICJOURNEY-023
+  it('FE-PAGE-PUBLICJOURNEY-023: shows a "no book yet" message when share_book is on but no book has been created', async () => {
+    server.use(
+      http.get('/api/public/journey/test-share-token', () =>
+        HttpResponse.json({ ...mockJourneyData, permissions: { ...mockJourneyData.permissions, share_book: true } }),
+      ),
+      http.get('/api/public/journey/test-share-token/book', () =>
+        new HttpResponse(null, { status: 404 }),
+      ),
+    );
+
+    render(<JourneyPublicPage />);
+    await waitFor(() => expect(screen.getByText('Tokyo 2026')).toBeInTheDocument());
+
+    const bookBtn = screen.getAllByRole('button').find(btn => btn.textContent && /^book$/i.test(btn.textContent));
+    fireEvent.click(bookBtn!);
+
+    await waitFor(() => expect(screen.getByText(/no book has been created/i)).toBeInTheDocument());
+  });
 });

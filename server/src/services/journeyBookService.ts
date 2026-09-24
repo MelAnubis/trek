@@ -112,6 +112,23 @@ export function getBook(journeyId: number, userId: number): BookRecord | null {
 }
 
 /**
+ * Same lookup as getBook, without the owner/contributor access check — for
+ * the public share-link path (journeyShareService.getPublicBook), which
+ * gates access by the share token and its own share_book flag instead of
+ * journey membership.
+ */
+export function getBookForPublicShare(journeyId: number): BookRecord | null {
+  const row = db.prepare(`
+    SELECT id, journey_id, title, document, version, updated_at, updated_by
+      FROM journey_books
+     WHERE journey_id = ?
+     ORDER BY id ASC
+     LIMIT 1
+  `).get(journeyId) as BookRow | undefined;
+  return row ? toRecord(row) : null;
+}
+
+/**
  * Create or update, against a version.
  *
  * Returns the saved record, or `{ conflict }` when the base version has

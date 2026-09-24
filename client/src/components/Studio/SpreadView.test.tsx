@@ -1,4 +1,4 @@
-// FE-SPREADVIEW-001 to FE-SPREADVIEW-013
+// FE-SPREADVIEW-001 to FE-SPREADVIEW-014
 import { render } from '@testing-library/react'
 import { ElementView, SpreadView } from './SpreadView'
 import type { BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
@@ -104,5 +104,11 @@ describe('PhotoView — shape masking', () => {
   it('FE-SPREADVIEW-013: ellipse mask keeps the cheap border-radius:50% path, no clip-path needed', () => {
     const { container } = render(<ElementView el={photoEl({ mask: 'ellipse' })} big print={false} dropLabel="" />)
     expect(container.querySelector('clipPath')).toBeNull()
+  })
+
+  it('FE-SPREADVIEW-014: a publicToken passed to SpreadView reaches BookPhotoImg\'s <img src>, routing through the token-gated public proxy', () => {
+    const s = { ...spread(), elements: [photoEl({ photoId: 55 })] }
+    const { container } = render(<SpreadView spread={s} page={PAGE} big print publicToken="share-tok" />)
+    expect(container.querySelector('img')).toHaveAttribute('src', '/api/public/journey/share-tok/photos/55/original')
   })
 })

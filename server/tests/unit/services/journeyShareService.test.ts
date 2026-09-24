@@ -41,6 +41,7 @@ import {
   validateShareTokenForPhoto,
   validateShareTokenForAsset,
   getPublicJourney,
+  getPublicBook,
 } from '../../../src/services/journeyShareService';
 
 beforeAll(() => {
@@ -91,6 +92,21 @@ function insertJourneyPhoto(
   // Return trek_photos.id — this is p.photo_id in the public API response
   // and the value the client sends to /api/public/journey/:token/photos/:photoId/:kind
   return trekId;
+}
+
+/** Insert a minimal journey_books row and return its document, for getPublicBook tests. */
+function insertJourneyBook(journeyId: number, title = 'My Book') {
+  const document = {
+    version: 1,
+    title,
+    page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
+    spreads: [{ id: 'cover', role: 'cover', background: null, elements: [], parked: [], entryId: null }],
+  };
+  testDb.prepare(`
+    INSERT INTO journey_books (journey_id, title, document, version, updated_at)
+    VALUES (?, ?, ?, 1, CURRENT_TIMESTAMP)
+  `).run(journeyId, title, JSON.stringify(document));
+  return document;
 }
 
 // -- Tests --------------------------------------------------------------------
@@ -413,5 +429,90 @@ describe('getPublicJourney', () => {
     expect(result!.stats.entries).toBe(0);
     expect(result!.stats.photos).toBe(0);
     expect(result!.stats.places).toBe(0);
+  });
+
+  it('JOURNEY-SHARE-021: permissions default share_book to false', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true });
+
+    const result = getPublicJourney(token);
+
+    expect(result!.permissions.share_book).toBe(false);
+  });
+
+  it('JOURNEY-SHARE-022: permissions reflect share_book when turned on', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_book: true });
+
+    const result = getPublicJourney(token);
+
+    expect(result!.permissions.share_book).toBe(true);
+  });
+});
+
+describe('share_book permission', () => {
+  it('JOURNEY-SHARE-023: defaults to off on a brand-new link, unlike timeline/gallery/map', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    createOrUpdateJourneyShareLink(journey.id, user.id, {});
+
+    const link = getJourneyShareLink(journey.id);
+    expect(link!.share_timeline).toBe(true);
+    expect(link!.share_gallery).toBe(true);
+    expect(link!.share_map).toBe(true);
+    expect(link!.share_book).toBe(false);
+  });
+
+  it('JOURNEY-SHARE-024: can be toggled on and persists across an update that omits it (falls back to false, not the prior value)', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    createOrUpdateJourneyShareLink(journey.id, user.id, { share_book: true });
+    expect(getJourneyShareLink(journey.id)!.share_book).toBe(true);
+
+    // An update call that doesn't mention share_book explicitly turns it back off —
+    // same all-permissions-supplied-every-time contract the other three flags follow.
+    createOrUpdateJourneyShareLink(journey.id, user.id, { share_timeline: true });
+    expect(getJourneyShareLink(journey.id)!.share_book).toBe(false);
+  });
+});
+
+describe('getPublicBook', () => {
+  it('JOURNEY-SHARE-025: returns null for an unknown token', () => {
+    expect(getPublicBook('nonexistent-token')).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-026: returns null when share_book is off, even if a book exists', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    insertJourneyBook(journey.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_book: false });
+
+    expect(getPublicBook(token)).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-027: returns null when share_book is on but no book has been created yet', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_book: true });
+
+    expect(getPublicBook(token)).toBeNull();
+  });
+
+  it('JOURNEY-SHARE-028: returns the book document when share_book is on and a book exists', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    insertJourneyBook(journey.id, 'Our Trip');
+    const { token } = createOrUpdateJourneyShareLink(journey.id, user.id, { share_book: true });
+
+    const result = getPublicBook(token);
+
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe('Our Trip');
+    expect(result!.journeyId).toBe(journey.id);
+    expect(result!.document.spreads).toHaveLength(1);
   });
 });

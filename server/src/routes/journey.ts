@@ -397,8 +397,8 @@ router.get('/:id/share-link', authenticate, (req: Request, res: Response) => {
 
 router.post('/:id/share-link', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const { share_timeline, share_gallery, share_map } = req.body || {};
-  const result = createOrUpdateJourneyShareLink(Number(req.params.id), authReq.user.id, { share_timeline, share_gallery, share_map });
+  const { share_timeline, share_gallery, share_map, share_book } = req.body || {};
+  const result = createOrUpdateJourneyShareLink(Number(req.params.id), authReq.user.id, { share_timeline, share_gallery, share_map, share_book });
   if (!result) return res.status(403).json({ error: 'Not allowed' });
   res.json(result);
 });

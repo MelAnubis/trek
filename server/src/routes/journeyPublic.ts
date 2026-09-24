@@ -1,5 +1,5 @@
 import express, { Request, Response } from 'express';
-import { getPublicJourney, validateShareTokenForAsset, validateShareTokenForPhoto } from '../services/journeyShareService';
+import { getPublicJourney, getPublicBook, validateShareTokenForAsset, validateShareTokenForPhoto } from '../services/journeyShareService';
 import { streamPhoto } from '../services/memories/photoResolverService';
 import { streamImmichAsset } from '../services/memories/immichService';
 import path from 'node:path';
@@ -11,6 +11,15 @@ router.get('/:token', (req: Request, res: Response) => {
   const data = getPublicJourney(req.params.token);
   if (!data) return res.status(404).json({ error: 'Not found' });
   res.json(data);
+});
+
+// The Studio book, read-only — 404s the same way whether the token is
+// unknown, book sharing is off, or there's simply no book yet, so a
+// visitor learns nothing about which case it was.
+router.get('/:token/book', (req: Request, res: Response) => {
+  const book = getPublicBook(req.params.token);
+  if (!book) return res.status(404).json({ error: 'Not found' });
+  res.json({ book });
 });
 
 // Unified public photo proxy — uses trek_photo_id

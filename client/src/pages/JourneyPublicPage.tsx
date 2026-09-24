@@ -15,9 +15,11 @@ import JournalBody from '../components/Journey/JournalBody'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
+import { PublicBookView } from '../components/Studio/PublicBookView'
 import { useIsMobile } from '../hooks/useIsMobile'
 import { formatLocationName } from '../utils/formatters'
 import { DAY_COLORS } from '../components/Journey/dayColors'
+import type { BookDocument } from '../types/book'
 
 interface PublicEntry {
   id: number
@@ -101,7 +103,9 @@ export default function JourneyPublicPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const isMobile = useIsMobile()
-  const [view, setView] = useState<'timeline' | 'gallery' | 'map'>('timeline')
+  const [view, setView] = useState<'timeline' | 'gallery' | 'map' | 'book'>('timeline')
+  const [book, setBook] = useState<BookDocument | null>(null)
+  const [bookLoaded, setBookLoaded] = useState(false)
   const [lightbox, setLightbox] = useState<{ photos: { id: string; src: string; caption?: string | null }[]; index: number } | null>(null)
   const { t } = useTranslation()
   const [showLangPicker, setShowLangPicker] = useState(false)
@@ -130,6 +134,16 @@ export default function JourneyPublicPage() {
   const perms = data?.permissions || {}
   const journey = data?.journey || {}
   const stats = data?.stats || {}
+
+  // Fetched separately (and lazily) — the book document can be sizeable, and
+  // most visitors to a shared journey never open this tab.
+  useEffect(() => {
+    if (!token || !perms.share_book || view !== 'book' || bookLoaded) return
+    journeyApi.getPublicBook(token)
+      .then(d => setBook(d?.book?.document ?? null))
+      .catch(() => setBook(null))
+      .finally(() => setBookLoaded(true))
+  }, [token, perms.share_book, view, bookLoaded])
 
   const timelineEntries = useMemo(() => entries, [entries])
   const groupedEntries = useMemo(() => groupByDate(timelineEntries), [timelineEntries])
@@ -201,7 +215,30 @@ export default function JourneyPublicPage() {
     perms.share_timeline && { id: 'timeline' as const, icon: List, label: t('journey.share.timeline') },
     perms.share_gallery && { id: 'gallery' as const, icon: Grid, label: t('journey.share.gallery') },
     !desktopTwoColumn && !isMobile && perms.share_map && { id: 'map' as const, icon: MapPin, label: t('journey.share.map') },
-  ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map'; icon: any; label: string }[]
+    perms.share_book && { id: 'book' as const, icon: BookOpen, label: t('journey.share.book') },
+  ].filter(Boolean) as { id: 'timeline' | 'gallery' | 'map' | 'book'; icon: any; label: string }[]
+
+  // Shared book renderer
+  const renderBook = () => {
+    if (!bookLoaded) {
+      return (
+        <div className="flex justify-center py-16">
+          <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
+        </div>
+      )
+    }
+    if (!book) {
+      return (
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={24} className="text-zinc-400" />
+          </div>
+          <p className="text-[15px] font-medium text-zinc-700 dark:text-zinc-300">{t('journey.public.noBook')}</p>
+        </div>
+      )
+    }
+    return <PublicBookView document={book} publicToken={token!} />
+  }
 
   // Shared timeline renderer used in both layout modes
   const renderTimeline = () => (
@@ -514,6 +551,7 @@ export default function JourneyPublicPage() {
             {renderTabs(availableViews)}
             {view === 'timeline' && perms.share_timeline && renderTimeline()}
             {view === 'gallery' && perms.share_gallery && renderGallery()}
+            {view === 'book' && perms.share_book && renderBook()}
           </div>
 
           {/* Right: sticky map — matches auth page aside proportions */}
@@ -594,6 +632,9 @@ export default function JourneyPublicPage() {
               />
             </div>
           )}
+
+          {/* Book */}
+          {view === 'book' && perms.share_book && renderBook()}
         </div>
       )}
 

@@ -471,7 +471,7 @@ export const journeyApi = {
 
   // Share
   getShareLink: (id: number) => apiClient.get(`/journeys/${id}/share-link`).then(r => r.data),
-  createShareLink: (id: number, perms: { share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean }) => apiClient.post(`/journeys/${id}/share-link`, perms).then(r => r.data),
+  createShareLink: (id: number, perms: { share_timeline?: boolean; share_gallery?: boolean; share_map?: boolean; share_book?: boolean }) => apiClient.post(`/journeys/${id}/share-link`, perms).then(r => r.data),
   deleteShareLink: (id: number) => apiClient.delete(`/journeys/${id}/share-link`).then(r => r.data),
   getPublicJourney: (token: string) => apiClient.get(`/public/journey/${token}`).then(r => r.data),
 
@@ -481,6 +481,7 @@ export const journeyApi = {
   saveBook: (id: number, data: { title: string; document: import('../types/book').BookDocument; baseVersion?: number }) =>
     apiClient.put(`/journeys/${id}/book`, data).then(r => r.data as { book: import('../types/book').BookRecord }),
   deleteBook: (id: number) => apiClient.delete(`/journeys/${id}/book`),
+  getPublicBook: (token: string) => apiClient.get(`/public/journey/${token}/book`).then(r => r.data as { book: import('../types/book').BookRecord | null }),
 }
 
 export const immichApi = {

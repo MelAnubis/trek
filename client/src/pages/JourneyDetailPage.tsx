@@ -3206,7 +3206,7 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
 
 function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const { t } = useTranslation()
-  const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean } | null>(null)
+  const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean; share_book: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const toast = useToast()
@@ -3218,17 +3218,17 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const createLink = async () => {
     try {
       const res = await journeyApi.createShareLink(journeyId, { share_timeline: true, share_gallery: true, share_map: true })
-      setLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true })
+      setLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true, share_book: false })
       toast.success(t('journey.share.linkCreated'))
     } catch { toast.error(t('journey.share.createFailed')) }
   }
 
-  const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map') => {
+  const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map' | 'share_book') => {
     if (!link) return
     const updated = { ...link, [key]: !link[key] }
     setLink(updated)
     try {
-      await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map })
+      await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map, share_book: updated.share_book })
     } catch { setLink(link); toast.error(t('journey.share.updateFailed')) }
   }
 
@@ -3281,6 +3281,7 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
               { key: 'share_timeline' as const, label: t('journey.share.timeline'), icon: List },
               { key: 'share_gallery' as const, label: t('journey.share.gallery'), icon: Grid },
               { key: 'share_map' as const, label: t('journey.share.map'), icon: MapPin },
+              { key: 'share_book' as const, label: t('journey.share.book'), icon: BookOpen },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}

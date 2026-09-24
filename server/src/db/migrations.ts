@@ -2544,6 +2544,15 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE gpx_tracks ADD COLUMN transport_mode TEXT'); } catch {}
     },
+    // Whether a journey's public share link also exposes its TREK Studio
+    // book (read-only) — a new share surface alongside the existing
+    // timeline/gallery/map ones, so it defaults OFF (0) rather than
+    // matching those three's default-on: a designed book can carry
+    // per-page captions someone wrote for themselves, not necessarily
+    // meant for the same audience as the plain timeline.
+    () => {
+      try { db.exec('ALTER TABLE journey_share_tokens ADD COLUMN share_book INTEGER DEFAULT 0'); } catch {}
+    },
   ];
 
   if (currentVersion < migrations.length) {

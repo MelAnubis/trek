@@ -2976,6 +2976,49 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-162 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-162: Share link Book toggle', () => {
+    it('shows a Book toggle alongside Timeline/Gallery/Map, and toggling it posts share_book: true', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let lastBody: any = null;
+
+      server.use(
+        http.get('/api/journeys/1/share-link', () => {
+          return HttpResponse.json({
+            link: {
+              token: 'book-token',
+              share_timeline: true,
+              share_gallery: true,
+              share_map: true,
+              share_book: false,
+            },
+          });
+        }),
+        http.post('/api/journeys/1/share-link', async ({ request }) => {
+          lastBody = await request.json();
+          return HttpResponse.json({ token: 'book-token', ...(lastBody as object) });
+        }),
+      );
+
+      await renderAndWait();
+      await openSettingsDialog(user);
+
+      await waitFor(() => {
+        expect(screen.getByText(/book-token/)).toBeInTheDocument();
+      });
+
+      const shareSection = screen.getByText('Public Share').parentElement!;
+      const bookToggle = Array.from(shareSection.querySelectorAll('button')).find(btn => btn.textContent && /^book$/i.test(btn.textContent));
+      expect(bookToggle).toBeDefined();
+
+      await user.click(bookToggle!);
+
+      await waitFor(() => {
+        expect(lastBody?.share_book).toBe(true);
+      });
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-127 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-127: Settings unlink trip button shows confirm', () => {
     it('clicking the unlink button on a trip in settings shows the unlink confirm', async () => {

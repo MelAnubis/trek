@@ -1,4 +1,4 @@
-// FE-COMP-BOOKPHOTO-001 to FE-COMP-BOOKPHOTO-005
+// FE-COMP-BOOKPHOTO-001 to FE-COMP-BOOKPHOTO-008
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { BookPhotoImg } from './BookPhotoImg';
@@ -67,5 +67,24 @@ describe('BookPhotoImg — editing mode (default)', () => {
 
     unmount();
     expect(revokeSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('BookPhotoImg — public share mode (publicToken)', () => {
+  it('FE-COMP-BOOKPHOTO-006: renders a plain <img src> against the public proxy, with no network call, even though print is unset', () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const { container } = render(<BookPhotoImg photoId={42} big publicToken="tok123" />);
+    expect(img(container)).toHaveAttribute('src', '/api/public/journey/tok123/photos/42/original');
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-BOOKPHOTO-007: uses the thumbnail variant when big is false', () => {
+    const { container } = render(<BookPhotoImg photoId={7} big={false} publicToken="tok123" />);
+    expect(img(container)).toHaveAttribute('src', '/api/public/journey/tok123/photos/7/thumbnail');
+  });
+
+  it('FE-COMP-BOOKPHOTO-008: falls back to the authenticated route when no publicToken is given', () => {
+    const { container } = render(<BookPhotoImg photoId={42} big print />);
+    expect(img(container)).toHaveAttribute('src', '/api/photos/42/original');
   });
 });

@@ -2521,6 +2521,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.share.timeline': 'Timeline',
   'journey.share.gallery': 'Gallery',
   'journey.share.map': 'Map',
+  'journey.share.book': 'Book',
   'journey.share.removeLink': 'Remove share link',
   'journey.share.linkDeleted': 'Share link deleted',
   'journey.share.deleteFailed': 'Failed to delete',
@@ -2562,6 +2563,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   // Journey — Public Page
   'journey.public.notFound': 'Not Found',
   'journey.public.notFoundMessage': 'This journey doesn\'t exist or the link has expired.',
+  'journey.public.noBook': 'No book has been created for this journey yet.',
   'journey.public.readOnly': 'Read-only · Public Journey',
   'journey.public.tagline': 'Travel Resource & Exploration Kit',
   'journey.public.sharedVia': 'Shared via',

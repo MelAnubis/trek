@@ -125,8 +125,8 @@ const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
-function PhotoView({ el, big, print, dropLabel }: {
-  el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string
+function PhotoView({ el, big, print, dropLabel, publicToken }: {
+  el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string; publicToken?: string
 }) {
   const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none
   const side = Math.min(el.frame.w, el.frame.h)
@@ -212,6 +212,7 @@ function PhotoView({ el, big, print, dropLabel }: {
           photoId={el.photoId!}
           big={big}
           print={print}
+          publicToken={publicToken}
           style={{
             width: '100%',
             height: '100%',
@@ -260,10 +261,10 @@ function ImageView({ el }: { el: BookImageElement }) {
 }
 
 export function ElementView({
-  el, big, print = false, dropLabel = '',
-}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string }) {
+  el, big, print = false, dropLabel = '', publicToken,
+}: { el: BookElement; big: boolean; print?: boolean; dropLabel?: string; publicToken?: string }) {
   if (el.kind === 'photo') {
-    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} />
+    return <PhotoView el={el} big={big} print={print} dropLabel={dropLabel} publicToken={publicToken} />
   }
 
   if (el.kind === 'shape') return <ShapeView el={el} />
@@ -341,6 +342,7 @@ export function SpreadView({
   print = false,
   dropLabel = '',
   spreadIndex,
+  publicToken,
 }: {
   spread: BookSpread
   page: BookPageSetup
@@ -349,6 +351,8 @@ export function SpreadView({
   dropLabel?: string
   /** Position in the document, cover included — needed to number the page. Omit where a spread is shown out of book context (e.g. a template swatch) and folios don't apply. */
   spreadIndex?: number
+  /** Set for the public share view: routes photos through the token-gated proxy instead of the authenticated one. */
+  publicToken?: string
 }) {
   return (
     <div
@@ -360,7 +364,7 @@ export function SpreadView({
       }}
     >
       {spread.elements.map(el => (
-        <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} />
+        <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} publicToken={publicToken} />
       ))}
       {spreadIndex != null && <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} />}
     </div>

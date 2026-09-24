@@ -1,11 +1,14 @@
 import { db } from '../db/database';
 import crypto from 'crypto';
 import { isOwner } from './journeyService';
+import { getBookForPublicShare } from './journeyBookService';
+import type { BookRecord } from './journeyBook/bookStoreSchema';
 
 interface JourneySharePermissions {
   share_timeline?: boolean;
   share_gallery?: boolean;
   share_map?: boolean;
+  share_book?: boolean;
 }
 
 interface JourneyShareTokenInfo {
@@ -14,6 +17,7 @@ interface JourneyShareTokenInfo {
   share_timeline: boolean;
   share_gallery: boolean;
   share_map: boolean;
+  share_book: boolean;
 }
 
 export function createOrUpdateJourneyShareLink(
@@ -29,18 +33,20 @@ export function createOrUpdateJourneyShareLink(
     share_timeline = true,
     share_gallery = true,
     share_map = true,
+    // Opt-in, unlike the three above — see the migration's own comment.
+    share_book = false,
   } = permissions;
 
   const existing = db.prepare('SELECT token FROM journey_share_tokens WHERE journey_id = ?').get(journeyId) as { token: string } | undefined;
   if (existing) {
-    db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ? WHERE journey_id = ?')
-      .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, journeyId);
+    db.prepare('UPDATE journey_share_tokens SET share_timeline = ?, share_gallery = ?, share_map = ?, share_book = ? WHERE journey_id = ?')
+      .run(share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, share_book ? 1 : 0, journeyId);
     return { token: existing.token, created: false };
   }
 
   const token = crypto.randomBytes(24).toString('base64url');
-  db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0);
+  db.prepare('INSERT INTO journey_share_tokens (journey_id, token, created_by, share_timeline, share_gallery, share_map, share_book) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .run(journeyId, token, createdBy, share_timeline ? 1 : 0, share_gallery ? 1 : 0, share_map ? 1 : 0, share_book ? 1 : 0);
   return { token, created: true };
 }
 
@@ -53,6 +59,7 @@ export function getJourneyShareLink(journeyId: number): JourneyShareTokenInfo | 
     share_timeline: !!row.share_timeline,
     share_gallery: !!row.share_gallery,
     share_map: !!row.share_map,
+    share_book: !!row.share_book,
   };
 }
 
@@ -158,6 +165,14 @@ export function getPublicJourney(token: string) {
       share_timeline: !!row.share_timeline,
       share_gallery: !!row.share_gallery,
       share_map: !!row.share_map,
+      share_book: !!row.share_book,
     },
   };
+}
+
+/** Null when the token is unknown or its owner hasn't turned book sharing on, or there's simply no book yet. */
+export function getPublicBook(token: string): BookRecord | null {
+  const row = db.prepare('SELECT journey_id, share_book FROM journey_share_tokens WHERE token = ?').get(token) as any;
+  if (!row || !row.share_book) return null;
+  return getBookForPublicShare(row.journey_id);
 }
