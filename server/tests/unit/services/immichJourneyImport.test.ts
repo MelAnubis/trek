@@ -444,6 +444,34 @@ describe('importJourneyFromAlbum', () => {
     expect(places).toHaveLength(2); // day 06-01's place is still created, just with no route track
   });
 
+  it('IMMICHIMPORT-021: real GPX points that never reach any single day\'s 2-point threshold are still saved as one trip-wide track, not discarded entirely', async () => {
+    const { user } = createUser(testDb);
+    seedAlbum(); // two known days: 2026-06-01 and 2026-06-03
+    mockReverseGeocode.mockReset();
+    mockReverseGeocode.mockResolvedValue({ name: 'Some Stop', address: null });
+
+    // Only one GPX point per day — neither day reaches the >=2-point
+    // threshold IMMICHIMPORT-020 requires, so before this fix both points
+    // would have been silently dropped (no per-day track AND nothing else
+    // to hold them) — exactly the "no hay mapa ni track ni nada de nada"
+    // regression report.
+    const gpxRaw = gpx([
+      { lat: 48.8580, lng: 2.2940, time: '2026-06-01T09:00:00.000Z' },
+      { lat: 35.6580, lng: 139.7440, time: '2026-06-03T13:00:00.000Z' },
+    ]);
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [{ raw: gpxRaw, originalName: 'sparse-per-day.gpx' }],
+    });
+    expect(result.gpxPointCount).toBe(2);
+
+    const tracks = testDb.prepare('SELECT * FROM gpx_tracks WHERE trip_id = ?').all(result.tripId) as any[];
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].day_id).toBeNull(); // trip-wide, not tied to either day
+    expect(tracks[0].point_count).toBe(2);
+    expect(tracks[0].orig_name).toBe('gpx-import');
+  });
+
   it('IMMICHIMPORT-019: an import with only unusable GPX files and no geotagged photos still throws', async () => {
     const { user } = createUser(testDb);
     mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Nothing Usable' }] });

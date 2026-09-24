@@ -257,6 +257,7 @@ export async function importJourneyFromAlbum(
   // of this trip's tracks (the live timeline, Studio, the PDF export)
   // sees the same thing rather than each re-deriving its own fallback.
   const anyGpxAttached = gpxPoints.length > 0;
+  const consumedGpxPoints = new Set<GeoPoint>();
   const pointsByDate = new Map<string, GeoPoint[]>();
   for (const stop of stops) {
     if (!dayIdByDate.has(stop.date)) continue;
@@ -270,6 +271,7 @@ export async function importJourneyFromAlbum(
     if (gpxPts.length < 2 && anyGpxAttached) continue;
     const trackPts = gpxPts.length >= 2 ? gpxPts : pts;
     if (trackPts.length < 2) continue;
+    for (const p of gpxPts) consumedGpxPoints.add(p);
 
     const sortedPts = [...trackPts].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
     const trackPoints: { lat: number; lng: number; ele: number | null; time: string | null }[] =
@@ -286,6 +288,26 @@ export async function importJourneyFromAlbum(
     }
 
     saveTrack(tripId, userId, title, source, finalPoints, [], sortOrder++, dayIdByDate.get(date));
+  }
+
+  // GPX points that never made it onto a specific day's track — no
+  // matching timestamp, a date outside the trip's own days, or points
+  // dropped entirely from clusterStops (a stop whose date fell past
+  // MAX_TRIP_DAYS, same edge case placeIdByStopIndex already tolerates)
+  // — must still end up SOMEWHERE, not be silently discarded. A real,
+  // dense GPX recording is exactly the data this whole feature exists to
+  // use; losing it here would leave the trip with no route at all rather
+  // than "no per-day breakdown," which is not what "sin fichero por
+  // jornada, solo un resumen" asked for. One trip-wide (day_id-less)
+  // track holds whatever's left, same as a trip-wide upload always has —
+  // the live timeline's whole-journey header and Studio's closing-summary
+  // map both already draw from every track regardless of day_id, so this
+  // is picked up automatically without any further wiring.
+  const leftoverGpxPoints = gpxPoints.filter(p => !consumedGpxPoints.has(p));
+  if (leftoverGpxPoints.length >= 2) {
+    const sortedLeftover = [...leftoverGpxPoints].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
+    const leftoverPoints = sortedLeftover.map(p => ({ lat: p.lat, lng: p.lng, ele: p.ele ?? null, time: p.takenAt }));
+    saveTrack(tripId, userId, title, 'gpx-import', leftoverPoints, [], sortOrder++, null);
   }
 
   // Pull the album's actual photos into the trip's pool. taken_at is set
