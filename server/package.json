@@ -1,6 +1,6 @@
 {
   "name": "trek-server",
-  "version": "4.0.52",
+  "version": "4.0.53",
   "main": "src/index.ts",
   "scripts": {
     "start": "node --import tsx src/index.ts",
