@@ -150,7 +150,6 @@ export default function MobileMapTimeline({
         <JourneyMap
           ref={mapRef}
           entries={mapEntries}
-          checkins={[]}
           trail={trail}
           height={9999}
           dark={dark}
@@ -180,7 +179,6 @@ export default function MobileMapTimeline({
       <JourneyMap
         ref={mapRef}
         entries={mapEntries}
-        checkins={[]}
         trail={trail}
         height={9999}
         dark={dark}

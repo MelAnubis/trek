@@ -80,7 +80,7 @@ beforeEach(() => {
 describe('JourneyMap', () => {
   it('FE-COMP-JOURNEYMAP-001: renders map container', () => {
     const { container } = render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // The component renders a div with a child div ref for the Leaflet map
     expect(container.firstChild).toBeInTheDocument();
@@ -89,7 +89,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-002: renders markers for entries with coordinates', () => {
     render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // Two entries with valid lat/lng should produce two markers
     expect(L.marker).toHaveBeenCalledTimes(2);
@@ -97,7 +97,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-003: does not render markers for entries without coordinates', () => {
     render(
-      <JourneyMap checkins={[]} entries={entriesWithoutCoords} />
+      <JourneyMap entries={entriesWithoutCoords} />
     );
     // Entry with lat=0 and lng=0 is filtered out by buildMarkerItems (if (e.lat && e.lng))
     expect(L.marker).not.toHaveBeenCalled();
@@ -105,7 +105,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-004: renders polyline connecting entries', () => {
     render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // With 2+ marker items, a route polyline is drawn
     expect(L.polyline).toHaveBeenCalled();
@@ -113,7 +113,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-005: shows entry title in marker tooltip', () => {
     render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // Each marker calls bindTooltip with the entry label
     const mockMarkerInstance = (L.marker as any).mock.results[0].value;
@@ -126,7 +126,7 @@ describe('JourneyMap', () => {
   it('FE-COMP-JOURNEYMAP-006: exposes imperative handle (focusMarker)', () => {
     const ref = React.createRef<JourneyMapHandle>();
     render(
-      <JourneyMap ref={ref} checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap ref={ref} entries={entriesWithCoords} />
     );
     expect(ref.current).not.toBeNull();
     expect(typeof ref.current!.focusMarker).toBe('function');
@@ -135,7 +135,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-007: renders SVG pin markers via divIcon', () => {
     render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // Each marker is created with L.divIcon containing SVG html
     expect(L.divIcon).toHaveBeenCalledTimes(2);
@@ -152,7 +152,7 @@ describe('JourneyMap', () => {
       { id: 'e2', lat: 52.52, lng: 13.405, title: 'Sad Berlin', mood: 'sad', entry_date: '2025-06-02' },
     ];
     render(
-      <JourneyMap checkins={[]} entries={entriesWithMood} />
+      <JourneyMap entries={entriesWithMood} />
     );
     // Markers are still created (mood does not prevent rendering)
     expect(L.marker).toHaveBeenCalledTimes(2);
@@ -176,7 +176,7 @@ describe('JourneyMap', () => {
       { id: 'e3', lat: 41.9028, lng: 12.4964, title: 'Rome', mood: null, entry_date: '2025-06-03' },
     ];
     render(
-      <JourneyMap checkins={[]} entries={threeEntries} />
+      <JourneyMap entries={threeEntries} />
     );
     // Route polyline is drawn for items.length > 1
     expect(L.polyline).toHaveBeenCalled();
@@ -193,7 +193,7 @@ describe('JourneyMap', () => {
     globalThis.requestAnimationFrame = (cb: FrameRequestCallback) => { cb(0); return 0; };
 
     render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
 
     const mockMap = (L.map as any).mock.results[0].value;
@@ -209,7 +209,7 @@ describe('JourneyMap', () => {
       { id: 'e1', lat: 48.8566, lng: 2.3522, title: 'Solo Paris', mood: null, entry_date: '2025-06-01' },
     ];
     render(
-      <JourneyMap checkins={[]} entries={singleEntry} />
+      <JourneyMap entries={singleEntry} />
     );
     // One marker created
     expect(L.marker).toHaveBeenCalledTimes(1);
@@ -219,7 +219,7 @@ describe('JourneyMap', () => {
 
   it('FE-COMP-JOURNEYMAP-012: renders zoom control buttons', () => {
     const { container } = render(
-      <JourneyMap checkins={[]} entries={entriesWithCoords} />
+      <JourneyMap entries={entriesWithCoords} />
     );
     // The component renders zoom in (+) and zoom out (−) buttons
     const buttons = container.querySelectorAll('button');

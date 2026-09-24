@@ -19,7 +19,6 @@ interface MapEntry {
 }
 
 interface Props {
-  checkins: unknown[]
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
   height?: number

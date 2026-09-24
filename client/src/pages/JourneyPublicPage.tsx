@@ -529,7 +529,6 @@ export default function JourneyPublicPage() {
             <div className="h-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <JourneyMap
                 ref={mapRef}
-                checkins={[]}
                 entries={sidebarMapItems as any}
                 height={9999}
                 fullScreen
@@ -590,7 +589,6 @@ export default function JourneyPublicPage() {
           {view === 'map' && perms.share_map && (
             <div className="rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
               <JourneyMap
-                checkins={[]}
                 entries={sidebarMapItems as any}
                 height={500}
               />

@@ -641,46 +641,6 @@ describe('JourneyDetailPage', () => {
     });
   });
 
-  // ── FE-PAGE-JOURNEYDETAIL-025 ──────────────────────────────────────────
-  describe('FE-PAGE-JOURNEYDETAIL-025: CheckinCard renders for checkin entries', () => {
-    it('renders a checkin entry with title and location', async () => {
-      const checkinEntry = {
-        id: 30,
-        journey_id: 1,
-        author_id: 1,
-        type: 'checkin',
-        entry_date: '2026-03-15',
-        title: 'Quick stop at cafe',
-        story: 'Grabbed an espresso',
-        location_name: 'Cafe Roma',
-        location_lat: 41.91,
-        location_lng: 12.51,
-        mood: null,
-        weather: null,
-        tags: [],
-        pros_cons: null,
-        visibility: 'private',
-        sort_order: 1,
-        entry_time: '15:30',
-        photos: [],
-        created_at: now,
-        updated_at: now,
-      };
-      setupDefaultHandlers({
-        entries: [...mockJourneyDetail.entries, checkinEntry],
-        stats: { entries: 3, photos: 1, places: 2 },
-      });
-
-      render(<JourneyDetailPage />);
-      await waitFor(() => {
-        expect(screen.getAllByText('Quick stop at cafe').length).toBeGreaterThanOrEqual(1);
-      });
-
-      expect(screen.getAllByText(/Cafe Roma/).length).toBeGreaterThanOrEqual(1);
-      expect(screen.getByText('Grabbed an espresso')).toBeInTheDocument();
-    });
-  });
-
   // ── FE-PAGE-JOURNEYDETAIL-026 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-026: Navbar renders', () => {
     it('renders the mocked navbar', async () => {

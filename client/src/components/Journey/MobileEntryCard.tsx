@@ -128,7 +128,7 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
 
           {/* Title */}
           <h4 className="text-[13px] font-semibold text-zinc-900 dark:text-white leading-tight truncate">
-            {entry.title || (entry.type === 'checkin' ? 'Check-in' : entry.type === 'skeleton' ? 'Add your story…' : 'Untitled')}
+            {entry.title || (entry.type === 'skeleton' ? 'Add your story…' : 'Untitled')}
           </h4>
 
           {/* Story preview (1-2 lines, only on active card) */}

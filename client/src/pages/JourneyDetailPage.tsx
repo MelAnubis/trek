@@ -856,8 +856,6 @@ export default function JourneyDetailPage() {
                               <div className={canReorder ? 'flex-1 min-w-0' : ''}>
                                 {entry.type === 'skeleton' ? (
                                   <SkeletonCard entry={entry} onClick={canEditEntries ? () => setEditingEntry(entry) : undefined} />
-                                ) : entry.type === 'checkin' ? (
-                                  <CheckinCard entry={entry} onClick={canEditEntries ? () => setEditingEntry(entry) : undefined} />
                                 ) : (
                                   <EntryCard
                                     entry={entry}
@@ -906,7 +904,6 @@ export default function JourneyDetailPage() {
               <div className="h-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
                 <JourneyMap
                   ref={mapRef}
-                  checkins={[]}
                   entries={sidebarMapItems as any}
                   height={9999}
                   activeMarkerId={activeEntryId}
@@ -1076,7 +1073,6 @@ function MapView({ entries, mapEntries, sortedDates, activeLocationId, fullMapRe
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl overflow-hidden">
       <JourneyMap
         ref={fullMapRef}
-        checkins={[]}
         entries={mapItems as any}
         height={560}
         activeMarkerId={activeLocationId}
@@ -1739,29 +1735,6 @@ function SkeletonCard({ entry, onClick }: { entry: JourneyEntry; onClick?: () =>
       </div>
       <div className="text-[11px] text-zinc-500 font-medium flex-shrink-0">
         {t('journey.detail.addEntry')} &rarr;
-      </div>
-    </div>
-  )
-}
-
-function CheckinCard({ entry, onClick }: { entry: JourneyEntry; onClick?: () => void }) {
-  return (
-    <div
-      onClick={onClick}
-      className={`bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] ${onClick ? 'hover:border-zinc-400 dark:hover:border-zinc-500 cursor-pointer' : ''}`}
-    >
-      <div className="w-7 h-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-        <MapPin size={13} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-[13px] font-medium text-zinc-900 dark:text-white flex items-center gap-1.5">
-          {entry.title}
-          {entry.location_name && <span className="text-zinc-500 font-normal text-xs">· {entry.location_name}</span>}
-        </div>
-        {entry.story && <div className="text-[11px] text-zinc-500 mt-0.5">{entry.story}</div>}
-      </div>
-      <div className="flex items-center gap-2.5 flex-shrink-0">
-        {entry.entry_time && <span className="text-[11px] text-zinc-400 tabular-nums">{entry.entry_time}</span>}
       </div>
     </div>
   )

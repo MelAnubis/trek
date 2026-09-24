@@ -356,7 +356,7 @@ export interface JourneyEntry {
   source_trip_id?: number | null;
   source_place_id?: number | null;
   author_id: number;
-  type: 'entry' | 'checkin' | 'skeleton';
+  type: 'entry' | 'skeleton';
   title?: string | null;
   story?: string | null;
   entry_date: string;
