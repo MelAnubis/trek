@@ -8,6 +8,7 @@ import { useStudioStore } from '../../store/studioStore'
 import { useJourneyStore } from '../../store/journeyStore'
 import { useToast } from '../shared/Toast'
 import { normalizeImageFiles } from '../../utils/convertHeic'
+import type { UploadProgress } from '../../utils/uploadQueue'
 import { getApiErrorMessage } from '../../types'
 import { elementId } from './bookIds'
 import { BookPhotoImg } from './BookPhotoImg'
@@ -127,12 +128,16 @@ export function StudioSidebar({
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
   const [showShapePicker, setShowShapePicker] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
+  const [photosDragOver, setPhotosDragOver] = useState(false)
+  const [showAllPhotos, setShowAllPhotos] = useState(false)
   const photoFileRef = useRef<HTMLInputElement>(null)
   const toggleSection = (id: string) => setCollapsedSections(prev => {
     const next = { ...prev, [id]: !prev[id] }
     try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)) } catch { /* private-mode/blocked storage — collapse state just won't persist */ }
     return next
   })
+  const journeyEntries = useJourneyStore(s => s.current?.entries)
   const doc = useStudioStore(s => s.doc)
   const activeSpread = useStudioStore(s => s.activeSpread)
   const setActiveSpread = useStudioStore(s => s.setActiveSpread)
@@ -189,13 +194,15 @@ export function StudioSidebar({
     setShowShapePicker(false)
   }
 
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files?.length) return
+  const uploadFiles = async (files: FileList | File[]) => {
+    if (!files || files.length === 0) return
     setUploading(true)
+    setUploadProgress(null)
     try {
       const normalized = await normalizeImageFiles(files)
-      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized)
+      const { failed } = await useJourneyStore.getState().uploadGalleryPhotos(journeyId, normalized, {
+        onProgress: p => setUploadProgress(p),
+      })
       if (failed.length > 0) {
         toast.error(t('journey.editor.uploadPartialFailed', { failed: String(failed.length), total: String(normalized.length) }))
       } else {
@@ -205,13 +212,33 @@ export function StudioSidebar({
       toast.error(getApiErrorMessage(err, t('journey.photosUploadFailed')))
     } finally {
       setUploading(false)
+      setUploadProgress(null)
     }
+  }
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files?.length) return
+    await uploadFiles(files)
     e.target.value = ''
   }
 
   const spread = doc.spreads[activeSpread]
   const isSingle = spread?.role !== 'inner'
   const layoutOptions = isSingle ? COVER_TEMPLATES : TEMPLATES
+
+  // The active spread's own entry, when auto-layout (or a manual link) has
+  // one set — entryId exists on every spread already (see BookSpread's own
+  // comment) but nothing in Studio has ever read it for photo-picking
+  // before. Used to default the Photos panel to "this entry's photos"
+  // instead of the whole gallery when the connection is known.
+  const entryId = spread?.entryId ?? null
+  const entryPhotoIds = entryId != null
+    ? new Set(journeyEntries?.find(e => e.id === entryId)?.photos.map(p => p.photo_id) ?? [])
+    : null
+  const visiblePhotos = entryPhotoIds && !showAllPhotos
+    ? galleryPhotos.filter(p => entryPhotoIds.has(p.photoId))
+    : galleryPhotos
 
   const applyLayout = (tplId: string) => {
     const tpl = layoutOptions.find(t => t.id === tplId)
@@ -395,30 +422,71 @@ export function StudioSidebar({
         headerExtra={
           <>
             <input ref={photoFileRef} type="file" accept="image/*" multiple hidden onChange={e => void handlePhotoUpload(e)} />
-            <button onClick={() => photoFileRef.current?.click()} disabled={uploading} title={t('journey.studio.uploadPhotos')}
-              style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: uploading ? 'default' : 'pointer', opacity: uploading ? 0.5 : 1, color: 'var(--text-muted)' }}>
-              <Upload size={13} />
-            </button>
+            {uploading ? (
+              <span style={{ fontSize: 10, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : '…'}
+              </span>
+            ) : (
+              <button onClick={() => photoFileRef.current?.click()} title={t('journey.studio.uploadPhotos')}
+                style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+                <Upload size={13} />
+              </button>
+            )}
           </>
         }
       >
-        {groupPhotosByDay(galleryPhotos).map(group => (
-          <div key={group.dayKey} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 6 }}>
-              {formatPhotoDayHeader(group.dayKey, locale)}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
-              {group.photos.map(p => (
-                <div key={p.photoId}
-                  draggable
-                  onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}
-                  style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: 'grab', background: 'var(--bg-tertiary)' }}>
-                  <BookPhotoImg photoId={p.photoId} big={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                </div>
-              ))}
-            </div>
+        {entryPhotoIds && (
+          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+            <button onClick={() => setShowAllPhotos(false)} aria-pressed={!showAllPhotos}
+              style={{ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: showAllPhotos ? '1px solid var(--border-primary)' : '1.5px solid var(--text-primary)', background: showAllPhotos ? 'none' : 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+              {t('journey.studio.thisEntryPhotos')}
+            </button>
+            <button onClick={() => setShowAllPhotos(true)} aria-pressed={showAllPhotos}
+              style={{ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: showAllPhotos ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: showAllPhotos ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)' }}>
+              {t('journey.studio.allPhotos')}
+            </button>
           </div>
-        ))}
+        )}
+        <div
+          data-testid="photos-dropzone"
+          onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setPhotosDragOver(true) } }}
+          onDragLeave={() => setPhotosDragOver(false)}
+          onDrop={e => {
+            if (!e.dataTransfer.types.includes('Files')) return
+            e.preventDefault()
+            setPhotosDragOver(false)
+            if (e.dataTransfer.files.length) void uploadFiles(e.dataTransfer.files)
+          }}
+          style={{
+            borderRadius: 8,
+            outline: photosDragOver ? '2px dashed var(--text-primary)' : 'none',
+            outlineOffset: 2,
+            transition: 'outline-color 120ms',
+          }}
+        >
+          {entryPhotoIds && !showAllPhotos && visiblePhotos.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 2px' }}>
+              {t('journey.studio.noEntryPhotos')}
+            </div>
+          )}
+          {groupPhotosByDay(visiblePhotos).map(group => (
+            <div key={group.dayKey} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 6 }}>
+                {formatPhotoDayHeader(group.dayKey, locale)}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+                {group.photos.map(p => (
+                  <div key={p.photoId}
+                    draggable
+                    onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}
+                    style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: 'grab', background: 'var(--bg-tertiary)' }}>
+                    <BookPhotoImg photoId={p.photoId} big={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </CollapsibleSection>
 
       <style>{`

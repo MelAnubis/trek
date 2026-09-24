@@ -230,12 +230,54 @@ describe('StudioSidebar — Photos panel upload', () => {
     expect(upload.mock.calls[0][1].map(f => f.name)).toEqual(['beach.jpg'])
   })
 
-  it('FE-COMP-STUDIOSIDEBAR-018: a failed upload never throws out of the handler — the button is usable again once it settles', async () => {
+  it('FE-COMP-STUDIOSIDEBAR-018: a failed upload never throws out of the handler — the upload button reappears once it settles', async () => {
     vi.spyOn(useJourneyStore.getState(), 'uploadGalleryPhotos').mockRejectedValue(new Error('network'))
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
-    const uploadButton = screen.getByTitle('journey.studio.uploadPhotos')
     fireEvent.change(input, { target: { files: [makeFile()] } })
-    await waitFor(() => expect(uploadButton).not.toBeDisabled())
+    // Mid-upload, the button is swapped for a progress indicator.
+    expect(screen.queryByTitle('journey.studio.uploadPhotos')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.getByTitle('journey.studio.uploadPhotos')).toBeInTheDocument())
+  })
+})
+
+describe('StudioSidebar — Photos panel drag-and-drop upload', () => {
+  beforeEach(() => {
+    useStudioStore.getState().load(doc())
+  })
+
+  function makeFile(name = 'beach.jpg', type = 'image/jpeg') {
+    return new File(['x'], name, { type })
+  }
+
+  function fileDropEvent(files: File[]) {
+    return {
+      dataTransfer: {
+        types: ['Files'],
+        files,
+      },
+    }
+  }
+
+  it('FE-COMP-STUDIOSIDEBAR-023: dropping OS files onto the Photos panel uploads them the same way as the file picker', async () => {
+    const upload = vi.spyOn(useJourneyStore.getState(), 'uploadGalleryPhotos').mockResolvedValue({ succeeded: [], failed: [] })
+    render(<StudioSidebar journeyId={7} galleryPhotos={[]} />)
+    const dropzone = screen.getByTestId('photos-dropzone')
+
+    fireEvent.drop(dropzone, fileDropEvent([makeFile()]))
+
+    await waitFor(() => expect(upload).toHaveBeenCalled())
+    expect(upload.mock.calls[0][0]).toBe(7)
+    expect(upload.mock.calls[0][1].map((f: File) => f.name)).toEqual(['beach.jpg'])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-024: a drag carrying an internal photo reference (not OS files) is ignored by the upload dropzone', () => {
+    const upload = vi.spyOn(useJourneyStore.getState(), 'uploadGalleryPhotos')
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
+    const dropzone = screen.getByTestId('photos-dropzone')
+
+    fireEvent.drop(dropzone, { dataTransfer: { types: ['application/x-trek-photo'], files: [] } });
+
+    expect(upload).not.toHaveBeenCalled()
   })
 })
