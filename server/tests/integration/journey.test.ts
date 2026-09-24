@@ -58,6 +58,8 @@ const { askAIText } = vi.hoisted(() => ({ askAIText: vi.fn() }));
 vi.mock('../../src/services/aiTextService', () => ({ askAIText }));
 const { suggestAndApplyCover } = vi.hoisted(() => ({ suggestAndApplyCover: vi.fn() }));
 vi.mock('../../src/services/journeyCoverSuggestService', () => ({ suggestAndApplyCover }));
+const { suggestJourneyTitle } = vi.hoisted(() => ({ suggestJourneyTitle: vi.fn() }));
+vi.mock('../../src/services/journeyTitleSuggestService', () => ({ suggestJourneyTitle }));
 
 import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
@@ -422,6 +424,62 @@ describe('Journey cover suggestion (AI)', () => {
       .set('Cookie', authCookie(user.id));
 
     expect(res.status).toBe(422);
+  });
+});
+
+describe('Journey title suggestion (AI)', () => {
+  beforeEach(() => {
+    suggestJourneyTitle.mockReset();
+  });
+
+  it('JOURNEY-INT-056 — POST /api/journeys/:id/suggest-title returns 404 when the service reports the journey inaccessible', async () => {
+    suggestJourneyTitle.mockResolvedValue(null);
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/suggest-title`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(404);
+  });
+
+  it('JOURNEY-INT-057 — POST /api/journeys/:id/suggest-title returns the suggested title and subtitle on success', async () => {
+    suggestJourneyTitle.mockResolvedValue({ title: 'Alpine Wanderings', subtitle: 'Ten days chasing summits.' });
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/suggest-title`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ title: 'Alpine Wanderings', subtitle: 'Ten days chasing summits.' });
+  });
+
+  it('JOURNEY-INT-058 — POST /api/journeys/:id/suggest-title returns 503 when no AI provider is configured', async () => {
+    suggestJourneyTitle.mockRejectedValue(new Error('NO_AI_KEY: No AI API key configured.'));
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/suggest-title`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/not configured/i);
+  });
+
+  it('JOURNEY-INT-059 — POST /api/journeys/:id/suggest-title returns 500 with a clear message when the AI response cannot be parsed', async () => {
+    suggestJourneyTitle.mockRejectedValue(new Error('AI response could not be parsed into a title/subtitle'));
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/suggest-title`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(500);
   });
 });
 

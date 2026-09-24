@@ -2338,6 +2338,8 @@ const es: Record<string, string> = {
   'journey.settings.coverFailed': 'Error al subir',
   'journey.settings.suggestCover': 'Sugerir con IA',
   'journey.settings.coverSuggestFailed': 'No se pudo sugerir una portada en este momento',
+  'journey.settings.suggestTitle': 'Generar con IA',
+  'journey.settings.titleSuggestFailed': 'No se pudo sugerir un título en este momento',
   'journey.settings.failedToDelete': 'Error al eliminar',
   'journey.entries.deleteTitle': 'Eliminar entrada',
   'journey.photosUploaded': '{count} fotos subidas',

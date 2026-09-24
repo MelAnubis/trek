@@ -3360,7 +3360,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
   onRefresh: () => void
   onDeleteJourney: () => void
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [title, setTitle] = useState(journey.title)
   const [subtitle, setSubtitle] = useState(journey.subtitle || '')
   const [saving, setSaving] = useState(false)
@@ -3412,6 +3412,21 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
       toast.error(getApiErrorMessage(err, t('journey.settings.coverSuggestFailed')))
     } finally {
       setSuggestingCover(false)
+    }
+  }
+
+  const [suggestingTitle, setSuggestingTitle] = useState(false)
+  const handleSuggestTitle = async () => {
+    if (suggestingTitle) return
+    setSuggestingTitle(true)
+    try {
+      const result = await journeyApi.suggestTitle(journey.id, locale)
+      setTitle(result.title)
+      setSubtitle(result.subtitle)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.settings.titleSuggestFailed')))
+    } finally {
+      setSuggestingTitle(false)
     }
   }
 
@@ -3475,7 +3490,18 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
 
           {/* Title */}
           <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.settings.name')}</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500">{t('journey.settings.name')}</label>
+              <button
+                type="button"
+                onClick={handleSuggestTitle}
+                disabled={suggestingTitle}
+                className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={11} />
+                {suggestingTitle ? t('common.loading') : t('journey.settings.suggestTitle')}
+              </button>
+            </div>
             <input
               value={title}
               onChange={e => setTitle(e.target.value)}

@@ -3206,6 +3206,55 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-167 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-167: Generate title with AI fills the Name and Subtitle fields without saving', () => {
+    it('clicking "Generate with AI" fills Name/Subtitle inputs but does not call the update endpoint by itself', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let updateCalled = false;
+      server.use(
+        http.post('/api/journeys/1/suggest-title', () => {
+          return HttpResponse.json({ title: 'Alpine Wanderings', subtitle: 'Ten days chasing summits.' });
+        }),
+        http.patch('/api/journeys/1', () => {
+          updateCalled = true;
+          return HttpResponse.json(mockJourneyDetail);
+        }),
+      );
+
+      await renderAndWait();
+      await openSettingsDialog(user);
+
+      await user.click(screen.getByText('Generate with AI'));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Alpine Wanderings')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('Ten days chasing summits.')).toBeInTheDocument();
+      });
+      expect(updateCalled).toBe(false);
+    });
+  });
+
+  // ── FE-PAGE-JOURNEYDETAIL-168 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-168: Generate title with AI shows an error toast on failure', () => {
+    it('leaves the Name field untouched when the suggest-title endpoint fails', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      server.use(
+        http.post('/api/journeys/1/suggest-title', () => {
+          return new HttpResponse(JSON.stringify({ error: 'AI title suggestion is not configured.' }), { status: 503 });
+        }),
+      );
+
+      await renderAndWait();
+      await openSettingsDialog(user);
+
+      await user.click(screen.getByText('Generate with AI'));
+
+      await waitFor(() => {
+        expect(screen.getByDisplayValue('Italy 2026')).toBeInTheDocument();
+      });
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-132 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-132: Entry no-location renders empty location space', () => {
     it('renders an entry without location_name without a location badge but with title', async () => {

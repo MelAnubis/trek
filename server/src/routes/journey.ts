@@ -15,6 +15,7 @@ import { getAllowedExtensions } from '../services/fileService';
 import { resolveAndStoreTakenAt, resolveAndStoreGps } from '../services/memories/photoResolverService';
 import { draftEntryStory } from '../services/journeyEntryDraftService';
 import { suggestAndApplyCover } from '../services/journeyCoverSuggestService';
+import { suggestJourneyTitle } from '../services/journeyTitleSuggestService';
 
 const router = express.Router();
 
@@ -282,6 +283,23 @@ router.patch('/:id', authenticate, (req: Request, res: Response) => {
   const result = svc.updateJourney(Number(req.params.id), authReq.user.id, req.body || {});
   if (!result) return res.status(404).json({ error: 'Journey not found' });
   res.json(result);
+});
+
+router.post('/:id/suggest-title', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const lang = (req.query.lang as string) || 'en';
+  try {
+    const result = await suggestJourneyTitle(Number(req.params.id), authReq.user.id, lang);
+    if (!result) return res.status(404).json({ error: 'Journey not found' });
+    res.json(result);
+  } catch (err: any) {
+    const msg: string = err?.message ?? 'Unknown error';
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'AI title suggestion is not configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
+    }
+    console.error('[journey] suggest-title error:', err);
+    res.status(500).json({ error: 'Failed to suggest a title' });
+  }
 });
 
 router.post('/:id/cover', authenticate, upload.single('cover'), (req: Request, res: Response) => {
