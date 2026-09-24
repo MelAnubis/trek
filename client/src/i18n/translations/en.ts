@@ -2464,6 +2464,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.editor.weatherSuggest': 'Auto',
   'journey.editor.weatherSuggestNeedsLocation': 'Set a location first to look up the weather',
   'journey.editor.weatherSuggestError': 'Could not look up the weather for this day',
+  'journey.editor.draftWithAI': 'Draft with AI',
+  'journey.editor.draftStoryError': 'Could not draft an entry right now',
   'journey.editor.photoFirst': '1st',
   'journey.editor.makeFirst': 'Make 1st',
   'journey.editor.searching': 'Searching...',

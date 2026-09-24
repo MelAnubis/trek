@@ -433,6 +433,10 @@ export const journeyApi = {
   updateEntry: (entryId: number, data: Record<string, unknown>) => apiClient.patch(`/journeys/entries/${entryId}`, data).then(r => r.data),
   deleteEntry: (entryId: number) => apiClient.delete(`/journeys/entries/${entryId}`).then(r => r.data),
   reorderEntries: (journeyId: number, orderedIds: number[]) => apiClient.put(`/journeys/${journeyId}/entries/reorder`, { orderedIds }).then(r => r.data),
+  draftEntryStory: (journeyId: number, data: {
+    location_name?: string | null; entry_date?: string | null; mood?: string | null; weather?: string | null;
+    pros?: string[]; cons?: string[]; photoCaptions?: string[]; notes?: string | null;
+  }, lang?: string) => apiClient.post(`/journeys/${journeyId}/entries/draft`, data, { params: { lang } }).then(r => r.data as { story: string }),
 
   // Photos
   uploadPhotos: (entryId: number, formData: FormData, opts?: { onUploadProgress?: (e: import('axios').AxiosProgressEvent) => void; idempotencyKey?: string; signal?: AbortSignal }) =>

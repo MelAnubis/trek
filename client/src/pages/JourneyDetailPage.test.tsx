@@ -1317,6 +1317,53 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-163 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-163: Draft with AI fills the story box', () => {
+    it('clicking "Draft with AI" calls the draft endpoint and fills the story textarea', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let requestBody: any = null;
+
+      server.use(
+        http.post('/api/journeys/1/entries/draft', async ({ request }) => {
+          requestBody = await request.json();
+          return HttpResponse.json({ story: 'A wonderful day exploring the old town.' });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByText('Draft with AI'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Write your story...')).toHaveValue('A wonderful day exploring the old town.');
+      });
+      expect(requestBody).not.toBeNull();
+    });
+  });
+
+  // ── FE-PAGE-JOURNEYDETAIL-164 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-164: Draft with AI shows an error toast on failure', () => {
+    it('shows a toast and leaves the story box untouched when the draft request fails', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      server.use(
+        http.post('/api/journeys/1/entries/draft', () => {
+          return new HttpResponse(JSON.stringify({ error: 'AI drafting is not configured.' }), { status: 503 });
+        }),
+      );
+
+      await renderAndWait();
+      await openEntryEditor(user);
+
+      await user.click(screen.getByText('Draft with AI'));
+
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Write your story...')).toHaveValue('');
+      });
+    });
+  });
+
   // ── Settings save/delete (068-071) ─────────────────────────────────────
 
   // ── FE-PAGE-JOURNEYDETAIL-068 ──────────────────────────────────────────

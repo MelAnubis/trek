@@ -13,6 +13,7 @@ import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShare
 import { uploadToImmich } from '../services/memories/immichService';
 import { getAllowedExtensions } from '../services/fileService';
 import { resolveAndStoreTakenAt, resolveAndStoreGps } from '../services/memories/photoResolverService';
+import { draftEntryStory } from '../services/journeyEntryDraftService';
 
 const router = express.Router();
 
@@ -335,6 +336,23 @@ router.post('/:id/entries', authenticate, (req: Request, res: Response) => {
   const entry = svc.createEntry(Number(req.params.id), authReq.user.id, req.body, req.headers['x-socket-id'] as string);
   if (!entry) return res.status(404).json({ error: 'Journey not found' });
   res.status(201).json(entry);
+});
+
+router.post('/:id/entries/draft', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const lang = (req.query.lang as string) || 'en';
+  try {
+    const result = await draftEntryStory(Number(req.params.id), authReq.user.id, req.body || {}, lang);
+    if (!result) return res.status(404).json({ error: 'Journey not found' });
+    res.json(result);
+  } catch (err: any) {
+    const msg: string = err?.message ?? 'Unknown error';
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'AI drafting is not configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
+    }
+    console.error('[journey] entry draft error:', err);
+    res.status(500).json({ error: 'Failed to draft entry' });
+  }
 });
 
 router.put('/:id/entries/reorder', authenticate, (req: Request, res: Response) => {

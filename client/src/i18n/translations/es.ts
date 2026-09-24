@@ -2260,6 +2260,8 @@ const es: Record<string, string> = {
   'journey.editor.weatherSuggest': 'Auto',
   'journey.editor.weatherSuggestNeedsLocation': 'Añade una ubicación primero para consultar el clima',
   'journey.editor.weatherSuggestError': 'No se pudo consultar el clima de ese día',
+  'journey.editor.draftWithAI': 'Redactar con IA',
+  'journey.editor.draftStoryError': 'No se pudo redactar la entrada en este momento',
   'journey.editor.photoFirst': '1º',
   'journey.editor.makeFirst': 'Hacer 1º',
   'journey.editor.searching': 'Buscando...',

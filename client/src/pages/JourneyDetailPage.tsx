@@ -2475,6 +2475,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   const [weatherLoading, setWeatherLoading] = useState(false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros?.length ? entry.pros_cons.pros : [''])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
+  const [draftingStory, setDraftingStory] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null)
   const [photos, setPhotos] = useState<(JourneyPhoto | GalleryPhoto)[]>(entry.photos || [])
@@ -2574,6 +2575,32 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
       toast.error(getApiErrorMessage(err, t('journey.editor.weatherSuggestError')))
     } finally {
       setWeatherLoading(false)
+    }
+  }
+
+  // Drafts the story text from whatever the traveler has already filled in
+  // (place, date, mood, weather, pros/cons, photo captions), or expands
+  // whatever rough notes are already in the box — same one-shot-request
+  // pattern as suggestWeather above, not a live-typing suggestion.
+  const draftStory = async () => {
+    if (draftingStory) return
+    setDraftingStory(true)
+    try {
+      const result = await journeyApi.draftEntryStory(journeyId, {
+        location_name: locationName || null,
+        entry_date: entryDate || null,
+        mood: mood || null,
+        weather: weather || null,
+        pros: pros.filter(p => p.trim()),
+        cons: cons.filter(c => c.trim()),
+        photoCaptions: photos.map(p => p.caption).filter((c): c is string => !!c),
+        notes: story || null,
+      }, locale)
+      setStory(result.story)
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.editor.draftStoryError')))
+    } finally {
+      setDraftingStory(false)
     }
   }
 
@@ -2742,17 +2769,30 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
             )}
           </div>
 
-          <div className="shrink-0 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
-            <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
-            <textarea
-              ref={storyRef}
-              value={story}
-              onChange={e => setStory(e.target.value)}
-              placeholder={t('journey.editor.writeStory')}
-              rows={6}
-              style={{ minHeight: '144px' }}
-              className="w-full px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0 shrink-0"
-            />
+          <div>
+            <div className="flex items-center justify-end mb-1.5">
+              <button
+                type="button"
+                onClick={draftStory}
+                disabled={draftingStory}
+                className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={11} />
+                {draftingStory ? t('common.loading') : t('journey.editor.draftWithAI')}
+              </button>
+            </div>
+            <div className="shrink-0 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden focus-within:border-zinc-400 dark:focus-within:border-zinc-500">
+              <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
+              <textarea
+                ref={storyRef}
+                value={story}
+                onChange={e => setStory(e.target.value)}
+                placeholder={t('journey.editor.writeStory')}
+                rows={6}
+                style={{ minHeight: '144px' }}
+                className="w-full px-3 py-2.5 text-[14px] bg-white dark:bg-zinc-800 text-zinc-900 dark:text-white outline-none resize-none border-0 shrink-0"
+              />
+            </div>
           </div>
 
           {/* Pros & Cons */}

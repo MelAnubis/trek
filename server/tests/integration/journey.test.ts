@@ -54,6 +54,8 @@ vi.mock('../../src/services/memories/immichService', () => ({
   uploadToImmich: vi.fn(async () => null),
   getImmichCredentials: vi.fn(() => null),
 }));
+const { askAIText } = vi.hoisted(() => ({ askAIText: vi.fn() }));
+vi.mock('../../src/services/aiTextService', () => ({ askAIText }));
 
 import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
@@ -314,6 +316,54 @@ describe('Journey entries', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+  });
+});
+
+describe('Journey entry draft (AI)', () => {
+  beforeEach(() => {
+    askAIText.mockReset();
+  });
+
+  it('JOURNEY-INT-049 — POST /api/journeys/:id/entries/draft returns 404 for an inaccessible journey', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: stranger } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/entries/draft`)
+      .set('Cookie', authCookie(stranger.id))
+      .send({ location_name: 'Kyoto' });
+
+    expect(res.status).toBe(404);
+    expect(askAIText).not.toHaveBeenCalled();
+  });
+
+  it('JOURNEY-INT-050 — POST /api/journeys/:id/entries/draft returns the AI-drafted story on success', async () => {
+    askAIText.mockResolvedValue('A wonderful first day in Kyoto.');
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/entries/draft`)
+      .set('Cookie', authCookie(user.id))
+      .send({ location_name: 'Kyoto', mood: 'excited' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.story).toBe('A wonderful first day in Kyoto.');
+  });
+
+  it('JOURNEY-INT-051 — POST /api/journeys/:id/entries/draft returns 503 when no AI provider is configured', async () => {
+    askAIText.mockRejectedValue(new Error('NO_AI_KEY: No AI API key configured.'));
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/entries/draft`)
+      .set('Cookie', authCookie(user.id))
+      .send({});
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/not configured/i);
   });
 });
 
