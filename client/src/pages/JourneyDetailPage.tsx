@@ -3400,6 +3400,21 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
     }
   }
 
+  const [suggestingCover, setSuggestingCover] = useState(false)
+  const handleSuggestCover = async () => {
+    if (suggestingCover) return
+    setSuggestingCover(true)
+    try {
+      await journeyApi.suggestCoverPhoto(journey.id)
+      toast.success(t('journey.settings.coverUpdated'))
+      onSaved()
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.settings.coverSuggestFailed')))
+    } finally {
+      setSuggestingCover(false)
+    }
+  }
+
   const [archiving, setArchiving] = useState(false)
 
   const handleArchiveToggle = async () => {
@@ -3430,7 +3445,18 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
         <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5 flex flex-col gap-5">
           {/* Cover Image */}
           <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.settings.coverImage')}</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500">{t('journey.settings.coverImage')}</label>
+              <button
+                type="button"
+                onClick={handleSuggestCover}
+                disabled={suggestingCover}
+                className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={11} />
+                {suggestingCover ? t('common.loading') : t('journey.settings.suggestCover')}
+              </button>
+            </div>
             <input ref={coverRef} type="file" accept="image/*" onChange={handleCoverUpload} className="hidden" />
             <button
               onClick={() => coverRef.current?.click()}

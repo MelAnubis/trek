@@ -14,6 +14,7 @@ import { uploadToImmich } from '../services/memories/immichService';
 import { getAllowedExtensions } from '../services/fileService';
 import { resolveAndStoreTakenAt, resolveAndStoreGps } from '../services/memories/photoResolverService';
 import { draftEntryStory } from '../services/journeyEntryDraftService';
+import { suggestAndApplyCover } from '../services/journeyCoverSuggestService';
 
 const router = express.Router();
 
@@ -290,6 +291,25 @@ router.post('/:id/cover', authenticate, upload.single('cover'), (req: Request, r
   const result = svc.updateJourney(Number(req.params.id), authReq.user.id, { cover_image: relativePath });
   if (!result) return res.status(404).json({ error: 'Journey not found' });
   res.json(result);
+});
+
+router.post('/:id/cover/suggest', authenticate, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  try {
+    const result = await suggestAndApplyCover(Number(req.params.id), authReq.user.id);
+    if (!result) return res.status(404).json({ error: 'Journey not found' });
+    res.json(result);
+  } catch (err: any) {
+    const msg: string = err?.message ?? 'Unknown error';
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'AI cover suggestion is not configured. Set GEMINI_API_KEY (free) or ANTHROPIC_API_KEY in your .env file.' });
+    }
+    if (msg.includes('NO_ELIGIBLE_PHOTOS')) {
+      return res.status(422).json({ error: 'This journey has no gallery photos an AI provider can read yet.' });
+    }
+    console.error('[journey] cover suggest error:', err);
+    res.status(500).json({ error: 'Failed to suggest a cover' });
+  }
 });
 
 router.delete('/:id', authenticate, (req: Request, res: Response) => {

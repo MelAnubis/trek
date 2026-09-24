@@ -56,6 +56,8 @@ vi.mock('../../src/services/memories/immichService', () => ({
 }));
 const { askAIText } = vi.hoisted(() => ({ askAIText: vi.fn() }));
 vi.mock('../../src/services/aiTextService', () => ({ askAIText }));
+const { suggestAndApplyCover } = vi.hoisted(() => ({ suggestAndApplyCover: vi.fn() }));
+vi.mock('../../src/services/journeyCoverSuggestService', () => ({ suggestAndApplyCover }));
 
 import { createApp } from '../../src/app';
 import { createTables } from '../../src/db/schema';
@@ -364,6 +366,62 @@ describe('Journey entry draft (AI)', () => {
 
     expect(res.status).toBe(503);
     expect(res.body.error).toMatch(/not configured/i);
+  });
+});
+
+describe('Journey cover suggestion (AI)', () => {
+  beforeEach(() => {
+    suggestAndApplyCover.mockReset();
+  });
+
+  it('JOURNEY-INT-052 — POST /api/journeys/:id/cover/suggest returns 404 when the service reports the journey inaccessible', async () => {
+    suggestAndApplyCover.mockResolvedValue(null);
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/cover/suggest`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(404);
+  });
+
+  it('JOURNEY-INT-053 — POST /api/journeys/:id/cover/suggest returns the updated journey on success', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    suggestAndApplyCover.mockResolvedValue({ ...journey, cover_image: 'journey/ai-chosen.jpg' });
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/cover/suggest`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(200);
+    expect(res.body.cover_image).toBe('journey/ai-chosen.jpg');
+  });
+
+  it('JOURNEY-INT-054 — POST /api/journeys/:id/cover/suggest returns 503 when no AI provider is configured', async () => {
+    suggestAndApplyCover.mockRejectedValue(new Error('NO_AI_KEY: No vision-capable AI API key configured.'));
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/cover/suggest`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(503);
+    expect(res.body.error).toMatch(/not configured/i);
+  });
+
+  it('JOURNEY-INT-055 — POST /api/journeys/:id/cover/suggest returns 422 when the gallery has no eligible photos', async () => {
+    suggestAndApplyCover.mockRejectedValue(new Error('NO_ELIGIBLE_PHOTOS: This journey has no gallery photos an AI provider can read yet.'));
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+
+    const res = await request(app)
+      .post(`/api/journeys/${journey.id}/cover/suggest`)
+      .set('Cookie', authCookie(user.id));
+
+    expect(res.status).toBe(422);
   });
 });
 

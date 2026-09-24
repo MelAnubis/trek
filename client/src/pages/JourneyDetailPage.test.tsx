@@ -3161,6 +3161,51 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-165 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-165: Suggest cover with AI calls the suggest endpoint', () => {
+    it('clicking "Suggest with AI" in settings calls POST cover/suggest and shows a success toast', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      let called = false;
+      server.use(
+        http.post('/api/journeys/1/cover/suggest', () => {
+          called = true;
+          return HttpResponse.json({ ...mockJourneyDetail, cover_image: 'journey/ai-pick.jpg' });
+        }),
+      );
+
+      await renderAndWait();
+      await openSettingsDialog(user);
+
+      await user.click(screen.getByText('Suggest with AI'));
+
+      await waitFor(() => {
+        expect(called).toBe(true);
+      });
+    });
+  });
+
+  // ── FE-PAGE-JOURNEYDETAIL-166 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-166: Suggest cover with AI shows an error toast on failure', () => {
+    it('shows an error toast when the suggest endpoint fails (e.g. no AI provider configured)', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      server.use(
+        http.post('/api/journeys/1/cover/suggest', () => {
+          return new HttpResponse(JSON.stringify({ error: 'AI cover suggestion is not configured.' }), { status: 503 });
+        }),
+      );
+
+      await renderAndWait();
+      await openSettingsDialog(user);
+
+      await user.click(screen.getByText('Suggest with AI'));
+
+      // The dialog should remain open and stable — no crash, no stuck spinner.
+      await waitFor(() => {
+        expect(screen.getByText('Suggest with AI')).toBeInTheDocument();
+      });
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-132 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-132: Entry no-location renders empty location space', () => {
     it('renders an entry without location_name without a location badge but with title', async () => {

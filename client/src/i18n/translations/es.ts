@@ -2336,6 +2336,8 @@ const es: Record<string, string> = {
   'journey.settings.saveFailed': 'No se pudo guardar',
   'journey.settings.coverUpdated': 'Portada actualizada',
   'journey.settings.coverFailed': 'Error al subir',
+  'journey.settings.suggestCover': 'Sugerir con IA',
+  'journey.settings.coverSuggestFailed': 'No se pudo sugerir una portada en este momento',
   'journey.settings.failedToDelete': 'Error al eliminar',
   'journey.entries.deleteTitle': 'Eliminar entrada',
   'journey.photosUploaded': '{count} fotos subidas',

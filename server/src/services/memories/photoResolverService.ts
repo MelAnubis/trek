@@ -231,6 +231,59 @@ async function streamCachedThumbnail(
   await fallback();
 }
 
+/**
+ * A photo's thumbnail as plain bytes, for a caller that isn't an Express
+ * response (a vision AI call, for journeyCoverSuggestService.ts) — the
+ * same per-provider branches as streamPhoto's thumbnail path, minus the
+ * res-writing and the photoCache/in-flight-request dance that only
+ * matters for a browser hitting the streaming route repeatedly.
+ *
+ * OneDrive has no byte-returning fetch today (only streamOneDriveAsset,
+ * which writes straight to a Response) — null for that provider, same
+ * as any other lookup failure, so callers simply skip the photo.
+ */
+export async function getPhotoThumbnailBytes(
+  userId: number,
+  photoId: number,
+): Promise<{ bytes: Buffer; contentType: string } | null> {
+  const photo = resolveTrekPhoto(photoId);
+  if (!photo) return null;
+
+  if (photo.file_path) {
+    const uploadsRoot = path.join(__dirname, '../../../uploads');
+    let thumbRel = photo.thumbnail_path ?? null;
+    if (!thumbRel) {
+      const result = await ensureLocalThumbnail(uploadsRoot, photo.file_path);
+      if (result) {
+        thumbRel = result.thumbnailRelPath;
+        db.prepare(
+          'UPDATE trek_photos SET thumbnail_path = ?, width = COALESCE(width, ?), height = COALESCE(height, ?) WHERE id = ?'
+        ).run(thumbRel, result.width, result.height, photo.id);
+      }
+    }
+    if (!thumbRel) return null;
+    const thumbAbs = path.join(uploadsRoot, thumbRel);
+    if (!fs.existsSync(thumbAbs)) return null;
+    const ext = path.extname(thumbAbs).toLowerCase();
+    const contentType = ext === '.png' ? 'image/png' : 'image/jpeg';
+    return { bytes: fs.readFileSync(thumbAbs), contentType };
+  }
+
+  switch (photo.provider) {
+    case 'immich': {
+      const result = await fetchImmichThumbnailBytes(userId, photo.asset_id!, photo.owner_id!);
+      return 'error' in result ? null : result;
+    }
+    case 'synologyphotos': {
+      const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
+      const result = await fetchSynologyThumbnailBytes(userId, photo.owner_id!, photo.asset_id!, passphrase);
+      return 'error' in result ? null : result;
+    }
+    default:
+      return null;
+  }
+}
+
 export async function streamPhoto(
   res: Response,
   userId: number,

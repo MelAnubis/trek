@@ -464,6 +464,7 @@ export const journeyApi = {
 
   // Cover
   uploadCover: (id: number, formData: FormData) => apiClient.post(`/journeys/${id}/cover`, formData, { headers: { 'Content-Type': undefined as any } }).then(r => r.data),
+  suggestCoverPhoto: (id: number) => apiClient.post(`/journeys/${id}/cover/suggest`).then(r => r.data),
 
   // Contributors
   addContributor: (id: number, userId: number, role: string) => apiClient.post(`/journeys/${id}/contributors`, { user_id: userId, role }).then(r => r.data),

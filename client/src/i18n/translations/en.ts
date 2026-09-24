@@ -2556,6 +2556,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.settings.saveFailed': 'Failed to save',
   'journey.settings.coverUpdated': 'Cover updated',
   'journey.settings.coverFailed': 'Upload failed',
+  'journey.settings.suggestCover': 'Suggest with AI',
+  'journey.settings.coverSuggestFailed': 'Could not suggest a cover right now',
   'journey.settings.failedToDelete': 'Failed to delete',
   'journey.entries.deleteTitle': 'Delete Entry',
   'journey.photosUploaded': '{count} photos uploaded',
