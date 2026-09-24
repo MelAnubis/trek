@@ -242,12 +242,21 @@ export async function importJourneyFromAlbum(
 
   // One track per day that has enough points to draw a route. A day with
   // any GPX-sourced points uses ONLY those (far denser and more accurate
-  // than a couple of photo positions) rather than mixing the two; a day
-  // with photo points alone falls back to those, sparse as they are —
-  // still better than no route at all. Reuses the same distance/elevation
-  // math (computeStats -> saveTrack) a real uploaded GPX file gets, so
-  // Studio's map/stats elements and the PDF export render this exactly
-  // like a recorded track.
+  // than a couple of photo positions) rather than mixing the two.
+  //
+  // A day with photo points alone falls back to those — but ONLY when no
+  // GPX was attached to this import at all. Once a real GPX is attached,
+  // a day it couldn't be matched to (no timestamps on its points, or
+  // timestamps that land on a neighbouring date) must NOT quietly fall
+  // back to a couple of photo pins: a two-point "track" reads as a real
+  // (if short) recorded stage, not as "no data for this day," and is
+  // exactly the "el mapa no usa el GPX" report this guards against. That
+  // day instead gets no per-day track at all — the same "no gpx file per
+  // jornada, no per-day data" rule Studio's own closing-summary map
+  // already applies, here applied per day at the source so every reader
+  // of this trip's tracks (the live timeline, Studio, the PDF export)
+  // sees the same thing rather than each re-deriving its own fallback.
+  const anyGpxAttached = gpxPoints.length > 0;
   const pointsByDate = new Map<string, GeoPoint[]>();
   for (const stop of stops) {
     if (!dayIdByDate.has(stop.date)) continue;
@@ -258,6 +267,7 @@ export async function importJourneyFromAlbum(
   let sortOrder = 0;
   for (const [date, pts] of pointsByDate) {
     const gpxPts = pts.filter(p => p.source === 'gpx');
+    if (gpxPts.length < 2 && anyGpxAttached) continue;
     const trackPts = gpxPts.length >= 2 ? gpxPts : pts;
     if (trackPts.length < 2) continue;
 

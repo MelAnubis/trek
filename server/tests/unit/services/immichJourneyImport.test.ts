@@ -407,6 +407,43 @@ describe('importJourneyFromAlbum', () => {
     expect(result.gpxFilesSkipped.sort()).toEqual(['no-time.gpx', 'too-short.gpx']);
   });
 
+  it('IMMICHIMPORT-020: once a GPX is attached to the import, a day with only sparse photo points and no matching GPX gets no per-day track at all — not the old 2-point photo-only fallback', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Partial GPX Coverage' }] });
+    mockGetAlbumPhotos.mockResolvedValue({
+      assets: [
+        // 06-01: two geotagged photos, but no GPX covers this day.
+        { id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: 48.8584, lng: 2.2945 },
+        { id: 'a2', takenAt: '2026-06-01T10:05:00.000Z', lat: 48.8586, lng: 2.2947 },
+        // 06-03: a photo too, but the attached GPX is what should back this day's track.
+        { id: 'a3', takenAt: '2026-06-03T14:00:00.000Z', lat: 41.4036, lng: 2.1744 },
+      ],
+    });
+    mockReverseGeocode.mockResolvedValue({ name: 'Some Stop', address: null });
+
+    const gpxRaw = gpx([
+      { lat: 41.4036, lng: 2.1744, time: '2026-06-03T14:00:00.000Z' },
+      { lat: 41.4040, lng: 2.1750, time: '2026-06-03T14:10:00.000Z' },
+      { lat: 41.4045, lng: 2.1760, time: '2026-06-03T14:20:00.000Z' },
+    ]);
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {
+      gpxFiles: [{ raw: gpxRaw, originalName: 'day3.gpx' }],
+    });
+
+    // Both stops (and their places/entries) still exist — this is only
+    // about which days get a route track, not about dropping content.
+    expect(result.stopCount).toBe(2);
+
+    const tracks = testDb.prepare('SELECT * FROM gpx_tracks WHERE trip_id = ? ORDER BY id').all(result.tripId) as any[];
+    expect(tracks).toHaveLength(1);
+    expect(tracks[0].orig_name).toBe('gpx-import');
+    expect(tracks[0].start_lat).toBeCloseTo(41.4036, 3);
+
+    const places = testDb.prepare('SELECT * FROM places WHERE trip_id = ? ORDER BY id').all(result.tripId) as any[];
+    expect(places).toHaveLength(2); // day 06-01's place is still created, just with no route track
+  });
+
   it('IMMICHIMPORT-019: an import with only unusable GPX files and no geotagged photos still throws', async () => {
     const { user } = createUser(testDb);
     mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Nothing Usable' }] });
