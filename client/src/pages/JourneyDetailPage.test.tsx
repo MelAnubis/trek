@@ -8,7 +8,7 @@ import { buildUser } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { usePermissionsStore } from '../store/permissionsStore';
 import { useJourneyStore } from '../store/journeyStore';
-import JourneyDetailPage from './JourneyDetailPage';
+import JourneyDetailPage, { weatherCodeToIcon } from './JourneyDetailPage';
 
 // ── Mocks ────────────────────────────────────────────────────────────────────
 
@@ -3778,5 +3778,48 @@ describe('JourneyDetailPage', () => {
         expect(screen.getByText('Copied!')).toBeInTheDocument();
       });
     });
+  });
+});
+
+describe('weatherCodeToIcon', () => {
+  it('FE-PAGE-JOURNEYDETAIL-153: clear-sky codes map to sunny', () => {
+    expect(weatherCodeToIcon(0)).toBe('sunny');
+    expect(weatherCodeToIcon(1)).toBe('sunny');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-154: partly-cloudy code maps to partly, distinct from overcast', () => {
+    expect(weatherCodeToIcon(2)).toBe('partly');
+    expect(weatherCodeToIcon(3)).toBe('cloudy');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-155: rain and drizzle codes map to rainy', () => {
+    expect(weatherCodeToIcon(61)).toBe('rainy');
+    expect(weatherCodeToIcon(53)).toBe('rainy');
+    expect(weatherCodeToIcon(80)).toBe('rainy');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-156: snow codes map to cold — there is no separate snow icon', () => {
+    expect(weatherCodeToIcon(71)).toBe('cold');
+    expect(weatherCodeToIcon(85)).toBe('cold');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-157: thunderstorm codes map to stormy', () => {
+    expect(weatherCodeToIcon(95)).toBe('stormy');
+    expect(weatherCodeToIcon(99)).toBe('stormy');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-158: a freezing average temperature overrides a clear/dry code to cold', () => {
+    expect(weatherCodeToIcon(0, -3)).toBe('cold');
+    expect(weatherCodeToIcon(3, -1)).toBe('cold');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-159: freezing temperature never overrides stormy or an already-cold code', () => {
+    expect(weatherCodeToIcon(95, -5)).toBe('stormy');
+    expect(weatherCodeToIcon(71, -5)).toBe('cold');
+  });
+
+  it('FE-PAGE-JOURNEYDETAIL-160: an unknown or missing code falls back to cloudy', () => {
+    expect(weatherCodeToIcon(undefined)).toBe('cloudy');
+    expect(weatherCodeToIcon(12345)).toBe('cloudy');
   });
 });

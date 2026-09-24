@@ -8,6 +8,8 @@ export interface WeatherResult {
   main: string;
   description: string;
   type: string;
+  /** Raw WMO weather code, when known — lets a caller pick a finer-grained icon than `main`'s own collapsed Clear/Clouds/Rain/etc. categories (e.g. "partly cloudy" vs "overcast" both map to `main: 'Clouds'`). */
+  weathercode?: number;
   sunrise?: string | null;
   sunset?: string | null;
   precipitation_sum?: number;
@@ -306,6 +308,7 @@ async function _getWeatherImpl(
     temp: Math.round(data.current!.temperature_2m),
     main: WMO_MAP[code] || 'Clouds',
     description: descriptions[code] || '',
+    weathercode: code,
     type: 'current',
   };
 
@@ -333,6 +336,82 @@ export async function getWeather(
 
 // ── getDetailedWeather ──────────────────────────────────────────────────
 
+/**
+ * One day's weather from Open-Meteo's archive, for a specific calendar
+ * date — shared by the "future beyond the forecast horizon" path (fed a
+ * same-day-last-year stand-in date) and the "genuinely past" path (fed the
+ * real date) in _getDetailedWeatherImpl below; only the `type` tag and
+ * which date string gets passed in differ between the two callers.
+ */
+async function fetchArchiveDayWeather(
+  lat: string,
+  lng: string,
+  dateStr: string,
+  lang: string,
+  type: 'climate' | 'historical',
+): Promise<WeatherResult> {
+  const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
+
+  const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}`
+    + `&start_date=${dateStr}&end_date=${dateStr}`
+    + `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
+    + `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset`
+    + `&timezone=auto`;
+  const response = await fetch(url);
+  const data = await response.json() as OpenMeteoForecast;
+
+  if (!response.ok || data.error) {
+    throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
+  }
+
+  const daily = data.daily;
+  const hourly = data.hourly;
+  if (!daily || !daily.time || daily.time.length === 0) {
+    return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
+  }
+
+  const idx = 0;
+  const code = daily.weathercode?.[idx];
+  const avgMax = daily.temperature_2m_max[idx];
+  const avgMin = daily.temperature_2m_min[idx];
+
+  const hourlyData: HourlyEntry[] = [];
+  if (hourly?.time) {
+    for (let i = 0; i < hourly.time.length; i++) {
+      const hour = new Date(hourly.time[i]).getHours();
+      const hCode = hourly.weathercode?.[i];
+      hourlyData.push({
+        hour,
+        temp: Math.round(hourly.temperature_2m[i]),
+        precipitation: hourly.precipitation?.[i] || 0,
+        precipitation_probability: 0,
+        main: WMO_MAP[hCode!] || 'Clouds',
+        wind: Math.round(hourly.windspeed_10m?.[i] || 0),
+        humidity: hourly.relativehumidity_2m?.[i] || 0,
+      });
+    }
+  }
+
+  let sunrise: string | null = null, sunset: string | null = null;
+  if (daily.sunrise?.[idx]) sunrise = daily.sunrise[idx].split('T')[1]?.slice(0, 5);
+  if (daily.sunset?.[idx]) sunset = daily.sunset[idx].split('T')[1]?.slice(0, 5);
+
+  return {
+    type,
+    temp: Math.round((avgMax + avgMin) / 2),
+    temp_max: Math.round(avgMax),
+    temp_min: Math.round(avgMin),
+    main: WMO_MAP[code!] || estimateCondition((avgMax + avgMin) / 2, daily.precipitation_sum?.[idx] || 0),
+    description: descriptions[code!] || '',
+    weathercode: code,
+    precipitation_sum: Math.round((daily.precipitation_sum?.[idx] || 0) * 10) / 10,
+    wind_max: Math.round(daily.windspeed_10m_max?.[idx] || 0),
+    sunrise,
+    sunset,
+    hourly: hourlyData,
+  };
+}
+
 async function _getDetailedWeatherImpl(
   lat: string,
   lng: string,
@@ -348,9 +427,10 @@ async function _getDetailedWeatherImpl(
   const now = new Date();
   const diffDays = (targetDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24);
   const dateStr = targetDate.toISOString().slice(0, 10);
-  const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
 
-  // Climate / archive path (> 16 days out)
+  // Climate / archive path (> 16 days out) — the forecast horizon hasn't
+  // reached this date yet, so the best available answer is "what it was
+  // like around here on this date last year" as a stand-in.
   if (diffDays > 16) {
     let refYear = targetDate.getFullYear() - 1;
     // Archive API only has data up to yesterday — go back further if needed
@@ -358,69 +438,23 @@ async function _getDetailedWeatherImpl(
     if (new Date(refYear, targetDate.getMonth(), targetDate.getDate()) > yesterday) refYear--;
     const refDateStr = `${refYear}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
 
-    const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${lat}&longitude=${lng}`
-      + `&start_date=${refDateStr}&end_date=${refDateStr}`
-      + `&hourly=temperature_2m,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
-      + `&daily=temperature_2m_max,temperature_2m_min,weathercode,precipitation_sum,windspeed_10m_max,sunrise,sunset`
-      + `&timezone=auto`;
-    const response = await fetch(url);
-    const data = await response.json() as OpenMeteoForecast;
+    const result = await fetchArchiveDayWeather(lat, lng, refDateStr, lang, 'climate');
+    setCache(ck, result, TTL_CLIMATE_MS);
+    return result;
+  }
 
-    if (!response.ok || data.error) {
-      throw new ApiError(response.status || 500, data.reason || 'Open-Meteo Climate API error');
-    }
-
-    const daily = data.daily;
-    const hourly = data.hourly;
-    if (!daily || !daily.time || daily.time.length === 0) {
-      return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
-    }
-
-    const idx = 0;
-    const code = daily.weathercode?.[idx];
-    const avgMax = daily.temperature_2m_max[idx];
-    const avgMin = daily.temperature_2m_min[idx];
-
-    const hourlyData: HourlyEntry[] = [];
-    if (hourly?.time) {
-      for (let i = 0; i < hourly.time.length; i++) {
-        const hour = new Date(hourly.time[i]).getHours();
-        const hCode = hourly.weathercode?.[i];
-        hourlyData.push({
-          hour,
-          temp: Math.round(hourly.temperature_2m[i]),
-          precipitation: hourly.precipitation?.[i] || 0,
-          precipitation_probability: 0,
-          main: WMO_MAP[hCode!] || 'Clouds',
-          wind: Math.round(hourly.windspeed_10m?.[i] || 0),
-          humidity: hourly.relativehumidity_2m?.[i] || 0,
-        });
-      }
-    }
-
-    let sunrise: string | null = null, sunset: string | null = null;
-    if (daily.sunrise?.[idx]) sunrise = daily.sunrise[idx].split('T')[1]?.slice(0, 5);
-    if (daily.sunset?.[idx]) sunset = daily.sunset[idx].split('T')[1]?.slice(0, 5);
-
-    const result: WeatherResult = {
-      type: 'climate',
-      temp: Math.round((avgMax + avgMin) / 2),
-      temp_max: Math.round(avgMax),
-      temp_min: Math.round(avgMin),
-      main: WMO_MAP[code!] || estimateCondition((avgMax + avgMin) / 2, daily.precipitation_sum?.[idx] || 0),
-      description: descriptions[code!] || '',
-      precipitation_sum: Math.round((daily.precipitation_sum?.[idx] || 0) * 10) / 10,
-      wind_max: Math.round(daily.windspeed_10m_max?.[idx] || 0),
-      sunrise,
-      sunset,
-      hourly: hourlyData,
-    };
-
+  // Genuinely past path (more than ~2 weeks ago) — real recorded history for
+  // this exact date, not a same-day-last-year stand-in. The forecast
+  // endpoint below only reliably covers a short recent window, so anything
+  // older goes straight to the archive with the real date.
+  if (diffDays < -14) {
+    const result = await fetchArchiveDayWeather(lat, lng, dateStr, lang, 'historical');
     setCache(ck, result, TTL_CLIMATE_MS);
     return result;
   }
 
   // Forecast path (<= 16 days)
+  const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}`
     + `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,relativehumidity_2m`
     + `&daily=temperature_2m_max,temperature_2m_min,weathercode,sunrise,sunset,precipitation_probability_max,precipitation_sum,windspeed_10m_max`
@@ -472,6 +506,7 @@ async function _getDetailedWeatherImpl(
     temp_min: Math.round(daily.temperature_2m_min[dayIdx]),
     main: WMO_MAP[code] || 'Clouds',
     description: descriptions[code] || '',
+    weathercode: code,
     sunrise: formatTime(daily.sunrise![dayIdx]),
     sunset: formatTime(daily.sunset![dayIdx]),
     precipitation_sum: daily.precipitation_sum![dayIdx] || 0,

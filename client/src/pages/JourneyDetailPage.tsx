@@ -8,7 +8,7 @@ import { useJourneyStore } from '../store/journeyStore'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n'
-import { journeyApi, authApi, addonsApi, mapsApi } from '../api/client'
+import { journeyApi, authApi, addonsApi, mapsApi, weatherApi } from '../api/client'
 import { addListener, removeListener } from '../api/websocket'
 import Navbar from '../components/Layout/Navbar'
 import JourneyMap from '../components/Journey/JourneyMapAuto'
@@ -25,7 +25,7 @@ import {
   UserPlus, Plus, Minus, Calendar, Camera, BookOpen, X, Check, ImagePlus, Trash2, Pencil,
   Laugh, Smile, Meh, Annoyed, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronUp, ChevronDown, Eye, EyeOff,
-  Archive, ArchiveRestore, Settings as SettingsIcon,
+  Archive, ArchiveRestore, Settings as SettingsIcon, Sparkles,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -65,6 +65,30 @@ const WEATHER_CONFIG: Record<string, { icon: typeof Sun; label: string }> = {
   rainy: { icon: CloudRain, label: 'journey.weather.rainy' },
   stormy: { icon: CloudLightning, label: 'journey.weather.stormy' },
   cold: { icon: Snowflake, label: 'journey.weather.cold' },
+}
+
+// WMO weather code -> one of the 6 icon keys above. The editor's weather
+// picker predates this app's own weatherService (it's always been a plain
+// manual icon choice), so the "auto" suggestion has to collapse the API's
+// finer-grained WMO codes down to this fixed set rather than the other way
+// around. "cold" doubles as the snow icon — this picker has no separate
+// snow icon, and a snowy day reads better as "cold" than as "rainy".
+const WMO_TO_WEATHER_ICON: Record<number, string> = {
+  0: 'sunny', 1: 'sunny',
+  2: 'partly',
+  3: 'cloudy', 45: 'cloudy', 48: 'cloudy',
+  51: 'rainy', 53: 'rainy', 55: 'rainy', 56: 'rainy', 57: 'rainy',
+  61: 'rainy', 63: 'rainy', 65: 'rainy', 66: 'rainy', 67: 'rainy',
+  80: 'rainy', 81: 'rainy', 82: 'rainy',
+  71: 'cold', 73: 'cold', 75: 'cold', 77: 'cold', 85: 'cold', 86: 'cold',
+  95: 'stormy', 96: 'stormy', 99: 'stormy',
+}
+
+export function weatherCodeToIcon(code: number | undefined, tempAvgC?: number): string {
+  const base = (code != null ? WMO_TO_WEATHER_ICON[code] : undefined) || 'cloudy'
+  // A freezing day reads as "cold" even on a clear/dry WMO code.
+  if (base !== 'stormy' && base !== 'cold' && tempAvgC != null && tempAvgC <= 0) return 'cold'
+  return base
 }
 
 function groupByDate(entries: JourneyEntry[]): Map<string, JourneyEntry[]> {
@@ -2417,6 +2441,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
   const locationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [mood, setMood] = useState(entry.mood || '')
   const [weather, setWeather] = useState(entry.weather || '')
+  const [weatherLoading, setWeatherLoading] = useState(false)
   const [pros, setPros] = useState<string[]>(entry.pros_cons?.pros?.length ? entry.pros_cons.pros : [''])
   const [cons, setCons] = useState<string[]>(entry.pros_cons?.cons?.length ? entry.pros_cons.cons : [''])
   const [saving, setSaving] = useState(false)
@@ -2498,6 +2523,26 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
       onDone()
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Looks up the real (or, for a date beyond the forecast horizon, a
+  // same-day-last-year estimate) weather for this entry's own date+location
+  // and picks the closest of the picker's 6 fixed icons — one request, not
+  // a live-typing suggestion, since the entry's date/location rarely change
+  // after the user first sets them.
+  const suggestWeather = async () => {
+    if (locationLat == null || locationLng == null || !entryDate || weatherLoading) return
+    setWeatherLoading(true)
+    try {
+      const result = await weatherApi.getDetailed(locationLat, locationLng, entryDate, locale)
+      if (result.error) { toast.error(t('journey.editor.weatherSuggestError')); return }
+      const tempAvg = result.temp_max != null && result.temp_min != null ? (result.temp_max + result.temp_min) / 2 : result.temp
+      setWeather(weatherCodeToIcon(result.weathercode, tempAvg))
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, t('journey.editor.weatherSuggestError')))
+    } finally {
+      setWeatherLoading(false)
     }
   }
 
@@ -2853,7 +2898,19 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
           </div>
 
           <div>
-            <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-2">{t('journey.editor.weather')}</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500">{t('journey.editor.weather')}</label>
+              <button
+                type="button"
+                onClick={suggestWeather}
+                disabled={locationLat == null || locationLng == null || !entryDate || weatherLoading}
+                title={locationLat == null || locationLng == null ? t('journey.editor.weatherSuggestNeedsLocation') : undefined}
+                className="flex items-center gap-1 text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Sparkles size={11} />
+                {weatherLoading ? t('common.loading') : t('journey.editor.weatherSuggest')}
+              </button>
+            </div>
             <div className="flex flex-wrap gap-2">
               {Object.entries(WEATHER_CONFIG).map(([key, config]) => {
                 const Icon = config.icon

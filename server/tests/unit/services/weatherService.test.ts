@@ -716,4 +716,60 @@ describe('getDetailedWeather', () => {
       expect(result.main).toBe('Rain');
     });
   });
+
+  describe('genuinely past path (diffDays < -14)', () => {
+    it('queries the archive API for the real date, not a same-day-last-year stand-in', async () => {
+      const date = dateOffset(-30);
+
+      const body = {
+        daily: {
+          time: [date],
+          temperature_2m_max: [18],
+          temperature_2m_min: [8],
+          weathercode: [61],
+          precipitation_sum: [4],
+          windspeed_10m_max: [12],
+          sunrise: [`${date}T07:15`],
+          sunset: [`${date}T19:45`],
+        },
+        hourly: {
+          time: [`${date}T10:00`],
+          temperature_2m: [14],
+          precipitation: [1],
+          weathercode: [61],
+          windspeed_10m: [10],
+          relativehumidity_2m: [70],
+        },
+      };
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse(body));
+
+      const result = await getDetailedWeather('40.00', '3.00', date, 'en');
+
+      // The real target date, not a shifted "last year" date — this is the
+      // whole point: a past date has real recorded history to use directly.
+      expect(vi.mocked(fetch).mock.calls[0][0]).toContain(`start_date=${date}&end_date=${date}`);
+      expect(result.type).toBe('historical');
+      expect(result.temp).toBe(13); // (18+8)/2
+      expect(result.main).toBe('Rain'); // WMO code 61
+      expect(result.weathercode).toBe(61);
+      expect(result.sunrise).toBe('07:15');
+      expect(result.hourly).toHaveLength(1);
+    });
+
+    it('returns no_forecast when the archive has no data yet for that exact date', async () => {
+      const date = dateOffset(-30);
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ daily: { time: [] } }));
+
+      const result = await getDetailedWeather('40.01', '3.01', date, 'en');
+
+      expect(result.error).toBe('no_forecast');
+    });
+
+    it('throws ApiError when the archive API rejects the request', async () => {
+      const date = dateOffset(-30);
+      vi.mocked(fetch).mockResolvedValueOnce(mockResponse({ reason: 'server error' }, false, 500));
+
+      await expect(getDetailedWeather('40.02', '3.02', date, 'en')).rejects.toThrow(ApiError);
+    });
+  });
 });
