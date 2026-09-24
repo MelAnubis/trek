@@ -57,6 +57,9 @@ export interface JourneyPhoto {
   width?: number | null
   height?: number | null
   taken_at?: string | null
+  /** The photo's own EXIF GPS position, not the journal entry's — see server's resolveAndStoreGps. */
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface GalleryPhoto {
@@ -76,6 +79,8 @@ export interface GalleryPhoto {
   width?: number | null
   height?: number | null
   taken_at?: string | null
+  lat?: number | null
+  lng?: number | null
 }
 
 export interface JourneyTrip {

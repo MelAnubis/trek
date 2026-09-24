@@ -435,6 +435,33 @@ export default function JourneyDetailPage() {
   // actual route instead of just a straight line between entry pins.
   const gpxTrail = useMemo(() => flattenGpxTrail(gpxTracks), [gpxTracks])
 
+  // Photos with their own EXIF GPS position, pinned along the route at
+  // where they were actually taken rather than clustered at their entry's
+  // one location — see server's resolveAndStoreGps for how `lat`/`lng` get
+  // filled in on trek_photos. Kept as the raw photo list too, so clicking a
+  // pin can open the same lightbox the gallery/entry views already use.
+  const photosWithGps = useMemo(() => {
+    const list: JourneyPhoto[] = []
+    for (const entry of current?.entries || []) {
+      for (const photo of entry.photos || []) {
+        if (photo.lat != null && photo.lng != null) list.push(photo)
+      }
+    }
+    return list
+  }, [current?.entries])
+  const photoMarkers = useMemo(
+    () => photosWithGps.map(p => ({ id: String(p.id), lat: p.lat!, lng: p.lng!, thumbUrl: photoUrl(p, 'thumbnail') })),
+    [photosWithGps]
+  )
+  const handlePhotoMarkerClick = useCallback((id: string) => {
+    const idx = photosWithGps.findIndex(p => String(p.id) === id)
+    if (idx === -1) return
+    setLightbox({
+      photos: photosWithGps.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption ?? null, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })),
+      index: idx,
+    })
+  }, [photosWithGps])
+
   const locatedEntryIdsRef = useRef(new Set<string>())
   useEffect(() => {
     locatedEntryIdsRef.current = new Set(sidebarMapItems.map(m => m.id))
@@ -492,6 +519,7 @@ export default function JourneyDetailPage() {
           entries={timelineEntries}
           mapEntries={sidebarMapItems}
           trail={gpxTrail}
+          photoMarkers={photoMarkers}
           dark={document.documentElement.classList.contains('dark')}
           readOnly={!canEditEntries}
           onEntryClick={(entry) => setViewingEntry(entry)}
@@ -912,6 +940,8 @@ export default function JourneyDetailPage() {
                   ref={mapRef}
                   entries={sidebarMapItems as any}
                   trail={gpxTrail}
+                  photoMarkers={photoMarkers}
+                  onPhotoMarkerClick={handlePhotoMarkerClick}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}

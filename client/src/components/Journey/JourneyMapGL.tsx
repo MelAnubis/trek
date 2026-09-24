@@ -25,6 +25,8 @@ interface MapEntry {
 interface Props {
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  photoMarkers?: { id: string; lat: number; lng: number; thumbUrl: string }[]
+  onPhotoMarkerClick?: (id: string) => void
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -191,12 +193,14 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
 }
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_PHOTO_MARKERS: { id: string; lat: number; lng: number; thumbUrl: string }[] = []
 
 const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
+  { entries, trail, photoMarkers, onPhotoMarkerClick, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
+  const stablePhotoMarkers = photoMarkers || EMPTY_PHOTO_MARKERS
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
@@ -209,6 +213,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const popupRef = useRef<mapboxgl.Popup | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   onMarkerClickRef.current = onMarkerClick
+  const onPhotoMarkerClickRef = useRef(onPhotoMarkerClick)
+  onPhotoMarkerClickRef.current = onPhotoMarkerClick
   const darkRef = useRef(dark)
   darkRef.current = dark
 
@@ -416,6 +422,23 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         markersRef.current.set(item.id, marker)
       })
 
+      // Individual photo pins, at their own GPS position — deliberately
+      // left out of the fitBounds calculation above (see JourneyMap.tsx's
+      // Leaflet twin for why: one wrong-EXIF photo shouldn't be able to
+      // zoom the whole map out to include it).
+      stablePhotoMarkers.forEach(p => {
+        const el = document.createElement('div')
+        el.style.cssText = 'width:26px;height:26px;border-radius:50%;background:#111 center/cover no-repeat;' +
+          `background-image:url('${p.thumbUrl}');border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35);cursor:pointer`
+        new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([p.lng, p.lat])
+          .addTo(map)
+        el.addEventListener('click', (ev) => {
+          ev.stopPropagation()
+          onPhotoMarkerClickRef.current?.(p.id)
+        })
+      })
+
       // fit bounds to all points
       if (hasPoints) {
         const pb = paddingBottom || 50
@@ -441,7 +464,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [entries, stableTrail, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stablePhotoMarkers, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {

@@ -2527,6 +2527,14 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE trek_photos ADD COLUMN taken_at TEXT'); } catch {}
     },
+    // The photo's own EXIF GPS position — same best-effort resolve-then-
+    // backfill pattern as taken_at above (see resolveAndStoreGps), so a
+    // journey's live map can pin a photo to where it was actually taken
+    // instead of just the journal entry's one location.
+    () => {
+      try { db.exec('ALTER TABLE trek_photos ADD COLUMN lat REAL'); } catch {}
+      try { db.exec('ALTER TABLE trek_photos ADD COLUMN lng REAL'); } catch {}
+    },
   ];
 
   if (currentVersion < migrations.length) {

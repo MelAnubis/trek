@@ -386,6 +386,9 @@ export interface TrekPhoto {
   created_at: string;
   /** When the photo was actually taken (EXIF / provider metadata), not when it was linked. Null until resolved. */
   taken_at?: string | null;
+  /** The photo's own EXIF GPS position, not the journal entry's. Null until resolved, or if the photo carries none. */
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface JourneyPhoto {
@@ -404,6 +407,8 @@ export interface JourneyPhoto {
   thumbnail_path?: string | null;
   width?: number | null;
   height?: number | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface GalleryPhoto {
@@ -422,6 +427,8 @@ export interface GalleryPhoto {
   thumbnail_path?: string | null;
   width?: number | null;
   height?: number | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface JourneyTrip {

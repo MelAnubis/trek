@@ -78,7 +78,7 @@ const onListen = () => {
   scheduler.startIdempotencyCleanup();
   scheduler.startTrekPhotoCacheCleanup();
   scheduler.startAirTrailSync();
-  scheduler.startTakenAtBackfill();
+  scheduler.startPhotoMetadataBackfill();
   const { startTokenCleanup } = require('./services/ephemeralTokens');
   startTokenCleanup();
   import('./websocket').then(({ setupWebSocket }) => {

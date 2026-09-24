@@ -12,7 +12,7 @@ import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
 import { getAllowedExtensions } from '../services/fileService';
-import { resolveAndStoreTakenAt } from '../services/memories/photoResolverService';
+import { resolveAndStoreTakenAt, resolveAndStoreGps } from '../services/memories/photoResolverService';
 
 const router = express.Router();
 
@@ -134,6 +134,7 @@ router.post('/entries/:entryId/photos', authenticate, upload.array('photos'), as
         } catch {}
       }
       await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+      await resolveAndStoreGps(photo.photo_id, authReq.user.id);
       results.push(photo);
     }
   }
@@ -154,6 +155,7 @@ router.post('/entries/:entryId/provider-photos', authenticate, async (req: Reque
       const photo = svc.addProviderPhoto(Number(req.params.entryId), authReq.user.id, provider, String(id), caption, pp);
       if (photo) {
         await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+        await resolveAndStoreGps(photo.photo_id, authReq.user.id);
         added.push(photo);
       }
     }
@@ -165,6 +167,7 @@ router.post('/entries/:entryId/provider-photos', authenticate, async (req: Reque
   const photo = svc.addProviderPhoto(Number(req.params.entryId), authReq.user.id, provider, asset_id, caption, pp);
   if (!photo) return res.status(403).json({ error: 'Not allowed or duplicate' });
   await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+  await resolveAndStoreGps(photo.photo_id, authReq.user.id);
   res.status(201).json(photo);
 });
 
@@ -217,7 +220,10 @@ router.post('/:id/gallery/photos', authenticate, upload.array('photos'), async (
   const filePaths = files.map(f => ({ path: `journey/${f.filename}` }));
   const photos = svc.uploadGalleryPhotos(Number(req.params.id), authReq.user.id, filePaths);
   if (!photos.length) return res.status(403).json({ error: 'Not allowed' });
-  for (const photo of photos) await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+  for (const photo of photos) {
+    await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+    await resolveAndStoreGps(photo.photo_id, authReq.user.id);
+  }
   res.status(201).json({ photos });
 });
 
@@ -233,6 +239,7 @@ router.post('/:id/gallery/provider-photos', authenticate, async (req: Request, r
       const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, String(id), undefined, pp);
       if (photo) {
         await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+        await resolveAndStoreGps(photo.photo_id, authReq.user.id);
         added.push(photo);
       }
     }
@@ -243,6 +250,7 @@ router.post('/:id/gallery/provider-photos', authenticate, async (req: Request, r
   const photo = svc.addProviderPhotoToGallery(Number(req.params.id), authReq.user.id, provider, asset_id, undefined, pp);
   if (!photo) return res.status(403).json({ error: 'Not allowed or duplicate' });
   await resolveAndStoreTakenAt(photo.photo_id, authReq.user.id);
+  await resolveAndStoreGps(photo.photo_id, authReq.user.id);
   res.status(201).json(photo);
 });
 

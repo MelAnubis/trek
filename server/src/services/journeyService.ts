@@ -12,7 +12,7 @@ function ts(): number {
 // id = gp.id (gallery photo id) — used by clients for linkPhoto/updatePhoto/unlink/delete.
 const JP_SELECT = `
   gp.id, jep.entry_id, gp.photo_id, gp.caption, jep.sort_order, gp.shared, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at, tp.lat, tp.lng
 `;
 const JP_JOIN = `journey_entry_photos jep
   JOIN journey_photos gp ON gp.id  = jep.journey_photo_id
@@ -27,7 +27,7 @@ const JP_JOIN = `journey_entry_photos jep
 // be) rather than dropping it out of order entirely.
 const GALLERY_SELECT = `
   gp.id, gp.journey_id, gp.photo_id, gp.caption, gp.shared, gp.sort_order, gp.created_at,
-  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at
+  tp.provider, tp.asset_id, tp.owner_id, tp.file_path, tp.thumbnail_path, tp.width, tp.height, tp.taken_at, tp.lat, tp.lng
 `;
 const GALLERY_JOIN = 'journey_photos gp JOIN trek_photos tp ON tp.id = gp.photo_id';
 const GALLERY_ORDER = 'ORDER BY COALESCE(tp.taken_at, gp.created_at) ASC, gp.id ASC';

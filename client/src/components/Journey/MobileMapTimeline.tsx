@@ -19,6 +19,7 @@ interface Props {
   entries: JourneyEntry[] | any[]
   mapEntries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  photoMarkers?: { id: string; lat: number; lng: number; thumbUrl: string }[]
   dark?: boolean
   readOnly?: boolean
   onEntryClick: (entry: any) => void
@@ -31,6 +32,7 @@ export default function MobileMapTimeline({
   entries,
   mapEntries,
   trail,
+  photoMarkers,
   dark,
   readOnly,
   onEntryClick,
@@ -151,6 +153,7 @@ export default function MobileMapTimeline({
           ref={mapRef}
           entries={mapEntries}
           trail={trail}
+          photoMarkers={photoMarkers}
           height={9999}
           dark={dark}
           onMarkerClick={handleMarkerClick}
@@ -180,6 +183,7 @@ export default function MobileMapTimeline({
         ref={mapRef}
         entries={mapEntries}
         trail={trail}
+        photoMarkers={photoMarkers}
         height={9999}
         dark={dark}
         activeMarkerId={activeEntryId}

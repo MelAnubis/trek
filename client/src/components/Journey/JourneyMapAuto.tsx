@@ -21,6 +21,8 @@ interface MapEntry {
 interface Props {
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  photoMarkers?: { id: string; lat: number; lng: number; thumbUrl: string }[]
+  onPhotoMarkerClick?: (id: string) => void
   height?: number
   dark?: boolean
   activeMarkerId?: string | null

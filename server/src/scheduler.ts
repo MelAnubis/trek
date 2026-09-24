@@ -359,39 +359,45 @@ function startAirTrailSync(): void {
   }, { timezone: tz });
 }
 
-// Capture-date backfill: trek_photos rows linked before the taken_at column
+// Capture-date + GPS backfill: trek_photos rows linked before these columns
 // existed (or whose resolve failed at link time — an Immich hiccup, a
 // provider offline) never get a second chance on their own. One-shot on
 // every boot rather than a repeating cron: once caught up, the query
 // matches nothing and it's a no-op; a photo added while the server was down
-// still gets picked up next start without needing its own retry logic.
+// still gets picked up next start without needing its own retry logic. Both
+// fields share the same pass (one DB scan, one throttle) rather than two —
+// GPS's own re-attempt-forever cost (see resolveAndStoreGps's own comment)
+// would otherwise double the boot-time query for photos with neither.
 // Throttled between calls so a large backlog doesn't hammer Immich/OneDrive
 // on restart.
-const TAKEN_AT_BACKFILL_DELAY_MS = 150;
-const TAKEN_AT_BACKFILL_LIMIT = 2000; // safety cap per boot, not a real-world ceiling
+const METADATA_BACKFILL_DELAY_MS = 150;
+const METADATA_BACKFILL_LIMIT = 2000; // safety cap per boot, not a real-world ceiling
 
-function startTakenAtBackfill(): void {
+function startPhotoMetadataBackfill(): void {
   void (async () => {
     try {
       const { db } = require('./db/database');
-      const { resolveAndStoreTakenAt } = require('./services/memories/photoResolverService');
+      const { resolveAndStoreTakenAt, resolveAndStoreGps } = require('./services/memories/photoResolverService');
       const rows = db.prepare(
-        `SELECT id, owner_id FROM trek_photos WHERE taken_at IS NULL AND owner_id IS NOT NULL LIMIT ?`
-      ).all(TAKEN_AT_BACKFILL_LIMIT) as { id: number; owner_id: number }[];
+        `SELECT id, owner_id FROM trek_photos WHERE (taken_at IS NULL OR lat IS NULL) AND owner_id IS NOT NULL LIMIT ?`
+      ).all(METADATA_BACKFILL_LIMIT) as { id: number; owner_id: number }[];
       if (rows.length === 0) return;
 
-      logInfo(`Capture-date backfill: resolving ${rows.length} photo(s)`);
+      logInfo(`Photo metadata backfill: resolving ${rows.length} photo(s)`);
       let resolved = 0;
       for (const row of rows) {
         try {
-          const takenAt = await resolveAndStoreTakenAt(row.id, row.owner_id);
-          if (takenAt) resolved++;
+          const [takenAt, gps] = await Promise.all([
+            resolveAndStoreTakenAt(row.id, row.owner_id),
+            resolveAndStoreGps(row.id, row.owner_id),
+          ]);
+          if (takenAt || gps) resolved++;
         } catch { /* best-effort — move on to the next photo */ }
-        await new Promise(r => setTimeout(r, TAKEN_AT_BACKFILL_DELAY_MS));
+        await new Promise(r => setTimeout(r, METADATA_BACKFILL_DELAY_MS));
       }
-      logInfo(`Capture-date backfill: resolved ${resolved}/${rows.length}`);
+      logInfo(`Photo metadata backfill: resolved ${resolved}/${rows.length}`);
     } catch (err: unknown) {
-      logError(`Capture-date backfill failed: ${err instanceof Error ? err.message : err}`);
+      logError(`Photo metadata backfill failed: ${err instanceof Error ? err.message : err}`);
     }
   })();
 }
@@ -406,4 +412,4 @@ function stop(): void {
   if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startAirTrailSync, startTakenAtBackfill, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startAirTrailSync, startPhotoMetadataBackfill, loadSettings, saveSettings, VALID_INTERVALS };

@@ -30,9 +30,19 @@ interface MapEntry {
   dayLabel?: number
 }
 
+export interface PhotoMarkerItem {
+  id: string
+  lat: number
+  lng: number
+  thumbUrl: string
+}
+
 interface Props {
   entries: MapEntry[]
   trail?: { lat: number; lng: number }[]
+  /** Individual photos with their own EXIF GPS position — pinned along the route, distinct from the day markers. Doesn't affect fitBounds (see the render site's own comment on why). */
+  photoMarkers?: PhotoMarkerItem[]
+  onPhotoMarkerClick?: (id: string) => void
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -82,12 +92,14 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
 }
 
 const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_PHOTO_MARKERS: PhotoMarkerItem[] = []
 
 const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
-  { entries, trail, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
+  { entries, trail, photoMarkers, onPhotoMarkerClick, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
+  const stablePhotoMarkers = photoMarkers || EMPTY_PHOTO_MARKERS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -96,6 +108,8 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
   const highlightedRef = useRef<string | null>(null)
   const onMarkerClickRef = useRef(onMarkerClick)
   onMarkerClickRef.current = onMarkerClick
+  const onPhotoMarkerClickRef = useRef(onPhotoMarkerClick)
+  onPhotoMarkerClickRef.current = onPhotoMarkerClick
 
   const darkRef = useRef(dark)
   darkRef.current = dark
@@ -257,6 +271,24 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       markersRef.current.set(item.id, marker)
     })
 
+    // Individual photo pins, at their own GPS position rather than the
+    // entry's — smaller and behind the day markers (negative zIndexOffset)
+    // so an overlapping day pin still wins the click/visual priority.
+    // Deliberately left out of allCoords/fitBounds: one photo with a wrong
+    // or unrelated EXIF position (a screenshot, a photo edited on a device
+    // far from the trip) would otherwise be able to zoom the whole map out
+    // to include it.
+    stablePhotoMarkers.forEach(p => {
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [26, 26],
+        iconAnchor: [13, 13],
+        html: `<div style="width:26px;height:26px;border-radius:50%;background:#111 center/cover no-repeat;background-image:url('${p.thumbUrl}');border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35)"></div>`,
+      })
+      const marker = L.marker([p.lat, p.lng], { icon, zIndexOffset: -100 }).addTo(map)
+      marker.on('click', () => onPhotoMarkerClickRef.current?.(p.id))
+    })
+
     // fit bounds
     requestAnimationFrame(() => {
       if (!mapRef.current) return
@@ -281,7 +313,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       mapRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, dark, mapTileUrl, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stablePhotoMarkers, dark, mapTileUrl, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

@@ -129,6 +129,76 @@ export async function resolveAndStoreTakenAt(photoId: number, userId: number): P
   return takenAt;
 }
 
+// ── GPS position ─────────────────────────────────────────────────────────
+
+/** The photo's own EXIF GPS position, decimal degrees — null for a photo that simply carries none. */
+async function readExifGps(absPath: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    if (!fs.existsSync(absPath)) return null;
+    const gps = await exifr.gps(absPath) as { latitude: number; longitude: number } | undefined;
+    if (!gps || typeof gps.latitude !== 'number' || typeof gps.longitude !== 'number') return null;
+    return { lat: gps.latitude, lng: gps.longitude };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fill in where a photo was actually taken — its own EXIF/provider GPS
+ * position, not the journal entry's one location. Same best-effort,
+ * idempotent shape as resolveAndStoreTakenAt right above (including its
+ * same limitation: a photo that genuinely carries no GPS stays null and
+ * gets re-attempted on every future call rather than being remembered as
+ * "checked, nothing there" — an acceptable cost for the low request volume
+ * this runs at, same bargain the capture-date resolver already makes).
+ */
+export async function resolveAndStoreGps(photoId: number, userId: number): Promise<{ lat: number; lng: number } | null> {
+  const photo = resolveTrekPhoto(photoId);
+  if (!photo) return null;
+  if (photo.lat != null && photo.lng != null) return { lat: photo.lat, lng: photo.lng };
+
+  let gps: { lat: number; lng: number } | null = null;
+  try {
+    switch (photo.provider) {
+      case 'local': {
+        if (photo.file_path) {
+          const abs = path.join(__dirname, '../../../uploads', photo.file_path);
+          gps = await readExifGps(abs);
+        }
+        break;
+      }
+      case 'immich': {
+        if (photo.asset_id && photo.owner_id) {
+          const result = await getImmichAssetInfo(userId, photo.asset_id, photo.owner_id);
+          if (!result.error && result.data?.lat != null && result.data?.lng != null) {
+            gps = { lat: result.data.lat, lng: result.data.lng };
+          }
+        }
+        break;
+      }
+      case 'synologyphotos': {
+        if (photo.asset_id && photo.owner_id) {
+          const passphrase = photo.passphrase ? (decrypt_api_key(photo.passphrase) || undefined) : undefined;
+          const result = await getSynologyAssetInfo(userId, photo.asset_id, photo.owner_id, passphrase);
+          if (result.success && result.data.lat != null && result.data.lng != null) {
+            gps = { lat: result.data.lat, lng: result.data.lng };
+          }
+        }
+        break;
+      }
+      // onedrive: no GPS lookup exists yet for this provider (only getAssetTakenAt does).
+    }
+  } catch {
+    // Best-effort — a provider hiccup here shouldn't fail the photo add/link it rode in on.
+  }
+
+  if (gps) {
+    db.prepare('UPDATE trek_photos SET lat = ?, lng = ? WHERE id = ? AND lat IS NULL AND lng IS NULL')
+      .run(gps.lat, gps.lng, photoId);
+  }
+  return gps;
+}
+
 // ── Streaming ────────────────────────────────────────────────────────────
 
 async function streamCachedThumbnail(
