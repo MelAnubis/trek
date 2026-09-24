@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
+import { CURRENCIES } from '../Budget/BudgetPanel.constants'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import {
@@ -324,6 +325,19 @@ function StatsFields({ el, patch }: { el: BookStatsElement; patch: Patch }) {
             onChange={e => patch({ values: { ...el.values, [m]: Number(e.target.value) || 0 } })} />
         </div>
       ))}
+      {el.metrics.includes('budget') && (
+        <div style={FIELD}>
+          <span style={LABEL}>Budget currency</span>
+          {/* A select, not free text — the schema requires exactly 3
+              letters, and a partial keystroke mid-typing would fail
+              validation on the next autosave and drop this whole element
+              (see normalizeBookDocument's own "invalid element -> dropped"
+              rule) rather than just this one field. */}
+          <select style={INPUT} value={el.currency ?? 'EUR'} onChange={e => patch({ currency: e.target.value })}>
+            {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+      )}
       <div style={FIELD}>
         <span style={LABEL}>Layout</span>
         <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookStatsElement['layout'] })}>

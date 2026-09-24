@@ -158,7 +158,7 @@ const typeset = {
   accent: hex.default('#111111'),
 };
 
-export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss'] as const;
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss', 'budget'] as const;
 export type BookMetric = (typeof BOOK_METRICS)[number];
 
 export const bookStatsElementSchema = z.object({
@@ -170,6 +170,8 @@ export const bookStatsElementSchema = z.object({
   layout: z.enum(['grid', 'row', 'column']).default('grid'),
   showIcons: z.boolean().default(true),
   units: z.enum(['metric', 'imperial']).default('metric'),
+  /** ISO 4217 code for the `budget` metric only — every other metric is unit-agnostic (km/mi and m/ft already come from `units` above). Null when the element has no budget figure. */
+  currency: z.string().length(3).nullable().default(null),
   /**
    * Metric to value, baked in at placement time — same reasoning as
    * `bookImageElement`'s self-contained `src`: a page whose figures update

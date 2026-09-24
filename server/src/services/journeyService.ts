@@ -179,6 +179,29 @@ export function getJourneyFull(journeyId: number, userId: number) {
   const photoCount = (gallery as any[]).length;
   const places = [...new Set(entries.map(e => e.location_name).filter(Boolean))];
 
+  // Budget total, in the earliest-linked trip's own currency — summed across
+  // every linked trip's expenses in that same currency (an item's own
+  // currency wins over its trip's, same fallback the legacy PDF export
+  // already uses). A multi-trip journey mixing currencies still only
+  // surfaces one figure here (this is a single stat tile, not a
+  // breakdown) — the legacy export's per-currency pill list is still the
+  // place for the full picture.
+  const tripsList = trips as { trip_id: number; currency: string | null }[];
+  const primaryCurrency = (tripsList[0]?.currency || 'EUR').toUpperCase();
+  let budgetTotal = 0;
+  if (tripsList.length > 0) {
+    const tripIds = tripsList.map(t => t.trip_id);
+    const placeholders = tripIds.map(() => '?').join(',');
+    const budgetRows = db.prepare(
+      `SELECT total_price, currency, trip_id FROM budget_items WHERE trip_id IN (${placeholders})`
+    ).all(...tripIds) as { total_price: number; currency: string | null; trip_id: number }[];
+    const currencyByTrip = new Map(tripsList.map(t => [t.trip_id, (t.currency || 'EUR').toUpperCase()]));
+    for (const row of budgetRows) {
+      const cur = (row.currency || currencyByTrip.get(row.trip_id) || 'EUR').toUpperCase();
+      if (cur === primaryCurrency) budgetTotal += row.total_price || 0;
+    }
+  }
+
   const userPrefs = db.prepare(
     'SELECT hide_skeletons FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
   ).get(journeyId, userId) as { hide_skeletons: number } | undefined;
@@ -202,7 +225,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
     gallery,
     trips,
     contributors,
-    stats: { entries: entryCount, photos: photoCount, places: places.length },
+    stats: { entries: entryCount, photos: photoCount, places: places.length, budgetTotal, budgetCurrency: primaryCurrency },
     hide_skeletons: !!(userPrefs?.hide_skeletons),
     my_role: myRole,
   };

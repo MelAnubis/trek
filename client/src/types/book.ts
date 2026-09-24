@@ -112,7 +112,7 @@ interface BookTypeset {
   accent: string;
 }
 
-export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss'] as const;
+export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss', 'budget'] as const;
 export type BookMetric = (typeof BOOK_METRICS)[number];
 
 export interface BookStatsElement extends BookElementBase, BookTypeset {
@@ -121,6 +121,8 @@ export interface BookStatsElement extends BookElementBase, BookTypeset {
   layout: 'grid' | 'row' | 'column';
   showIcons: boolean;
   units: 'metric' | 'imperial';
+  /** ISO 4217 code for the `budget` metric only — null when the element has no budget figure. */
+  currency: string | null;
   values: Partial<Record<BookMetric, number>>;
 }
 

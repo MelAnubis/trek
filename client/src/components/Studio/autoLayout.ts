@@ -56,6 +56,9 @@ export interface AutoInput {
     /** Total climb/descent across the linked trip(s)' GPX tracks, in metres — see referenceTemplates.ts's `fillStats`. */
     elevationGainM?: number
     elevationLossM?: number
+    /** Summed trip expenses in budgetCurrency (the earliest-linked trip's own currency) — see journeyService.ts's getJourneyDetail. */
+    budgetTotal?: number
+    budgetCurrency?: string
   }
   /**
    * A day's route map + elevation profile, pre-rendered by

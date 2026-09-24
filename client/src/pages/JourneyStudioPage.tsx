@@ -225,6 +225,8 @@ export default function JourneyStudioPage() {
         distanceKm: routeStats?.totalDist,
         elevationGainM: routeStats?.gain,
         elevationLossM: routeStats?.loss,
+        budgetTotal: current.stats?.budgetTotal,
+        budgetCurrency: current.stats?.budgetCurrency,
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

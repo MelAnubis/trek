@@ -31,7 +31,7 @@ export interface ReferenceContext {
   page: BookPageSetup
   locale: string
   /** Only the figures this fork actually has — see fillStats/fillBadge below for what stays as drawn. */
-  journeyStats?: { days?: number; photos?: number; places?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number }
+  journeyStats?: { days?: number; photos?: number; places?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
 }
 
 let seq = 0
@@ -208,6 +208,10 @@ function fillStats(el: BookElement & { kind: 'stats' }, ctx: ReferenceContext) {
   if (ctx.journeyStats.distanceKm != null) values.distance = Math.round(ctx.journeyStats.distanceKm * 1000)
   if (ctx.journeyStats.elevationGainM != null) values.elevationGain = Math.round(ctx.journeyStats.elevationGainM)
   if (ctx.journeyStats.elevationLossM != null) values.elevationLoss = Math.round(ctx.journeyStats.elevationLossM)
+  if (ctx.journeyStats.budgetTotal) {
+    values.budget = ctx.journeyStats.budgetTotal
+    el.currency = ctx.journeyStats.budgetCurrency ?? null
+  }
   el.values = values
 }
 

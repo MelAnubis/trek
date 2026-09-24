@@ -12,7 +12,7 @@ const base = { frame: { x: 0, y: 0, w: 40, h: 40 }, rotation: 0, opacity: 1, loc
 const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
 
 function statsEl(): BookStatsElement {
-  return { ...base, ...typeset, id: 'stats-1', kind: 'stats', metrics: ['distance'], layout: 'grid', showIcons: true, units: 'metric', values: { distance: 1000 } }
+  return { ...base, ...typeset, id: 'stats-1', kind: 'stats', metrics: ['distance'], layout: 'grid', showIcons: true, units: 'metric', currency: null, values: { distance: 1000 } }
 }
 function placesEl(): BookPlacesElement {
   return { ...base, ...typeset, id: 'places-1', kind: 'places', places: [{ name: 'Iceland' }], layout: 'list', align: 'center' }

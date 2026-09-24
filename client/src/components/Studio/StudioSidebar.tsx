@@ -116,7 +116,7 @@ export function StudioSidebar({
   journeyId: number
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
   /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. distanceKm/elevation are only known once the journey's linked trips have a GPX track. */
-  journeyStats?: { days: number; entries: number; photos: number; places: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number }
+  journeyStats?: { days: number; entries: number; photos: number; places: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
   /** Renders a route-map raster image (gpxDrawing's canvas renderer, the same one auto-layout's route spread already uses) for a freshly-added map element — see BookMapElement's own comment on why this fork bakes a snapshot rather than rendering a live map. Omitted where the caller has no track/entry data to draw from (map elements can still be added, just start blank). */
   onGenerateMap?: () => Promise<string | null>
   /** Collects the journey's own places — from its linked trips' real place data, not every place in the app — for a freshly-added places element. Same fetch-then-update pattern as onGenerateMap. Omitted where the caller has no trip data to draw from (places elements can still be added, just start empty). */
@@ -359,10 +359,12 @@ export function StudioSidebar({
             if (journeyStats?.distanceKm != null) { metrics.push('distance'); values.distance = Math.round(journeyStats.distanceKm * 1000) }
             if (journeyStats?.elevationGainM != null) { metrics.push('elevationGain'); values.elevationGain = Math.round(journeyStats.elevationGainM) }
             if (journeyStats?.elevationLossM != null) { metrics.push('elevationLoss'); values.elevationLoss = Math.round(journeyStats.elevationLossM) }
+            if (journeyStats?.budgetTotal) { metrics.push('budget'); values.budget = journeyStats.budgetTotal }
             addCentered(100, 40, (id, frame) => ({
               id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
               font: 'sans', color: '#1a1a1a', accent: '#111111',
               metrics, layout: 'row', showIcons: true, units: 'metric',
+              currency: journeyStats?.budgetCurrency ?? null,
               values,
             }))
           }} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>

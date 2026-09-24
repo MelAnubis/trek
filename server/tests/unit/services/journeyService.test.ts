@@ -296,6 +296,38 @@ describe('getJourneyFull', () => {
     expect(result!.stats.entries).toBe(1);
   });
 
+  it('JOURNEY-SVC-094: stats.budgetTotal sums linked trips\' expenses in the earliest trip\'s currency, ignoring mismatched-currency items', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Budgeted Trip' });
+    const trip1 = createTrip(testDb, user.id, { title: 'Trip A', start_date: '2025-06-01', end_date: '2025-06-05' });
+    const trip2 = createTrip(testDb, user.id, { title: 'Trip B', start_date: '2026-01-01', end_date: '2026-01-05' });
+    addTripToJourney(journey.id, trip1.id, user.id);
+    addTripToJourney(journey.id, trip2.id, user.id);
+
+    // trip1 (the earliest -> the journey's primary currency, EUR by default)
+    testDb.prepare('INSERT INTO budget_items (trip_id, name, total_price, currency) VALUES (?, ?, ?, ?)').run(trip1.id, 'Hotel', 200, 'EUR');
+    testDb.prepare('INSERT INTO budget_items (trip_id, name, total_price, currency) VALUES (?, ?, ?, ?)').run(trip1.id, 'Food', 50, 'EUR');
+    // trip2, same EUR currency -> counted too
+    testDb.prepare('INSERT INTO budget_items (trip_id, name, total_price, currency) VALUES (?, ?, ?, ?)').run(trip2.id, 'Train', 30, 'EUR');
+    // trip2, a USD item -> not the primary currency, excluded from the total
+    testDb.prepare('INSERT INTO budget_items (trip_id, name, total_price, currency) VALUES (?, ?, ?, ?)').run(trip2.id, 'Souvenir', 999, 'USD');
+
+    const result = getJourneyFull(journey.id, user.id);
+
+    expect(result!.stats.budgetCurrency).toBe('EUR');
+    expect(result!.stats.budgetTotal).toBe(280); // 200 + 50 + 30, not the 999 USD item
+  });
+
+  it('JOURNEY-SVC-095: stats.budgetTotal is 0 for a journey with no linked trips or no expenses', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'No Budget' });
+
+    const result = getJourneyFull(journey.id, user.id);
+
+    expect(result!.stats.budgetTotal).toBe(0);
+    expect(result!.stats.budgetCurrency).toBe('EUR');
+  });
+
   it('JOURNEY-SVC-017: returns null for unauthorized user', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb);

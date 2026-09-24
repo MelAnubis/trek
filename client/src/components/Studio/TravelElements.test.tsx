@@ -10,7 +10,7 @@ const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
 function statsEl(overrides: Partial<BookStatsElement> = {}): BookStatsElement {
   return {
     ...base, ...typeset, kind: 'stats', metrics: ['distance', 'days'], layout: 'grid', showIcons: true,
-    units: 'metric', values: { distance: 26330, days: 5 }, ...overrides,
+    units: 'metric', currency: null, values: { distance: 26330, days: 5 }, ...overrides,
   }
 }
 
@@ -63,6 +63,20 @@ describe('formatMetricValue', () => {
 
   it('FE-TRAVELELEMENTS-018: elevation gain/loss converts to feet under imperial units', () => {
     expect(formatMetricValue('elevationGain', 843, 'imperial')).toBe('2,766 ft')
+  })
+
+  it('FE-TRAVELELEMENTS-019: budget formats as a currency amount using the element\'s own ISO code', () => {
+    expect(formatMetricValue('budget', 1240, 'metric', 'EUR')).toBe('€1,240')
+    expect(formatMetricValue('budget', 1240, 'metric', 'USD')).toBe('$1,240')
+  })
+
+  it('FE-TRAVELELEMENTS-020: budget falls back to a plain rounded number when no currency is set', () => {
+    expect(formatMetricValue('budget', 1240.6, 'metric', null)).toBe('1,241')
+    expect(formatMetricValue('budget', 1240.6, 'metric')).toBe('1,241')
+  })
+
+  it('FE-TRAVELELEMENTS-021: budget falls back to a plain suffixed number for a currency Intl doesn\'t recognise, rather than throwing', () => {
+    expect(formatMetricValue('budget', 500, 'metric', 'XXX_NOT_REAL')).toBe('500 XXX_NOT_REAL')
   })
 })
 

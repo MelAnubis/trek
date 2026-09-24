@@ -103,7 +103,7 @@ export interface JourneyDetail extends Journey {
   gallery: GalleryPhoto[]
   trips: JourneyTrip[]
   contributors: JourneyContributor[]
-  stats: { entries: number; photos: number; places: number }
+  stats: { entries: number; photos: number; places: number; budgetTotal?: number; budgetCurrency?: string }
   hide_skeletons?: boolean
 }
 

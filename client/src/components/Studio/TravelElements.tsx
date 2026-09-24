@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown } from 'lucide-react'
+import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
 import type { BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPlacesElement, BookStatsElement } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { frameStyle } from './SpreadView'
@@ -52,22 +52,38 @@ export function MapView({ el }: { el: BookMapElement }) {
 
 const METRIC_ICON: Record<BookMetric, React.ComponentType<{ style?: CSSProperties; color?: string }>> = {
   distance: Route, days: CalendarDays, steps: Footprints, photos: Camera, countries: Flag, places: MapPin, furthest: Compass,
-  elevationGain: TrendingUp, elevationLoss: TrendingDown,
+  elevationGain: TrendingUp, elevationLoss: TrendingDown, budget: Wallet,
 }
 
 const METRIC_LABEL: Record<BookMetric, string> = {
   distance: 'Distance', days: 'Days', steps: 'Steps', photos: 'Photos', countries: 'Countries', places: 'Places', furthest: 'Furthest',
-  elevationGain: 'Elevation gain', elevationLoss: 'Elevation loss',
+  elevationGain: 'Elevation gain', elevationLoss: 'Elevation loss', budget: 'Spent',
 }
 
-/** Distance/furthest are stored in metres and shown as km; elevation gain/loss are also stored in metres but shown as-is — a day's climb rarely reaches a whole kilometre. Everything else is a plain count, per the schema's own comment. */
-export function formatMetricValue(metric: BookMetric, value: number, units: 'metric' | 'imperial'): string {
+/**
+ * Distance/furthest are stored in metres and shown as km; elevation
+ * gain/loss are also stored in metres but shown as-is — a day's climb
+ * rarely reaches a whole kilometre. `budget` is a plain currency amount —
+ * `currency` is the element's own ISO 4217 code (see BookStatsElement),
+ * falling back to a bare number if the element somehow has none (an old
+ * book saved before this metric existed, or a manually-added one). Every
+ * other metric is a plain count, per the schema's own comment.
+ */
+export function formatMetricValue(metric: BookMetric, value: number, units: 'metric' | 'imperial', currency?: string | null): string {
   if (metric === 'distance' || metric === 'furthest') {
     const km = value / 1000
     return units === 'imperial' ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${Math.round(km).toLocaleString()} km`
   }
   if (metric === 'elevationGain' || metric === 'elevationLoss') {
     return units === 'imperial' ? `${Math.round(value * 3.28084).toLocaleString()} ft` : `${Math.round(value).toLocaleString()} m`
+  }
+  if (metric === 'budget') {
+    if (!currency) return Math.round(value).toLocaleString()
+    try {
+      return new Intl.NumberFormat(undefined, { style: 'currency', currency, maximumFractionDigits: 0 }).format(value)
+    } catch {
+      return `${Math.round(value).toLocaleString()} ${currency}`
+    }
   }
   return Math.round(value).toLocaleString()
 }
@@ -100,7 +116,7 @@ export function StatsView({ el }: { el: BookStatsElement }) {
           >
             {el.showIcons && <Icon style={{ width: '5mm', height: '5mm', marginBottom: '1mm' }} color={el.accent} />}
             <span style={{ fontFamily: fontStack(el.font), fontSize: '5mm', fontWeight: 700, color: el.accent, lineHeight: 1 }}>
-              {formatMetricValue(m, el.values[m]!, el.units)}
+              {formatMetricValue(m, el.values[m]!, el.units, el.currency)}
             </span>
             <span style={{ fontFamily: fontStack(el.font), fontSize: '2.2mm', color: el.color, opacity: 0.6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               {METRIC_LABEL[m]}
