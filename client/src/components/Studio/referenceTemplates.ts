@@ -31,7 +31,7 @@ export interface ReferenceContext {
   page: BookPageSetup
   locale: string
   /** Only the figures this fork actually has — see fillStats/fillBadge below for what stays as drawn. */
-  journeyStats?: { days?: number; photos?: number; places?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
+  journeyStats?: { days?: number; photos?: number; places?: number; countries?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
 }
 
 let seq = 0
@@ -193,9 +193,10 @@ function fillBadge(el: BookElement & { kind: 'badge' }, entry: ReferenceEntry, c
 }
 
 /**
- * The figures this fork tracks — days, photos, places and (when a linked
- * trip has a GPX track) distance and elevation gain/loss. `steps` and
- * `countries` have no source here yet, so they're left at whatever the
+ * The figures this fork tracks — days, photos, places, countries (resolved
+ * from each entry's own lat/lng, see journeyService.ts's getJourneyFull)
+ * and (when a linked trip has a GPX track) distance and elevation
+ * gain/loss. `steps` has no source here yet, so it's left at whatever the
  * template was drawn showing, the same bargain every other unanswerable
  * figure gets.
  */
@@ -205,6 +206,7 @@ function fillStats(el: BookElement & { kind: 'stats' }, ctx: ReferenceContext) {
   if (ctx.journeyStats.days != null) values.days = ctx.journeyStats.days
   if (ctx.journeyStats.photos != null) values.photos = ctx.journeyStats.photos
   if (ctx.journeyStats.places != null) values.places = ctx.journeyStats.places
+  if (ctx.journeyStats.countries != null) values.countries = ctx.journeyStats.countries
   if (ctx.journeyStats.distanceKm != null) values.distance = Math.round(ctx.journeyStats.distanceKm * 1000)
   if (ctx.journeyStats.elevationGainM != null) values.elevationGain = Math.round(ctx.journeyStats.elevationGainM)
   if (ctx.journeyStats.elevationLossM != null) values.elevationLoss = Math.round(ctx.journeyStats.elevationLossM)

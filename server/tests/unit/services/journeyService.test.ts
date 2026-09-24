@@ -328,6 +328,35 @@ describe('getJourneyFull', () => {
     expect(result!.stats.budgetCurrency).toBe('EUR');
   });
 
+  it('JOURNEY-SVC-096: stats.countries counts distinct countries resolved from entries\' lat/lng, deduping entries in the same country', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Multi-country' });
+    const now = Date.now();
+    const insertEntry = testDb.prepare(`
+      INSERT INTO journey_entries (journey_id, author_id, type, entry_date, location_name, location_lat, location_lng, visibility, sort_order, created_at, updated_at)
+      VALUES (?, ?, 'entry', ?, ?, ?, ?, 'private', 0, ?, ?)
+    `);
+    // Two entries in Paris, France -> one country.
+    insertEntry.run(journey.id, user.id, '2026-03-01', 'Paris', 48.8566, 2.3522, now, now);
+    insertEntry.run(journey.id, user.id, '2026-03-02', 'Paris again', 48.8606, 2.3376, now, now);
+    // One entry in Madrid, Spain -> a second country.
+    insertEntry.run(journey.id, user.id, '2026-03-03', 'Madrid', 40.4168, -3.7038, now, now);
+
+    const result = getJourneyFull(journey.id, user.id);
+
+    expect(result!.stats.countries).toBe(2);
+  });
+
+  it('JOURNEY-SVC-097: stats.countries is 0 when no entry has coordinates', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'No Coords' });
+    createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-03-01', location_name: 'Somewhere' });
+
+    const result = getJourneyFull(journey.id, user.id);
+
+    expect(result!.stats.countries).toBe(0);
+  });
+
   it('JOURNEY-SVC-017: returns null for unauthorized user', () => {
     const { user: owner } = createUser(testDb);
     const { user: stranger } = createUser(testDb);

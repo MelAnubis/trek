@@ -171,6 +171,12 @@ describe('getCountryFromCoords', () => {
     const code = getCountryFromCoords(0.0, 0.0);
     expect(code).toBeNull();
   });
+
+  it('ATLAS-SVC-019: returns country code for Madrid coordinates (Spain)', () => {
+    // Madrid: approximately 40.42°N, -3.70°W — inside the ES bounding box
+    const code = getCountryFromCoords(40.4168, -3.7038);
+    expect(code).toBe('ES');
+  });
 });
 
 // ── getCountryFromAddress ───────────────────────────────────────────────────

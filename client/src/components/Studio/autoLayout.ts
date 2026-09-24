@@ -59,6 +59,8 @@ export interface AutoInput {
     /** Summed trip expenses in budgetCurrency (the earliest-linked trip's own currency) — see journeyService.ts's getJourneyDetail. */
     budgetTotal?: number
     budgetCurrency?: string
+    /** Distinct countries across every entry's location, resolved from lat/lng — see journeyService.ts's getJourneyFull. */
+    countries?: number
   }
   /**
    * A day's route map + elevation profile, pre-rendered by
@@ -452,6 +454,7 @@ function summarySpread(input: AutoInput, dateRange: string): BookSpread {
     `${s.entries} ${s.entries === 1 ? 'entry' : 'entries'}`,
     `${s.photos} photos`,
     s.places > 0 ? `${s.places} places` : null,
+    s.countries && s.countries > 0 ? `${s.countries} ${s.countries === 1 ? 'country' : 'countries'}` : null,
   ].filter(Boolean)
   const routeStats = formatRouteStats({
     totalDist: s.distanceKm || 0, gain: s.elevationGainM || 0, loss: s.elevationLossM || 0,

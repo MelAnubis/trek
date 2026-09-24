@@ -2,6 +2,7 @@ import { db } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { getOrCreateTrekPhoto, getOrCreateLocalTrekPhoto, setTrekPhotoProvider, deleteTrekPhotoIfOrphan } from './memories/photoResolverService';
+import { getCountryFromCoords } from './atlasService';
 
 function ts(): number {
   return Date.now();
@@ -179,6 +180,18 @@ export function getJourneyFull(journeyId: number, userId: number) {
   const photoCount = (gallery as any[]).length;
   const places = [...new Set(entries.map(e => e.location_name).filter(Boolean))];
 
+  // Distinct countries, resolved offline from each entry's own lat/lng via
+  // atlasService's bounding-box lookup (same one the Atlas feature uses) —
+  // no geocoding network call, so this stays cheap even for a journey with
+  // many entries. An entry with no coordinates just doesn't vote.
+  const countrySet = new Set<string>();
+  for (const e of entries) {
+    if (e.location_lat != null && e.location_lng != null) {
+      const code = getCountryFromCoords(e.location_lat, e.location_lng);
+      if (code) countrySet.add(code);
+    }
+  }
+
   // Budget total, in the earliest-linked trip's own currency — summed across
   // every linked trip's expenses in that same currency (an item's own
   // currency wins over its trip's, same fallback the legacy PDF export
@@ -225,7 +238,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
     gallery,
     trips,
     contributors,
-    stats: { entries: entryCount, photos: photoCount, places: places.length, budgetTotal, budgetCurrency: primaryCurrency },
+    stats: { entries: entryCount, photos: photoCount, places: places.length, countries: countrySet.size, budgetTotal, budgetCurrency: primaryCurrency },
     hide_skeletons: !!(userPrefs?.hide_skeletons),
     my_role: myRole,
   };

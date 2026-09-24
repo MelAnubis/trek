@@ -222,6 +222,7 @@ export default function JourneyStudioPage() {
         entries: current.stats?.entries ?? withContent.length,
         photos: current.stats?.photos ?? allPhotos.length,
         places: current.stats?.places ?? 0,
+        countries: current.stats?.countries,
         distanceKm: routeStats?.totalDist,
         elevationGainM: routeStats?.gain,
         elevationLossM: routeStats?.loss,
