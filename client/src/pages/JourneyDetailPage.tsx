@@ -683,41 +683,55 @@ export default function JourneyDetailPage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={async (btn) => {
-                        const el = (btn.currentTarget as HTMLButtonElement)
-                        el.disabled = true
-                        try {
-                          const { downloadJourneyBookPDF } = await import('../components/PDF/JourneyBookPDF')
-                          // GPX tracks are already fetched for the timeline's route
-                          // cards (gpxTracks) — reuse them instead of a second round
-                          // trip. Only the budget totals are PDF-only and fetched here.
-                          const expenseByCurrency = new Map<string, number>()
-                          for (const trip of (current.trips || [])) {
-                            try {
-                              const items: any[] = await fetch(
-                                `/api/trips/${trip.trip_id}/budget`,
-                                { credentials: 'include' },
-                              ).then(r => r.ok ? r.json() : { items: [] }).then(d => d.items || [])
-                              for (const item of items) {
-                                const cur = (item.currency || trip.currency || 'EUR').toUpperCase()
-                                expenseByCurrency.set(cur, (expenseByCurrency.get(cur) || 0) + (item.total_price || 0))
-                              }
-                            } catch { /* ignore per-trip errors */ }
+                    {/* Two distinct export paths sit side by side here with only an
+                        icon apiece — easy to mistake for duplicates. Styled tooltips
+                        (same pattern as the skeletons toggle below) spell out what
+                        each actually is: this one is instant and fixed-layout... */}
+                    <div className="relative group">
+                      <button
+                        onClick={async (btn) => {
+                          const el = (btn.currentTarget as HTMLButtonElement)
+                          el.disabled = true
+                          try {
+                            const { downloadJourneyBookPDF } = await import('../components/PDF/JourneyBookPDF')
+                            // GPX tracks are already fetched for the timeline's route
+                            // cards (gpxTracks) — reuse them instead of a second round
+                            // trip. Only the budget totals are PDF-only and fetched here.
+                            const expenseByCurrency = new Map<string, number>()
+                            for (const trip of (current.trips || [])) {
+                              try {
+                                const items: any[] = await fetch(
+                                  `/api/trips/${trip.trip_id}/budget`,
+                                  { credentials: 'include' },
+                                ).then(r => r.ok ? r.json() : { items: [] }).then(d => d.items || [])
+                                for (const item of items) {
+                                  const cur = (item.currency || trip.currency || 'EUR').toUpperCase()
+                                  expenseByCurrency.set(cur, (expenseByCurrency.get(cur) || 0) + (item.total_price || 0))
+                                }
+                              } catch { /* ignore per-trip errors */ }
+                            }
+                            const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
+                            downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
+                          } finally {
+                            el.disabled = false
                           }
-                          const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
-                          downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
-                        } finally {
-                          el.disabled = false
-                        }
-                      }}
-                      className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25 disabled:opacity-50"
-                    ><Download size={14} /></button>
-                    <button
-                      onClick={() => navigate(`/journey/${current.id}/studio`)}
-                      title={t('journey.studio.title')}
-                      className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
-                    ><BookOpen size={14} /></button>
+                        }}
+                        className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25 disabled:opacity-50"
+                      ><Download size={14} /></button>
+                      <span className="absolute top-full mt-2 right-0 px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
+                        {t('journey.detail.quickPdfTooltip')}
+                      </span>
+                    </div>
+                    {/* ...and this one opens the customizable, spread-by-spread editor. */}
+                    <div className="relative group">
+                      <button
+                        onClick={() => navigate(`/journey/${current.id}/studio`)}
+                        className="w-[34px] h-[34px] rounded-lg bg-white/15 backdrop-blur flex items-center justify-center hover:bg-white/25"
+                      ><BookOpen size={14} /></button>
+                      <span className="absolute top-full mt-2 right-0 px-2 py-1 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity">
+                        {t('journey.detail.studioTooltip')}
+                      </span>
+                    </div>
                     <div className="relative group">
                       <button
                         onClick={async () => {

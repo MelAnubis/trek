@@ -277,6 +277,15 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-161 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-161: the two export buttons carry distinct tooltips', () => {
+    it('labels the quick PDF and Studio buttons differently, not just by icon', async () => {
+      await renderAndWait();
+      expect(screen.getByText('Quick PDF (auto-layout)')).toBeInTheDocument();
+      expect(screen.getByText('Design your printable book')).toBeInTheDocument();
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-003 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-003: Timeline tab is active by default', () => {
     it('has the Timeline button in active style and shows timeline entries', async () => {

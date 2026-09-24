@@ -2207,6 +2207,8 @@ const es: Record<string, string> = {
   'journey.frontpage.immichGpxSkipped': 'Algunos archivos GPX no se pudieron usar (sin puntos de track válidos): {files}',
   'journey.frontpage.importJourney': 'Importar Travesía',
   'journey.detail.backToJourney': 'Volver a la travesía',
+  'journey.detail.quickPdfTooltip': 'PDF rápido (diseño automático)',
+  'journey.detail.studioTooltip': 'Diseña tu cuaderno imprimible',
   'journey.detail.syncedWithTrips': 'Sincronizado con viajes',
   'journey.detail.addEntry': 'Añadir entrada',
   'journey.detail.newEntry': 'Nueva entrada',

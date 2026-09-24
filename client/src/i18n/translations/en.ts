@@ -2402,6 +2402,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
 
   // Journey Detail
   'journey.detail.backToJourney': 'Back to Journey',
+  'journey.detail.quickPdfTooltip': 'Quick PDF (auto-layout)',
+  'journey.detail.studioTooltip': 'Design your printable book',
   'journey.detail.syncedWithTrips': 'Synced with Trips',
   'journey.detail.addEntry': 'Add Entry',
   'journey.detail.newEntry': 'New Entry',
