@@ -41,6 +41,7 @@ export async function fetchJourneyGpxTracks(trips: { trip_id: number }[]): Promi
         if (full) tracks.push({
           ...track,
           points: full.points || [],
+          waypoints: full.waypoints || [],
           date: track.day_id != null ? (dayDateById.get(track.day_id) || null) : null,
           // Trips can be planned without fixed calendar dates — when a
           // linked day has no date, its day_number still lets a caller pair
@@ -54,15 +55,63 @@ export async function fetchJourneyGpxTracks(trips: { trip_id: number }[]): Promi
   return tracks
 }
 
+export interface TrailSegment {
+  points: { lat: number; lng: number }[]
+  /** Undefined -> JourneyMap's own default trail color. Set when the track's GPX <type> matched a known transport mode. */
+  color?: string
+}
+
+/** Mirrors the server's TRANSPORT_MODES (detectTransportMode) — kept as a plain lookup here rather than importing a server module into the client bundle. */
+const TRANSPORT_MODE_COLORS: Record<string, string> = {
+  hiking: '#16a34a',
+  cycling: '#2563eb',
+  driving: '#f97316',
+  walking: '#a855f7',
+  running: '#dc2626',
+}
+
 /**
- * The real path walked, as a flat point list for JourneyMap's `trail` prop
+ * The real path walked, as colored segments for JourneyMap's `trail` prop
  * — same tracks the route/elevation cards and PDF export already draw,
  * now also drawn live as an actual polyline instead of the map's straight
- * pin-to-pin fallback line. Order matters here (it's a line, not a bag of
+ * pin-to-pin fallback line, colored by how each stretch was traveled when
+ * the GPX file says so. Order matters here (it's a line, not a bag of
  * points): tracks arrive from fetchJourneyGpxTracks already ordered by
  * trip start_date then by each trip's own sort_order, which is
- * chronological enough that flattening in place needs no extra sort.
+ * chronological enough that walking through them in place needs no extra
+ * sort. Consecutive tracks with the same mode (most journeys — either one
+ * mode throughout, or none detected at all) merge into one segment rather
+ * than one per track, so the line doesn't visibly break where two same-mode
+ * stages just happen to join.
  */
-export function flattenGpxTrail(tracks: PdfGpxTrack[]): { lat: number; lng: number }[] {
-  return tracks.flatMap(t => t.points.map(p => ({ lat: p.lat, lng: p.lng })))
+export function buildTrailSegments(tracks: PdfGpxTrack[]): TrailSegment[] {
+  const segments: TrailSegment[] = []
+  let current: TrailSegment | null = null
+  for (const track of tracks) {
+    const color = track.transport_mode ? TRANSPORT_MODE_COLORS[track.transport_mode] : undefined
+    if (!current || current.color !== color) {
+      current = { points: [], color }
+      segments.push(current)
+    }
+    for (const p of track.points) current.points.push({ lat: p.lat, lng: p.lng })
+  }
+  return segments.filter(s => s.points.length > 0)
+}
+
+export interface WaypointItem {
+  id: string
+  lat: number
+  lng: number
+  name: string
+}
+
+/** Named <wpt> points the GPX file(s) themselves carry — see JourneyMap's `waypointMarkers` prop. */
+export function flattenWaypoints(tracks: PdfGpxTrack[]): WaypointItem[] {
+  const items: WaypointItem[] = []
+  tracks.forEach(track => {
+    (track.waypoints || []).forEach((wp, i) => {
+      items.push({ id: `${track.id}-${i}`, lat: wp.lat, lng: wp.lng, name: wp.name })
+    })
+  })
+  return items
 }

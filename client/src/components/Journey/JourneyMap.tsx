@@ -37,12 +37,27 @@ export interface PhotoMarkerItem {
   thumbUrl: string
 }
 
+export interface TrailSegment {
+  points: { lat: number; lng: number }[]
+  /** Undefined -> the default trail color. Set when the source track's GPX carried a recognized transport mode — see journeyGpx.ts's buildTrailSegments. */
+  color?: string
+}
+
+export interface WaypointMarkerItem {
+  id: string
+  lat: number
+  lng: number
+  name: string
+}
+
 interface Props {
   entries: MapEntry[]
-  trail?: { lat: number; lng: number }[]
+  trail?: TrailSegment[]
   /** Individual photos with their own EXIF GPS position — pinned along the route, distinct from the day markers. Doesn't affect fitBounds (see the render site's own comment on why). */
   photoMarkers?: PhotoMarkerItem[]
   onPhotoMarkerClick?: (id: string) => void
+  /** Named <wpt> points the GPX file itself carries — rendered as small flag pins along the route. */
+  waypointMarkers?: WaypointMarkerItem[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -91,15 +106,18 @@ function markerSvg(dayColor: string, dayLabel: number, highlighted: boolean): st
   </div>`
 }
 
-const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_TRAIL: TrailSegment[] = []
 const EMPTY_PHOTO_MARKERS: PhotoMarkerItem[] = []
+const EMPTY_WAYPOINT_MARKERS: WaypointMarkerItem[] = []
+const DEFAULT_TRAIL_COLOR = '#6366f1'
 
 const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
-  { entries, trail, photoMarkers, onPhotoMarkerClick, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
+  { entries, trail, photoMarkers, onPhotoMarkerClick, waypointMarkers, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const stablePhotoMarkers = photoMarkers || EMPTY_PHOTO_MARKERS
+  const stableWaypointMarkers = waypointMarkers || EMPTY_WAYPOINT_MARKERS
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url)
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<L.Map | null>(null)
@@ -216,17 +234,21 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     itemsRef.current = items
 
     const allCoords: L.LatLngTuple[] = []
+    const totalTrailPoints = stableTrail.reduce((n, s) => n + s.points.length, 0)
 
-    // Kept so it can be redrawn once fitBounds (below) settles the map's
-    // real view — it's added here before that runs, while the container's
-    // on-screen size (and so the map's projection) may still be unsettled.
-    let trailLine: L.Polyline | null = null
-    if (stableTrail.length > 1) {
-      const coords = stableTrail.map(p => [p.lat, p.lng] as L.LatLngTuple)
-      trailLine = L.polyline(coords, {
-        color: '#6366f1', weight: 3, opacity: 0.4,
+    // Kept so each can be redrawn once fitBounds (below) settles the map's
+    // real view — they're added here before that runs, while the
+    // container's on-screen size (and so the map's projection) may still
+    // be unsettled. One polyline per segment so each can carry its own
+    // transport-mode color (see journeyGpx.ts's buildTrailSegments).
+    const trailLines: L.Polyline[] = []
+    for (const segment of stableTrail) {
+      if (segment.points.length <= 1) continue
+      const coords = segment.points.map(p => [p.lat, p.lng] as L.LatLngTuple)
+      trailLines.push(L.polyline(coords, {
+        color: segment.color || DEFAULT_TRAIL_COLOR, weight: 3, opacity: 0.4,
         dashArray: '6 4', lineCap: 'round',
-      }).addTo(map)
+      }).addTo(map))
       coords.forEach(c => allCoords.push(c))
     }
 
@@ -234,7 +256,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
     // draw instead (a real trail follows the actual path; a straight line
     // between entries would just cut across terrain/water on top of it),
     // and only in non-fullscreen (sidebar map) mode.
-    if (!fullScreen && items.length > 1 && stableTrail.length <= 1) {
+    if (!fullScreen && items.length > 1 && totalTrailPoints <= 1) {
       const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
       L.polyline(routeCoords, {
         color: dark ? '#71717A' : '#A1A1AA',
@@ -289,6 +311,26 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       marker.on('click', () => onPhotoMarkerClickRef.current?.(p.id))
     })
 
+    // Named waypoints the GPX file itself carries — real trip data (unlike
+    // a photo's possibly-unrelated EXIF position), so these DO count toward
+    // fitBounds.
+    stableWaypointMarkers.forEach(wp => {
+      const icon = L.divIcon({
+        className: '',
+        iconSize: [20, 20],
+        iconAnchor: [10, 18],
+        html: `<div style="filter:drop-shadow(0 1px 3px rgba(0,0,0,0.35))">
+          <svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="10" cy="10" r="8" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+            <path d="M7 5v10M7 5l6 2-6 2" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>`,
+      })
+      const marker = L.marker([wp.lat, wp.lng], { icon, zIndexOffset: -50 }).addTo(map)
+      marker.bindTooltip(wp.name, { direction: 'top', offset: [0, -18], className: 'map-tooltip' })
+      allCoords.push([wp.lat, wp.lng])
+    })
+
     // fit bounds
     requestAnimationFrame(() => {
       if (!mapRef.current) return
@@ -300,7 +342,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
         } else {
           map.setView([30, 0], 2)
         }
-        trailLine?.redraw()
+        trailLines.forEach(line => line.redraw())
       } catch {}
     })
 
@@ -313,7 +355,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       mapRef.current = null
       markersRef.current.clear()
     }
-  }, [entries, stableTrail, stablePhotoMarkers, dark, mapTileUrl, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stablePhotoMarkers, stableWaypointMarkers, dark, mapTileUrl, fullScreen, paddingBottom])
 
   // react to activeMarkerId prop changes — runs after map is built
   useEffect(() => {

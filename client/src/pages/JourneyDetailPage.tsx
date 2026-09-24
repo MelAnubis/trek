@@ -30,7 +30,7 @@ import {
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
-import { fetchJourneyGpxTracks, flattenGpxTrail } from '../components/Journey/journeyGpx'
+import { fetchJourneyGpxTracks, buildTrailSegments, flattenWaypoints } from '../components/Journey/journeyGpx'
 import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
@@ -432,8 +432,13 @@ export default function JourneyDetailPage() {
 
   // The real path walked, from the linked trips' own GPX tracks — fed to
   // JourneyMap's `trail` prop so the live sidebar/mobile map draws the
-  // actual route instead of just a straight line between entry pins.
-  const gpxTrail = useMemo(() => flattenGpxTrail(gpxTracks), [gpxTracks])
+  // actual route instead of just a straight line between entry pins,
+  // colored by transport mode when the GPX itself says how it was
+  // traveled (see journeyGpx.ts's buildTrailSegments).
+  const gpxTrail = useMemo(() => buildTrailSegments(gpxTracks), [gpxTracks])
+
+  // Named <wpt> points the GPX file(s) themselves carry.
+  const gpxWaypoints = useMemo(() => flattenWaypoints(gpxTracks), [gpxTracks])
 
   // Photos with their own EXIF GPS position, pinned along the route at
   // where they were actually taken rather than clustered at their entry's
@@ -520,6 +525,7 @@ export default function JourneyDetailPage() {
           mapEntries={sidebarMapItems}
           trail={gpxTrail}
           photoMarkers={photoMarkers}
+          waypointMarkers={gpxWaypoints}
           dark={document.documentElement.classList.contains('dark')}
           readOnly={!canEditEntries}
           onEntryClick={(entry) => setViewingEntry(entry)}
@@ -942,6 +948,7 @@ export default function JourneyDetailPage() {
                   trail={gpxTrail}
                   photoMarkers={photoMarkers}
                   onPhotoMarkerClick={handlePhotoMarkerClick}
+                  waypointMarkers={gpxWaypoints}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}

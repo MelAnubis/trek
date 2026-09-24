@@ -20,9 +20,10 @@ interface MapEntry {
 
 interface Props {
   entries: MapEntry[]
-  trail?: { lat: number; lng: number }[]
+  trail?: { points: { lat: number; lng: number }[]; color?: string }[]
   photoMarkers?: { id: string; lat: number; lng: number; thumbUrl: string }[]
   onPhotoMarkerClick?: (id: string) => void
+  waypointMarkers?: { id: string; lat: number; lng: number; name: string }[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null

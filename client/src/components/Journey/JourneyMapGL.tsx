@@ -24,9 +24,10 @@ interface MapEntry {
 
 interface Props {
   entries: MapEntry[]
-  trail?: { lat: number; lng: number }[]
+  trail?: { points: { lat: number; lng: number }[]; color?: string }[]
   photoMarkers?: { id: string; lat: number; lng: number; thumbUrl: string }[]
   onPhotoMarkerClick?: (id: string) => void
+  waypointMarkers?: { id: string; lat: number; lng: number; name: string }[]
   height?: number
   dark?: boolean
   activeMarkerId?: string | null
@@ -192,15 +193,18 @@ function markerHtml(dayColor: string, dayLabel: number, highlighted: boolean): H
   return wrap
 }
 
-const EMPTY_TRAIL: { lat: number; lng: number }[] = []
+const EMPTY_TRAIL: { points: { lat: number; lng: number }[]; color?: string }[] = []
 const EMPTY_PHOTO_MARKERS: { id: string; lat: number; lng: number; thumbUrl: string }[] = []
+const EMPTY_WAYPOINT_MARKERS: { id: string; lat: number; lng: number; name: string }[] = []
+const DEFAULT_TRAIL_COLOR = '#6366f1'
 
 const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL(
-  { entries, trail, photoMarkers, onPhotoMarkerClick, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
+  { entries, trail, photoMarkers, onPhotoMarkerClick, waypointMarkers, height = 220, dark, activeMarkerId, onMarkerClick, fullScreen, paddingBottom },
   ref
 ) {
   const stableTrail = trail || EMPTY_TRAIL
   const stablePhotoMarkers = photoMarkers || EMPTY_PHOTO_MARKERS
+  const stableWaypointMarkers = waypointMarkers || EMPTY_WAYPOINT_MARKERS
   const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
   const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
@@ -333,8 +337,10 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
 
     const bounds = new mapboxgl.LngLatBounds()
     items.forEach(i => bounds.extend([i.lng, i.lat]))
-    stableTrail.forEach(p => bounds.extend([p.lng, p.lat]))
-    const hasPoints = items.length > 0 || stableTrail.length > 0
+    stableTrail.forEach(seg => seg.points.forEach(p => bounds.extend([p.lng, p.lat])))
+    stableWaypointMarkers.forEach(wp => bounds.extend([wp.lng, wp.lat]))
+    const totalTrailPoints = stableTrail.reduce((n, s) => n + s.points.length, 0)
+    const hasPoints = items.length > 0 || totalTrailPoints > 0
 
     const map = new mapboxgl.Map({
       container: containerRef.current,
@@ -359,19 +365,27 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         try { map.setTerrain(null) } catch { /* noop */ }
       }
 
-      // real GPX trail — the actual path walked, when there is one
-      if (stableTrail.length > 1) {
-        const trailCoords = stableTrail.map(p => [p.lng, p.lat])
+      // real GPX trail — the actual path walked, when there is one. One
+      // FeatureCollection with a per-feature `color` property (rather than
+      // one source/layer per segment) so a data-driven paint expression
+      // picks each segment's own transport-mode color in a single layer.
+      const trailSegments = stableTrail.filter(s => s.points.length > 1)
+      if (trailSegments.length > 0) {
+        const features: GeoJSON.Feature<GeoJSON.LineString>[] = trailSegments.map(seg => ({
+          type: 'Feature',
+          properties: { color: seg.color || DEFAULT_TRAIL_COLOR },
+          geometry: { type: 'LineString', coordinates: seg.points.map(p => [p.lng, p.lat]) },
+        }))
         map.addSource('journey-trail', {
           type: 'geojson',
-          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: trailCoords } as GeoJSON.LineString },
+          data: { type: 'FeatureCollection', features },
         })
         map.addLayer({
           id: 'journey-trail-line',
           type: 'line',
           source: 'journey-trail',
           paint: {
-            'line-color': '#6366f1',
+            'line-color': ['get', 'color'],
             'line-width': 3,
             'line-opacity': 0.4,
             'line-dasharray': [3, 2],
@@ -384,7 +398,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       // to draw instead (a real trail follows the actual path; a straight
       // line between entries would just cut across terrain/water on top
       // of it) — dashed line connecting entries in time order.
-      if (items.length > 1 && stableTrail.length <= 1) {
+      if (items.length > 1 && totalTrailPoints <= 1) {
         const coords = items.map(i => [i.lng, i.lat])
         if (map.getSource('journey-route')) (map.getSource('journey-route') as mapboxgl.GeoJSONSource).setData({
           type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } as GeoJSON.LineString,
@@ -439,6 +453,22 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         })
       })
 
+      // Named waypoints the GPX file itself carries — real trip data
+      // (unlike a photo's possibly-unrelated EXIF position), already
+      // folded into `bounds` above.
+      stableWaypointMarkers.forEach(wp => {
+        const el = document.createElement('div')
+        el.style.cssText = 'filter:drop-shadow(0 1px 3px rgba(0,0,0,0.35))'
+        el.innerHTML = `<svg width="20" height="20" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="10" cy="10" r="8" fill="#fff" stroke="#374151" stroke-width="1.5"/>
+          <path d="M7 5v10M7 5l6 2-6 2" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>`
+        new mapboxgl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([wp.lng, wp.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 12, closeButton: false }).setText(wp.name))
+          .addTo(map)
+      })
+
       // fit bounds to all points
       if (hasPoints) {
         const pb = paddingBottom || 50
@@ -464,7 +494,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [entries, stableTrail, stablePhotoMarkers, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stablePhotoMarkers, stableWaypointMarkers, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {

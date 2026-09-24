@@ -140,6 +140,36 @@ function computeElevationStats(
   };
 }
 
+// The small fixed set a track's color/icon is chosen from — everything else
+// a GPX file's <type> might say (free text, no real standard) collapses to
+// null rather than growing this list without a matching color anywhere.
+export const TRANSPORT_MODES = ['hiking', 'cycling', 'driving', 'walking', 'running'] as const;
+export type TransportMode = typeof TRANSPORT_MODES[number];
+
+// Ordered so a compound value like "mountain_biking" (contains both "mountain"
+// and "bik") matches cycling before hiking, and "trail_running" matches
+// running before hiking's own "trail" keyword.
+// \b doesn't fire around underscores (they count as \w), so "trail_running"
+// or "sports_car" would slip past a \b-anchored pattern — these match the
+// keyword as a plain substring instead.
+const TRANSPORT_MODE_PATTERNS: [TransportMode, RegExp][] = [
+  ['running', /run/],
+  ['cycling', /bik|cycl|mtb|bicycle/],
+  ['driving', /driv|\bcar\b|motor/],
+  ['walking', /walk|stroll/],
+  ['hiking', /hik|trek|trail|mountain|foot/],
+];
+
+/** A GPX <type> is free text with no real standard — best-effort keyword match, null for anything unrecognized. */
+export function detectTransportMode(raw: string | null | undefined): TransportMode | null {
+  if (!raw) return null;
+  const s = raw.toLowerCase();
+  for (const [mode, re] of TRANSPORT_MODE_PATTERNS) {
+    if (re.test(s)) return mode;
+  }
+  return null;
+}
+
 // ── Minimal GPX parser (segment-aware) ───────────────────────────────────────
 //
 // Fixes vs original implementation:
@@ -155,6 +185,7 @@ export function parseGpxBuffer(raw: string): {
   trackName: string;
   points: { lat: number; lng: number; ele: number | null; time: string | null }[];
   waypoints: { lat: number; lng: number; name: string }[];
+  transportMode: TransportMode | null;
   totalDistance: number;
   totalElevationGain: number;
   totalElevationLoss: number;
@@ -162,8 +193,17 @@ export function parseGpxBuffer(raw: string): {
   minElevation: number | null;
   durationSeconds: number | null;
 } {
-  const nameMatch = raw.match(/<name>([\s\S]*?)<\/name>/);
+  // Scoped to <trk>, not a bare /<name>/ — the GPX schema conventionally
+  // lists <wpt> elements BEFORE the <trk>, so an unscoped match would pick
+  // up the first waypoint's name as the track's own name on any file that
+  // carries named waypoints (exactly the files this feature cares about).
+  const nameMatch = raw.match(/<trk[^>]*>[\s\S]*?<name>([\s\S]*?)<\/name>/);
   const trackName = nameMatch ? nameMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : 'Track';
+  // <type> normally sits inside <trk>, alongside <name> — same tag search
+  // scope as trackName above, so this doesn't accidentally pick up a <type>
+  // belonging to a <wpt> or <rte> elsewhere in the file.
+  const typeMatch = raw.match(/<trk[^>]*>[\s\S]*?<type>([\s\S]*?)<\/type>/);
+  const transportMode = detectTransportMode(typeMatch ? typeMatch[1].replace(/<!\[CDATA\[|\]\]>/g, '').trim() : null);
 
   // Parse a block of GPX text into trkpt objects
   function parseTrkpts(block: string) {
@@ -252,6 +292,7 @@ export function parseGpxBuffer(raw: string): {
     trackName,
     points: allPoints,
     waypoints,
+    transportMode,
     totalDistance:      totalDistance / 1000,
     totalElevationGain: totalElevationGain,
     totalElevationLoss: totalElevationLoss,
@@ -493,7 +534,8 @@ export function saveTrack(
   points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
   waypoints: { lat: number; lng: number; name: string }[],
   sortOrder: number,
-  dayId?: number | null
+  dayId?: number | null,
+  transportMode?: TransportMode | null
 ): number {
   const stats = computeStats(points);
   const result = db.prepare(`
@@ -502,8 +544,8 @@ export function saveTrack(
        total_distance, total_elevation_gain, total_elevation_loss,
        max_elevation, min_elevation, point_count,
        start_lat, start_lng, end_lat, end_lng,
-       points_json, waypoints_json, sort_order, day_id)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+       points_json, waypoints_json, sort_order, day_id, transport_mode)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
   `).run(
     tripId, userId, trackName, origName,
     stats.totalDistance, stats.totalElevationGain, stats.totalElevationLoss,
@@ -511,7 +553,7 @@ export function saveTrack(
     points[0]?.lat, points[0]?.lng,
     points[points.length - 1]?.lat, points[points.length - 1]?.lng,
     JSON.stringify(points), JSON.stringify(waypoints),
-    sortOrder, dayId ?? null,
+    sortOrder, dayId ?? null, transportMode ?? null,
   );
   return Number(result.lastInsertRowid);
 }
@@ -524,7 +566,7 @@ router.get('/', authenticate, requireTripAccess, (req: Request, res: Response) =
       `SELECT id, trip_id, track_name, orig_name, total_distance, total_elevation_gain,
               total_elevation_loss, max_elevation, min_elevation, duration_seconds,
               point_count, start_lat, start_lng, end_lat, end_lng,
-              ibp, sort_order, is_active, day_id, created_at
+              ibp, sort_order, is_active, day_id, transport_mode, created_at
        FROM gpx_tracks WHERE trip_id = ? ORDER BY sort_order ASC, id ASC`
     ).all(tripId) as any[];
     res.json(tracks);
@@ -623,7 +665,7 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
       tripId, authReq.user.id,
       parsed.trackName, req.file.originalname,
       finalPoints, parsed.waypoints || [],
-      sortRow.n, dayId
+      sortRow.n, dayId, parsed.transportMode
     );
 
     // Intentar obtener IBP via API si hay clave configurada
@@ -1041,7 +1083,7 @@ router.post('/:trackId/split-by-days', authenticate, requireTripAccess, (req: Re
         tripId, authReq.user.id,
         day.title, null,
         slice, [],
-        i, day.dayId
+        i, day.dayId, track.transport_mode
       );
 
       searchFrom = endIdx;
@@ -1134,7 +1176,7 @@ router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Req
         if (day) name = day.title || `Día ${day.day_number || dayId}`;
       }
 
-      const newId = saveTrack(tripId, authReq.user.id, name, null, slice, [], i, dayId);
+      const newId = saveTrack(tripId, authReq.user.id, name, null, slice, [], i, dayId, track.transport_mode);
       const saved = db.prepare('SELECT * FROM gpx_tracks WHERE id = ?').get(newId) as any;
       created.push({ ...saved, points_json: undefined, waypoints_json: undefined });
     }

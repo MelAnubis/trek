@@ -2535,6 +2535,15 @@ function runMigrations(db: Database.Database): void {
       try { db.exec('ALTER TABLE trek_photos ADD COLUMN lat REAL'); } catch {}
       try { db.exec('ALTER TABLE trek_photos ADD COLUMN lng REAL'); } catch {}
     },
+    // Auto-detected from the GPX file's own <type> when present (see
+    // detectTransportMode) — lets the live map color a route by how it was
+    // traveled (hiking/cycling/driving/...) instead of one fixed color.
+    // Most real-world GPX exports omit <type> entirely, so this is often
+    // null; that's an accepted gap, not a bug — the route still renders,
+    // just in the default color.
+    () => {
+      try { db.exec('ALTER TABLE gpx_tracks ADD COLUMN transport_mode TEXT'); } catch {}
+    },
   ];
 
   if (currentVersion < migrations.length) {

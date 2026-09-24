@@ -14,6 +14,14 @@ export interface PdfGpxTrack {
   min_elevation: number | null  // m
   ibp?: number | null
   points: { lat: number; lng: number; ele: number | null; time?: string | null }[]
+  // Named <wpt> points the GPX file itself carries (waypoints), distinct
+  // from the track's own trkpt trail — see journeyGpx.ts's flattenWaypoints.
+  waypoints?: { lat: number; lng: number; name: string }[]
+  // Best-effort match of the GPX <type> against a small fixed set
+  // (hiking/cycling/driving/walking/running) — see the server's own
+  // detectTransportMode. Null for most real-world GPX exports, which omit
+  // <type> entirely; that's an accepted gap, not a bug.
+  transport_mode?: string | null
   // ISO date (YYYY-MM-DD) of the trip day this track is linked to, when known —
   // lets callers group a flat track list back into per-day pages.
   date?: string | null
