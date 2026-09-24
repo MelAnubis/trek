@@ -1,5 +1,6 @@
-// FE-JOURNEYGPX-001
-import { fetchJourneyGpxTracks } from './journeyGpx'
+// FE-JOURNEYGPX-001 to FE-JOURNEYGPX-003
+import { fetchJourneyGpxTracks, flattenGpxTrail } from './journeyGpx'
+import type { PdfGpxTrack } from '../PDF/gpxDrawing'
 
 describe('fetchJourneyGpxTracks', () => {
   const originalFetch = global.fetch
@@ -39,5 +40,29 @@ describe('fetchJourneyGpxTracks', () => {
     expect(tracks).toHaveLength(1)
     expect(tracks[0].date).toBe('2026-09-08')
     expect(tracks[0].day_number).toBe(1)
+  })
+})
+
+function track(points: PdfGpxTrack['points']): PdfGpxTrack {
+  return {
+    id: 1, track_name: 'Stage', total_distance: 0, total_elevation_gain: 0,
+    total_elevation_loss: 0, max_elevation: null, min_elevation: null, points,
+  }
+}
+
+describe('flattenGpxTrail', () => {
+  it('FE-JOURNEYGPX-002: flattens every track\'s points, in order, into a plain lat/lng list', () => {
+    const tracks = [
+      track([{ lat: 1, lng: 2, ele: null }, { lat: 3, lng: 4, ele: null }]),
+      track([{ lat: 5, lng: 6, ele: null }]),
+    ]
+    expect(flattenGpxTrail(tracks)).toEqual([
+      { lat: 1, lng: 2 }, { lat: 3, lng: 4 }, { lat: 5, lng: 6 },
+    ])
+  })
+
+  it('FE-JOURNEYGPX-003: returns an empty list for no tracks or tracks with no points', () => {
+    expect(flattenGpxTrail([])).toEqual([])
+    expect(flattenGpxTrail([track([])])).toEqual([])
   })
 })

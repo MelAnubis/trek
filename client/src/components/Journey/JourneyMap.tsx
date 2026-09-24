@@ -203,17 +203,24 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
 
     const allCoords: L.LatLngTuple[] = []
 
+    // Kept so it can be redrawn once fitBounds (below) settles the map's
+    // real view — it's added here before that runs, while the container's
+    // on-screen size (and so the map's projection) may still be unsettled.
+    let trailLine: L.Polyline | null = null
     if (stableTrail.length > 1) {
       const coords = stableTrail.map(p => [p.lat, p.lng] as L.LatLngTuple)
-      L.polyline(coords, {
+      trailLine = L.polyline(coords, {
         color: '#6366f1', weight: 3, opacity: 0.4,
         dashArray: '6 4', lineCap: 'round',
       }).addTo(map)
       coords.forEach(c => allCoords.push(c))
     }
 
-    // route polyline — only in non-fullscreen (sidebar map) mode
-    if (!fullScreen && items.length > 1) {
+    // Straight pin-to-pin fallback — only when there's no real GPX trail to
+    // draw instead (a real trail follows the actual path; a straight line
+    // between entries would just cut across terrain/water on top of it),
+    // and only in non-fullscreen (sidebar map) mode.
+    if (!fullScreen && items.length > 1 && stableTrail.length <= 1) {
       const routeCoords = items.map(i => [i.lat, i.lng] as L.LatLngTuple)
       L.polyline(routeCoords, {
         color: dark ? '#71717A' : '#A1A1AA',
@@ -261,6 +268,7 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
         } else {
           map.setView([30, 0], 2)
         }
+        trailLine?.redraw()
       } catch {}
     })
 

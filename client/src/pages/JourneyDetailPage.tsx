@@ -30,7 +30,7 @@ import {
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
-import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
+import { fetchJourneyGpxTracks, flattenGpxTrail } from '../components/Journey/journeyGpx'
 import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
@@ -430,6 +430,11 @@ export default function JourneyDetailPage() {
     })
   }, [mapEntries, current?.entries])
 
+  // The real path walked, from the linked trips' own GPX tracks — fed to
+  // JourneyMap's `trail` prop so the live sidebar/mobile map draws the
+  // actual route instead of just a straight line between entry pins.
+  const gpxTrail = useMemo(() => flattenGpxTrail(gpxTracks), [gpxTracks])
+
   const locatedEntryIdsRef = useRef(new Set<string>())
   useEffect(() => {
     locatedEntryIdsRef.current = new Set(sidebarMapItems.map(m => m.id))
@@ -486,6 +491,7 @@ export default function JourneyDetailPage() {
         <MobileMapTimeline
           entries={timelineEntries}
           mapEntries={sidebarMapItems}
+          trail={gpxTrail}
           dark={document.documentElement.classList.contains('dark')}
           readOnly={!canEditEntries}
           onEntryClick={(entry) => setViewingEntry(entry)}
@@ -905,6 +911,7 @@ export default function JourneyDetailPage() {
                 <JourneyMap
                   ref={mapRef}
                   entries={sidebarMapItems as any}
+                  trail={gpxTrail}
                   height={9999}
                   activeMarkerId={activeEntryId}
                   onMarkerClick={handleMarkerClick}

@@ -53,3 +53,16 @@ export async function fetchJourneyGpxTracks(trips: { trip_id: number }[]): Promi
 
   return tracks
 }
+
+/**
+ * The real path walked, as a flat point list for JourneyMap's `trail` prop
+ * — same tracks the route/elevation cards and PDF export already draw,
+ * now also drawn live as an actual polyline instead of the map's straight
+ * pin-to-pin fallback line. Order matters here (it's a line, not a bag of
+ * points): tracks arrive from fetchJourneyGpxTracks already ordered by
+ * trip start_date then by each trip's own sort_order, which is
+ * chronological enough that flattening in place needs no extra sort.
+ */
+export function flattenGpxTrail(tracks: PdfGpxTrack[]): { lat: number; lng: number }[] {
+  return tracks.flatMap(t => t.points.map(p => ({ lat: p.lat, lng: p.lng })))
+}

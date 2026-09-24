@@ -353,8 +353,32 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         try { map.setTerrain(null) } catch { /* noop */ }
       }
 
-      // route trail — dashed line connecting entries in time order
-      if (items.length > 1) {
+      // real GPX trail — the actual path walked, when there is one
+      if (stableTrail.length > 1) {
+        const trailCoords = stableTrail.map(p => [p.lng, p.lat])
+        map.addSource('journey-trail', {
+          type: 'geojson',
+          data: { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: trailCoords } as GeoJSON.LineString },
+        })
+        map.addLayer({
+          id: 'journey-trail-line',
+          type: 'line',
+          source: 'journey-trail',
+          paint: {
+            'line-color': '#6366f1',
+            'line-width': 3,
+            'line-opacity': 0.4,
+            'line-dasharray': [3, 2],
+          },
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+        })
+      }
+
+      // Straight pin-to-pin fallback — only when there's no real GPX trail
+      // to draw instead (a real trail follows the actual path; a straight
+      // line between entries would just cut across terrain/water on top
+      // of it) — dashed line connecting entries in time order.
+      if (items.length > 1 && stableTrail.length <= 1) {
         const coords = items.map(i => [i.lng, i.lat])
         if (map.getSource('journey-route')) (map.getSource('journey-route') as mapboxgl.GeoJSONSource).setData({
           type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } as GeoJSON.LineString,
