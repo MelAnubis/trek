@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { BookDocument, BookRecord } from '../../types/book'
 import { journeyApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
+import { offlineDb } from '../../db/offlineDb'
 
 /**
  * Saving the book. Ported from liketrek/trek's
@@ -104,12 +105,26 @@ export function useBookStore(
     if (timer.current != null) { window.clearTimeout(timer.current); timer.current = null }
 
     journeyApi.getBook(journeyId)
-      .then((res: { book: BookRecord | null }) => {
+      .then(async (res: { book: BookRecord | null }) => {
         if (cancelled) return
         setRecord(res.book)
         version.current = res.book?.version ?? null
         synced.current = res.book?.document ?? null
         latest.current = res.book?.document ?? null
+
+        // An edit that failed to reach the server last time (offline, or the
+        // tab closed before reconnecting) is still sitting in IndexedDB —
+        // resume it rather than silently losing it. Its own baseVersion, not
+        // the one just fetched, is what the resumed save is checked
+        // against, so a real conflict (someone else saved in the meantime)
+        // still surfaces normally through the existing 409 path below.
+        const draft = await offlineDb.journeyBookDrafts.get(journeyId)
+        if (cancelled || !draft) return
+        latest.current = draft.document
+        lastTitle.current = draft.title
+        version.current = draft.baseVersion
+        pending.current = { document: draft.document, title: draft.title }
+        void write()
       })
       .catch(() => { /* A book that will not load is a book that gets created. */ })
       .finally(() => { if (!cancelled) setLoaded(true) })
@@ -134,6 +149,8 @@ export function useBookStore(
       version.current = res.book.version
       synced.current = next.document
       setState({ status: 'saved', at: Date.now() })
+      // Reached the server — any earlier failed attempt this replaces is moot.
+      void offlineDb.journeyBookDrafts.delete(journeyId)
     } catch (err) {
       // A 409 is not a failure, it is the other person — the current record
       // comes back in the body so the editor can offer to take their
@@ -149,6 +166,19 @@ export function useBookStore(
         // entire book before finding out none of it was ever saved.
         blocked.current = true
         setState({ status: 'readonly' })
+      } else if (!res) {
+        // No response at all — offline or unreachable, not a real rejection.
+        // Keep the edit in IndexedDB so a reload doesn't lose it. Deliberately
+        // NOT put back into `pending` here — the `finally` block below retries
+        // immediately whenever `pending` is set, which would hot-loop against
+        // a still-offline network. The 'online' listener effect is what
+        // actually retries this, once connectivity is back.
+        await offlineDb.journeyBookDrafts.put({
+          journeyId, document: next.document, title: next.title,
+          baseVersion: version.current, savedLocallyAt: Date.now(),
+        })
+        latest.current = next.document
+        setState({ status: 'error' })
       } else {
         setState({ status: 'error' })
       }
@@ -190,8 +220,11 @@ export function useBookStore(
     latest.current = current.document
     pending.current = null
     setState({ status: 'idle' })
+    // Their version wins outright — any locally-saved-but-unsent edit from
+    // before this conflict is superseded, not merely retried later.
+    void offlineDb.journeyBookDrafts.delete(journeyId)
     return current.document
-  }, [])
+  }, [journeyId])
 
   /** Keep going from here, on top of their version — rebases, does not merge. */
   const keepMine = useCallback((current: BookRecord) => {
@@ -235,6 +268,27 @@ export function useBookStore(
       removeListener(handler)
     }
   }, [journeyId])
+
+  /**
+   * Retry a locally-saved-but-unsent edit once connectivity comes back.
+   * Deliberately the only place that re-arms `pending` after a network
+   * failure — see write()'s catch block for why the failure path itself
+   * doesn't do this (it would retry in a tight loop while still offline).
+   */
+  useEffect(() => {
+    if (!Number.isFinite(journeyId)) return
+    const onOnline = () => {
+      if (blocked.current || inFlight.current) return
+      offlineDb.journeyBookDrafts.get(journeyId).then(draft => {
+        if (!draft) return
+        version.current = draft.baseVersion
+        pending.current = { document: draft.document, title: draft.title }
+        void write()
+      })
+    }
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [journeyId, write])
 
   useEffect(() => () => {
     if (timer.current != null) window.clearTimeout(timer.current)

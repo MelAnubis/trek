@@ -13,6 +13,7 @@ import Dexie from 'dexie';
 import {
   offlineDb,
   clearTripData,
+  clearJourneyData,
   clearAll,
   upsertTrip,
   upsertDays,
@@ -23,11 +24,14 @@ import {
   upsertReservations,
   upsertTripFiles,
   upsertSyncMeta,
+  upsertJourneyEntries,
   type QueuedMutation,
   type SyncMeta,
   type BlobCacheEntry,
+  type PendingBookEdit,
 } from '../../../src/db/offlineDb';
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile } from '../../../src/types';
+import { buildJourneyEntry } from '../../helpers/factories';
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
@@ -256,6 +260,65 @@ describe('offlineDb — clearTripData', () => {
     // Trip 2 intact
     expect(await offlineDb.trips.get(2)).toBeDefined();
     expect(await offlineDb.days.where('trip_id').equals(2).count()).toBe(1);
+  });
+});
+
+describe('offlineDb — journeyEntries', () => {
+  it('stores journal entries and retrieves by journey_id', async () => {
+    await upsertJourneyEntries([
+      buildJourneyEntry({ id: 10, journey_id: 1 }),
+      buildJourneyEntry({ id: 11, journey_id: 1 }),
+      buildJourneyEntry({ id: 12, journey_id: 2 }),
+    ]);
+    const entries = await offlineDb.journeyEntries.where('journey_id').equals(1).toArray();
+    expect(entries).toHaveLength(2);
+  });
+});
+
+describe('offlineDb — journeyBookDrafts', () => {
+  it('stores and retrieves one pending edit per journey, keyed by journeyId', async () => {
+    const draft: PendingBookEdit = {
+      journeyId: 1,
+      document: { version: 1, title: '', page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }, spreads: [] },
+      title: 'My Book',
+      baseVersion: 3,
+      savedLocallyAt: Date.now(),
+    };
+    await offlineDb.journeyBookDrafts.put(draft);
+
+    const stored = await offlineDb.journeyBookDrafts.get(1);
+    expect(stored).toBeDefined();
+    expect(stored!.title).toBe('My Book');
+    expect(stored!.baseVersion).toBe(3);
+
+    // put again for the same journey replaces, not adds
+    await offlineDb.journeyBookDrafts.put({ ...draft, title: 'Updated Book' });
+    expect(await offlineDb.journeyBookDrafts.count()).toBe(1);
+    expect((await offlineDb.journeyBookDrafts.get(1))!.title).toBe('Updated Book');
+  });
+});
+
+describe('offlineDb — clearJourneyData', () => {
+  it('removes entries, queued mutations, and a pending book draft for the given journey only', async () => {
+    await upsertJourneyEntries([buildJourneyEntry({ id: 10, journey_id: 1 }), buildJourneyEntry({ id: 20, journey_id: 2 })]);
+    await offlineDb.mutationQueue.bulkPut([
+      { id: 'm1', journeyId: 1, method: 'POST', url: '/journeys/1/entries', body: {}, createdAt: Date.now(), status: 'pending', attempts: 0, lastError: null },
+      { id: 'm2', journeyId: 2, method: 'POST', url: '/journeys/2/entries', body: {}, createdAt: Date.now(), status: 'pending', attempts: 0, lastError: null },
+    ]);
+    await offlineDb.journeyBookDrafts.put({
+      journeyId: 1, title: '', baseVersion: null, savedLocallyAt: Date.now(),
+      document: { version: 1, title: '', page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }, spreads: [] },
+    });
+
+    await clearJourneyData(1);
+
+    expect(await offlineDb.journeyEntries.where('journey_id').equals(1).count()).toBe(0);
+    expect(await offlineDb.mutationQueue.where('journeyId').equals(1).count()).toBe(0);
+    expect(await offlineDb.journeyBookDrafts.get(1)).toBeUndefined();
+
+    // Journey 2's data survives
+    expect(await offlineDb.journeyEntries.where('journey_id').equals(2).count()).toBe(1);
+    expect(await offlineDb.mutationQueue.where('journeyId').equals(2).count()).toBe(1);
   });
 });
 

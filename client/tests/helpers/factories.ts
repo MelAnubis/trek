@@ -21,6 +21,7 @@ import type {
   Settings,
   AppConfig,
 } from '../../src/types';
+import type { JourneyEntry } from '../../src/store/journeyStore';
 
 // ── Counters ──────────────────────────────────────────────────────────────────
 
@@ -290,6 +291,35 @@ export function buildAppConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     oidc_login: true,
     oidc_registration: true,
     env_override_oidc_only: false,
+    ...overrides,
+  };
+}
+
+// ── JourneyEntry (local interface, not in types.ts) ────────────────────────────
+
+export function buildJourneyEntry(overrides: Partial<JourneyEntry> = {}): JourneyEntry {
+  const id = next();
+  return {
+    id,
+    journey_id: 1,
+    author_id: 1,
+    type: 'entry',
+    title: `Entry ${id}`,
+    story: null,
+    entry_date: '2026-01-15',
+    entry_time: null,
+    location_name: null,
+    location_lat: null,
+    location_lng: null,
+    mood: null,
+    weather: null,
+    tags: [],
+    pros_cons: null,
+    visibility: 'private',
+    sort_order: 0,
+    photos: [],
+    created_at: 1735689600000,
+    updated_at: 1735689600000,
     ...overrides,
   };
 }

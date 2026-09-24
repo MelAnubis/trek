@@ -248,6 +248,54 @@ describe('mutationQueue.pending', () => {
   });
 });
 
+describe('mutationQueue.flush — journeyEntries resource', () => {
+  it('applies the canonical server entry and removes the temp Dexie row on CREATE flush', async () => {
+    const tempId = -54321;
+    const entry = { id: 77, journey_id: 1, title: 'Arrived', entry_date: '2026-01-15' };
+    await offlineDb.journeyEntries.put({ ...entry, id: tempId } as any);
+
+    const id = generateUUID();
+    await mutationQueue.enqueue({
+      id, journeyId: 1, method: 'POST', url: '/journeys/1/entries',
+      body: { title: 'Arrived' }, resource: 'journeyEntries', tempId,
+    });
+
+    server.use(
+      http.post('/api/journeys/1/entries', () => HttpResponse.json(entry)),
+    );
+
+    await mutationQueue.flush();
+
+    expect(await offlineDb.journeyEntries.get(tempId)).toBeUndefined();
+    const applied = await offlineDb.journeyEntries.get(77);
+    expect(applied).toBeDefined();
+    expect((applied as any).title).toBe('Arrived');
+  });
+});
+
+describe('mutationQueue.pendingForJourney', () => {
+  it('returns only pending/syncing mutations scoped to the given journeyId', async () => {
+    const id1 = generateUUID();
+    const id2 = generateUUID();
+    await mutationQueue.enqueue({ id: id1, journeyId: 1, method: 'POST', url: '/journeys/1/entries', body: {} });
+    await mutationQueue.enqueue({ id: id2, journeyId: 2, method: 'POST', url: '/journeys/2/entries', body: {} });
+
+    const journey1 = await mutationQueue.pendingForJourney(1);
+    expect(journey1).toHaveLength(1);
+    expect(journey1[0].id).toBe(id1);
+  });
+
+  it('does not mix trip-scoped and journey-scoped mutations', async () => {
+    await mutationQueue.enqueue(makeMutation({ id: generateUUID(), tripId: 1, journeyId: undefined }));
+    const id = generateUUID();
+    await mutationQueue.enqueue({ id, journeyId: 1, method: 'POST', url: '/journeys/1/entries', body: {} });
+
+    const journey1 = await mutationQueue.pendingForJourney(1);
+    expect(journey1).toHaveLength(1);
+    expect(journey1[0].id).toBe(id);
+  });
+});
+
 describe('mutationQueue.pendingCount', () => {
   it('returns zero for empty queue', async () => {
     expect(await mutationQueue.pendingCount()).toBe(0);

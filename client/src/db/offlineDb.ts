@@ -1,5 +1,7 @@
 import Dexie, { type Table } from 'dexie';
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
+import type { JourneyEntry } from '../store/journeyStore';
+import type { BookDocument } from '../types/book';
 
 /** TripMember enriched with tripId so we can index by trip. */
 export interface CachedTripMember extends TripMember {
@@ -13,7 +15,11 @@ export type MutationStatus = 'pending' | 'syncing' | 'failed';
 export interface QueuedMutation {
   /** UUID — also used as X-Idempotency-Key sent to the server */
   id: string;
-  tripId: number;
+  /** Trip-scoped mutations (places, packing, …). Exactly one of tripId/journeyId is set. */
+  tripId?: number;
+  /** Journey-scoped mutations (journal entries, photo links) — a journey has its own id
+   *  namespace, separate from (and not necessarily linked 1:1 to) a trip. */
+  journeyId?: number;
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   url: string;
   body: unknown;
@@ -46,6 +52,25 @@ export interface BlobCacheEntry {
   cachedAt: number;
 }
 
+/**
+ * A Studio book edit that failed to reach the server because the client was
+ * offline, kept so it survives a reload — one row per journey (a book is
+ * edited by whoever has Studio open, not concurrently queued like a list
+ * resource). Not part of the generic mutationQueue: a book save is a single
+ * versioned PUT per journey with its own conflict-resolution flow
+ * (useBookStore.ts's acceptTheirs/keepMine), not a FIFO-replayable list
+ * mutation, so this is a narrower "don't lose local work" cache rather than
+ * a queue entry.
+ */
+export interface PendingBookEdit {
+  journeyId: number;
+  document: BookDocument;
+  title: string;
+  /** The version this edit was made against, so a resume can still detect a conflict. */
+  baseVersion: number | null;
+  savedLocallyAt: number;
+}
+
 // ── Dexie class ────────────────────────────────────────────────────────────────
 
 class TrekOfflineDb extends Dexie {
@@ -64,6 +89,8 @@ class TrekOfflineDb extends Dexie {
   mutationQueue!: Table<QueuedMutation, string>;
   syncMeta!: Table<SyncMeta, number>;
   blobCache!: Table<BlobCacheEntry, string>;
+  journeyEntries!: Table<JourneyEntry, number>;
+  journeyBookDrafts!: Table<PendingBookEdit, number>;
 
   constructor() {
     super('trek-offline');
@@ -87,6 +114,12 @@ class TrekOfflineDb extends Dexie {
       tripMembers:    '[tripId+id], tripId',
       tags:           'id',
       categories:     'id',
+    });
+
+    this.version(3).stores({
+      mutationQueue:     'id, tripId, journeyId, status, createdAt',
+      journeyEntries:    'id, journey_id',
+      journeyBookDrafts: 'journeyId',
     });
   }
 }
@@ -146,6 +179,19 @@ export async function upsertCategories(categories: Category[]): Promise<void> {
 
 export async function upsertSyncMeta(meta: SyncMeta): Promise<void> {
   await offlineDb.syncMeta.put(meta);
+}
+
+export async function upsertJourneyEntries(entries: JourneyEntry[]): Promise<void> {
+  await offlineDb.journeyEntries.bulkPut(entries);
+}
+
+/** Delete all cached entries for one journey (e.g. leaving the journey page, or logout). */
+export async function clearJourneyData(journeyId: number): Promise<void> {
+  await offlineDb.transaction('rw', [offlineDb.journeyEntries, offlineDb.mutationQueue, offlineDb.journeyBookDrafts], async () => {
+    await offlineDb.journeyEntries.where('journey_id').equals(journeyId).delete();
+    await offlineDb.mutationQueue.where('journeyId').equals(journeyId).delete();
+    await offlineDb.journeyBookDrafts.delete(journeyId);
+  });
 }
 
 // ── Eviction / cleanup ────────────────────────────────────────────────────────

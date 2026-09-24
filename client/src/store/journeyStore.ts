@@ -1,6 +1,8 @@
 import { create } from 'zustand'
 import { journeyApi } from '../api/client'
 import { uploadFilesResilient, type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
+import { journeyEntryRepo } from '../repo/journeyEntryRepo'
+import { journeyPhotoRepo } from '../repo/journeyPhotoRepo'
 
 export interface Journey {
   id: number
@@ -193,7 +195,7 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   createEntry: async (journeyId, data) => {
-    const entry = await journeyApi.createEntry(journeyId, data)
+    const entry = await journeyEntryRepo.create(journeyId, data)
     entry.photos = entry.photos || []
     set(s => {
       if (s.current?.id !== journeyId) return s
@@ -203,7 +205,9 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   updateEntry: async (entryId, data) => {
-    const updated = await journeyApi.updateEntry(entryId, data)
+    const journeyId = get().current?.id
+    if (journeyId == null) return
+    const updated = await journeyEntryRepo.update(journeyId, entryId, data)
     set(s => {
       if (!s.current) return s
       return { current: { ...s.current, entries: s.current.entries.map(e => e.id === entryId ? { ...e, ...updated } : e) } }
@@ -211,7 +215,9 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   deleteEntry: async (entryId) => {
-    await journeyApi.deleteEntry(entryId)
+    const journeyId = get().current?.id
+    if (journeyId == null) return
+    await journeyEntryRepo.delete(journeyId, entryId)
     set(s => {
       if (!s.current) return s
       return { current: { ...s.current, entries: s.current.entries.filter(e => e.id !== entryId) } }
@@ -291,7 +297,9 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   unlinkPhoto: async (entryId, journeyPhotoId) => {
-    await journeyApi.unlinkPhoto(entryId, journeyPhotoId)
+    const journeyId = get().current?.id
+    if (journeyId == null) return
+    await journeyPhotoRepo.unlinkPhoto(entryId, journeyId, journeyPhotoId)
     set(s => {
       if (!s.current) return s
       return {
@@ -306,7 +314,7 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   deleteGalleryPhoto: async (journeyId, journeyPhotoId) => {
-    await journeyApi.deleteGalleryPhoto(journeyId, journeyPhotoId)
+    await journeyPhotoRepo.deleteGalleryPhoto(journeyId, journeyPhotoId)
     set(s => {
       if (!s.current) return s
       return {
@@ -323,7 +331,9 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
   },
 
   deletePhoto: async (photoId) => {
-    await journeyApi.deletePhoto(photoId)
+    const journeyId = get().current?.id
+    if (journeyId == null) return
+    await journeyPhotoRepo.deletePhoto(journeyId, photoId)
     set(s => {
       if (!s.current) return s
       return {

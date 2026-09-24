@@ -5,6 +5,7 @@ import { type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
 import { createPortal } from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
+import { journeyPhotoRepo } from '../repo/journeyPhotoRepo'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n'
@@ -2549,7 +2550,7 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
       // link gallery photos that were picked before save
       if (pendingLinkIds.length > 0 && entryId) {
         for (const photoId of pendingLinkIds) {
-          try { await journeyApi.linkPhoto(entryId, photoId) } catch {}
+          try { await journeyPhotoRepo.linkPhoto(entryId, journeyId, photoId) } catch {}
         }
       }
       onDone()
@@ -2687,8 +2688,10 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
                             onClick={async () => {
                               if (entry.id > 0) {
                                 try {
-                                  const linked = await journeyApi.linkPhoto(entry.id, gp.id)
-                                  if (linked) setPhotos(prev => [...prev, linked])
+                                  const linked = await journeyPhotoRepo.linkPhoto(entry.id, journeyId, gp.id)
+                                  // Offline: the repo has nothing back from the server yet —
+                                  // show the gallery photo itself until the queued link syncs.
+                                  setPhotos(prev => [...prev, (linked as JourneyPhoto) ?? gp])
                                 } catch {}
                               } else {
                                 setPendingLinkIds(prev => [...prev, gp.id])

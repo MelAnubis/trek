@@ -13,12 +13,13 @@ import type { Table } from 'dexie'
 // Map Dexie table names used in `resource` field → actual Dexie tables.
 function getTable(resource: string): Table | undefined {
   const map: Record<string, Table> = {
-    places:       offlineDb.places,
-    packingItems: offlineDb.packingItems,
-    todoItems:    offlineDb.todoItems,
-    budgetItems:  offlineDb.budgetItems,
-    reservations: offlineDb.reservations,
-    tripFiles:    offlineDb.tripFiles,
+    places:         offlineDb.places,
+    packingItems:   offlineDb.packingItems,
+    todoItems:      offlineDb.todoItems,
+    budgetItems:    offlineDb.budgetItems,
+    reservations:   offlineDb.reservations,
+    tripFiles:      offlineDb.tripFiles,
+    journeyEntries: offlineDb.journeyEntries,
   }
   return map[resource]
 }
@@ -91,9 +92,15 @@ export const mutationQueue = {
           if (mutation.method !== 'DELETE' && mutation.resource) {
             const table = getTable(mutation.resource)
             if (table && response.data && typeof response.data === 'object') {
-              // Server returns { place: {...} } or { item: {...} } — grab first value
-              const values = Object.values(response.data as Record<string, unknown>)
-              const entity = values[0]
+              // Most of this app's REST responses wrap the entity, e.g.
+              // { place: {...} } or { item: {...} } — grab the first value.
+              // journeyApi's entry routes return the entry itself, unwrapped
+              // (no { entry: {...} } envelope), so an 'id' directly on the
+              // response body is checked first rather than always digging
+              // into Object.values()[0], which would grab a scalar field
+              // instead of the entity for a raw response.
+              const raw = response.data as Record<string, unknown>
+              const entity = ('id' in raw) ? raw : Object.values(raw)[0]
               if (entity && typeof entity === 'object' && 'id' in entity) {
                 // Remove temp optimistic entry if id changed (CREATE case)
                 if (mutation.tempId !== undefined && mutation.tempId !== (entity as { id: number }).id) {
@@ -149,6 +156,15 @@ export const mutationQueue = {
     return offlineDb.mutationQueue
       .where('status')
       .anyOf(['pending', 'syncing'])
+      .toArray()
+  },
+
+  /** Same as `pending`, filtered by journeyId instead of tripId — see QueuedMutation's own comment on why journeys get a separate scope key. */
+  async pendingForJourney(journeyId: number): Promise<QueuedMutation[]> {
+    return offlineDb.mutationQueue
+      .where('journeyId')
+      .equals(journeyId)
+      .filter(m => m.status === 'pending' || m.status === 'syncing')
       .toArray()
   },
 
