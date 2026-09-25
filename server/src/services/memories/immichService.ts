@@ -185,7 +185,9 @@ export async function searchPhotos(
     const items = data.assets?.items || [];
     const assets = items.map((a: any) => ({
       id: a.id,
-      takenAt: a.fileCreatedAt || a.createdAt,
+      // The asset's own EXIF capture date, not fileCreatedAt/createdAt —
+      // see getAlbumPhotos() below for why this order matters.
+      takenAt: a.exifInfo?.dateTimeOriginal || a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
       lat: a.exifInfo?.latitude ?? null,
@@ -220,7 +222,7 @@ export async function getAssetInfo(
     return {
       data: {
         id: asset.id,
-        takenAt: asset.fileCreatedAt || asset.createdAt,
+        takenAt: asset.exifInfo?.dateTimeOriginal || asset.fileCreatedAt || asset.createdAt,
         width: asset.exifInfo?.exifImageWidth || null,
         height: asset.exifInfo?.exifImageHeight || null,
         camera: asset.exifInfo?.make && asset.exifInfo?.model ? `${asset.exifInfo.make} ${asset.exifInfo.model}` : null,
@@ -379,7 +381,14 @@ export async function getAlbumPhotos(
     if (result.error) return { error: result.error, status: result.status };
     const assets = (result.items || []).map((a: any) => ({
       id: a.id,
-      takenAt: a.fileCreatedAt || a.createdAt,
+      // exifInfo.dateTimeOriginal is the photo's own capture date. Immich's
+      // fileCreatedAt/createdAt can both be years off for any asset that was
+      // bulk-imported/synced into the library well after it was actually
+      // taken — every such photo lands on the same import date instead of
+      // its real one, which stretches a clustered import's whole date range
+      // out to the MAX_TRIP_DAYS cap (see importJourneyFromAlbum's own
+      // trip creation) for one bad timestamp among otherwise-fine photos.
+      takenAt: a.exifInfo?.dateTimeOriginal || a.fileCreatedAt || a.createdAt,
       city: a.exifInfo?.city || null,
       country: a.exifInfo?.country || null,
       // Already present on the same /search/metadata asset DTO getAssetInfo()
