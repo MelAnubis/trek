@@ -1,4 +1,4 @@
-// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-027
+// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-030
 import { render } from '@testing-library/react'
 import { ElementView } from './SpreadView'
 import { formatMetricValue } from './TravelElements'
@@ -138,6 +138,21 @@ describe('BadgeView (via ElementView)', () => {
   it('FE-TRAVELELEMENTS-010: an empty sub renders no extra empty line', () => {
     const { container } = render(<ElementView el={badgeEl({ sub: '' })} big />)
     expect(container.textContent).toBe('13')
+  })
+
+  it('FE-TRAVELELEMENTS-028: a non-flag variant (e.g. "date") renders no flag glyph <svg>', () => {
+    const { container } = render(<ElementView el={badgeEl({ variant: 'date' })} big />)
+    expect(container.querySelector('svg')).toBeNull()
+  })
+
+  it.each(['flag', 'country'] as const)('FE-TRAVELELEMENTS-029: variant "%s" with a code renders a geometric flag glyph <svg>', variant => {
+    const { container } = render(<ElementView el={badgeEl({ variant, code: 'FR' })} big />)
+    expect(container.querySelector('svg')).not.toBeNull()
+  })
+
+  it('FE-TRAVELELEMENTS-030: a flag/country variant with no code renders the silhouette fallback rather than nothing', () => {
+    const { container } = render(<ElementView el={badgeEl({ variant: 'flag', code: null })} big />)
+    expect(container.querySelector('svg')).not.toBeNull()
   })
 })
 

@@ -1,4 +1,4 @@
-// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-029
+// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-032
 import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioInspector } from './StudioInspector'
 import { useStudioStore } from '../../store/studioStore'
@@ -17,8 +17,8 @@ function statsEl(): BookStatsElement {
 function placesEl(): BookPlacesElement {
   return { ...base, ...typeset, id: 'places-1', kind: 'places', places: [{ name: 'Iceland' }], layout: 'list', align: 'center' }
 }
-function badgeEl(): BookBadgeElement {
-  return { ...base, ...typeset, id: 'badge-1', kind: 'badge', variant: 'date', text: '13', sub: '', code: null, style: 'plain' }
+function badgeEl(overrides: Partial<BookBadgeElement> = {}): BookBadgeElement {
+  return { ...base, ...typeset, id: 'badge-1', kind: 'badge', variant: 'date', text: '13', sub: '', code: null, style: 'plain', ...overrides }
 }
 function iconEl(): BookIconElement {
   return { ...base, id: 'icon-1', kind: 'icon', name: 'Compass', color: '#111827', lineWidth: 2 }
@@ -147,6 +147,31 @@ describe('StudioInspector — travel element fields', () => {
     render(<StudioInspector spreadIndex={1} />)
     fireEvent.change(screen.getByDisplayValue('plain'), { target: { value: 'chip' } })
     expect((selectedEl() as BookBadgeElement).style).toBe('chip')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-030: a "date" badge shows no Country code field', () => {
+    useStudioStore.getState().load(doc([badgeEl()]))
+    useStudioStore.getState().select(['badge-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    expect(screen.queryByPlaceholderText('e.g. FR, JP, BR')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-031: switching a badge to "flag" reveals the Country code field, and typing in it uppercases and stores the code', () => {
+    useStudioStore.getState().load(doc([badgeEl()]))
+    useStudioStore.getState().select(['badge-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByDisplayValue('date'), { target: { value: 'flag' } })
+    const input = screen.getByPlaceholderText('e.g. FR, JP, BR')
+    fireEvent.change(input, { target: { value: 'fr' } })
+    expect((selectedEl() as BookBadgeElement).code).toBe('FR')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-032: clearing the Country code field stores null, not an empty string', () => {
+    useStudioStore.getState().load(doc([badgeEl({ variant: 'country', code: 'JP' })]))
+    useStudioStore.getState().select(['badge-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByPlaceholderText('e.g. FR, JP, BR'), { target: { value: '' } })
+    expect((selectedEl() as BookBadgeElement).code).toBeNull()
   })
 
   it('FE-COMP-STUDIOINSPECTOR-010: editing an icon element\'s name updates the store', () => {

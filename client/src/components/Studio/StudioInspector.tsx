@@ -441,6 +441,16 @@ function BadgeFields({ el, patch }: { el: BookBadgeElement; patch: Patch }) {
         <span style={LABEL}>Sub-line</span>
         <input style={INPUT} value={el.sub} onChange={e => patch({ sub: e.target.value })} />
       </div>
+      {(el.variant === 'flag' || el.variant === 'country') && (
+        <div style={FIELD}>
+          <span style={LABEL}>Country code</span>
+          <input style={INPUT} placeholder="e.g. FR, JP, BR" value={el.code ?? ''} maxLength={24}
+            onChange={e => patch({ code: e.target.value.trim() ? e.target.value.toUpperCase() : null })} />
+          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '4px 0 0' }}>
+            Picks a distinct geometric flag glyph — not the real national flag, this app has no flag artwork.
+          </p>
+        </div>
+      )}
       <div style={FIELD}>
         <span style={LABEL}>Style</span>
         <select style={INPUT} value={el.style} onChange={e => patch({ style: e.target.value as BookBadgeElement['style'] })}>

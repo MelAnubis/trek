@@ -4,6 +4,7 @@ import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, 
 import type { BookAccommodationElement, BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { frameStyle } from './SpreadView'
+import { FlagGlyph, FlagSilhouette } from './flagGlyphs'
 
 /**
  * The travel-specific element renderers — map, stats, countries, badge,
@@ -164,12 +165,21 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
   const textSize = side * 0.28
   const subSize = textSize * 0.45
   const font = fontStack(el.font)
+  const isFlag = el.variant === 'flag' || el.variant === 'country'
+  const glyphSize = `${side * (el.style === 'stacked' ? 0.42 : 0.32)}mm`
 
-  const stack: CSSProperties = { ...frameStyle(el), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box' }
+  const stack: CSSProperties = { ...frameStyle(el), display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxSizing: 'border-box', gap: isFlag ? '1.5mm' : 0 }
+
+  const glyph = (chipContrast?: boolean) => {
+    if (!isFlag) return null
+    if (!el.code) return <FlagSilhouette color={chipContrast ? '#ffffff' : el.accent} size={glyphSize} />
+    return <FlagGlyph code={el.code} primary={chipContrast ? '#ffffff' : el.accent} secondary={chipContrast ? el.accent : el.color} size={glyphSize} />
+  }
 
   if (el.style === 'chip') {
     return (
       <div style={{ ...stack, background: el.accent, borderRadius: '999mm', padding: '2mm 4mm' }}>
+        {glyph(true)}
         <span style={{ fontFamily: font, fontSize: `${textSize}mm`, fontWeight: 700, color: '#ffffff', lineHeight: 1 }}>{el.text}</span>
         {el.sub && <span style={{ fontFamily: font, fontSize: `${subSize}mm`, color: '#ffffff', opacity: 0.85, marginTop: '1mm' }}>{el.sub}</span>}
       </div>
@@ -178,6 +188,7 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
   if (el.style === 'outline') {
     return (
       <div style={{ ...stack, border: `0.3mm solid ${el.accent}`, borderRadius: '2mm' }}>
+        {glyph()}
         <span style={{ fontFamily: font, fontSize: `${textSize}mm`, fontWeight: 700, color: el.accent, lineHeight: 1 }}>{el.text}</span>
         {el.sub && <span style={{ fontFamily: font, fontSize: `${subSize}mm`, color: el.color, marginTop: '1mm' }}>{el.sub}</span>}
       </div>
@@ -186,6 +197,7 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
   if (el.style === 'stacked') {
     return (
       <div style={stack}>
+        {glyph()}
         <span style={{ fontFamily: font, fontSize: `${textSize * 1.3}mm`, fontWeight: 700, color: el.accent, lineHeight: 1 }}>{el.text}</span>
         {el.sub && (
           <span style={{ fontFamily: font, fontSize: `${subSize}mm`, color: el.color, letterSpacing: '0.08em', textTransform: 'uppercase', marginTop: '1mm' }}>
@@ -198,6 +210,7 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
   // plain
   return (
     <div style={stack}>
+      {glyph()}
       <span style={{ fontFamily: font, fontSize: `${textSize}mm`, fontWeight: 600, color: el.color, lineHeight: 1 }}>{el.text}</span>
       {el.sub && <span style={{ fontFamily: font, fontSize: `${subSize}mm`, color: el.color, opacity: 0.6, marginTop: '0.6mm' }}>{el.sub}</span>}
     </div>
