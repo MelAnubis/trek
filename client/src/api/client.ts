@@ -505,11 +505,12 @@ export const immichApi = {
   //
   // Always sent as multipart/form-data (even with zero gpxFiles) so the
   // server has one body-parsing path rather than switching on Content-Type.
-  importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number; gpxFiles?: File[] }) => {
+  importJourney: (albumId: string, opts?: { title?: string; maxGapMinutes?: number; maxRadiusMeters?: number; gpxFiles?: File[]; tripType?: 'general' | 'cycling' | 'trekking' }) => {
     const formData = new FormData()
     if (opts?.title) formData.append('title', opts.title)
     if (opts?.maxGapMinutes != null) formData.append('maxGapMinutes', String(opts.maxGapMinutes))
     if (opts?.maxRadiusMeters != null) formData.append('maxRadiusMeters', String(opts.maxRadiusMeters))
+    if (opts?.tripType) formData.append('tripType', opts.tripType)
     for (const f of opts?.gpxFiles || []) formData.append('gpxFiles', f)
     return apiClient.post(`/integrations/memories/immich/albums/${albumId}/import-journey`, formData, {
       headers: { 'Content-Type': undefined as any },

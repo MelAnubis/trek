@@ -66,6 +66,13 @@ export default function JourneyPage() {
   // than photo EXIF, and can cover days no geotagged photo does.
   const [gpxFiles, setGpxFiles] = useState<File[]>([])
   const gpxFileRef = useRef<HTMLInputElement>(null)
+  // The imported Trip is created via tripService.createTrip, which defaults
+  // trip_type to 'general' when none is given — and TripPlannerPage's own
+  // GPX/Elevation tabs only render for trip_type 'cycling'/'trekking' (see
+  // isCycling there). Left at 'general', an imported trip's GPX tab (and
+  // any GPX later attached to it in the Planner) would be invisible even
+  // though this import may already have saved real gpx_tracks rows for it.
+  const [immichTripType, setImmichTripType] = useState<'general' | 'cycling' | 'trekking'>('general')
 
   // suggestion
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -103,6 +110,7 @@ export default function JourneyPage() {
     setSelectedAlbumId(null)
     setShowAdvanced(false)
     setGpxFiles([])
+    setImmichTripType('general')
     if (gpxFileRef.current) gpxFileRef.current.value = ''
     const initial = new Set<number>()
     if (preSelectedTripId) initial.add(preSelectedTripId)
@@ -139,6 +147,7 @@ export default function JourneyPage() {
         maxGapMinutes: gapMinutes,
         maxRadiusMeters: radiusMeters,
         gpxFiles,
+        tripType: immichTripType,
       })
       setShowCreate(false)
       // Only some of the album's days made it in — most likely because most
@@ -596,6 +605,28 @@ export default function JourneyPage() {
                     </div>
                   )
                 })}
+              </div>
+
+              <div className="mt-4">
+                <label className="text-[10px] font-semibold tracking-[0.1em] uppercase text-zinc-500 block mb-1.5">{t('journey.frontpage.tripType')}</label>
+                <p className="text-[12px] text-zinc-500 mb-2">{t('journey.frontpage.tripTypeHint')}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'general', label: t('journey.frontpage.tripTypeGeneral') },
+                    { value: 'cycling', label: t('journey.frontpage.tripTypeCycling') },
+                    { value: 'trekking', label: t('journey.frontpage.tripTypeTrekking') },
+                  ] as const).map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setImmichTripType(opt.value)}
+                      className={`px-3 py-2 rounded-lg text-[12px] font-medium text-left border ${
+                        immichTripType === opt.value
+                          ? 'border-zinc-900 dark:border-zinc-200 bg-zinc-50 dark:bg-zinc-800 text-zinc-900 dark:text-white'
+                          : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:border-zinc-400 dark:hover:border-zinc-500'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-4">

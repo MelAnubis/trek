@@ -129,6 +129,16 @@ export interface GpxUpload {
 export interface ImportJourneyOptions extends ClusterOptions {
   title?: string;
   gpxFiles?: GpxUpload[];
+  /**
+   * Forwarded to tripService.createTrip — left unset, the backing Trip
+   * defaults to 'general', which hides the GPX/Elevation tabs in Trip
+   * Planner entirely (see TripPlannerPage.tsx's own isCycling gate), even
+   * though this import may already have saved real gpx_tracks rows for it
+   * (from an attached GPX file or from the photos' own EXIF). Picking
+   * 'cycling'/'trekking' up front is what makes those tracks visible and
+   * lets the traveler attach another one afterward.
+   */
+  tripType?: 'general' | 'cycling' | 'trekking';
 }
 
 export interface ImportJourneyResult {
@@ -212,7 +222,7 @@ export async function importJourneyFromAlbum(
 
   const dates = stops.map(s => s.date).sort();
   const title = opts.title?.trim() || album.albumName || 'Immich import';
-  const { tripId } = createTrip(userId, { title, start_date: dates[0], end_date: dates[dates.length - 1] });
+  const { tripId } = createTrip(userId, { title, start_date: dates[0], end_date: dates[dates.length - 1], trip_type: opts.tripType });
 
   // This is imported travel that already happened — mark the backing trip
   // done/archived immediately rather than leaving it to look "upcoming".

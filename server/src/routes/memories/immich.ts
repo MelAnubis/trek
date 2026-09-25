@@ -162,7 +162,7 @@ router.post(
   async (req: Request, res: Response) => {
     const authReq = req as AuthRequest;
     // multipart/form-data — every text field arrives as a string, unlike a JSON body.
-    const { title, maxGapMinutes, maxRadiusMeters } = req.body || {};
+    const { title, maxGapMinutes, maxRadiusMeters, tripType } = req.body || {};
     const files = (req.files as Express.Multer.File[] | undefined) || [];
     try {
       const result = await importJourneyFromAlbum(authReq.user.id, req.params.albumId, {
@@ -170,6 +170,7 @@ router.post(
         maxGapMinutes: maxGapMinutes ? Number(maxGapMinutes) : undefined,
         maxRadiusMeters: maxRadiusMeters ? Number(maxRadiusMeters) : undefined,
         gpxFiles: files.map(f => ({ raw: f.buffer.toString('utf8'), originalName: f.originalname })),
+        tripType: ['general', 'cycling', 'trekking'].includes(tripType) ? tripType : undefined,
       });
       res.json(result);
     } catch (err: any) {
