@@ -230,6 +230,36 @@ describe('importJourneyFromAlbum', () => {
     expect(entryPhotoCounts).toEqual([2, 2]);
   });
 
+  it('IMMICHIMPORT-008b: burst-mode photos seconds apart at the same stop are thinned before linking to the entry, but all still land in the gallery', async () => {
+    const { user } = createUser(testDb);
+    mockListAlbums.mockResolvedValue({
+      albums: [{ id: 'album-1', albumName: 'Burst Test', assetCount: 5, startDate: '2026-06-01', endDate: '2026-06-01' }],
+    });
+    mockGetAlbumPhotos.mockResolvedValue({
+      assets: [
+        { id: 'a1', takenAt: '2026-06-01T10:00:00.000Z', lat: 48.8584, lng: 2.2945 },
+        { id: 'a2', takenAt: '2026-06-01T10:00:02.000Z', lat: 48.8584, lng: 2.2945 }, // 2s later — same burst
+        { id: 'a3', takenAt: '2026-06-01T10:00:04.000Z', lat: 48.8584, lng: 2.2945 }, // 4s later — same burst
+        { id: 'a4', takenAt: '2026-06-01T10:00:30.000Z', lat: 48.8584, lng: 2.2945 }, // 30s later — a distinct moment
+      ],
+    });
+    mockReverseGeocode.mockResolvedValueOnce({ name: 'Eiffel Tower', address: 'Paris, France' });
+
+    const result = await importJourneyFromAlbum(user.id, 'album-1', {});
+    expect(result.stopCount).toBe(1);
+    expect(result.photoCount).toBe(4); // nothing is dropped from the import itself
+
+    const entries = testDb.prepare('SELECT * FROM journey_entries WHERE journey_id = ?').all(result.journeyId) as any[];
+    expect(entries).toHaveLength(1);
+    const linkedCount = (testDb.prepare('SELECT COUNT(*) as n FROM journey_entry_photos WHERE entry_id = ?').get(entries[0].id) as { n: number }).n;
+    expect(linkedCount).toBe(2); // a1 (first of the burst) + a4 (30s later), a2/a3 thinned out
+
+    // All 4 photos still made it into the journey's gallery — thinning only
+    // affects which ones are pinned to the entry, nothing is lost.
+    const galleryCount = (testDb.prepare('SELECT COUNT(*) as n FROM journey_photos WHERE journey_id = ?').get(result.journeyId) as { n: number }).n;
+    expect(galleryCount).toBe(4);
+  });
+
   it('IMMICHIMPORT-009: a failed reverse-geocode falls back to a generic "Stop N" label rather than failing the import', async () => {
     const { user } = createUser(testDb);
     mockListAlbums.mockResolvedValue({ albums: [{ id: 'album-1', albumName: 'Test Album', assetCount: 2, startDate: '2026-06-01', endDate: '2026-06-01' }] });

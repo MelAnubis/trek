@@ -58,6 +58,17 @@ export interface Stop {
 export const DEFAULT_MAX_GAP_MINUTES = 180;
 export const DEFAULT_MAX_RADIUS_METERS = 400;
 
+/**
+ * Phones fire off several near-identical shots a second or two apart
+ * (burst mode, or just someone re-taking the same photo). Linking every one
+ * of those to a stop's journal entry buries the entry in near-duplicates
+ * instead of showing a few distinct moments — so entries only get photos at
+ * least this many seconds apart. Nothing is discarded: syncTripPhotos still
+ * copies every photo into the journey's gallery, this only thins which ones
+ * get individually pinned to a specific entry.
+ */
+export const MIN_LINKED_PHOTO_GAP_SECONDS = 20;
+
 export interface ClusterOptions {
   maxGapMinutes?: number;
   maxRadiusMeters?: number;
@@ -110,6 +121,27 @@ export function clusterStops(points: GeoPoint[], opts?: ClusterOptions): Stop[] 
   flush();
 
   return stops;
+}
+
+/**
+ * Keeps only one photo per MIN_LINKED_PHOTO_GAP_SECONDS window, in
+ * chronological order — the simplest available signal for "probably the
+ * same shot again" without pulling in image analysis. GPX-derived points
+ * (no assetId) never reach this function, only the photo points a stop
+ * collected.
+ */
+function thinBurstPhotos(points: GeoPoint[]): GeoPoint[] {
+  const sorted = [...points].sort((a, b) => new Date(a.takenAt).getTime() - new Date(b.takenAt).getTime());
+  const kept: GeoPoint[] = [];
+  let lastKeptMs = -Infinity;
+  for (const p of sorted) {
+    const ms = new Date(p.takenAt).getTime();
+    if (ms - lastKeptMs >= MIN_LINKED_PHOTO_GAP_SECONDS * 1000) {
+      kept.push(p);
+      lastKeptMs = ms;
+    }
+  }
+  return kept;
 }
 
 /** ≥1.1s between Nominatim calls — same throttle atlasService.ts's own reverse-geocoding uses. */
@@ -357,9 +389,8 @@ export async function importJourneyFromAlbum(
     if (placeId == null) continue;
     const entryId = entryIdByPlaceId.get(placeId);
     if (!entryId) continue;
-    for (const p of stops[i].points) {
-      if (!p.assetId) continue;
-      const galleryId = galleryIdByAssetId.get(p.assetId);
+    for (const p of thinBurstPhotos(stops[i].points.filter(p => p.assetId))) {
+      const galleryId = galleryIdByAssetId.get(p.assetId!);
       if (galleryId != null) linkPhotoToEntry(entryId, galleryId, userId);
     }
   }
