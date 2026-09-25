@@ -1,8 +1,8 @@
-// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-016
+// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-027
 import { render } from '@testing-library/react'
 import { ElementView } from './SpreadView'
 import { formatMetricValue } from './TravelElements'
-import type { BookBadgeElement, BookIconElement, BookListElement, BookMapElement, BookPlacesElement, BookStatsElement } from '../../types/book'
+import type { BookAccommodationElement, BookBadgeElement, BookIconElement, BookListElement, BookMapElement, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 40, h: 40 }, rotation: 0, opacity: 1, locked: false }
 const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
@@ -40,6 +40,22 @@ function listEl(overrides: Partial<BookListElement> = {}): BookListElement {
 
 function mapEl(overrides: Partial<BookMapElement> = {}): BookMapElement {
   return { ...base, kind: 'map', src: null, fit: 'cover', radius: 0, ...overrides }
+}
+
+function packingEl(overrides: Partial<BookPackingElement> = {}): BookPackingElement {
+  return {
+    ...base, ...typeset, kind: 'packing',
+    items: [{ name: 'Passport', category: 'Documents', checked: true, quantity: 1 }, { name: 'Socks', category: 'Clothes', checked: false, quantity: 4 }],
+    groupByCategory: true, showQuantity: true, columns: 2, ...overrides,
+  }
+}
+
+function accommodationEl(overrides: Partial<BookAccommodationElement> = {}): BookAccommodationElement {
+  return {
+    ...base, ...typeset, kind: 'accommodation',
+    stays: [{ name: 'Hotel Roma', address: 'Rome', checkIn: '2026-04-01', checkOut: '2026-04-04', confirmation: 'XYZ123' }],
+    showConfirmation: true, layout: 'cards', ...overrides,
+  }
 }
 
 describe('formatMetricValue', () => {
@@ -164,5 +180,48 @@ describe('MapView (via ElementView)', () => {
     const { container } = render(<ElementView el={mapEl({ src: 'data:image/png;base64,AAAA' })} big />)
     const img = container.querySelector('img')
     expect(img?.getAttribute('src')).toBe('data:image/png;base64,AAAA')
+  })
+})
+
+describe('PackingView (via ElementView)', () => {
+  it('FE-TRAVELELEMENTS-022: groupByCategory groups items under their category headings', () => {
+    const { container } = render(<ElementView el={packingEl()} big />)
+    expect(container.textContent).toContain('Documents')
+    expect(container.textContent).toContain('Passport')
+    expect(container.textContent).toContain('Clothes')
+    expect(container.textContent).toContain('Socks')
+  })
+
+  it('FE-TRAVELELEMENTS-023: showQuantity renders a ×N badge only for quantities greater than 1', () => {
+    const { container } = render(<ElementView el={packingEl()} big />)
+    expect(container.textContent).toContain('×4')
+    expect(container.textContent).not.toContain('×1')
+  })
+
+  it('FE-TRAVELELEMENTS-024: groupByCategory false renders every item flat, with no category heading', () => {
+    const { container } = render(<ElementView el={packingEl({ groupByCategory: false })} big />)
+    expect(container.textContent).not.toContain('Documents')
+    expect(container.textContent).not.toContain('Clothes')
+    expect(container.textContent).toContain('Passport')
+    expect(container.textContent).toContain('Socks')
+  })
+})
+
+describe('AccommodationView (via ElementView)', () => {
+  it('FE-TRAVELELEMENTS-025: renders a stay\'s name, address and confirmation number', () => {
+    const { container } = render(<ElementView el={accommodationEl()} big />)
+    expect(container.textContent).toContain('Hotel Roma')
+    expect(container.textContent).toContain('Rome')
+    expect(container.textContent).toContain('XYZ123')
+  })
+
+  it('FE-TRAVELELEMENTS-026: showConfirmation false hides the confirmation number', () => {
+    const { container } = render(<ElementView el={accommodationEl({ showConfirmation: false })} big />)
+    expect(container.textContent).not.toContain('XYZ123')
+  })
+
+  it('FE-TRAVELELEMENTS-027: a stay with no address renders no stray empty line for it', () => {
+    const { container } = render(<ElementView el={accommodationEl({ stays: [{ name: 'Cabin' }], showConfirmation: false })} big />)
+    expect(container.textContent).toBe('Cabin')
   })
 })

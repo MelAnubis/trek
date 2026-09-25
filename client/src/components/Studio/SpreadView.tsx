@@ -3,7 +3,7 @@ import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, Bo
 import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
 import { folio } from './bookSheets'
-import { BadgeView, IconView, ListView, MapView, PlacesView, StatsView } from './TravelElements'
+import { AccommodationView, BadgeView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 
 /**
@@ -275,6 +275,8 @@ export function ElementView({
   if (el.kind === 'badge') return <BadgeView el={el} />
   if (el.kind === 'icon') return <IconView el={el} />
   if (el.kind === 'list') return <ListView el={el} />
+  if (el.kind === 'packing') return <PackingView el={el} />
+  if (el.kind === 'accommodation') return <AccommodationView el={el} />
 
   return (
     <div

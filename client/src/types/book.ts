@@ -196,9 +196,51 @@ export interface BookMapElement extends BookElementBase {
   radius: number;
 }
 
+export interface BookPackingItem {
+  name: string;
+  category?: string;
+  checked?: boolean;
+  quantity?: number;
+}
+
+/**
+ * A trip's packing list (packing_items, per-trip — see packingService.ts),
+ * baked in at add time the same way `places` is: a snapshot of what was
+ * packed, not a live view that would drift from the book's own printed copy
+ * every time someone reopens the trip planner and ticks another box.
+ */
+export interface BookPackingElement extends BookElementBase, BookTypeset {
+  kind: 'packing';
+  items: BookPackingItem[];
+  groupByCategory: boolean;
+  showQuantity: boolean;
+  columns: 1 | 2;
+}
+
+export interface BookAccommodationItem {
+  name: string;
+  address?: string;
+  checkIn?: string | null;
+  checkOut?: string | null;
+  confirmation?: string;
+}
+
+/**
+ * A trip's stays (day_accommodations, joined to their place — see
+ * dayService.listAccommodations), same snapshot-at-add-time reasoning as
+ * `packing` above.
+ */
+export interface BookAccommodationElement extends BookElementBase, BookTypeset {
+  kind: 'accommodation';
+  stays: BookAccommodationItem[];
+  showConfirmation: boolean;
+  layout: 'list' | 'cards';
+}
+
 export type BookElement =
   | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
-  | BookStatsElement | BookPlacesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement;
+  | BookStatsElement | BookPlacesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
+  | BookPackingElement | BookAccommodationElement;
 
 export interface BookSpread {
   id: string;

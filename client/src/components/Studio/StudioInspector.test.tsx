@@ -1,10 +1,10 @@
-// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-021
+// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-029
 import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioInspector } from './StudioInspector'
 import { useStudioStore } from '../../store/studioStore'
 import type {
-  BookBadgeElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
-  BookPhotoElement, BookPlacesElement, BookShapeElement, BookSpread, BookStatsElement,
+  BookAccommodationElement, BookBadgeElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
+  BookPackingElement, BookPhotoElement, BookPlacesElement, BookShapeElement, BookSpread, BookStatsElement,
 } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -28,6 +28,20 @@ function listEl(): BookListElement {
 }
 function mapEl(): BookMapElement {
   return { ...base, id: 'map-1', kind: 'map', src: null, fit: 'cover', radius: 0 }
+}
+function packingEl(): BookPackingElement {
+  return {
+    ...base, ...typeset, id: 'packing-1', kind: 'packing',
+    items: [{ name: 'Passport', category: 'Documents', checked: false, quantity: 1 }],
+    groupByCategory: true, showQuantity: true, columns: 2,
+  }
+}
+function accommodationEl(): BookAccommodationElement {
+  return {
+    ...base, ...typeset, id: 'accommodation-1', kind: 'accommodation',
+    stays: [{ name: 'Hotel Roma', address: 'Rome', checkIn: null, checkOut: null, confirmation: '' }],
+    showConfirmation: true, layout: 'cards',
+  }
 }
 function photoEl(overrides: Partial<BookPhotoElement> = {}): BookPhotoElement {
   return {
@@ -168,6 +182,74 @@ describe('StudioInspector — travel element fields', () => {
     expect(screen.getByText('Pro label')).toBeInTheDocument()
     fireEvent.change(screen.getByDisplayValue('Columns (pro / con)'), { target: { value: 'stacked' } })
     expect(screen.queryByText('Pro label')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-022: adding a packing item with a name appends it', () => {
+    useStudioStore.getState().load(doc([packingEl()]))
+    useStudioStore.getState().select(['packing-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByPlaceholderText('Item name'), { target: { value: 'Sunscreen' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Item name'), { key: 'Enter' })
+    const el = selectedEl() as BookPackingElement
+    expect(el.items.map(i => i.name)).toEqual(['Passport', 'Sunscreen'])
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-023: an empty packing item name is ignored, not added', () => {
+    useStudioStore.getState().load(doc([packingEl()]))
+    useStudioStore.getState().select(['packing-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.keyDown(screen.getByPlaceholderText('Item name'), { key: 'Enter' })
+    expect((selectedEl() as BookPackingElement).items.length).toBe(1)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-024: toggling a packing item\'s checkbox updates only that item', () => {
+    useStudioStore.getState().load(doc([packingEl()]))
+    useStudioStore.getState().select(['packing-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByRole('checkbox'))
+    expect((selectedEl() as BookPackingElement).items[0].checked).toBe(true)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-025: toggling "Group by category" off updates the store', () => {
+    useStudioStore.getState().load(doc([packingEl()]))
+    useStudioStore.getState().select(['packing-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByText('Group by category').parentElement!.querySelector('button')!)
+    expect((selectedEl() as BookPackingElement).groupByCategory).toBe(false)
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-026: adding a stay with a name appends it', () => {
+    useStudioStore.getState().load(doc([accommodationEl()]))
+    useStudioStore.getState().select(['accommodation-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByPlaceholderText('Stay name'), { target: { value: 'Cabin' } })
+    fireEvent.keyDown(screen.getByPlaceholderText('Stay name'), { key: 'Enter' })
+    const el = selectedEl() as BookAccommodationElement
+    expect(el.stays.map(s => s.name)).toEqual(['Hotel Roma', 'Cabin'])
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-027: removing a stay removes it from the list', () => {
+    useStudioStore.getState().load(doc([accommodationEl()]))
+    useStudioStore.getState().select(['accommodation-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByText('Hotel Roma').parentElement!.querySelector('button')!)
+    expect((selectedEl() as BookAccommodationElement).stays).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-028: editing a stay\'s confirmation number updates only that stay', () => {
+    useStudioStore.getState().load(doc([accommodationEl()]))
+    useStudioStore.getState().select(['accommodation-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByPlaceholderText('Confirmation number'), { target: { value: 'XYZ123' } })
+    expect((selectedEl() as BookAccommodationElement).stays[0].confirmation).toBe('XYZ123')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-029: changing an accommodation\'s layout updates the store', () => {
+    useStudioStore.getState().load(doc([accommodationEl()]))
+    useStudioStore.getState().select(['accommodation-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.change(screen.getByDisplayValue('Cards'), { target: { value: 'list' } })
+    expect((selectedEl() as BookAccommodationElement).layout).toBe('list')
   })
 })
 

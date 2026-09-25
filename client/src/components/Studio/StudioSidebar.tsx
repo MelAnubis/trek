@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import {
-  Award, BarChart3, Circle, Compass, Copy, ImageIcon, ListChecks, Map as MapIconLucide, MapPin, Plus, Sparkles,
+  Award, BarChart3, Circle, Compass, Copy, Hotel, ImageIcon, ListChecks, Luggage, Map as MapIconLucide, MapPin, Plus, Sparkles,
   Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
@@ -112,6 +112,8 @@ export function StudioSidebar({
   journeyStats,
   onGenerateMap,
   onGeneratePlaces,
+  onGeneratePacking,
+  onGenerateAccommodations,
 }: {
   /** Lets the Photos panel upload straight into the journey's gallery, same action the journey editor's own uploader uses — the newly-added photos then show up here via the caller's own galleryPhotos, no separate refresh plumbing needed. */
   journeyId: number
@@ -122,6 +124,10 @@ export function StudioSidebar({
   onGenerateMap?: () => Promise<string | null>
   /** Collects the journey's own places — from its linked trips' real place data, not every place in the app — for a freshly-added places element. Same fetch-then-update pattern as onGenerateMap. Omitted where the caller has no trip data to draw from (places elements can still be added, just start empty). */
   onGeneratePlaces?: () => Promise<{ name: string; note?: string }[]>
+  /** Collects the journey's own packing list (linked trips' real packing_items) for a freshly-added packing element. Same fetch-then-update pattern as onGeneratePlaces. */
+  onGeneratePacking?: () => Promise<{ name: string; category?: string; checked?: boolean; quantity?: number }[]>
+  /** Collects the journey's own stays (linked trips' real day_accommodations) for a freshly-added accommodation element. Same fetch-then-update pattern as onGeneratePlaces. */
+  onGenerateAccommodations?: () => Promise<{ name: string; address?: string; checkIn?: string | null; checkOut?: string | null; confirmation?: string }[]>
 }) {
   const { t, locale } = useTranslation()
   const toast = useToast()
@@ -184,6 +190,38 @@ export function StudioSidebar({
     if (!onGeneratePlaces) return
     const places = await onGeneratePlaces().catch(() => null)
     if (places && places.length) updateElement(activeSpread, id, { places })
+  }
+
+  const addPacking = async () => {
+    const w = 90
+    const h = 65
+    const id = elementId('el')
+    const x = (doc.page.pageWidth - w) / 2
+    const y = (doc.page.pageHeight - h) / 2
+    addElement(activeSpread, {
+      id, frame: { x, y, w, h }, kind: 'packing', rotation: 0, opacity: 1, locked: false,
+      font: 'sans', color: '#1a1a1a', accent: '#111111',
+      items: [], groupByCategory: true, showQuantity: true, columns: 2,
+    })
+    if (!onGeneratePacking) return
+    const items = await onGeneratePacking().catch(() => null)
+    if (items && items.length) updateElement(activeSpread, id, { items })
+  }
+
+  const addAccommodation = async () => {
+    const w = 90
+    const h = 55
+    const id = elementId('el')
+    const x = (doc.page.pageWidth - w) / 2
+    const y = (doc.page.pageHeight - h) / 2
+    addElement(activeSpread, {
+      id, frame: { x, y, w, h }, kind: 'accommodation', rotation: 0, opacity: 1, locked: false,
+      font: 'sans', color: '#1a1a1a', accent: '#111111',
+      stays: [], showConfirmation: true, layout: 'cards',
+    })
+    if (!onGenerateAccommodations) return
+    const stays = await onGenerateAccommodations().catch(() => null)
+    if (stays && stays.length) updateElement(activeSpread, id, { stays })
   }
 
   const addShape = (shape: BookShapeId) => {
@@ -411,6 +449,8 @@ export function StudioSidebar({
             font: 'sans', color: '#1a1a1a', accent: '#111111',
             items: [], layout: 'columns', showMarks: true, proLabel: 'Pros', conLabel: 'Cons',
           }))} className="st-sb-add"><ListChecks size={15} /> {t('journey.studio.addList')}</button>
+          <button onClick={() => void addPacking()} className="st-sb-add"><Luggage size={15} /> {t('journey.studio.addPacking')}</button>
+          <button onClick={() => void addAccommodation()} className="st-sb-add"><Hotel size={15} /> {t('journey.studio.addAccommodation')}</button>
         </div>
       </CollapsibleSection>
 

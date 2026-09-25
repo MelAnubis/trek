@@ -2275,6 +2275,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.addBadge': 'Add badge',
   'journey.studio.addIcon': 'Add icon',
   'journey.studio.addList': 'Add pros/cons',
+  'journey.studio.addPacking': 'Add packing list',
+  'journey.studio.addAccommodation': 'Add stays',
   'journey.studio.contentTab': 'Content',
   'journey.studio.elementsTab': 'Elements',
   'journey.studio.pageTab': 'Page',

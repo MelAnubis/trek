@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import * as LucideIcons from 'lucide-react'
-import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown, Wallet } from 'lucide-react'
-import type { BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPlacesElement, BookStatsElement } from '../../types/book'
+import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown, Wallet, Check, Hotel } from 'lucide-react'
+import type { BookAccommodationElement, BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { frameStyle } from './SpreadView'
 
@@ -243,6 +243,101 @@ export function ListView({ el }: { el: BookListElement }) {
         {heading(el.conLabel)}
         {cons.map((it, i) => <ListRow key={i} item={it} el={el} />)}
       </div>
+    </div>
+  )
+}
+
+// ── packing ──────────────────────────────────────────────────────────────────
+
+const PACKING_NO_CATEGORY = '__uncategorized__'
+
+function PackingCheckbox({ checked, accent }: { checked: boolean; accent: string }) {
+  const size = '3mm'
+  return (
+    <div style={{
+      width: size, height: size, flexShrink: 0, borderRadius: '0.6mm',
+      border: `0.25mm solid ${checked ? accent : 'rgba(0,0,0,.3)'}`,
+      background: checked ? accent : 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      {checked && <Check style={{ width: '80%', height: '80%' }} color="#ffffff" strokeWidth={3} />}
+    </div>
+  )
+}
+
+export function PackingView({ el }: { el: BookPackingElement }) {
+  const font = fontStack(el.font)
+  const groups: { label: string; items: typeof el.items }[] = el.groupByCategory
+    ? Object.entries(
+      el.items.reduce<Record<string, typeof el.items>>((acc, it) => {
+        const key = it.category?.trim() || PACKING_NO_CATEGORY
+        ;(acc[key] ??= []).push(it)
+        return acc
+      }, {}),
+    ).map(([label, items]) => ({ label: label === PACKING_NO_CATEGORY ? '' : label, items }))
+    : [{ label: '', items: el.items }]
+
+  return (
+    <div style={{ ...frameStyle(el), overflow: 'hidden' }}>
+      <div style={{ columnCount: el.columns, columnGap: '6mm' }}>
+        {groups.map((g, gi) => (
+          <div key={gi} style={{ breakInside: 'avoid', marginBottom: '3mm' }}>
+            {g.label && (
+              <div style={{ fontFamily: font, fontSize: '2.6mm', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: el.accent, marginBottom: '1.5mm' }}>
+                {g.label}
+              </div>
+            )}
+            {g.items.map((it, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1.5mm', marginBottom: '1mm' }}>
+                <PackingCheckbox checked={!!it.checked} accent={el.accent} />
+                <span style={{ fontFamily: font, fontSize: '2.8mm', color: el.color, flex: 1, textDecoration: it.checked ? 'line-through' : 'none', opacity: it.checked ? 0.6 : 1 }}>
+                  {it.name}
+                </span>
+                {el.showQuantity && (it.quantity ?? 1) > 1 && (
+                  <span style={{ fontFamily: font, fontSize: '2.4mm', color: el.color, opacity: 0.55 }}>×{it.quantity}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── accommodation ────────────────────────────────────────────────────────────
+
+function formatStayDate(iso: string | null | undefined): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+export function AccommodationView({ el }: { el: BookAccommodationElement }) {
+  const font = fontStack(el.font)
+  const isCards = el.layout === 'cards'
+  return (
+    <div style={{ ...frameStyle(el), display: 'flex', flexDirection: isCards ? 'row' : 'column', flexWrap: isCards ? 'wrap' : 'nowrap', gap: isCards ? '3mm' : '2mm', overflow: 'hidden', alignContent: 'flex-start' }}>
+      {el.stays.map((s, i) => {
+        const dates = [formatStayDate(s.checkIn), formatStayDate(s.checkOut)].filter(Boolean).join(' – ')
+        return (
+          <div key={i} style={{
+            display: 'flex', flexDirection: 'column', gap: '0.8mm',
+            ...(isCards ? { flex: '1 1 40%', minWidth: '35mm', padding: '3mm', borderRadius: '2mm', border: `0.25mm solid rgba(0,0,0,.12)` } : {}),
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5mm' }}>
+              <Hotel style={{ width: '3.5mm', height: '3.5mm', flexShrink: 0 }} color={el.accent} />
+              <span style={{ fontFamily: font, fontSize: '3mm', fontWeight: 700, color: el.color }}>{s.name}</span>
+            </div>
+            {s.address && <span style={{ fontFamily: font, fontSize: '2.3mm', color: el.color, opacity: 0.65 }}>{s.address}</span>}
+            {dates && <span style={{ fontFamily: font, fontSize: '2.3mm', color: el.accent, fontWeight: 600 }}>{dates}</span>}
+            {el.showConfirmation && s.confirmation && (
+              <span style={{ fontFamily: font, fontSize: '2.1mm', color: el.color, opacity: 0.5 }}>#{s.confirmation}</span>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

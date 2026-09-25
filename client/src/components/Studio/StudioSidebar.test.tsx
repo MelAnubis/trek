@@ -1,4 +1,4 @@
-// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-018
+// FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-030
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { StudioSidebar } from './StudioSidebar'
 import { useStudioStore } from '../../store/studioStore'
@@ -177,6 +177,52 @@ describe('StudioSidebar — Travel panel', () => {
     fireEvent.click(screen.getByText('journey.studio.addPlaces'))
     await waitFor(() => expect(onGeneratePlaces).toHaveBeenCalled())
     expect((lastElement() as any).places).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-025: adding a packing list inserts it immediately with an empty item list, before onGeneratePacking resolves', () => {
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
+    fireEvent.click(screen.getByText('journey.studio.addPacking'))
+    const el = lastElement()
+    expect(el.kind).toBe('packing')
+    expect((el as any).items).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-026: once onGeneratePacking resolves, the just-added packing element is patched with the fetched items', async () => {
+    const onGeneratePacking = vi.fn().mockResolvedValue([{ name: 'Passport', category: 'Documents', checked: true, quantity: 1 }])
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePacking={onGeneratePacking} />)
+    fireEvent.click(screen.getByText('journey.studio.addPacking'))
+    await waitFor(() => expect((lastElement() as any).items).toEqual([{ name: 'Passport', category: 'Documents', checked: true, quantity: 1 }]))
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-027: onGeneratePacking rejecting leaves the packing element with an empty list rather than throwing', async () => {
+    const onGeneratePacking = vi.fn().mockRejectedValue(new Error('network'))
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePacking={onGeneratePacking} />)
+    fireEvent.click(screen.getByText('journey.studio.addPacking'))
+    await waitFor(() => expect(onGeneratePacking).toHaveBeenCalled())
+    expect((lastElement() as any).items).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-028: adding accommodation inserts it immediately with an empty stay list, before onGenerateAccommodations resolves', () => {
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
+    fireEvent.click(screen.getByText('journey.studio.addAccommodation'))
+    const el = lastElement()
+    expect(el.kind).toBe('accommodation')
+    expect((el as any).stays).toEqual([])
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-029: once onGenerateAccommodations resolves, the just-added accommodation element is patched with the fetched stays', async () => {
+    const onGenerateAccommodations = vi.fn().mockResolvedValue([{ name: 'Hotel Roma', address: 'Rome', checkIn: '2026-04-01', checkOut: '2026-04-04', confirmation: 'XYZ123' }])
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateAccommodations={onGenerateAccommodations} />)
+    fireEvent.click(screen.getByText('journey.studio.addAccommodation'))
+    await waitFor(() => expect((lastElement() as any).stays).toEqual([{ name: 'Hotel Roma', address: 'Rome', checkIn: '2026-04-01', checkOut: '2026-04-04', confirmation: 'XYZ123' }]))
+  })
+
+  it('FE-COMP-STUDIOSIDEBAR-030: onGenerateAccommodations rejecting leaves the accommodation element with an empty stay list rather than throwing', async () => {
+    const onGenerateAccommodations = vi.fn().mockRejectedValue(new Error('network'))
+    render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateAccommodations={onGenerateAccommodations} />)
+    fireEvent.click(screen.getByText('journey.studio.addAccommodation'))
+    await waitFor(() => expect(onGenerateAccommodations).toHaveBeenCalled())
+    expect((lastElement() as any).stays).toEqual([])
   })
 })
 

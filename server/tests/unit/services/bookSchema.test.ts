@@ -211,4 +211,62 @@ describe('bookElementSchema — travel element kinds', () => {
     expect(ids).toContain('good');
     expect(ids).not.toContain('stale-countries');
   });
+
+  it('BOOKSCHEMA-026: a packing element accepts a list of items with category/checked/quantity, applying defaults for missing fields', () => {
+    const parsed = bookElementSchema.safeParse({
+      ...base, kind: 'packing',
+      items: [{ name: 'Passport', category: 'Documents', checked: true, quantity: 1 }, { name: 'Socks' }],
+      groupByCategory: true, showQuantity: true, columns: 2,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.kind === 'packing') {
+      expect(parsed.data.items).toEqual([
+        { name: 'Passport', category: 'Documents', checked: true, quantity: 1 },
+        { name: 'Socks', category: '', checked: false, quantity: 1 },
+      ]);
+    }
+  });
+
+  it('BOOKSCHEMA-027: a packing element rejects an item name longer than MAX_PACKING_NAME', () => {
+    const parsed = bookElementSchema.safeParse({ ...base, kind: 'packing', items: [{ name: 'A'.repeat(101) }] });
+    expect(parsed.success).toBe(false);
+  });
+
+  it('BOOKSCHEMA-028: a packing element rejects columns outside {1, 2}', () => {
+    const parsed = bookElementSchema.safeParse({ ...base, kind: 'packing', items: [], columns: 3 });
+    expect(parsed.success).toBe(false);
+  });
+
+  it('BOOKSCHEMA-029: an accommodation element accepts a list of stays, defaulting optional fields', () => {
+    const parsed = bookElementSchema.safeParse({
+      ...base, kind: 'accommodation',
+      stays: [{ name: 'Hotel Roma', address: 'Rome', checkIn: '2026-04-01', checkOut: '2026-04-04', confirmation: 'XYZ123' }, { name: 'Cabin' }],
+      showConfirmation: true, layout: 'cards',
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success && parsed.data.kind === 'accommodation') {
+      expect(parsed.data.stays).toEqual([
+        { name: 'Hotel Roma', address: 'Rome', checkIn: '2026-04-01', checkOut: '2026-04-04', confirmation: 'XYZ123' },
+        { name: 'Cabin', address: '', checkIn: null, checkOut: null, confirmation: '' },
+      ]);
+    }
+  });
+
+  it('BOOKSCHEMA-030: normalizeBookDocument keeps a valid packing element and strips an invalid accommodation element alongside it', () => {
+    const doc = normalizeBookDocument({
+      version: 1,
+      title: 'Trip',
+      page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
+      spreads: [{
+        id: 'sp-1', role: 'inner', background: null, entryId: null, parked: [],
+        elements: [
+          { ...base, id: 'good', kind: 'packing', items: [{ name: 'Passport' }], groupByCategory: true, showQuantity: true, columns: 2 },
+          { ...base, id: 'bad', kind: 'accommodation', stays: [{ name: 'A'.repeat(200) }] },
+        ],
+      }],
+    });
+    const ids = doc.spreads[0].elements.map(e => e.id);
+    expect(ids).toContain('good');
+    expect(ids).not.toContain('bad');
+  });
 });

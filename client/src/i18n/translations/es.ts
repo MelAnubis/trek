@@ -2084,6 +2084,8 @@ const es: Record<string, string> = {
   'journey.studio.addBadge': 'Añadir insignia',
   'journey.studio.addIcon': 'Añadir icono',
   'journey.studio.addList': 'Añadir pros/contras',
+  'journey.studio.addPacking': 'Añadir lista de equipaje',
+  'journey.studio.addAccommodation': 'Añadir alojamientos',
   'journey.studio.contentTab': 'Contenido',
   'journey.studio.elementsTab': 'Elementos',
   'journey.studio.pageTab': 'Página',

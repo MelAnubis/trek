@@ -287,6 +287,56 @@ export const bookMapElementSchema = z.object({
   radius: mm.default(0),
 });
 
+export const MAX_PACKING_ITEMS = 120;
+export const MAX_PACKING_NAME = 100;
+export const MAX_PACKING_CATEGORY = 60;
+
+/**
+ * A trip's packing list (packing_items — see packingService.ts), baked in at
+ * add time the same way `places` is: a snapshot of what was packed, not a
+ * live view that would drift from the printed page every time someone
+ * reopens the trip planner and ticks another box.
+ */
+export const bookPackingElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('packing'),
+  items: z.array(z.object({
+    name: z.string().max(MAX_PACKING_NAME),
+    category: z.string().max(MAX_PACKING_CATEGORY).default(''),
+    checked: z.boolean().default(false),
+    quantity: z.number().int().min(1).max(999).default(1),
+  })).max(MAX_PACKING_ITEMS).default([]),
+  groupByCategory: z.boolean().default(true),
+  showQuantity: z.boolean().default(true),
+  columns: z.union([z.literal(1), z.literal(2)]).default(2),
+});
+
+export const MAX_ACCOMMODATIONS = 30;
+export const MAX_ACCOMMODATION_NAME = 120;
+export const MAX_ACCOMMODATION_ADDRESS = 240;
+export const MAX_ACCOMMODATION_CONFIRMATION = 80;
+
+/**
+ * A trip's stays (day_accommodations, joined to their place — see
+ * dayService.listAccommodations), same snapshot-at-add-time reasoning as
+ * `packing` above.
+ */
+export const bookAccommodationElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('accommodation'),
+  stays: z.array(z.object({
+    name: z.string().max(MAX_ACCOMMODATION_NAME),
+    address: z.string().max(MAX_ACCOMMODATION_ADDRESS).default(''),
+    checkIn: z.string().max(40).nullable().default(null),
+    checkOut: z.string().max(40).nullable().default(null),
+    confirmation: z.string().max(MAX_ACCOMMODATION_CONFIRMATION).default(''),
+  })).max(MAX_ACCOMMODATIONS).default([]),
+  showConfirmation: z.boolean().default(true),
+  layout: z.enum(['list', 'cards']).default('cards'),
+});
+
 export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
   bookTextElementSchema,
@@ -298,6 +348,8 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookIconElementSchema,
   bookListElementSchema,
   bookMapElementSchema,
+  bookPackingElementSchema,
+  bookAccommodationElementSchema,
 ]);
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
@@ -310,6 +362,8 @@ export type BookBadgeElement = z.infer<typeof bookBadgeElementSchema>;
 export type BookIconElement = z.infer<typeof bookIconElementSchema>;
 export type BookListElement = z.infer<typeof bookListElementSchema>;
 export type BookMapElement = z.infer<typeof bookMapElementSchema>;
+export type BookPackingElement = z.infer<typeof bookPackingElementSchema>;
+export type BookAccommodationElement = z.infer<typeof bookAccommodationElementSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),

@@ -7,9 +7,9 @@ import { CURRENCIES } from '../Budget/BudgetPanel.constants'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import {
-  BOOK_BADGES, BOOK_METRICS, type BookBadgeElement, type BookBadgeVariant,
+  BOOK_BADGES, BOOK_METRICS, type BookAccommodationElement, type BookBadgeElement, type BookBadgeVariant,
   type BookDocument, type BookElement, type BookFontFamily, type BookIconElement, type BookListElement,
-  type BookMapElement, type BookMetric, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
+  type BookMapElement, type BookMetric, type BookPackingElement, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
 } from '../../types/book'
 
 /** "star-5" -> "Star 5", "half-circle" -> "Half circle" */
@@ -266,6 +266,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       {el.kind === 'badge' && <BadgeFields el={el} patch={patch} />}
       {el.kind === 'icon' && <IconFields el={el} patch={patch} />}
       {el.kind === 'list' && <ListFields el={el} patch={patch} />}
+      {el.kind === 'packing' && <PackingFields el={el} patch={patch} />}
+      {el.kind === 'accommodation' && <AccommodationFields el={el} patch={patch} />}
     </div>
   )
 }
@@ -524,6 +526,138 @@ function ListFields({ el, patch }: { el: BookListElement; patch: Patch }) {
       <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <span style={LABEL}>Marks</span>
         <ToggleSwitch on={el.showMarks} onToggle={() => patch({ showMarks: !el.showMarks })} />
+      </div>
+    </>
+  )
+}
+
+function PackingFields({ el, patch }: { el: BookPackingElement; patch: Patch }) {
+  const [draftName, setDraftName] = useState('')
+  const [draftCategory, setDraftCategory] = useState('')
+
+  const addItem = () => {
+    const name = draftName.trim()
+    if (!name) return
+    patch({ items: [...el.items, { name, category: draftCategory.trim(), checked: false, quantity: 1 }] })
+    setDraftName('')
+    setDraftCategory('')
+  }
+  const removeAt = (i: number) => patch({ items: el.items.filter((_, j) => j !== i) })
+  const setItem = (i: number, p: Partial<BookPackingElement['items'][number]>) =>
+    patch({ items: el.items.map((it, j) => (j === i ? { ...it, ...p } : it)) })
+
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Items</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          {el.items.map((it, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: 6, borderRadius: 6, border: '1px solid var(--border-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={!!it.checked} onChange={e => setItem(i, { checked: e.target.checked })} />
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{it.name}</span>
+                <input type="number" min={1} style={{ ...INPUT, width: 48, padding: '2px 4px' }} value={it.quantity ?? 1}
+                  onChange={e => setItem(i, { quantity: Math.max(1, Number(e.target.value) || 1) })} />
+                <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Category" value={it.category ?? ''} onChange={e => setItem(i, { category: e.target.value })} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+          <input style={INPUT} placeholder="Item name" value={draftName}
+            onChange={e => setDraftName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <input style={{ ...INPUT, flex: 1 }} placeholder="Category (optional)" value={draftCategory}
+              onChange={e => setDraftCategory(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} />
+            <button onClick={addItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <Plus size={14} />
+            </button>
+          </div>
+        </div>
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Group by category</span>
+        <ToggleSwitch on={el.groupByCategory} onToggle={() => patch({ groupByCategory: !el.groupByCategory })} />
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Show quantity</span>
+        <ToggleSwitch on={el.showQuantity} onToggle={() => patch({ showQuantity: !el.showQuantity })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Columns</span>
+        <select style={INPUT} value={el.columns} onChange={e => patch({ columns: (Number(e.target.value) === 1 ? 1 : 2) })}>
+          <option value={1}>1</option>
+          <option value={2}>2</option>
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Accent color</span>
+        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+      </div>
+    </>
+  )
+}
+
+function AccommodationFields({ el, patch }: { el: BookAccommodationElement; patch: Patch }) {
+  const [draftName, setDraftName] = useState('')
+
+  const addStay = () => {
+    const name = draftName.trim()
+    if (!name) return
+    patch({ stays: [...el.stays, { name, address: '', checkIn: null, checkOut: null, confirmation: '' }] })
+    setDraftName('')
+  }
+  const removeAt = (i: number) => patch({ stays: el.stays.filter((_, j) => j !== i) })
+  const setStay = (i: number, p: Partial<BookAccommodationElement['stays'][number]>) =>
+    patch({ stays: el.stays.map((s, j) => (j === i ? { ...s, ...p } : s)) })
+
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>Stays</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          {el.stays.map((s, i) => (
+            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: 6, borderRadius: 6, border: '1px solid var(--border-primary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</span>
+                <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+                  <Trash2 size={12} />
+                </button>
+              </div>
+              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Address" value={s.address ?? ''} onChange={e => setStay(i, { address: e.target.value })} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+                <input type="date" style={{ ...INPUT, fontSize: 11 }} value={s.checkIn?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkIn: e.target.value || null })} />
+                <input type="date" style={{ ...INPUT, fontSize: 11 }} value={s.checkOut?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkOut: e.target.value || null })} />
+              </div>
+              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Confirmation number" value={s.confirmation ?? ''} onChange={e => setStay(i, { confirmation: e.target.value })} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
+          <input style={{ ...INPUT, flex: 1 }} placeholder="Stay name" value={draftName}
+            onChange={e => setDraftName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addStay()} />
+          <button onClick={addStay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <Plus size={14} />
+          </button>
+        </div>
+      </div>
+      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={LABEL}>Show confirmation</span>
+        <ToggleSwitch on={el.showConfirmation} onToggle={() => patch({ showConfirmation: !el.showConfirmation })} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Layout</span>
+        <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookAccommodationElement['layout'] })}>
+          <option value="cards">Cards</option>
+          <option value="list">List</option>
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>Accent color</span>
+        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
       </div>
     </>
   )

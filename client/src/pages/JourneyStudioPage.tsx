@@ -25,6 +25,8 @@ import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate, buildOverviewRouteImages } from '../components/Studio/buildRouteImages'
 import { fetchJourneyGpxTracks } from '../components/Journey/journeyGpx'
 import { fetchJourneyPlaces } from '../components/Journey/journeyPlaces'
+import { fetchJourneyPacking } from '../components/Journey/journeyPacking'
+import { fetchJourneyAccommodations } from '../components/Journey/journeyAccommodations'
 import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
 
@@ -191,6 +193,17 @@ export default function JourneyStudioPage() {
   const generatePlacesList = async (): Promise<{ name: string; note?: string }[]> => {
     if (!current?.trips?.length) return []
     return fetchJourneyPlaces(current.trips).catch(() => [])
+  }
+
+  // The journey's own packing list / stays — same per-trip fetch pattern as
+  // generatePlacesList above.
+  const generatePackingList = async () => {
+    if (!current?.trips?.length) return []
+    return fetchJourneyPacking(current.trips).catch(() => [])
+  }
+  const generateAccommodationsList = async () => {
+    if (!current?.trips?.length) return []
+    return fetchJourneyAccommodations(current.trips).catch(() => [])
   }
 
   const autoInput: AutoInput | null = useMemo(() => {
@@ -475,7 +488,7 @@ export default function JourneyStudioPage() {
         </div>
       ) : (
         <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
-          <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} />
+          <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} onGeneratePacking={generatePackingList} onGenerateAccommodations={generateAccommodationsList} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
