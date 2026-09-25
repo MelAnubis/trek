@@ -2553,6 +2553,38 @@ function runMigrations(db: Database.Database): void {
     () => {
       try { db.exec('ALTER TABLE journey_share_tokens ADD COLUMN share_book INTEGER DEFAULT 0'); } catch {}
     },
+    // Print-on-demand order tracking (Lulu Print API) — one row per order a
+    // user places from Studio's export panel. `lulu_job_id` is null until
+    // the create-print-job call succeeds; `status` mirrors Lulu's own job
+    // status string (CREATED/IN_PRODUCTION/SHIPPED/REJECTED/ERROR/...),
+    // refreshed on demand by polling rather than a webhook receiver (see
+    // luluService.ts's own comment on why).
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS print_orders (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          journey_id INTEGER NOT NULL REFERENCES journeys(id) ON DELETE CASCADE,
+          lulu_job_id TEXT,
+          pod_package_id TEXT NOT NULL,
+          quantity INTEGER NOT NULL DEFAULT 1,
+          page_count INTEGER NOT NULL,
+          interior_pdf_url TEXT NOT NULL,
+          cover_pdf_url TEXT,
+          shipping_address TEXT NOT NULL,
+          shipping_level TEXT NOT NULL DEFAULT 'MAIL',
+          contact_email TEXT NOT NULL,
+          cost_total REAL,
+          cost_currency TEXT,
+          status TEXT NOT NULL DEFAULT 'pending',
+          error_message TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_print_orders_user ON print_orders(user_id)');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_print_orders_journey ON print_orders(journey_id)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

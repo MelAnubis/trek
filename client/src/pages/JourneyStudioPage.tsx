@@ -12,6 +12,7 @@ import { StudioCanvas } from '../components/Studio/StudioCanvas'
 import { StudioSidebar } from '../components/Studio/StudioSidebar'
 import { StudioInspector } from '../components/Studio/StudioInspector'
 import { StudioExport } from '../components/Studio/StudioExport'
+import { PrintOrderModal } from '../components/Studio/PrintOrderModal'
 // Side-effect only: bundles the book's self-hosted @fontsource CSS/woff2
 // files into this page's chunk, so both the live canvas and (via
 // printSheets.ts's collectStyles(), which clones every stylesheet already
@@ -29,6 +30,7 @@ import { fetchJourneyPacking } from '../components/Journey/journeyPacking'
 import { fetchJourneyAccommodations } from '../components/Journey/journeyAccommodations'
 import { DEFAULT_TILE_URL, buildRouteMapImage, computeRouteStats, groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { useToast } from '../components/shared/Toast'
+import { healthApi } from '../api/client'
 
 /**
  * TREK Studio — editing canvas, auto layout from the journal, travel
@@ -69,6 +71,8 @@ export default function JourneyStudioPage() {
 
   const [zoom, setZoom] = useState(0.4)
   const [showExport, setShowExport] = useState(false)
+  const [showPrintOrder, setShowPrintOrder] = useState(false)
+  const [printOnDemandAvailable, setPrintOnDemandAvailable] = useState(false)
   const [autoBookBuilding, setAutoBookBuilding] = useState(false)
   const [pagePreset, setPagePreset] = useState<BookPageSetup['preset']>('square-210')
   const [customPage, setCustomPage] = useState({ pageWidth: 210, pageHeight: 210, bleed: 3 })
@@ -88,6 +92,10 @@ export default function JourneyStudioPage() {
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedTripIds])
+
+  useEffect(() => {
+    healthApi.features().then(f => setPrintOnDemandAvailable(f.printOnDemand)).catch(() => {})
+  }, [])
 
   const { record, loaded: bookLoaded, state, queueSave, saveNow, acceptTheirs, keepMine } = useBookStore(journeyId, loadDoc)
   const { peers, cursors, moveCursor } = useBookPresence(journeyId)
@@ -546,7 +554,13 @@ export default function JourneyStudioPage() {
       )}
 
       {showExport && doc && (
-        <StudioExport doc={doc} title={current?.title || doc.title} onClose={() => setShowExport(false)} />
+        <StudioExport doc={doc} title={current?.title || doc.title} onClose={() => setShowExport(false)}
+          printOnDemandAvailable={printOnDemandAvailable}
+          onOrderPrint={() => { setShowExport(false); setShowPrintOrder(true) }} />
+      )}
+
+      {showPrintOrder && doc && (
+        <PrintOrderModal journeyId={journeyId} title={current?.title || doc.title} doc={doc} onClose={() => setShowPrintOrder(false)} />
       )}
 
       <style>{`.group:hover .st-auto-menu { opacity: 1 !important; visibility: visible !important; }`}</style>

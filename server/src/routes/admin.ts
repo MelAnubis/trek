@@ -7,6 +7,7 @@ import { getAdminUserDefaults, setAdminUserDefaults } from '../services/settings
 import { invalidateMcpSessions } from '../mcp';
 import { getPreferencesMatrix, setAdminPreferences } from '../services/notificationPreferencesService';
 import { adminResetPasskeys } from '../services/passkeyService';
+import * as luluService from '../services/lulu/luluService';
 
 const router = express.Router();
 
@@ -234,6 +235,36 @@ router.put('/places-photos', (req: Request, res: Response) => {
     action: 'admin.places_photos',
     ip: getClientIp(req),
     details: { enabled: result.enabled },
+  });
+  res.json(result);
+});
+
+// ── Print vendor (Lulu Print API) ───────────────────────────────────────
+
+router.get('/print-vendor', (_req: Request, res: Response) => {
+  res.json(luluService.getPrintVendorSettings());
+});
+
+router.put('/print-vendor', (req: Request, res: Response) => {
+  const result = luluService.updatePrintVendorSettings(req.body);
+  const authReq = req as AuthRequest;
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.print_vendor_update',
+    ip: getClientIp(req),
+    details: { client_key_set: !!req.body.clientKey, enabled: req.body.enabled },
+  });
+  res.json(result);
+});
+
+router.post('/print-vendor/test-connection', async (req: Request, res: Response) => {
+  const result = await luluService.testConnection();
+  const authReq = req as AuthRequest;
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.print_vendor_test',
+    ip: getClientIp(req),
+    details: { ok: result.ok },
   });
   res.json(result);
 });

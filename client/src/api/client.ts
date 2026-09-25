@@ -364,6 +364,9 @@ export const adminApi = {
   saveDemoBaseline: () => apiClient.post('/admin/save-demo-baseline').then(r => r.data),
   getOidc: () => apiClient.get('/admin/oidc').then(r => r.data),
   updateOidc: (data: Record<string, unknown>) => apiClient.put('/admin/oidc', data).then(r => r.data),
+  getPrintVendor: () => apiClient.get('/admin/print-vendor').then(r => r.data),
+  updatePrintVendor: (data: Record<string, unknown>) => apiClient.put('/admin/print-vendor', data).then(r => r.data),
+  testPrintVendor: () => apiClient.post('/admin/print-vendor/test-connection').then(r => r.data),
   addons: () => apiClient.get('/admin/addons').then(r => r.data),
   updateAddon: (id: number | string, data: Record<string, unknown>) => apiClient.put(`/admin/addons/${id}`, data).then(r => r.data),
   checkVersion: () => apiClient.get('/admin/version-check').then(r => r.data),
@@ -607,8 +610,33 @@ export const reservationsApi = {
 }
 
 export const healthApi = {
-  features: (): Promise<{ bookingImport: boolean }> =>
+  features: (): Promise<{ bookingImport: boolean; printOnDemand: boolean }> =>
     apiClient.get('/health/features').then(r => r.data),
+}
+
+export interface PrintShippingAddress {
+  name: string
+  street1: string
+  street2?: string
+  city: string
+  stateCode?: string
+  postcode: string
+  countryCode: string
+  phoneNumber?: string
+}
+
+export const printApi = {
+  estimate: (data: {
+    journeyId: number; preset: string; pageCount: number; quantity: number
+    shippingAddress: PrintShippingAddress; shippingLevel: string
+  }) => apiClient.post('/print/estimate', data).then(r => r.data),
+  createOrder: (data: {
+    journeyId: number; preset: string; pageCount: number; quantity: number
+    interiorPdfUrl: string; coverPdfUrl?: string
+    shippingAddress: PrintShippingAddress; shippingLevel: string; contactEmail: string; title?: string
+  }) => apiClient.post('/print/orders', data).then(r => r.data),
+  listOrders: () => apiClient.get('/print/orders').then(r => r.data),
+  getOrder: (id: number, refresh = false) => apiClient.get(`/print/orders/${id}${refresh ? '?refresh=true' : ''}`).then(r => r.data),
 }
 
 export const weatherApi = {

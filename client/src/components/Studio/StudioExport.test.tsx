@@ -1,4 +1,4 @@
-// FE-COMP-STUDIOEXPORT-001 to FE-COMP-STUDIOEXPORT-003
+// FE-COMP-STUDIOEXPORT-001 to FE-COMP-STUDIOEXPORT-006
 import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioExport } from './StudioExport'
 import type { BookDocument } from '../../types/book'
@@ -40,5 +40,24 @@ describe('StudioExport — format picker', () => {
     fireEvent.click(screen.getByText('journey.studio.exportFormatDigital'))
     fireEvent.click(screen.getByText('journey.studio.exportFormatPrint'))
     expect(screen.getByText('journey.studio.exportLayout')).toBeInTheDocument()
+  })
+})
+
+describe('StudioExport — print-on-demand gating', () => {
+  it('FE-COMP-STUDIOEXPORT-004: no "Order a printed copy" button when printOnDemandAvailable is not passed', () => {
+    render(<StudioExport doc={doc()} title="Test" onClose={() => {}} />)
+    expect(screen.queryByText('journey.studio.print.orderButton')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOEXPORT-005: no "Order a printed copy" button when printOnDemandAvailable is false', () => {
+    render(<StudioExport doc={doc()} title="Test" onClose={() => {}} printOnDemandAvailable={false} onOrderPrint={() => {}} />)
+    expect(screen.queryByText('journey.studio.print.orderButton')).not.toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOEXPORT-006: clicking "Order a printed copy" calls onOrderPrint when available', () => {
+    const onOrderPrint = vi.fn()
+    render(<StudioExport doc={doc()} title="Test" onClose={() => {}} printOnDemandAvailable onOrderPrint={onOrderPrint} />)
+    fireEvent.click(screen.getByText('journey.studio.print.orderButton'))
+    expect(onOrderPrint).toHaveBeenCalled()
   })
 })

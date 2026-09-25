@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BookOpen, FileText, FoldHorizontal, Layers, Monitor, Printer, Scissors, X } from 'lucide-react'
+import { BookOpen, FileText, FoldHorizontal, Layers, Monitor, Package, Printer, Scissors, X } from 'lucide-react'
 import type { BookDocument } from '../../types/book'
 import { BookSheetsView } from './BookSheetsView'
 import { BookletSheetsView } from './BookletSheetsView'
@@ -37,7 +37,14 @@ type ExportFormat = 'print' | 'digital'
  * marks, and hands BookSheetsView a page setup with bleed forced to 0
  * regardless of what the book itself is configured with.
  */
-export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title: string; onClose: () => void }) {
+export function StudioExport({ doc, title, onClose, printOnDemandAvailable, onOrderPrint }: {
+  doc: BookDocument
+  title: string
+  onClose: () => void
+  /** Gates the "Order a printed copy" option below — mirrors GET /api/health/features's printOnDemand flag, true only once an admin has configured Lulu credentials (see AdminPage.tsx's Print-on-Demand card). */
+  printOnDemandAvailable?: boolean
+  onOrderPrint?: () => void
+}) {
   const { t } = useTranslation()
   const [format, setFormat] = useState<ExportFormat>('print')
   const [mode, setMode] = useState<SheetMode>('pages')
@@ -236,6 +243,12 @@ export function StudioExport({ doc, title, onClose }: { doc: BookDocument; title
         </div>
 
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '14px 18px', borderTop: '1px solid var(--border-secondary)' }}>
+          {printOnDemandAvailable && onOrderPrint && (
+            <button onClick={onOrderPrint}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-primary)', marginRight: 'auto' }}>
+              <Package size={14} /> {t('journey.studio.print.orderButton')}
+            </button>
+          )}
           <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
             {t('common.cancel')}
           </button>

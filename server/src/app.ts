@@ -49,8 +49,10 @@ import routeDiscoveryRoutes from './routes/routeDiscovery';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
+import printOrdersRoutes from './routes/printOrders';
 import bookingImportRoutes from './routes/bookingImport';
 import { isKitineraryAvailable } from './services/kitinerary-extractor';
+import { isPrintOnDemandConfigured } from './services/lulu/luluService';
 import airtrailRoutes from './routes/airtrail';
 import airtrailImportRoutes from './routes/airtrailImport';
 import { mcpHandler } from './mcp';
@@ -312,13 +314,14 @@ export function createApp(): express.Application {
   });
   app.use('/api/trips/:tripId/days/:dayId/notes', dayNotesRoutes);
   app.use('/api/trips/:tripId/suggestions', suggestionsRoutes);
+  app.use('/api/print', printOrdersRoutes);
   app.get('/api/health', (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
     res.json({ status: 'ok' })
   });
   app.get('/api/health/features', (_req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-store, must-revalidate')
-    res.json({ bookingImport: isKitineraryAvailable() })
+    res.json({ bookingImport: isKitineraryAvailable(), printOnDemand: isPrintOnDemandConfigured() })
   });
   app.use('/api/config', publicConfigRoutes);
   app.use('/api', assignmentsRoutes);

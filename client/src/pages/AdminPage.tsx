@@ -53,6 +53,14 @@ interface OidcConfig {
   discovery_url: string
 }
 
+interface PrintVendorConfig {
+  clientKey: string
+  clientSecret: string
+  clientSecretSet: boolean
+  sandbox: boolean
+  enabled: boolean
+}
+
 interface UpdateInfo {
   update_available: boolean
   latest: string
@@ -235,6 +243,12 @@ export default function AdminPage(): React.ReactElement {
   const [oidcConfig, setOidcConfig] = useState<OidcConfig>({ issuer: '', client_id: '', client_secret: '', client_secret_set: false, display_name: '', discovery_url: '' })
   const [savingOidc, setSavingOidc] = useState<boolean>(false)
 
+  // Print-on-demand (Lulu Print API) config
+  const [printVendor, setPrintVendor] = useState<PrintVendorConfig>({ clientKey: '', clientSecret: '', clientSecretSet: false, sandbox: false, enabled: false })
+  const [savingPrintVendor, setSavingPrintVendor] = useState<boolean>(false)
+  const [testingPrintVendor, setTestingPrintVendor] = useState<boolean>(false)
+  const [printVendorTestResult, setPrintVendorTestResult] = useState<boolean | null>(null)
+
   // Auth toggles
   const [passwordLogin, setPasswordLogin] = useState<boolean>(true)
   const [passwordRegistration, setPasswordRegistration] = useState<boolean>(true)
@@ -296,6 +310,7 @@ export default function AdminPage(): React.ReactElement {
     loadAppConfig()
     loadApiKeys()
     adminApi.getOidc().then(setOidcConfig).catch(() => {})
+    adminApi.getPrintVendor().then(d => setPrintVendor(c => ({ ...c, ...d }))).catch(() => {})
     adminApi.checkVersion().then(data => {
       if (data.update_available) setUpdateInfo(data)
     }).catch(() => {})
@@ -1273,6 +1288,108 @@ export default function AdminPage(): React.ReactElement {
                     {savingOidc ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
                     {t('common.save')}
                   </button>
+                </div>
+              </div>
+              {/* Print-on-Demand (Lulu) */}
+              <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100">
+                  <h2 className="font-semibold text-slate-900">{t('admin.printVendor.title')}</h2>
+                  <p className="text-xs text-slate-400 mt-1">{t('admin.printVendor.subtitle')}</p>
+                </div>
+                <div className="p-6 space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.printVendor.clientKey')}</label>
+                    <input
+                      type="text"
+                      value={printVendor.clientKey}
+                      onChange={e => setPrintVendor(c => ({ ...c, clientKey: e.target.value }))}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('admin.printVendor.clientSecret')}</label>
+                    <input
+                      type="password"
+                      value={printVendor.clientSecret}
+                      onChange={e => setPrintVendor(c => ({ ...c, clientSecret: e.target.value }))}
+                      placeholder={printVendor.clientSecretSet ? '••••••••' : ''}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">{t('admin.printVendor.sandbox')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t('admin.printVendor.sandboxHint')}</p>
+                    </div>
+                    <button
+                      onClick={() => setPrintVendor(c => ({ ...c, sandbox: !c.sandbox }))}
+                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
+                      style={{ background: printVendor.sandbox ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                    >
+                      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: printVendor.sandbox ? 'translateX(20px)' : 'translateX(0)' }} />
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">{t('admin.printVendor.enabled')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t('admin.printVendor.enabledHint')}</p>
+                    </div>
+                    <button
+                      onClick={() => setPrintVendor(c => ({ ...c, enabled: !c.enabled }))}
+                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
+                      style={{ background: printVendor.enabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                    >
+                      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: printVendor.enabled ? 'translateX(20px)' : 'translateX(0)' }} />
+                    </button>
+                  </div>
+                  <p className="text-xs text-slate-400 leading-relaxed">{t('admin.printVendor.scaffoldNote')}</p>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={async () => {
+                        setSavingPrintVendor(true)
+                        try {
+                          const payload: Record<string, unknown> = { clientKey: printVendor.clientKey, sandbox: printVendor.sandbox, enabled: printVendor.enabled }
+                          if (printVendor.clientSecret) payload.clientSecret = printVendor.clientSecret
+                          await adminApi.updatePrintVendor(payload)
+                          setPrintVendorTestResult(null)
+                          toast.success(t('common.saved'))
+                        } catch (err: unknown) {
+                          toast.error(getApiErrorMessage(err, t('common.error')))
+                        } finally {
+                          setSavingPrintVendor(false)
+                        }
+                      }}
+                      disabled={savingPrintVendor}
+                      className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
+                    >
+                      {savingPrintVendor ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+                      {t('common.save')}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        setTestingPrintVendor(true)
+                        try {
+                          const result = await adminApi.testPrintVendor()
+                          setPrintVendorTestResult(!!result.ok)
+                        } catch {
+                          setPrintVendorTestResult(false)
+                        } finally {
+                          setTestingPrintVendor(false)
+                        }
+                      }}
+                      disabled={testingPrintVendor}
+                      className="px-3 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                    >
+                      {testingPrintVendor ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : printVendorTestResult === true ? (
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
+                      ) : printVendorTestResult === false ? (
+                        <XCircle className="w-4 h-4 text-red-500" />
+                      ) : null}
+                      {t('admin.printVendor.testConnection')}
+                    </button>
+                  </div>
                 </div>
               </div>
               {/* Passkey / WebAuthn Configuration */}
