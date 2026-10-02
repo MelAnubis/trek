@@ -12,6 +12,7 @@ import express, { Request, Response } from 'express';
 import { db } from '../db/database';
 import { authenticate } from '../middleware/auth';
 import type { AuthRequest } from '../types';
+import { generateRoute } from '../services/routeAssistantService';
 
 const router = express.Router();
 
@@ -87,6 +88,52 @@ function parseRow(row: any) {
     points_json: undefined, cuts_json: undefined, waypoints_json: undefined, settings_json: undefined,
   };
 }
+
+// ── Asistente de IA ──────────────────────────────────────────────────────────
+// Cada llamada cuesta tokens y consulta servicios externos: límite por usuario.
+const AI_LIMIT = 15;
+const AI_WINDOW_MS = 60 * 60 * 1000;
+const aiCalls = new Map<number, number[]>();
+
+function aiRateLimited(userId: number): boolean {
+  const now = Date.now();
+  const recent = (aiCalls.get(userId) || []).filter(t => now - t < AI_WINDOW_MS);
+  if (recent.length >= AI_LIMIT) { aiCalls.set(userId, recent); return true; }
+  recent.push(now);
+  aiCalls.set(userId, recent);
+  return false;
+}
+
+/** Solo para tests. */
+export function resetPlannerAiLimiter(): void { aiCalls.clear(); }
+
+router.post('/assistant', authenticate, async (req: Request, res: Response) => {
+  const userId = (req as AuthRequest).user.id;
+  const prompt = typeof req.body?.prompt === 'string' ? req.body.prompt.trim() : '';
+  if (prompt.length < 8) return res.status(400).json({ error: 'prompt too short' });
+  if (prompt.length > 1500) return res.status(400).json({ error: 'prompt too long' });
+  const lang = typeof req.body?.lang === 'string' && /^[a-z]{2}(-[A-Za-z]{2})?$/.test(req.body.lang) ? req.body.lang : 'es';
+
+  if (aiRateLimited(userId)) return res.status(429).json({ error: 'Too many AI requests, try again later' });
+
+  try {
+    const result = await generateRoute(userId, prompt, lang);
+    res.json(result);
+  } catch (err: any) {
+    const msg: string = err?.message ?? 'Unknown error';
+    if (msg.includes('NO_AI_KEY')) {
+      return res.status(503).json({ error: 'AI is not configured. Set GROQ_API_KEY, GEMINI_API_KEY or ANTHROPIC_API_KEY in your .env file.', code: 'NO_AI_KEY' });
+    }
+    if (err?.code) return res.status(err.status || 422).json({ error: msg, code: err.code, unresolved: err.unresolved });
+    if (err?.status && err.status < 500) return res.status(err.status).json({ error: msg });
+    if (/^(Groq|Gemini|Claude) \d/.test(msg) || err?.status === 502) {
+      console.error('[planner] assistant upstream error:', msg);
+      return res.status(502).json({ error: 'The AI or routing service failed. Try again.' });
+    }
+    console.error('[planner] assistant error:', err);
+    res.status(500).json({ error: 'Failed to generate route' });
+  }
+});
 
 router.get('/', authenticate, (req: Request, res: Response) => {
   const userId = (req as AuthRequest).user.id;

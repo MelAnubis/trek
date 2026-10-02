@@ -2989,6 +2989,22 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'planner.cat.bike_repair': 'Bike repair',
   'planner.cat.station': 'Stations',
   'planner.cat.generic': 'Waypoint',
+  'planner.ai.title': 'Create route with AI',
+  'planner.ai.placeholder': 'E.g.: From Madrid to Santiago in 12 days, about 80 km a day, avoiding busy roads.',
+  'planner.ai.generate': 'Create route',
+  'planner.ai.generating': 'Creating route… (may take a minute)',
+  'planner.ai.disclaimer': 'The AI proposes the places to pass through and a bike router computes the track. Always check the route before you go.',
+  'planner.ai.result': 'Route created with AI',
+  'planner.ai.reviewHint': 'Review the track, stages and services: everything can be changed.',
+  'planner.ai.warn.unresolved': 'These places could not be located and were skipped: {list}',
+  'planner.ai.warn.far': 'Very large jump between places ({leg}). A same-name town may have been matched.',
+  'planner.ai.error.noKey': 'AI is not configured on the server (missing key in .env).',
+  'planner.ai.error.noPlan': 'I could not find a route between at least two places. State the start and the destination.',
+  'planner.ai.error.geocode': 'I could not locate the places on the map. Try writing them differently.',
+  'planner.ai.error.tooLong': 'The resulting route is too long (max 3000 km).',
+  'planner.ai.error.rate': 'Too many AI requests. Try again later.',
+  'planner.ai.error.noRoute': 'No track could be computed between those places (the router may lack coverage).',
+  'planner.ai.error.generic': 'The route could not be created. Please try again.',
 }
 
 export default en

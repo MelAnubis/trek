@@ -40,6 +40,10 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       # 3. Anthropic Claude — de pago: https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Planificador de rutas — asistente de IA: enrutador de bici BRouter.
+      # Por defecto usa la instancia pública (https://brouter.de/brouter). Para uso intensivo,
+      # autoaloja BRouter y apunta aquí a tu contenedor, p. ej. http://brouter:17777/brouter
+      # - BROUTER_URL=https://brouter.de/brouter
       # ── Bikepack integration ──────────────────────────────────────────────
       # User sync: auto-create new Trek users on the Bikepack instance.
       - BIKEPACK_URL=${BIKEPACK_URL:-}

@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon,
+  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon, Sparkles,
 } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
@@ -71,6 +71,11 @@ export default function PlannerPage(): React.ReactElement {
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [saved, setSaved] = useState<PlannerRouteSummary[]>([])
   const [deleteTarget, setDeleteTarget] = useState<PlannerRouteSummary | null>(null)
+
+  // ── Asistente de IA ────────────────────────────────────────────────────────
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiInfo, setAiInfo] = useState<{ summary: string; warnings: string[] } | null>(null)
 
   // ── Servicios (POIs) ───────────────────────────────────────────────────────
   const [cats, setCats] = useState<string[]>(['water'])
@@ -154,7 +159,37 @@ export default function PlannerPage(): React.ReactElement {
     return () => clearTimeout(handle)
   }, [routeId, name, cuts, waypoints, settings, loadSaved, t])
 
-  // ── Importar ───────────────────────────────────────────────────────────────
+  // ── Crear (importando o con IA) ────────────────────────────────────────────
+  /** Guarda una ruta nueva en la cuenta y la abre. `stageKm` activa la división automática. */
+  const createAndOpen = useCallback(async (o: {
+    name: string; origName: string; pts: RoutePoint[]; wps: PlannerWaypoint[]; stageKm?: number | null
+  }) => {
+    const c = cumulativeKm(o.pts)
+    const st = routeStats(smoothElevation(o.pts, c), c)
+    const stageKm = o.stageKm && o.stageKm > 0 ? Math.round(o.stageKm) : null
+    const newSettings: PlannerSettings = { stageKm: stageKm ?? 60, poiRadiusM: 1000 }
+    const newCuts = stageKm ? autoSplit(c, stageKm) : []
+
+    setSaveState('saving')
+    const { route } = await plannerApi.create({
+      name: o.name, orig_name: o.origName, points: toCompact(o.pts), cuts: newCuts, waypoints: o.wps, settings: newSettings,
+      total_distance_km: Math.round(st.distKm * 100) / 100, elevation_gain: st.gain, elevation_loss: st.loss,
+    })
+    dirtyRef.current = false
+    setRouteId(route.id)
+    setName(route.name)
+    setPoints(o.pts)
+    setCuts(newCuts)
+    setWaypoints(o.wps)
+    setSettings(newSettings)
+    setPois([])
+    setActiveStage(null)
+    setSaveState('saved')
+    setSearchParams({ id: String(route.id) }, { replace: true })
+    setMobileView('map')
+    loadSaved()
+  }, [loadSaved, setSearchParams])
+
   const importFile = useCallback(async (file: File) => {
     if (file.size > MAX_FILE_BYTES) { toast.error(t('planner.upload.tooBig')); return }
     setReading(true)
@@ -164,31 +199,13 @@ export default function PlannerPage(): React.ReactElement {
       await new Promise(r => setTimeout(r, 0))
       const parsed = parseRouteFile(text, file.name)
       if (parsed.points.length < 2) { toast.error(t('planner.upload.noPoints')); return }
-      const pts = simplifyPoints(parsed.points)
-      const c = cumulativeKm(pts)
-      const st = routeStats(smoothElevation(pts, c), c)
-      const routeName = (parsed.name || file.name.replace(/\.[^.]+$/, '')).slice(0, 160)
-      const wps = parsed.waypoints.slice(0, 500)
-      const newSettings: PlannerSettings = { stageKm: 60, poiRadiusM: 1000 }
-
-      setSaveState('saving')
-      const { route } = await plannerApi.create({
-        name: routeName, orig_name: file.name, points: toCompact(pts), cuts: [], waypoints: wps, settings: newSettings,
-        total_distance_km: Math.round(st.distKm * 100) / 100, elevation_gain: st.gain, elevation_loss: st.loss,
+      setAiInfo(null)
+      await createAndOpen({
+        name: (parsed.name || file.name.replace(/\.[^.]+$/, '')).slice(0, 160),
+        origName: file.name,
+        pts: simplifyPoints(parsed.points),
+        wps: parsed.waypoints.slice(0, 500),
       })
-      dirtyRef.current = false
-      setRouteId(route.id)
-      setName(route.name)
-      setPoints(pts)
-      setCuts([])
-      setWaypoints(wps)
-      setSettings(newSettings)
-      setPois([])
-      setActiveStage(null)
-      setSaveState('saved')
-      setSearchParams({ id: String(route.id) }, { replace: true })
-      setMobileView('map')
-      loadSaved()
     } catch (err) {
       setSaveState('idle')
       const code = err instanceof Error ? err.message : ''
@@ -199,7 +216,39 @@ export default function PlannerPage(): React.ReactElement {
     } finally {
       setReading(false)
     }
-  }, [loadSaved, setSearchParams, t, toast])
+  }, [createAndOpen, t, toast])
+
+  const generateWithAI = async () => {
+    const prompt = aiPrompt.trim()
+    if (prompt.length < 8 || aiLoading) return
+    setAiLoading(true)
+    try {
+      const res = await plannerApi.assistant(prompt, locale)
+      const pts = simplifyPoints(res.points.map(p => ({ lat: p[0], lng: p[1], ele: p[2] })))
+      const wps: PlannerWaypoint[] = res.waypoints.map(w => ({
+        id: newWaypointId(), name: w.name, lat: w.lat, lng: w.lng, ele: null, type: 'generic',
+      }))
+      // km por etapa: el que pidió el usuario o, si dio solo los días, distancia / días.
+      const stageKm = res.plan.kmPerDay ?? (res.plan.days ? res.distanceKm / res.plan.days : null)
+      await createAndOpen({ name: res.plan.name || t('planner.untitled'), origName: 'IA', pts, wps, stageKm })
+      setAiInfo({ summary: res.plan.summary, warnings: res.warnings })
+      setAiPrompt('')
+    } catch (err) {
+      setSaveState('idle')
+      const e = err as { response?: { status?: number; data?: { code?: string } } }
+      const code = e.response?.data?.code
+      const status = e.response?.status
+      if (code === 'NO_AI_KEY' || status === 503) toast.error(t('planner.ai.error.noKey'))
+      else if (code === 'NO_PLAN') toast.error(t('planner.ai.error.noPlan'))
+      else if (code === 'GEOCODE_FAILED') toast.error(t('planner.ai.error.geocode'))
+      else if (code === 'TOO_LONG') toast.error(t('planner.ai.error.tooLong'))
+      else if (status === 429) toast.error(t('planner.ai.error.rate'))
+      else if (status === 422) toast.error(t('planner.ai.error.noRoute'))
+      else toast.error(t('planner.ai.error.generic'))
+    } finally {
+      setAiLoading(false)
+    }
+  }
 
   const onFiles = (files: FileList | null) => {
     const f = files?.[0]
@@ -209,7 +258,7 @@ export default function PlannerPage(): React.ReactElement {
 
   const closeRoute = () => {
     setRouteId(null); setName(''); setPoints([]); setCuts([]); setWaypoints([]); setPois([])
-    setActiveStage(null); setAddingWaypoint(false); setSaveState('idle'); dirtyRef.current = false
+    setActiveStage(null); setAddingWaypoint(false); setSaveState('idle'); dirtyRef.current = false; setAiInfo(null)
     setSearchParams({}, { replace: true })
     setMobileView('panel')
     loadSaved()
@@ -447,6 +496,45 @@ export default function PlannerPage(): React.ReactElement {
     </div>
   )
 
+  const aiBox = (
+    <div style={card}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+        <Sparkles size={15} style={{ color: 'var(--accent, #e85d24)' }} />
+        <div style={label}>{t('planner.ai.title')}</div>
+      </div>
+      <textarea style={{ ...input, minHeight: 78, resize: 'vertical', fontFamily: 'inherit' }} maxLength={1500}
+        value={aiPrompt} disabled={aiLoading} placeholder={t('planner.ai.placeholder')}
+        onChange={e => setAiPrompt(e.target.value)} />
+      <button type="button" style={{ ...btnPrimary, marginTop: 8, opacity: aiLoading || aiPrompt.trim().length < 8 ? 0.6 : 1 }}
+        disabled={aiLoading || aiPrompt.trim().length < 8} onClick={generateWithAI}>
+        <Sparkles size={15} />{aiLoading ? t('planner.ai.generating') : t('planner.ai.generate')}
+      </button>
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.ai.disclaimer')}</div>
+    </div>
+  )
+
+  const aiInfoBox = aiInfo && (
+    <div style={{ ...card, borderColor: 'var(--accent, #e85d24)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <Sparkles size={14} style={{ color: 'var(--accent, #e85d24)' }} />
+        <div style={{ ...label, flex: 1 }}>{t('planner.ai.result')}</div>
+        <button type="button" aria-label={t('common.close')} style={{ ...btn, padding: 3, border: 'none', background: 'transparent' }}
+          onClick={() => setAiInfo(null)}><X size={14} /></button>
+      </div>
+      {aiInfo.summary && <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{aiInfo.summary}</div>}
+      {aiInfo.warnings.map(w => {
+        const [kind, ...rest] = w.split(':')
+        const detail = rest.join(':')
+        return (
+          <div key={w} style={{ fontSize: 12, color: '#b45309', marginTop: 6 }}>
+            ⚠️ {kind === 'unresolved' ? t('planner.ai.warn.unresolved', { list: detail }) : kind === 'far' ? t('planner.ai.warn.far', { leg: detail }) : detail}
+          </div>
+        )
+      })}
+      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t('planner.ai.reviewHint')}</div>
+    </div>
+  )
+
   const statBox = (k: string, v: string) => (
     <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 8px' }}>
       <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{k}</div>
@@ -455,9 +543,10 @@ export default function PlannerPage(): React.ReactElement {
   )
 
   const routePanel = !hasRoute ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{uploadBox}{savedList}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{aiBox}{uploadBox}{savedList}</div>
   ) : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {aiInfoBox}
       <div style={card}>
         <div style={{ ...label, marginBottom: 6 }}>{t('planner.name')}</div>
         <input style={input} value={name} maxLength={160}

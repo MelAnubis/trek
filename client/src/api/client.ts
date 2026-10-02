@@ -551,6 +551,16 @@ export const plannerApi = {
   create: (data: Record<string, unknown>) => apiClient.post('/planner', data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   update: (id: number, data: Record<string, unknown>) => apiClient.put(`/planner/${id}`, data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   remove: (id: number) => apiClient.delete(`/planner/${id}`).then(r => r.data),
+  // AI assistant: text request → AI picks places → geocoded → BRouter track. Slow (LLM + routing).
+  assistant: (prompt: string, lang: string) =>
+    apiClient.post('/planner/assistant', { prompt, lang }, { timeout: 120000 }).then(r => r.data as {
+      plan: { name: string; summary: string; profile: string; kmPerDay: number | null; days: number | null; places: string[] }
+      waypoints: { query: string; name: string; lat: number; lng: number }[]
+      points: [number, number, number | null][]
+      distanceKm: number
+      ascentM: number | null
+      warnings: string[]
+    }),
   // POIs within `radius` m of the route (corridor search, Overpass `around`).
   poisAlongRoute: (category: string, line: [number, number][], radius: number, signal?: AbortSignal) =>
     apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean }),

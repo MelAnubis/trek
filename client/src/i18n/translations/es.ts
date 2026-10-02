@@ -2672,6 +2672,22 @@ const es: Record<string, string> = {
   'planner.cat.bike_repair': 'Reparación de bici',
   'planner.cat.station': 'Estaciones',
   'planner.cat.generic': 'Waypoint',
+  'planner.ai.title': 'Crear ruta con IA',
+  'planner.ai.placeholder': 'Ej.: De Madrid a Santiago en 12 días, unos 80 km al día, evitando carreteras grandes.',
+  'planner.ai.generate': 'Crear ruta',
+  'planner.ai.generating': 'Creando ruta… (puede tardar un minuto)',
+  'planner.ai.disclaimer': 'La IA propone los lugares de paso y un enrutador de bici calcula el trazado. Revisa siempre la ruta antes de salir.',
+  'planner.ai.result': 'Ruta creada con IA',
+  'planner.ai.reviewHint': 'Revisa el trazado, las etapas y los servicios: puedes cambiarlo todo.',
+  'planner.ai.warn.unresolved': 'No se pudieron localizar estos lugares y se han omitido: {list}',
+  'planner.ai.warn.far': 'Salto muy grande entre lugares ({leg}). Puede que se haya localizado una población homónima.',
+  'planner.ai.error.noKey': 'La IA no está configurada en el servidor (falta la clave en el .env).',
+  'planner.ai.error.noPlan': 'No he entendido una ruta entre al menos dos lugares. Indica el origen y el destino.',
+  'planner.ai.error.geocode': 'No he podido localizar los lugares en el mapa. Prueba a escribirlos de otra forma.',
+  'planner.ai.error.tooLong': 'La ruta resultante es demasiado larga (máx. 3000 km).',
+  'planner.ai.error.rate': 'Demasiadas peticiones a la IA. Inténtalo más tarde.',
+  'planner.ai.error.noRoute': 'No se pudo calcular un trazado entre esos lugares (puede faltar cobertura del enrutador).',
+  'planner.ai.error.generic': 'No se pudo crear la ruta. Inténtalo de nuevo.',
 }
 
 export default es
