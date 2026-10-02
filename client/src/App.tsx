@@ -22,6 +22,7 @@ import LiveLocationPage from './pages/LiveLocationPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
+import PlannerPage from './pages/PlannerPage'
 import { ToastContainer } from './components/shared/Toast'
 import BottomNav from './components/Layout/BottomNav'
 import { TranslationProvider, useTranslation } from './i18n'
@@ -321,6 +322,14 @@ export default function App() {
           element={
             <ProtectedRoute fullscreen>
               <NavigationPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/planner"
+          element={
+            <ProtectedRoute>
+              <PlannerPage />
             </ProtectedRoute>
           }
         />
