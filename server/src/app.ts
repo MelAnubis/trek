@@ -46,6 +46,7 @@ import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
+import plannerRoutes from './routes/planner';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
@@ -187,6 +188,8 @@ export function createApp(): express.Application {
   // would never actually apply: the earlier 100kb parser would already
   // have rejected the request before this one ever ran.
   app.use('/api/journeys/:id/book', express.json({ limit: '20mb' }));
+  // Planner routes carry a whole GPX track as JSON — same ordering constraint as above.
+  app.use('/api/planner', express.json({ limit: '15mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -294,6 +297,7 @@ export function createApp(): express.Application {
   // API Routes
   app.use('/api/auth', authRoutes);
   app.use('/api/bikepack', bikepackRoutes);
+  app.use('/api/planner', plannerRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
   app.use('/api/auth/passkey', passkeyRoutes);
   app.use('/api/trips', tripsRoutes);

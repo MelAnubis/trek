@@ -843,7 +843,19 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   museum: ['tourism=museum', 'tourism=gallery', 'tourism=artwork', 'amenity=theatre'],
   nature: ['leisure=park', 'leisure=garden', 'natural=beach', 'natural=peak'],
   activity: ['tourism=theme_park', 'tourism=zoo', 'tourism=aquarium', 'leisure=water_park'],
+  // Cycling-oriented categories used by the route planner (/planner).
+  water: ['amenity=drinking_water', 'natural=spring', 'man_made=water_tap'],
+  camping: ['tourism=camp_site', 'tourism=caravan_site'],
+  supermarket: ['shop=supermarket', 'shop=convenience'],
+  bike_shop: ['shop=bicycle'],
+  bike_repair: ['amenity=bicycle_repair_station'],
+  station: ['railway=station', 'railway=halt'],
 };
+
+// Categories whose OSM objects are normally unnamed (a fountain has no name).
+// They are kept with an empty name instead of being dropped; the client shows
+// the category label in that case.
+const UNNAMED_OK = new Set(['water', 'bike_repair']);
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
@@ -950,8 +962,9 @@ export async function searchOverpassPois(
   const pois: OverpassPoi[] = [];
   for (const el of elements) {
     const tags = el.tags || {};
-    const name = tags.name || tags['name:en'] || tags.brand || null;
-    if (!name) continue;
+    const name = tags.name || tags['name:en'] || tags.brand || (UNNAMED_OK.has(category) ? '' : null);
+    if (name === null) continue;
+    if (category === 'water' && tags.drinking_water === 'no') continue;
     const lat = el.lat ?? el.center?.lat;
     const lng = el.lon ?? el.center?.lon;
     if (lat == null || lng == null) continue;
@@ -976,5 +989,67 @@ export async function searchOverpassPois(
   const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped };
   if (POI_CACHE.size >= POI_CACHE_MAX) POI_CACHE.delete(POI_CACHE.keys().next().value as string);
   POI_CACHE.set(cacheKey, { at: Date.now(), value });
+  return value;
+}
+
+
+const ALONG_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
+
+/**
+ * POIs of one category within `radiusM` metres of a polyline (Overpass `around`
+ * filter). Used by the route planner so a long route is queried as a corridor
+ * instead of a huge bounding box. `line` is [lat, lng][] and should already be
+ * simplified (≤ 400 points).
+ */
+export async function searchOverpassPoisAlongRoute(
+  category: string,
+  line: [number, number][],
+  radiusM: number,
+  limit = 300,
+): Promise<PoiSearchResult> {
+  const filters = CATEGORY_OSM_FILTERS[category];
+  if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+  if (line.length < 2 || line.length > 400) throw Object.assign(new Error('line must have 2-400 points'), { status: 400 });
+  const radius = Math.min(3000, Math.max(100, Math.round(radiusM)));
+  const coords = line.map(([la, lo]) => `${la.toFixed(5)},${lo.toFixed(5)}`).join(',');
+
+  const cacheKey = `${category}|${radius}|${limit}|${coords}`;
+  const cached = ALONG_CACHE.get(cacheKey);
+  if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
+  if (cached) ALONG_CACHE.delete(cacheKey);
+
+  const selectors = filters.map(f => {
+    const [k, v] = f.split('=');
+    return `  nwr["${k}"="${v}"](around:${radius},${coords});`;
+  }).join('\n');
+  const query = `[out:json][timeout:25];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
+
+  const elements = await overpassFetch(query);
+  const pois: OverpassPoi[] = [];
+  for (const el of elements) {
+    const tags = el.tags || {};
+    const name = tags.name || tags['name:en'] || tags.brand || (UNNAMED_OK.has(category) ? '' : null);
+    if (name === null) continue;
+    if (category === 'water' && tags.drinking_water === 'no') continue;
+    const lat = el.lat ?? el.center?.lat;
+    const lng = el.lon ?? el.center?.lon;
+    if (lat == null || lng == null) continue;
+    const matched = filters.find(f => { const [k, v] = f.split('='); return tags[k] === v; }) || filters[0];
+    const addr = [tags['addr:street'], tags['addr:housenumber'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ') || null;
+    pois.push({
+      osm_id: `${el.type}:${el.id}`,
+      name, lat, lng, category, poi_type: matched,
+      address: addr,
+      website: tags.website || tags['contact:website'] || null,
+      phone: tags.phone || tags['contact:phone'] || null,
+      opening_hours: tags.opening_hours || null,
+      cuisine: tags.cuisine || null,
+      source: 'openstreetmap',
+    });
+  }
+  const truncated = pois.length > limit;
+  const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped: false };
+  if (ALONG_CACHE.size >= 100) ALONG_CACHE.delete(ALONG_CACHE.keys().next().value as string);
+  ALONG_CACHE.set(cacheKey, { at: Date.now(), value });
   return value;
 }

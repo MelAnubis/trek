@@ -545,6 +545,17 @@ export const mapsApi = {
     apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
 }
 
+export const plannerApi = {
+  list: () => apiClient.get('/planner').then(r => r.data as { routes: import('../utils/plannerRoute').PlannerRouteSummary[] }),
+  get: (id: number) => apiClient.get(`/planner/${id}`).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
+  create: (data: Record<string, unknown>) => apiClient.post('/planner', data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
+  update: (id: number, data: Record<string, unknown>) => apiClient.put(`/planner/${id}`, data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
+  remove: (id: number) => apiClient.delete(`/planner/${id}`).then(r => r.data),
+  // POIs within `radius` m of the route (corridor search, Overpass `around`).
+  poisAlongRoute: (category: string, line: [number, number][], radius: number, signal?: AbortSignal) =>
+    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean }),
+}
+
 export const airportsApi = {
   search: (q: string, signal?: AbortSignal) => apiClient.get('/airports/search', { params: { q }, signal }).then(r => r.data),
   byIata: (iata: string) => apiClient.get(`/airports/${encodeURIComponent(iata)}`).then(r => r.data),

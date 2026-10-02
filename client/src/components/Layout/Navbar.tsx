@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation } from 'lucide-react'
+import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 
@@ -156,6 +156,34 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                 </Link>
               )
             })}
+            <Link to="/planner"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+              style={{
+                color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
+                background: location.pathname === '/planner' ? 'var(--bg-hover)' : 'transparent',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
+              <RouteIcon className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{t('planner.nav')}</span>
+            </Link>
+          </>
+        )}
+        {/* Sin addons globales activos el bloque anterior no se pinta: el planificador sigue accesible. */}
+        {globalAddons.length === 0 && !tripTitle && (
+          <>
+            <span style={{ color: 'var(--text-faint)' }}>|</span>
+            <Link to="/planner"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+              style={{
+                color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
+                background: location.pathname === '/planner' ? 'var(--bg-hover)' : 'transparent',
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
+              <RouteIcon className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">{t('planner.nav')}</span>
+            </Link>
           </>
         )}
 

@@ -2585,6 +2585,32 @@ function runMigrations(db: Database.Database): void {
       db.exec('CREATE INDEX IF NOT EXISTS idx_print_orders_user ON print_orders(user_id)');
       db.exec('CREATE INDEX IF NOT EXISTS idx_print_orders_journey ON print_orders(journey_id)');
     },
+    // Route planner (/planner): standalone saved routes, owned by a user and
+    // independent of any trip. `points_json` is a compact [[lat,lng,ele],…]
+    // array; `cuts_json` holds the stage boundaries (indices into that array);
+    // `waypoints_json` holds user waypoints and POIs picked from the map.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS planner_routes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          orig_name TEXT,
+          total_distance_km REAL DEFAULT 0,
+          elevation_gain REAL DEFAULT 0,
+          elevation_loss REAL DEFAULT 0,
+          point_count INTEGER DEFAULT 0,
+          stage_count INTEGER DEFAULT 1,
+          points_json TEXT NOT NULL DEFAULT '[]',
+          cuts_json TEXT NOT NULL DEFAULT '[]',
+          waypoints_json TEXT NOT NULL DEFAULT '[]',
+          settings_json TEXT NOT NULL DEFAULT '{}',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_planner_routes_user ON planner_routes(user_id, updated_at)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

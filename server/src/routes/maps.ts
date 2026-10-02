@@ -10,6 +10,7 @@ import {
   resolveGoogleMapsUrl,
   autocompletePlaces,
   searchOverpassPois,
+  searchOverpassPoisAlongRoute,
   POI_CATEGORY_KEYS,
 } from '../services/mapsService';
 import { db } from '../db/database';
@@ -164,6 +165,33 @@ router.get('/pois', authenticate, async (req: Request, res: Response) => {
     const status = (err as { status?: number }).status || 500
     const message = err instanceof Error ? err.message : 'POI search error'
     if (status >= 500) console.error('[Maps] POI search error:', err)
+    res.status(status).json({ error: message })
+  }
+})
+
+// POST /pois/along-route — OSM POIs of a category within `radius` metres of a polyline
+router.post('/pois/along-route', authenticate, async (req: Request, res: Response) => {
+  const { category, line, radius } = req.body || {}
+  if (!category || typeof category !== 'string') return res.status(400).json({ error: 'category required' })
+  if (!POI_CATEGORY_KEYS.includes(category)) return res.status(400).json({ error: 'Unknown category' })
+  if (!Array.isArray(line) || line.length < 2 || line.length > 400) {
+    return res.status(400).json({ error: 'line must have 2-400 points' })
+  }
+  const pts: [number, number][] = []
+  for (const p of line) {
+    const la = Number(p?.[0]), lo = Number(p?.[1])
+    if (!Number.isFinite(la) || !Number.isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) {
+      return res.status(400).json({ error: 'Invalid line point' })
+    }
+    pts.push([la, lo])
+  }
+  try {
+    const result = await searchOverpassPoisAlongRoute(category, pts, Number(radius) || 1000)
+    res.json(result)
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status || 500
+    const message = err instanceof Error ? err.message : 'POI search error'
+    if (status >= 500) console.error('[Maps] along-route POI error:', err)
     res.status(status).json({ error: message })
   }
 })
