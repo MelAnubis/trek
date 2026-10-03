@@ -40,6 +40,11 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       # 3. Anthropic Claude — de pago: https://console.anthropic.com/settings/keys
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Modelos de IA (opcional). Los proveedores retiran modelos con el tiempo; si uno deja de
+      # existir (error "model_not_found" / 404) pon aquí el nuevo sin tener que reconstruir.
+      # - GROQ_MODEL=openai/gpt-oss-120b
+      # - GEMINI_MODEL=gemini-3.6-flash
+      # - ANTHROPIC_MODEL=claude-haiku-4-5-20251001
       # Planificador de rutas — asistente de IA: enrutador de bici BRouter.
       # Por defecto usa la instancia pública (https://brouter.de/brouter). Para uso intensivo,
       # autoaloja BRouter y apunta aquí a tu contenedor, p. ej. http://brouter:17777/brouter

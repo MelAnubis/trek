@@ -19,6 +19,7 @@
 
 import { db } from '../db/database';
 import { fetchWikimediaPhoto } from './mapsService';
+import { groqRequestBody, geminiModel } from './aiTextService';
 
 // ── Domain types ──────────────────────────────────────────────────────────────
 
@@ -602,8 +603,7 @@ async function askGroqDescriptions(
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
-      max_tokens: 2048,
+      ...groqRequestBody(2048),
       temperature: 0.6,
       messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
     }),
@@ -619,7 +619,7 @@ async function askGeminiDescriptions(
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
   const { system, user } = buildDescriptionsPrompt(tripTitle, pois, lang);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
