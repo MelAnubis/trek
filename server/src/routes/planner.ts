@@ -13,6 +13,7 @@ import { db } from '../db/database';
 import { authenticate } from '../middleware/auth';
 import type { AuthRequest } from '../types';
 import { generateRoute } from '../services/routeAssistantService';
+import { makePreview } from '../services/plannerPreview';
 
 const router = express.Router();
 
@@ -78,9 +79,24 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const MAX_FOLDER_LEN = 60;
+
+/** undefined = no tocar · null = sin carpeta · string = carpeta · false = inválido. */
+function validFolder(v: unknown): string | null | undefined | false {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  if (typeof v !== 'string') return false;
+  const f = v.trim();
+  if (f.length > MAX_FOLDER_LEN) return false;
+  return f === '' ? null : f;
+}
+
 function parseRow(row: any) {
   return {
     ...row,
+    favorite: !!row.favorite,
+    preview: JSON.parse(row.preview_json || '[]'),
+    preview_json: undefined,
     points: JSON.parse(row.points_json || '[]'),
     cuts: JSON.parse(row.cuts_json || '[]'),
     waypoints: JSON.parse(row.waypoints_json || '[]'),
@@ -135,14 +151,87 @@ router.post('/assistant', authenticate, async (req: Request, res: Response) => {
   }
 });
 
+// ── Biblioteca: listado paginado con filtros, carpetas y mapa general ─────────
+const SORTS: Record<string, string> = {
+  recent: 'updated_at DESC, id DESC',
+  created: 'created_at DESC, id DESC',
+  name: 'name COLLATE NOCASE ASC, id ASC',
+  distance: 'total_distance_km DESC, id DESC',
+  ascent: 'elevation_gain DESC, id DESC',
+};
+const PAGE_SIZES = { default: 12, max: 48 };
+const OVERVIEW_MAX = 500;
+
+function likePattern(q: string): string {
+  return '%' + q.replace(/[\\%_]/g, m => '\\' + m) + '%';
+}
+
+/** Filtros compartidos por el listado y el mapa general. */
+function libraryFilter(userId: number, query: Request['query']): { where: string; params: (string | number)[] } {
+  const where = ['user_id = ?'];
+  const params: (string | number)[] = [userId];
+  const q = typeof query.q === 'string' ? query.q.trim().slice(0, 100) : '';
+  if (q) { where.push("name LIKE ? ESCAPE '\\'"); params.push(likePattern(q)); }
+  if (query.favorite === '1') where.push('favorite = 1');
+  if (query.unfiled === '1') where.push('folder IS NULL');
+  else if (typeof query.folder === 'string' && query.folder.trim()) { where.push('folder = ?'); params.push(query.folder.trim()); }
+  return { where: where.join(' AND '), params };
+}
+
 router.get('/', authenticate, (req: Request, res: Response) => {
   const userId = (req as AuthRequest).user.id;
-  const routes = db.prepare(
-    `SELECT id, name, orig_name, total_distance_km, elevation_gain, elevation_loss,
-            point_count, stage_count, created_at, updated_at
-     FROM planner_routes WHERE user_id = ? ORDER BY updated_at DESC, id DESC`
+  const { where, params } = libraryFilter(userId, req.query);
+  const sort = SORTS[String(req.query.sort)] ?? SORTS.recent;
+  const limit = Math.min(PAGE_SIZES.max, Math.max(1, parseInt(String(req.query.limit), 10) || PAGE_SIZES.default));
+  const total = (db.prepare(`SELECT COUNT(*) AS c FROM planner_routes WHERE ${where}`).get(...params) as { c: number }).c;
+  const pages = Math.max(1, Math.ceil(total / limit));
+  const page = Math.min(pages, Math.max(1, parseInt(String(req.query.page), 10) || 1));
+
+  const rows = db.prepare(
+    `SELECT id, name, orig_name, total_distance_km, elevation_gain, elevation_loss, point_count, stage_count,
+            folder, favorite, preview_json, created_at, updated_at
+     FROM planner_routes WHERE ${where} ORDER BY ${sort} LIMIT ? OFFSET ?`
+  ).all(...params, limit, (page - 1) * limit) as any[];
+
+  // Contadores de la barra lateral: siempre sobre TODAS las rutas del usuario, no sobre el filtro.
+  const folders = db.prepare(
+    `SELECT folder AS name, COUNT(*) AS count FROM planner_routes
+     WHERE user_id = ? AND folder IS NOT NULL GROUP BY folder ORDER BY folder COLLATE NOCASE`
   ).all(userId);
-  res.json({ routes });
+  const totals = db.prepare(
+    `SELECT COUNT(*) AS \`all\`, COALESCE(SUM(favorite), 0) AS favorites,
+            COALESCE(SUM(CASE WHEN folder IS NULL THEN 1 ELSE 0 END), 0) AS unfiled
+     FROM planner_routes WHERE user_id = ?`
+  ).get(userId);
+
+  res.json({
+    routes: rows.map(r => ({ ...r, favorite: !!r.favorite, preview: JSON.parse(r.preview_json || '[]'), preview_json: undefined })),
+    total, page, pages, limit, folders, totals,
+  });
+});
+
+// Siluetas de todas las rutas que cumplen el filtro (para el mapa general). Solo ~100 puntos por ruta.
+router.get('/overview', authenticate, (req: Request, res: Response) => {
+  const userId = (req as AuthRequest).user.id;
+  const { where, params } = libraryFilter(userId, req.query);
+  const rows = db.prepare(
+    `SELECT id, name, total_distance_km, elevation_gain, folder, favorite, preview_json
+     FROM planner_routes WHERE ${where} ORDER BY updated_at DESC, id DESC LIMIT ?`
+  ).all(...params, OVERVIEW_MAX) as any[];
+  res.json({
+    routes: rows.map(r => ({ ...r, favorite: !!r.favorite, preview: JSON.parse(r.preview_json || '[]'), preview_json: undefined })),
+  });
+});
+
+// Renombrar / fusionar / quitar una carpeta (to vacío o null = las rutas quedan sin carpeta).
+router.put('/folders', authenticate, (req: Request, res: Response) => {
+  const userId = (req as AuthRequest).user.id;
+  const from = typeof req.body?.from === 'string' ? req.body.from.trim() : '';
+  const to = validFolder(req.body?.to);
+  if (!from) return res.status(400).json({ error: 'from required' });
+  if (to === false || to === undefined) return res.status(400).json({ error: 'Invalid folder name' });
+  const info = db.prepare('UPDATE planner_routes SET folder = ? WHERE user_id = ? AND folder = ?').run(to, userId, from);
+  res.json({ updated: info.changes });
 });
 
 router.get('/:id', authenticate, (req: Request, res: Response) => {
@@ -165,17 +254,20 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   if (!waypoints) return res.status(400).json({ error: 'Invalid waypoints' });
   const settings = validSettings(b.settings ?? {});
   if (!settings) return res.status(400).json({ error: 'Invalid settings' });
+  const folder = validFolder(b.folder);
+  if (folder === false) return res.status(400).json({ error: 'Invalid folder name' });
 
   const info = db.prepare(
     `INSERT INTO planner_routes
        (user_id, name, orig_name, total_distance_km, elevation_gain, elevation_loss,
-        point_count, stage_count, points_json, cuts_json, waypoints_json, settings_json)
-     VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`
+        point_count, stage_count, points_json, cuts_json, waypoints_json, settings_json, preview_json, folder, favorite)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
   ).run(
     userId, name, typeof b.orig_name === 'string' ? b.orig_name.slice(0, 200) : null,
     num(b.total_distance_km), num(b.elevation_gain), num(b.elevation_loss),
     points.length, cuts.length + 1,
     JSON.stringify(points), JSON.stringify(cuts), JSON.stringify(waypoints), JSON.stringify(settings),
+    JSON.stringify(makePreview(points)), folder ?? null, b.favorite === true ? 1 : 0,
   );
   const row = db.prepare('SELECT * FROM planner_routes WHERE id = ?').get(info.lastInsertRowid);
   res.status(201).json({ route: parseRow(row) });
@@ -195,12 +287,22 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
 
   let pointsJson = existing.points_json;
   let pointCount = existing.point_count;
+  let previewJson = existing.preview_json;
   if (b.points !== undefined) {
     const points = validPoints(b.points);
     if (!points || points.length < 2) return res.status(400).json({ error: 'Invalid points' });
     pointsJson = JSON.stringify(points);
     pointCount = points.length;
+    previewJson = JSON.stringify(makePreview(points));
   }
+
+  const folderIn = validFolder(b.folder);
+  if (folderIn === false) return res.status(400).json({ error: 'Invalid folder name' });
+  if (b.favorite !== undefined && typeof b.favorite !== 'boolean') return res.status(400).json({ error: 'Invalid favorite' });
+  const folder = folderIn === undefined ? existing.folder : folderIn;
+  const favorite = b.favorite === undefined ? existing.favorite : (b.favorite ? 1 : 0);
+  // Mover a una carpeta o marcar favorita no cuenta como "editada": no altera el orden por recientes.
+  const contentChanged = ['name', 'points', 'cuts', 'waypoints', 'settings'].some(k => b[k] !== undefined);
 
   let cutsJson = existing.cuts_json;
   let stageCount = existing.stage_count;
@@ -228,7 +330,8 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
   db.prepare(
     `UPDATE planner_routes SET name = ?, total_distance_km = ?, elevation_gain = ?, elevation_loss = ?,
        point_count = ?, stage_count = ?, points_json = ?, cuts_json = ?, waypoints_json = ?, settings_json = ?,
-       updated_at = CURRENT_TIMESTAMP
+       preview_json = ?, folder = ?, favorite = ?,
+       updated_at = CASE WHEN ? THEN CURRENT_TIMESTAMP ELSE updated_at END
      WHERE id = ? AND user_id = ?`
   ).run(
     name,
@@ -236,6 +339,7 @@ router.put('/:id', authenticate, (req: Request, res: Response) => {
     b.elevation_gain !== undefined ? num(b.elevation_gain) : existing.elevation_gain,
     b.elevation_loss !== undefined ? num(b.elevation_loss) : existing.elevation_loss,
     pointCount, stageCount, pointsJson, cutsJson, waypointsJson, settingsJson,
+    previewJson, folder, favorite, contentChanged ? 1 : 0,
     req.params.id, userId,
   );
   const row = db.prepare('SELECT * FROM planner_routes WHERE id = ?').get(req.params.id);

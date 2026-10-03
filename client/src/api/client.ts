@@ -546,7 +546,11 @@ export const mapsApi = {
 }
 
 export const plannerApi = {
-  list: () => apiClient.get('/planner').then(r => r.data as { routes: import('../utils/plannerRoute').PlannerRouteSummary[] }),
+  list: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
+    apiClient.get('/planner', { params, signal }).then(r => r.data as import('../utils/plannerRoute').LibraryResponse),
+  overview: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
+    apiClient.get('/planner/overview', { params, signal }).then(r => r.data as { routes: import('../utils/plannerRoute').OverviewRoute[] }),
+  renameFolder: (from: string, to: string | null) => apiClient.put('/planner/folders', { from, to }).then(r => r.data as { updated: number }),
   get: (id: number) => apiClient.get(`/planner/${id}`).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   create: (data: Record<string, unknown>) => apiClient.post('/planner', data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   update: (id: number, data: Record<string, unknown>) => apiClient.put(`/planner/${id}`, data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),

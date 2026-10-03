@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
-  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon, Sparkles,
+  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon, Sparkles, Star, FolderOpen as FolderIcon,
 } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import { useToast } from '../components/shared/Toast'
 import PlannerMap, { STAGE_COLORS, type PoiMarker } from '../components/Planner/PlannerMap'
 import PlannerProfile from '../components/Planner/PlannerProfile'
+import RouteLibrary from '../components/Planner/RouteLibrary'
 import { useTranslation } from '../i18n'
 import { plannerApi } from '../api/client'
 import { saveTextFile } from '../utils/saveFile'
@@ -69,7 +70,13 @@ export default function PlannerPage(): React.ReactElement {
   const [dragOver, setDragOver] = useState(false)
   const [reading, setReading] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
-  const [saved, setSaved] = useState<PlannerRouteSummary[]>([])
+  // Biblioteca de rutas (la lista vive en <RouteLibrary>; aquí solo versión, visibilidad y metadatos)
+  const [libraryVersion, setLibraryVersion] = useState(0)
+  const [libraryOpen, setLibraryOpen] = useState(false)
+  const [folderNames, setFolderNames] = useState<string[]>([])
+  const [routesTotal, setRoutesTotal] = useState(0)
+  const [routeFolder, setRouteFolder] = useState<string | null>(null)
+  const [routeFavorite, setRouteFavorite] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<PlannerRouteSummary | null>(null)
 
   // ── Asistente de IA ────────────────────────────────────────────────────────
@@ -102,8 +109,14 @@ export default function PlannerPage(): React.ReactElement {
   }, [stages.length, activeStage])
 
   // ── Mis rutas ──────────────────────────────────────────────────────────────
+  /** Pide a la biblioteca que se recargue y refresca carpetas y total (para el editor y los botones). */
   const loadSaved = useCallback(async () => {
-    try { setSaved((await plannerApi.list()).routes) } catch { /* se muestra vacío */ }
+    setLibraryVersion(v => v + 1)
+    try {
+      const r = await plannerApi.list({ limit: 1 })
+      setFolderNames(r.folders.map(f => f.name))
+      setRoutesTotal(r.totals.all)
+    } catch { /* sin metadatos: el editor funciona igual */ }
   }, [])
 
   useEffect(() => { loadSaved() }, [loadSaved])
@@ -117,6 +130,9 @@ export default function PlannerPage(): React.ReactElement {
       setCuts(route.cuts ?? [])
       setWaypoints(route.waypoints ?? [])
       setSettings({ stageKm: 60, poiRadiusM: 1000, ...(route.settings ?? {}) })
+      setRouteFolder(route.folder ?? null)
+      setRouteFavorite(!!route.favorite)
+      setLibraryOpen(false)
       setPois([])
       setActiveStage(null)
       setAddingWaypoint(false)
@@ -182,6 +198,9 @@ export default function PlannerPage(): React.ReactElement {
     setCuts(newCuts)
     setWaypoints(o.wps)
     setSettings(newSettings)
+    setRouteFolder(null)
+    setRouteFavorite(false)
+    setLibraryOpen(false)
     setPois([])
     setActiveStage(null)
     setSaveState('saved')
@@ -259,6 +278,7 @@ export default function PlannerPage(): React.ReactElement {
   const closeRoute = () => {
     setRouteId(null); setName(''); setPoints([]); setCuts([]); setWaypoints([]); setPois([])
     setActiveStage(null); setAddingWaypoint(false); setSaveState('idle'); dirtyRef.current = false; setAiInfo(null)
+    setLibraryOpen(false); setRouteFolder(null); setRouteFavorite(false)
     setSearchParams({}, { replace: true })
     setMobileView('panel')
     loadSaved()
@@ -273,6 +293,22 @@ export default function PlannerPage(): React.ReactElement {
       if (target.id === routeId) closeRoute()
       else loadSaved()
     } catch { toast.error(t('planner.save.error')) }
+  }
+
+  // ── Organizar la ruta abierta (carpeta / favorita) ──────────────────────────
+  const setFavorite = async (fav: boolean) => {
+    if (routeId == null) return
+    setRouteFavorite(fav)
+    try { await plannerApi.update(routeId, { favorite: fav }); loadSaved() } catch { setRouteFavorite(!fav); toast.error(t('planner.save.error')) }
+  }
+
+  const setFolder = async (value: string) => {
+    if (routeId == null) return
+    const next = value.trim() || null
+    if (next === routeFolder) return
+    const prev = routeFolder
+    setRouteFolder(next)
+    try { await plannerApi.update(routeId, { folder: next }); loadSaved() } catch { setRouteFolder(prev); toast.error(t('planner.save.error')) }
   }
 
   // ── Etapas ─────────────────────────────────────────────────────────────────
@@ -443,41 +479,7 @@ export default function PlannerPage(): React.ReactElement {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const hasRoute = points.length > 1
-  const fmtDate = (s: string) => {
-    const d = new Date(s.includes('T') ? s : s.replace(' ', 'T') + 'Z')
-    return isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale)
-  }
-
-  const savedList = (
-    <div style={card}>
-      <div style={{ ...label, marginBottom: 8 }}>{t('planner.mine')}</div>
-      {saved.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('planner.mine.empty')}</div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {saved.map(r => (
-            <div key={r.id} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-              border: `1px solid ${r.id === routeId ? 'var(--accent, #e85d24)' : 'var(--border-primary)'}`,
-            }} onClick={() => openRoute(r.id)}>
-              <FolderOpen size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                  {fmtKm(r.total_distance_km)} · +{Math.round(r.elevation_gain)} m · {t('planner.mine.stages', { n: r.stage_count })} · {fmtDate(r.updated_at)}
-                </div>
-              </div>
-              <button type="button" aria-label={t('common.delete')} style={{ ...btn, padding: 6, border: 'none', background: 'transparent' }}
-                onClick={e => { e.stopPropagation(); setDeleteTarget(r) }}>
-                <Trash2 size={15} style={{ color: '#dc2626' }} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-
+  const showLibrary = libraryOpen || !hasRoute
   const uploadBox = (
     <div
       style={{
@@ -543,7 +545,14 @@ export default function PlannerPage(): React.ReactElement {
   )
 
   const routePanel = !hasRoute ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{aiBox}{uploadBox}{savedList}</div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+      {aiBox}{uploadBox}
+      {routesTotal > 0 && (
+        <button type="button" className="lg:hidden" style={btn} onClick={() => setMobileView('map')}>
+          <FolderIcon size={15} />{t('planner.lib.openLibrary', { n: routesTotal })}
+        </button>
+      )}
+    </div>
   ) : (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       {aiInfoBox}
@@ -551,6 +560,17 @@ export default function PlannerPage(): React.ReactElement {
         <div style={{ ...label, marginBottom: 6 }}>{t('planner.name')}</div>
         <input style={input} value={name} maxLength={160}
           onChange={e => { markDirty(); setName(e.target.value) }} />
+        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+          <input key={`${routeId}-${routeFolder ?? ''}`} style={{ ...input, flex: 1, minWidth: 0 }} list="planner-folders" maxLength={60}
+            defaultValue={routeFolder ?? ''} placeholder={t('planner.lib.folder.field')}
+            onBlur={e => setFolder(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
+          <datalist id="planner-folders">{folderNames.map(n => <option key={n} value={n} />)}</datalist>
+          <button type="button" aria-pressed={routeFavorite} title={t('planner.lib.favorite')} aria-label={t('planner.lib.favorite')}
+            style={{ ...btn, padding: '6px 9px' }} onClick={() => setFavorite(!routeFavorite)}>
+            <Star size={16} fill={routeFavorite ? '#f59e0b' : 'none'} style={{ color: routeFavorite ? '#f59e0b' : 'var(--text-muted)' }} />
+          </button>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
           {statBox(t('planner.stats.distance'), fmtKm(stats.distKm))}
           {statBox(t('planner.stats.gain'), `+${stats.gain} m`)}
@@ -606,7 +626,9 @@ export default function PlannerPage(): React.ReactElement {
         <button type="button" style={btn} onClick={() => fileRef.current?.click()}><Upload size={15} />{t('planner.upload.choose')}</button>
       </div>
 
-      {savedList}
+      <button type="button" style={btn} onClick={() => { setLibraryOpen(true); setMobileView('map') }}>
+        <FolderIcon size={15} />{t('planner.lib.openLibrary', { n: routesTotal })}
+      </button>
     </div>
   )
 
@@ -740,7 +762,7 @@ export default function PlannerPage(): React.ReactElement {
           {(['panel', 'map'] as MobileView[]).map(v => (
             <button key={v} type="button" onClick={() => setMobileView(v)}
               style={{ ...(mobileView === v ? btnPrimary : btn), flex: 1 }}>
-              {v === 'panel' ? <Layers size={15} /> : <MapIcon size={15} />}{t(`planner.view.${v}`)}
+              {v === 'panel' ? <Layers size={15} /> : <MapIcon size={15} />}{t(hasRoute ? `planner.view.${v}` : v === 'panel' ? 'planner.view.create' : 'planner.view.library')}
             </button>
           ))}
         </div>
@@ -764,9 +786,19 @@ export default function PlannerPage(): React.ReactElement {
             </div>
           </aside>
 
-          {/* Mapa + perfil */}
+          {/* Biblioteca (sin ruta abierta, o al pulsar «Mis rutas») o mapa + perfil */}
           <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} lg:flex`}
             style={{ flex: 1, minWidth: 0, flexDirection: 'column' }}>
+            <div style={{ display: showLibrary ? 'flex' : 'none', flex: 1, minHeight: 0 }}>
+              <RouteLibrary
+                version={libraryVersion} currentId={routeId}
+                onOpen={id => { if (id === routeId) setLibraryOpen(false); else openRoute(id) }}
+                onDelete={setDeleteTarget}
+                onBack={hasRoute ? () => setLibraryOpen(false) : undefined}
+                onChanged={loadSaved}
+              />
+            </div>
+            <div style={{ display: showLibrary ? 'none' : 'flex', flex: 1, minHeight: 0, flexDirection: 'column' }}>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <PlannerMap
                 points={points} stages={stages} activeStage={activeStage} waypoints={waypoints} pois={visiblePois}
@@ -792,6 +824,7 @@ export default function PlannerPage(): React.ReactElement {
                 />
               </div>
             )}
+            </div>
           </section>
         </div>
       </div>

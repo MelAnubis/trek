@@ -192,3 +192,126 @@ describe('POST /maps/pois/along-route', () => {
     expect(r.status).toBe(502);
   });
 });
+
+// ── Biblioteca: carpetas, favoritos, filtros, paginación y mapa general ───────
+async function mk(userId: number, name: string, over: Record<string, unknown> = {}) {
+  const r = await request(app).post('/api/planner').set('Cookie', authCookie(userId)).send(body({ name, ...over }));
+  expect(r.status).toBe(201);
+  return r.body.route as { id: number };
+}
+const list = (userId: number, qs = '') => request(app).get(`/api/planner${qs}`).set('Cookie', authCookie(userId));
+
+describe('Planner library', () => {
+  it('PLAN-030 — stores a ~100 point preview, never the full track, in list rows', async () => {
+    const { user } = createUser(testDb);
+    await mk(user.id, 'Larga', { points: track(5000), cuts: [] });
+    const r = await list(user.id);
+    const row = r.body.routes[0];
+    expect(row.points).toBeUndefined();
+    expect(row.preview.length).toBe(100);
+    expect(row.preview[0]).toEqual([40, -3]);
+    expect(row.favorite).toBe(false);
+    expect(row.folder).toBeNull();
+  });
+
+  it('PLAN-031 — search is case-insensitive and treats % and _ literally', async () => {
+    const { user } = createUser(testDb);
+    await mk(user.id, 'Camino de Santiago'); await mk(user.id, 'Ruta 100%'); await mk(user.id, 'Ruta 1000');
+    expect((await list(user.id, '?q=santiago')).body.total).toBe(1);
+    expect((await list(user.id, '?q=100%25')).body.routes.map((r: any) => r.name)).toEqual(['Ruta 100%']);
+    expect((await list(user.id, '?q=ruta_')).body.total).toBe(0);
+  });
+
+  it('PLAN-032 — folders and favourites: set, filter, counters (always over all routes)', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A'); const b = await mk(user.id, 'B'); await mk(user.id, 'C');
+    const put = (id: number, data: object) => request(app).put(`/api/planner/${id}`).set('Cookie', authCookie(user.id)).send(data);
+    expect((await put(a.id, { folder: ' Verano 2026 ', favorite: true })).status).toBe(200);
+    expect((await put(b.id, { folder: 'Verano 2026' })).status).toBe(200);
+
+    const inFolder = await list(user.id, '?folder=' + encodeURIComponent('Verano 2026'));
+    expect(inFolder.body.routes.map((r: any) => r.name).sort()).toEqual(['A', 'B']);
+    expect((await list(user.id, '?favorite=1')).body.routes.map((r: any) => r.name)).toEqual(['A']);
+    expect((await list(user.id, '?unfiled=1')).body.routes.map((r: any) => r.name)).toEqual(['C']);
+    // los contadores no dependen del filtro activo
+    expect(inFolder.body.folders).toEqual([{ name: 'Verano 2026', count: 2 }]);
+    expect(inFolder.body.totals).toEqual({ all: 3, favorites: 1, unfiled: 1 });
+
+    // quitar carpeta con null o ''
+    expect((await put(a.id, { folder: null })).body.route.folder).toBeNull();
+    expect((await put(b.id, { folder: '   ' })).body.route.folder).toBeNull();
+  });
+
+  it('PLAN-033 — organising a route (folder/favourite) does not change its "recent" order; editing does', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A'); await mk(user.id, 'B');
+    testDb.prepare("UPDATE planner_routes SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(a.id);
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ favorite: true, folder: 'X' });
+    expect((testDb.prepare('SELECT updated_at FROM planner_routes WHERE id = ?').get(a.id) as any).updated_at).toBe('2020-01-01 00:00:00');
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ name: 'A2' });
+    expect((testDb.prepare('SELECT updated_at FROM planner_routes WHERE id = ?').get(a.id) as any).updated_at).not.toBe('2020-01-01 00:00:00');
+  });
+
+  it('PLAN-034 — sorting and server-side pagination', async () => {
+    const { user } = createUser(testDb);
+    for (let i = 1; i <= 25; i++) await mk(user.id, `Ruta ${String(i).padStart(2, '0')}`, { total_distance_km: i * 10, elevation_gain: 1000 - i });
+    const p1 = await list(user.id, '?sort=name&limit=10&page=1');
+    expect(p1.body).toMatchObject({ total: 25, pages: 3, page: 1, limit: 10 });
+    expect(p1.body.routes.map((r: any) => r.name)[0]).toBe('Ruta 01');
+    const p3 = await list(user.id, '?sort=name&limit=10&page=3');
+    expect(p3.body.routes).toHaveLength(5);
+    expect((await list(user.id, '?sort=distance&limit=3')).body.routes.map((r: any) => r.total_distance_km)).toEqual([250, 240, 230]);
+    expect((await list(user.id, '?sort=ascent&limit=2')).body.routes.map((r: any) => r.name)).toEqual(['Ruta 01', 'Ruta 02']);
+    // página fuera de rango → se ajusta a la última; sort desconocido → recientes; límite acotado
+    expect((await list(user.id, '?limit=10&page=99')).body.page).toBe(3);
+    expect((await list(user.id, '?sort=DROP%20TABLE&limit=500')).body.limit).toBe(48);
+  });
+
+  it('PLAN-035 — rename, merge and remove a folder', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A', { folder: 'Uno' }); await mk(user.id, 'B', { folder: 'Dos' });
+    const put = (data: object) => request(app).put('/api/planner/folders').set('Cookie', authCookie(user.id)).send(data);
+    expect((await put({ from: 'Uno', to: 'Tres' })).body.updated).toBe(1);
+    expect((await put({ from: 'Tres', to: 'Dos' })).body.updated).toBe(1); // fusiona
+    expect((await list(user.id)).body.folders).toEqual([{ name: 'Dos', count: 2 }]);
+    expect((await put({ from: 'Dos', to: null })).body.updated).toBe(2); // quita la carpeta, las rutas siguen
+    const r = await list(user.id);
+    expect(r.body.total).toBe(2);
+    expect(r.body.folders).toEqual([]);
+    expect((await put({ from: '', to: 'X' })).status).toBe(400);
+    expect((await put({ from: 'Dos', to: 'x'.repeat(61) })).status).toBe(400);
+    expect(a.id).toBeGreaterThan(0);
+  });
+
+  it('PLAN-036 — overview map returns silhouettes honouring filters, only for the owner', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    await mk(user.id, 'A', { folder: 'F' }); await mk(user.id, 'B'); await mk(other.id, 'Ajena');
+    const all = await request(app).get('/api/planner/overview').set('Cookie', authCookie(user.id));
+    expect(all.body.routes).toHaveLength(2);
+    expect(all.body.routes[0].preview.length).toBeGreaterThan(1);
+    expect(all.body.routes[0].points).toBeUndefined();
+    const f = await request(app).get('/api/planner/overview?folder=F').set('Cookie', authCookie(user.id));
+    expect(f.body.routes.map((r: any) => r.name)).toEqual(['A']);
+  });
+
+  it('PLAN-037 — validates folder/favourite, and a user cannot touch another user\'s folders', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    const a = await mk(user.id, 'A', { folder: 'Mia' });
+    const put = (data: object) => request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send(data);
+    expect((await put({ folder: 5 })).status).toBe(400);
+    expect((await put({ folder: 'x'.repeat(61) })).status).toBe(400);
+    expect((await put({ favorite: 'yes' })).status).toBe(400);
+    const r = await request(app).put('/api/planner/folders').set('Cookie', authCookie(other.id)).send({ from: 'Mia', to: null });
+    expect(r.body.updated).toBe(0);
+    expect((await list(user.id, '?folder=Mia')).body.total).toBe(1);
+    expect((await request(app).get('/api/planner/overview')).status).toBe(401);
+  });
+
+  it('PLAN-038 — replacing points refreshes the preview', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A');
+    const newPts = Array.from({ length: 30 }, (_, i) => [10 + i * 0.01, 20, null]);
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ points: newPts, cuts: [] });
+    expect((await list(user.id)).body.routes[0].preview[0]).toEqual([10, 20]);
+  });
+});

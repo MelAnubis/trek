@@ -1,5 +1,6 @@
 import Database from 'better-sqlite3';
 import { encrypt_api_key } from '../services/apiKeyCrypto';
+import { makePreview } from '../services/plannerPreview';
 
 /** Returns true if any collision was encountered (renamed row). */
 export function trimUserWhitespace(db: Database.Database): boolean {
@@ -2610,6 +2611,19 @@ function runMigrations(db: Database.Database): void {
         )
       `);
       db.exec('CREATE INDEX IF NOT EXISTS idx_planner_routes_user ON planner_routes(user_id, updated_at)');
+    },
+    // Planner library: folders, favourites and a small preview polyline per route
+    // (thumbnail + overview map). Existing routes get their preview backfilled.
+    () => {
+      try { db.exec('ALTER TABLE planner_routes ADD COLUMN folder TEXT'); } catch {}
+      try { db.exec('ALTER TABLE planner_routes ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0'); } catch {}
+      try { db.exec("ALTER TABLE planner_routes ADD COLUMN preview_json TEXT NOT NULL DEFAULT '[]'"); } catch {}
+      db.exec('CREATE INDEX IF NOT EXISTS idx_planner_routes_folder ON planner_routes(user_id, folder)');
+      const rows = db.prepare('SELECT id, points_json FROM planner_routes').all() as { id: number; points_json: string }[];
+      const upd = db.prepare('UPDATE planner_routes SET preview_json = ? WHERE id = ?');
+      for (const r of rows) {
+        try { upd.run(JSON.stringify(makePreview(JSON.parse(r.points_json))), r.id); } catch {}
+      }
     },
   ];
 

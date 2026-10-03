@@ -46,8 +46,34 @@ export interface PlannerRouteSummary {
   elevation_loss: number
   point_count: number
   stage_count: number
+  folder: string | null
+  favorite: boolean
+  /** ~100 puntos [lat, lng] para la miniatura. */
+  preview: [number, number][]
   created_at: string
   updated_at: string
+}
+
+export interface LibraryFolder { name: string; count: number }
+
+export interface LibraryResponse {
+  routes: PlannerRouteSummary[]
+  total: number
+  page: number
+  pages: number
+  limit: number
+  folders: LibraryFolder[]
+  totals: { all: number; favorites: number; unfiled: number }
+}
+
+export interface OverviewRoute {
+  id: number
+  name: string
+  total_distance_km: number
+  elevation_gain: number
+  folder: string | null
+  favorite: boolean
+  preview: [number, number][]
 }
 
 export interface PlannerRouteFull extends PlannerRouteSummary {
