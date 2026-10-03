@@ -42,6 +42,7 @@ vi.mock('../../src/config', () => ({
 const askMock = vi.fn();
 const routeMock = vi.fn();
 const searchMock = vi.fn();
+const overpassMock = vi.fn();
 vi.mock('../../src/services/aiTextService', () => ({ askAIText: (...a: unknown[]) => askMock(...a) }));
 vi.mock('../../src/services/brouterService', async (orig) => ({
   ...(await orig<typeof import('../../src/services/brouterService')>()),
@@ -50,6 +51,7 @@ vi.mock('../../src/services/brouterService', async (orig) => ({
 vi.mock('../../src/services/mapsService', async (orig) => ({
   ...(await orig<typeof import('../../src/services/mapsService')>()),
   searchPlaces: (...a: unknown[]) => searchMock(...a),
+  searchOverpassPoisAlongRoute: (...a: unknown[]) => overpassMock(...a),
 }));
 
 import { createApp } from '../../src/app';
@@ -66,21 +68,52 @@ const app: Application = createApp();
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
   resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); resetPlannerAiLimiter();
-  askMock.mockReset(); routeMock.mockReset(); searchMock.mockReset();
+  askMock.mockReset(); routeMock.mockReset(); searchMock.mockReset(); overpassMock.mockReset();
+  overpassMock.mockResolvedValue({ pois: [], truncated: false });
+  // El enrutador simulado sigue las paradas en el orden recibido, con un punto cada ~1 km.
+  routeMock.mockImplementation(async (wps: { lat: number; lng: number }[]) => {
+    const points = trackThrough(wps);
+    return { points, distanceKm: points.length, ascentM: 800 };
+  });
 });
 afterAll(() => { testDb.close(); });
 
-const PLAN = JSON.stringify({ name: 'Madrid–Segovia', summary: 'Por la sierra.', profile: 'safety', km_per_day: 70, days: 2, places: ['Madrid, España', 'Cercedilla, España', 'Segovia, España'] });
-const GEO: Record<string, [number, number]> = { 'Madrid, España': [40.4168, -3.7038], 'Cercedilla, España': [40.7406, -4.0592], 'Segovia, España': [40.9429, -4.1088] };
-const geocode = (q: string) => ({ places: GEO[q] ? [{ name: q.split(',')[0], lat: GEO[q][0], lng: GEO[q][1] }] : [], source: 'openstreetmap' });
-const post = (userId: number, b: object) => request(app).post('/api/planner/assistant').set('Cookie', authCookie(userId)).send(b);
+
+type Pt = { lat: number; lng: number };
+const km = (a: Pt, b: Pt) => {
+  const R = 6371, r = Math.PI / 180, dLa = (b.lat - a.lat) * r, dLo = (b.lng - a.lng) * r;
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+};
+function trackThrough(wps: Pt[]): [number, number, number | null][] {
+  const out: [number, number, number | null][] = [];
+  for (let i = 1; i < wps.length; i++) {
+    const a = wps[i - 1], b = wps[i], n = Math.max(2, Math.ceil(km(a, b)));
+    for (let k = i === 1 ? 0 : 1; k <= n; k++) out.push([a.lat + (b.lat - a.lat) * k / n, a.lng + (b.lng - a.lng) * k / n, 700]);
+  }
+  return out;
+}
+const pathLen = (xs: Pt[]) => xs.slice(1).reduce((s, p, i) => s + km(xs[i], p), 0);
+
+const SEG: Record<string, [number, number]> = {
+  'Segovia, España': [40.9429, -4.1088], 'Ayllón, España': [41.4217, -3.3722], 'Pedraza, España': [41.1456, -3.8089],
+  'Riaza, España': [41.2594, -3.4806], 'Turégano, España': [41.1583, -4.0114], 'Sepúlveda, España': [41.2998, -3.7453],
+  'San Esteban, Segovia, España': [40.9440, -4.1100], 'Segovia, Colombia': [7.0, -74.7],
+  'Madrid, España': [40.4168, -3.7038], 'Cercedilla, España': [40.7406, -4.0592],
+};
+const geocode = (q: string) => ({ places: SEG[q] ? [{ name: q.split(',')[0], lat: SEG[q][0], lng: SEG[q][1] }] : [], source: 'openstreetmap' });
+const plan = (over: Record<string, unknown>) => JSON.stringify({ name: 'Ruta', summary: 'Resumen.', profile: 'trekking', km_per_day: null, days: null, start_fixed: false, end_fixed: false, places: [], ...over });
+const post = (userId: number, b: object) => request(app).post('/api/planner/assistant').set('Cookie', authCookie(userId)).send(b as object);
+const PROMPT = { prompt: 'Recorre los monumentos románicos de Segovia en bici' };
 
 describe('parsePlan', () => {
-  it('PLAN-020 — parses fenced JSON, caps places and falls back on bad profile / km', () => {
-    const p = parsePlan('Aquí tienes:\n```json\n' + JSON.stringify({ name: 'X', profile: 'tank', km_per_day: 5, places: ['A', ' ', 'B', 3, ...Array(30).fill('C')] }) + '\n```');
+  it('PLAN-020 — parses fenced JSON, caps places, falls back on bad profile / km, reads fixed ends', () => {
+    const p = parsePlan('Aquí tienes:\n```json\n' + JSON.stringify({ name: 'X', profile: 'tank', km_per_day: 5, start_fixed: true, places: ['A', ' ', 'B', 3, ...Array(30).fill('C')] }) + '\n```');
     expect(p.profile).toBe('trekking');
     expect(p.kmPerDay).toBeNull();
     expect(p.days).toBeNull();
+    expect(p.startFixed).toBe(true);
+    expect(p.endFixed).toBe(false);
     expect(p.places.slice(0, 2)).toEqual(['A', 'B']);
     expect(p.places.length).toBe(12);
   });
@@ -90,7 +123,7 @@ describe('parsePlan', () => {
   });
 });
 
-describe('POST /planner/assistant', () => {
+describe('POST /planner/assistant — request handling', () => {
   it('PLAN-022 — requires auth and a sensible prompt', async () => {
     expect((await request(app).post('/api/planner/assistant').send({ prompt: 'Madrid a Segovia en bici' })).status).toBe(401);
     const { user } = createUser(testDb);
@@ -99,41 +132,9 @@ describe('POST /planner/assistant', () => {
     expect(askMock).not.toHaveBeenCalled();
   });
 
-  it('PLAN-023 — happy path: AI plan → geocoding → BRouter', async () => {
-    const { user } = createUser(testDb);
-    askMock.mockResolvedValueOnce(PLAN);
-    searchMock.mockImplementation(async (_u: number, q: string) => geocode(q));
-    routeMock.mockResolvedValueOnce({ points: [[40.4, -3.7, 650], [40.9, -4.1, 1000]], distanceKm: 98.4, ascentM: 1200 });
-    const r = await post(user.id, { prompt: 'Madrid a Segovia por la sierra en 2 días', lang: 'es' });
-    expect(r.status).toBe(200);
-    expect(r.body.plan).toMatchObject({ name: 'Madrid–Segovia', profile: 'safety', kmPerDay: 70, days: 2 });
-    expect(r.body.waypoints.map((w: any) => w.name)).toEqual(['Madrid', 'Cercedilla', 'Segovia']);
-    expect(r.body.points).toHaveLength(2);
-    expect(r.body.distanceKm).toBe(98.4);
-    expect(routeMock).toHaveBeenCalledTimes(1);
-    expect(routeMock.mock.calls[0][1]).toBe('safety');
-    expect(routeMock.mock.calls[0][0]).toHaveLength(3);
-  });
-
-  it('PLAN-024 — skips unresolved places but warns; fails if fewer than 2 resolve', async () => {
-    const { user } = createUser(testDb);
-    searchMock.mockImplementation(async (_u: number, q: string) => geocode(q));
-    askMock.mockResolvedValueOnce(JSON.stringify({ name: 'R', profile: 'trekking', places: ['Madrid, España', 'Lugar Inventado', 'Segovia, España'] }));
-    routeMock.mockResolvedValueOnce({ points: [[40.4, -3.7, null], [40.9, -4.1, null]], distanceKm: 90, ascentM: null });
-    const ok = await post(user.id, { prompt: 'Madrid a Segovia en bici' });
-    expect(ok.status).toBe(200);
-    expect(ok.body.waypoints).toHaveLength(2);
-    expect(ok.body.warnings.some((w: string) => w.startsWith('unresolved:'))).toBe(true);
-
-    askMock.mockResolvedValueOnce(JSON.stringify({ name: 'R', places: ['Nada Uno', 'Nada Dos'] }));
-    const bad = await post(user.id, { prompt: 'Una ruta rarísima en bici' });
-    expect(bad.status).toBe(422);
-    expect(bad.body.code).toBe('GEOCODE_FAILED');
-  });
-
   it('PLAN-025 — off-topic request gives 422 NO_PLAN and never calls geocoder or router', async () => {
     const { user } = createUser(testDb);
-    askMock.mockResolvedValueOnce(JSON.stringify({ name: '', summary: '', profile: 'trekking', km_per_day: null, places: [] }));
+    askMock.mockResolvedValueOnce(plan({}));
     const r = await post(user.id, { prompt: 'Dame una receta de paella' });
     expect(r.status).toBe(422);
     expect(r.body.code).toBe('NO_PLAN');
@@ -144,25 +145,151 @@ describe('POST /planner/assistant', () => {
   it('PLAN-026 — maps NO_AI_KEY to 503, upstream failures to 502, and rejects over-long routes', async () => {
     const { user } = createUser(testDb);
     askMock.mockRejectedValueOnce(new Error('NO_AI_KEY: No AI API key configured.'));
-    expect((await post(user.id, { prompt: 'Madrid a Segovia en bici' })).status).toBe(503);
+    expect((await post(user.id, PROMPT)).status).toBe(503);
 
     searchMock.mockImplementation(async (_u: number, q: string) => geocode(q));
-    askMock.mockResolvedValue(PLAN);
+    askMock.mockResolvedValue(plan({ places: ['Madrid, España', 'Segovia, España'] }));
     routeMock.mockRejectedValueOnce(Object.assign(new Error('BRouter unreachable'), { status: 502 }));
-    expect((await post(user.id, { prompt: 'Madrid a Segovia en bici' })).status).toBe(502);
+    expect((await post(user.id, PROMPT)).status).toBe(502);
 
-    routeMock.mockResolvedValueOnce({ points: [[1, 1, null], [2, 2, null]], distanceKm: 5000, ascentM: null });
-    const tooLong = await post(user.id, { prompt: 'Madrid a Segovia en bici' });
+    routeMock.mockImplementationOnce(async () => ({ points: trackThrough([{ lat: 10, lng: -3 }, { lat: 42, lng: -3 }]), distanceKm: 3500, ascentM: null }));
+    const tooLong = await post(user.id, PROMPT);
     expect(tooLong.status).toBe(422);
     expect(tooLong.body.code).toBe('TOO_LONG');
   });
 
   it('PLAN-027 — rate limits per user', async () => {
     const { user } = createUser(testDb);
-    askMock.mockResolvedValue(JSON.stringify({ name: '', places: [] }));
-    for (let i = 0; i < 15; i++) expect((await post(user.id, { prompt: 'Madrid a Segovia en bici' })).status).toBe(422);
-    expect((await post(user.id, { prompt: 'Madrid a Segovia en bici' })).status).toBe(429);
+    askMock.mockResolvedValue(plan({}));
+    for (let i = 0; i < 15; i++) expect((await post(user.id, PROMPT)).status).toBe(422);
+    expect((await post(user.id, PROMPT)).status).toBe(429);
     const { user: other } = createUser(testDb);
-    expect((await post(other.id, { prompt: 'Madrid a Segovia en bici' })).status).toBe(422);
+    expect((await post(other.id, PROMPT)).status).toBe(422);
+  });
+});
+
+describe('POST /planner/assistant — route coherence', () => {
+  const ZIGZAG = ['Segovia, España', 'Ayllón, España', 'Pedraza, España', 'Riaza, España', 'Turégano, España', 'Sepúlveda, España'];
+  beforeEach(() => { searchMock.mockImplementation(async (_u: number, q: string) => geocode(q)); });
+
+  it('PLAN-023 — reorders a zig-zag list geographically and returns the stops in travel order', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ name: 'Románico', profile: 'safety', places: ZIGZAG }));
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.plan).toMatchObject({ name: 'Románico', profile: 'safety' });
+    const asked = ZIGZAG.map(q => ({ lat: SEG[q][0], lng: SEG[q][1] }));
+    expect(r.body.waypoints).toHaveLength(6);
+    expect(pathLen(r.body.waypoints)).toBeLessThan(pathLen(asked) - 20);
+    // el enrutador recibe exactamente las paradas reordenadas
+    expect(routeMock.mock.calls[0][0].map((w: Pt) => w.lat)).toEqual(r.body.waypoints.map((w: Pt) => w.lat));
+    expect(routeMock.mock.calls[0][1]).toBe('safety');
+    expect(r.body.quality.maxGapKm).toBeLessThan(5);
+  });
+
+  it('PLAN-028 — keeps start and end when the user named them', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, places: ['Segovia, España', 'Riaza, España', 'Pedraza, España', 'Ayllón, España'] }));
+    const r = await post(user.id, PROMPT);
+    expect(r.body.waypoints[0].name).toBe('Segovia');
+    expect(r.body.waypoints[3].name).toBe('Ayllón');
+    expect(r.body.waypoints.slice(1, 3).map((w: any) => w.name).sort()).toEqual(['Pedraza', 'Riaza']);
+  });
+
+  it('PLAN-029 — merges several places of the same town and drops a homonym in another country', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'San Esteban, Segovia, España', 'Pedraza, España', 'Riaza, España', 'Segovia, Colombia'] }));
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.waypoints.map((w: any) => w.name).sort()).toEqual(['Pedraza', 'Riaza', 'Segovia']);
+    expect(r.body.warnings.some((w: string) => w.startsWith('merged:') && w.includes('San Esteban'))).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('outliers:') && w.includes('Segovia'))).toBe(true);
+  });
+
+  it('PLAN-040 — skips unresolved places with a warning; fails when fewer than 2 resolve', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'Lugar Inventado', 'Riaza, España'] }));
+    const ok = await post(user.id, PROMPT);
+    expect(ok.status).toBe(200);
+    expect(ok.body.waypoints).toHaveLength(2);
+    expect(ok.body.warnings.some((w: string) => w.startsWith('unresolved:'))).toBe(true);
+
+    askMock.mockResolvedValueOnce(plan({ places: ['Nada Uno', 'Nada Dos'] }));
+    const bad = await post(user.id, PROMPT);
+    expect(bad.status).toBe(422);
+    expect(bad.body.code).toBe('GEOCODE_FAILED');
+  });
+
+  it('PLAN-041 — rejects a broken (discontinuous) track instead of saving it', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'Riaza, España'] }));
+    routeMock.mockImplementationOnce(async (wps: Pt[]) => {
+      const a = trackThrough([wps[0], { lat: 41.0, lng: -4.0 }]), b = trackThrough([{ lat: 41.2, lng: -3.6 }, wps[1]]);
+      return { points: [...a, ...b], distanceKm: 80, ascentM: null };
+    });
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(422);
+    expect(r.body.code).toBe('DISCONTINUOUS');
+  });
+
+  it('PLAN-042 — warns about big detours and stops the track does not pass through', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'Riaza, España'] }));
+    routeMock.mockImplementationOnce(async (wps: Pt[]) => {
+      // rodeo enorme y sin pasar por Riaza (acaba 3 km al sur)
+      const via = { lat: 40.6, lng: -3.2 }, end = { lat: wps[1].lat - 0.03, lng: wps[1].lng };
+      const pts = trackThrough([wps[0], via, end]);
+      return { points: pts, distanceKm: pts.length, ascentM: null };
+    });
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.warnings.some((w: string) => w.startsWith('detour:'))).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('offtrack:') && w.includes('Riaza'))).toBe(true);
+  });
+});
+
+describe('POST /planner/assistant — stages end where you can sleep', () => {
+  beforeEach(() => { searchMock.mockImplementation(async (_u: number, q: string) => geocode(q)); });
+  // Madrid → Cercedilla ≈ 40 km; con "days: 2" el corte ideal está a ~20 km.
+  const ask = (over: Record<string, unknown> = {}) => askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Madrid, España', 'Cercedilla, España'], ...over }));
+
+  it('PLAN-043 — puts the stage end at a lodging near the ideal mark', async () => {
+    const { user } = createUser(testDb);
+    ask();
+    // alojamiento en la recta Madrid→Cercedilla, a ~45 % del recorrido
+    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.45;
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'node:1', name: 'Hostal X', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.stageEnds).toHaveLength(1);
+    expect(r.body.stageEnds[0].lodged).toBe(true);
+    const total = r.body.quality.lengthKm;
+    expect(r.body.stageEnds[0].km / total).toBeGreaterThan(0.43);
+    expect(r.body.stageEnds[0].km / total).toBeLessThan(0.47);
+    expect(overpassMock.mock.calls[0][0]).toBe('hotel');
+    expect(r.body.warnings.some((w: string) => w.startsWith('nolodging'))).toBe(false);
+  });
+
+  it('PLAN-044 — flags stage ends without lodging, and falls back when the lodging lookup fails', async () => {
+    const { user } = createUser(testDb);
+    ask();
+    const none = await post(user.id, PROMPT);
+    expect(none.body.stageEnds).toEqual([{ km: expect.any(Number), lodged: false }]);
+    expect(none.body.warnings).toContain('nolodging:1');
+
+    ask();
+    overpassMock.mockRejectedValueOnce(new Error('Overpass down'));
+    const down = await post(user.id, PROMPT);
+    expect(down.status).toBe(200);
+    expect(down.body.warnings).toContain('nolodgingdata');
+    expect(down.body.stageEnds).toHaveLength(1);
+  });
+
+  it('PLAN-045 — no days / km_per_day means no stage cuts and no lodging lookup', async () => {
+    const { user } = createUser(testDb);
+    ask({ days: null });
+    const r = await post(user.id, PROMPT);
+    expect(r.body.stageEnds).toEqual([]);
+    expect(overpassMock).not.toHaveBeenCalled();
   });
 });

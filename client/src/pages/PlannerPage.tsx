@@ -179,12 +179,16 @@ export default function PlannerPage(): React.ReactElement {
   /** Guarda una ruta nueva en la cuenta y la abre. `stageKm` activa la división automática. */
   const createAndOpen = useCallback(async (o: {
     name: string; origName: string; pts: RoutePoint[]; wps: PlannerWaypoint[]; stageKm?: number | null
+    /** Cortes de etapa en km de recorrido (p. ej. junto a alojamientos). Tienen prioridad sobre stageKm. */
+    cutKm?: number[] | null
   }) => {
     const c = cumulativeKm(o.pts)
     const st = routeStats(smoothElevation(o.pts, c), c)
     const stageKm = o.stageKm && o.stageKm > 0 ? Math.round(o.stageKm) : null
     const newSettings: PlannerSettings = { stageKm: stageKm ?? 60, poiRadiusM: 1000 }
-    const newCuts = stageKm ? autoSplit(c, stageKm) : []
+    const newCuts = o.cutKm && o.cutKm.length
+      ? normalizeCuts(o.cutKm.map(km => ({ index: indexAtKm(c, km) })), o.pts.length)
+      : stageKm ? autoSplit(c, stageKm) : []
 
     setSaveState('saving')
     const { route } = await plannerApi.create({
@@ -249,7 +253,10 @@ export default function PlannerPage(): React.ReactElement {
       }))
       // km por etapa: el que pidió el usuario o, si dio solo los días, distancia / días.
       const stageKm = res.plan.kmPerDay ?? (res.plan.days ? res.distanceKm / res.plan.days : null)
-      await createAndOpen({ name: res.plan.name || t('planner.untitled'), origName: 'IA', pts, wps, stageKm })
+      await createAndOpen({
+        name: res.plan.name || t('planner.untitled'), origName: 'IA', pts, wps, stageKm,
+        cutKm: res.stageEnds.map(e => e.km),
+      })
       setAiInfo({ summary: res.plan.summary, warnings: res.warnings })
       setAiPrompt('')
     } catch (err) {
@@ -261,6 +268,7 @@ export default function PlannerPage(): React.ReactElement {
       else if (code === 'NO_PLAN') toast.error(t('planner.ai.error.noPlan'))
       else if (code === 'GEOCODE_FAILED') toast.error(t('planner.ai.error.geocode'))
       else if (code === 'TOO_LONG') toast.error(t('planner.ai.error.tooLong'))
+      else if (code === 'DISCONTINUOUS') toast.error(t('planner.ai.error.discontinuous'))
       else if (status === 429) toast.error(t('planner.ai.error.rate'))
       else if (status === 422) toast.error(t('planner.ai.error.noRoute'))
       else toast.error(t('planner.ai.error.generic'))
@@ -515,6 +523,19 @@ export default function PlannerPage(): React.ReactElement {
     </div>
   )
 
+  const warningText = (kind: string, detail: string): string => {
+    switch (kind) {
+      case 'unresolved': return t('planner.ai.warn.unresolved', { list: detail })
+      case 'merged': return t('planner.ai.warn.merged', { list: detail })
+      case 'outliers': return t('planner.ai.warn.outliers', { list: detail })
+      case 'detour': return t('planner.ai.warn.detour', { ratio: detail })
+      case 'offtrack': return t('planner.ai.warn.offtrack', { list: detail })
+      case 'nolodging': return t('planner.ai.warn.nolodging', { stages: detail })
+      case 'nolodgingdata': return t('planner.ai.warn.nolodgingdata')
+      default: return detail || kind
+    }
+  }
+
   const aiInfoBox = aiInfo && (
     <div style={{ ...card, borderColor: 'var(--accent, #e85d24)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
@@ -529,7 +550,7 @@ export default function PlannerPage(): React.ReactElement {
         const detail = rest.join(':')
         return (
           <div key={w} style={{ fontSize: 12, color: '#b45309', marginTop: 6 }}>
-            ⚠️ {kind === 'unresolved' ? t('planner.ai.warn.unresolved', { list: detail }) : kind === 'far' ? t('planner.ai.warn.far', { leg: detail }) : detail}
+            ⚠️ {warningText(kind, detail)}
           </div>
         )
       })}
