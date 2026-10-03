@@ -63,6 +63,14 @@ describe('askAIText', () => {
     expect(await askAIText('s', 'u')).toBe('ok');
   });
 
+  it('AI-008 — when every provider answers empty it returns \'\' (existing contract), not an error', async () => {
+    process.env.GROQ_API_KEY = 'k1';
+    process.env.GEMINI_API_KEY = 'k2';
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url: string) =>
+      url.includes('groq.com') ? groqOk('') : geminiOk('')));
+    expect(await askAIText('s', 'u')).toBe('');
+  });
+
   it('AI-007 — throws the last error when every provider fails', async () => {
     process.env.GROQ_API_KEY = 'k1';
     process.env.GEMINI_API_KEY = 'k2';

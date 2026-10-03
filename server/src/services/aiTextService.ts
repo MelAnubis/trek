@@ -103,8 +103,10 @@ async function askClaudeText(system: string, user: string, opts: AITextOptions):
 
 /**
  * Plain text completion. Providers are tried in order Groq → Gemini → Claude,
- * skipping those without a key. If one fails (retired model, quota, outage) the
- * next configured one is tried; the last error is thrown if all of them fail.
+ * skipping those without a key. If one fails (retired model, quota, outage) or
+ * answers with nothing, the next configured one is tried. What the caller sees
+ * is the outcome of the LAST provider tried: its error is thrown, or '' if it
+ * answered with no text (callers treat '' as "no suggestion").
  */
 export async function askAIText(system: string, user: string, opts: AITextOptions = {}): Promise<string> {
   const providers: Array<[string, () => Promise<string>]> = [];
@@ -116,16 +118,19 @@ export async function askAIText(system: string, user: string, opts: AITextOption
       'NO_AI_KEY: No AI API key configured. Set GROQ_API_KEY (free), GEMINI_API_KEY (free) or ANTHROPIC_API_KEY.',
     );
   }
-  let lastErr: unknown;
-  for (const [name, call] of providers) {
+  let lastErr: unknown = null;
+  for (let i = 0; i < providers.length; i++) {
+    const [name, call] = providers[i];
     try {
       const text = await call();
       if (text.trim()) return text;
-      lastErr = new Error(`${name} returned an empty response`);
+      lastErr = null;
+      if (i < providers.length - 1) console.warn(`[aiText] ${name} returned no text, trying next provider`);
     } catch (err) {
       lastErr = err;
+      if (i < providers.length - 1) console.warn(`[aiText] ${name} failed, trying next provider:`, (err as Error)?.message);
     }
-    console.warn(`[aiText] ${name} failed, trying next provider if any:`, (lastErr as Error)?.message);
   }
-  throw lastErr;
+  if (lastErr) throw lastErr;
+  return '';
 }
