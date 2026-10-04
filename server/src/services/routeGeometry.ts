@@ -57,11 +57,14 @@ const HELD_KARP_MAX = 14;
  * `startFixed` / `endFixed` fijan el primer / último elemento de la entrada (cuando el
  * usuario nombró origen o destino). Con extremos libres se devuelve la dirección que
  * respeta mejor el orden original. Por encima de 14 puntos se devuelve la entrada tal cual.
+ * `closed` busca el circuito más corto que vuelve al primer elemento (que queda fijo y no se repite
+ * al final: quien llama añade el regreso).
  */
-export function orderByShortestPath<T extends GeoPoint>(items: T[], opts: { startFixed?: boolean; endFixed?: boolean } = {}): T[] {
+export function orderByShortestPath<T extends GeoPoint>(items: T[], opts: { startFixed?: boolean; endFixed?: boolean; closed?: boolean } = {}): T[] {
   const n = items.length;
   if (n <= 2 || n > HELD_KARP_MAX) return items.slice();
-  const sf = !!opts.startFixed, ef = !!opts.endFixed;
+  const closed = !!opts.closed;
+  const sf = closed || !!opts.startFixed, ef = !closed && !!opts.endFixed;
   const dist: number[][] = items.map(a => items.map(b => haversineKm(a, b)));
 
   // Con extremo final fijo, ese nodo queda fuera de la DP y se añade al final.
@@ -87,14 +90,14 @@ export function orderByShortestPath<T extends GeoPoint>(items: T[], opts: { star
 
   let best = INF, last = -1;
   for (let j = 0; j < m; j++) {
-    const c = dp[FULL * m + j] + (ef ? dist[j][n - 1] : 0);
+    const c = dp[FULL * m + j] + (ef ? dist[j][n - 1] : 0) + (closed ? dist[j][0] : 0);
     if (c < best) { best = c; last = j; }
   }
   const idx: number[] = [];
   for (let mask = FULL, j = last; j >= 0;) { idx.push(j); const p = par[mask * m + j]; mask ^= (1 << j); j = p; }
   idx.reverse();
   if (ef) idx.push(n - 1);
-  if (!sf && !ef && idx[0] > idx[idx.length - 1]) idx.reverse();   // mismo coste en ambos sentidos: respeta el orden pedido
+  if (!sf && !ef && !closed && idx[0] > idx[idx.length - 1]) idx.reverse();   // mismo coste en ambos sentidos: respeta el orden pedido
   return idx.map(i => items[i]);
 }
 
@@ -227,4 +230,66 @@ export function chooseStageCuts(totalKm: number, stageCount: number, lodgingKm: 
     prev = km;
   }
   return cuts;
+}
+
+// ── Desvíos y tramos repetidos ───────────────────────────────────────────────
+
+/** Kilómetros (en línea recta) que añade visitar `stop` entre sus dos vecinos en `path`. */
+export function detourCostKm(path: GeoPoint[], index: number): number {
+  const prev = path[index - 1], cur = path[index], next = path[index + 1];
+  if (!prev || !next) return 0;
+  return haversineKm(prev, cur) + haversineKm(cur, next) - haversineKm(prev, next);
+}
+
+/**
+ * Con origen y destino fijados, quita las paradas intermedias que obligan a un desvío
+ * grande: las que añaden más de `maxRatio` × la distancia directa entre origen y destino.
+ * Se quita de una en una la peor y se recalcula. Devuelve las paradas en orden de recorrido.
+ */
+export function dropDetourStops<T extends GeoPoint>(ordered: T[], maxRatio = 0.3): { kept: T[]; dropped: T[] } {
+  const kept = ordered.slice(), dropped: T[] = [];
+  if (kept.length < 3) return { kept, dropped };
+  const direct = haversineKm(kept[0], kept[kept.length - 1]);
+  if (direct <= 0) return { kept, dropped };
+  for (;;) {
+    let worst = -1, worstCost = 0;
+    for (let i = 1; i < kept.length - 1; i++) {
+      const c = detourCostKm(kept, i);
+      if (c > worstCost) { worstCost = c; worst = i; }
+    }
+    if (worst < 0 || worstCost <= maxRatio * direct || kept.length <= 2) break;
+    dropped.push(kept.splice(worst, 1)[0]);
+  }
+  return { kept, dropped };
+}
+
+/**
+ * Km del track que repasan por donde ya se pasó mucho antes (un ramal de ida y vuelta,
+ * volver sobre los propios pasos). Dos pasadas cercanas en el espacio pero separadas por
+ * más de `minGapKm` de recorrido cuentan como repetidas; un simple cruce apenas suma.
+ */
+export function retraceKm(track: TrackPoint[], minGapKm = 3, cellM = 150): number {
+  const n = track.length;
+  if (n < 3) return 0;
+  const cum = cumulativeKm(track);
+  const lat0 = track.reduce((s, p) => s + p[0], 0) / n;
+  const dLat = cellM / 111320, dLng = cellM / (111320 * Math.cos(lat0 * Math.PI / 180));
+  const cells = new Map<string, number[]>();
+  const rep = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    const cx = Math.floor(track[i][0] / dLat), cy = Math.floor(track[i][1] / dLng);
+    outer: for (let ax = -1; ax <= 1; ax++) {
+      for (let ay = -1; ay <= 1; ay++) {
+        const list = cells.get(`${cx + ax}:${cy + ay}`);
+        if (!list) continue;
+        for (const j of list) if (cum[i] - cum[j] > minGapKm) { rep[i] = 1; break outer; }
+      }
+    }
+    const key = `${cx}:${cy}`;
+    const l = cells.get(key);
+    if (l) l.push(i); else cells.set(key, [i]);
+  }
+  let km = 0;
+  for (let i = 1; i < n; i++) if (rep[i] && rep[i - 1]) km += cum[i] - cum[i - 1];
+  return km;
 }

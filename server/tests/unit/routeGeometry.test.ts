@@ -140,3 +140,61 @@ describe('chooseStageCuts', () => {
     expect(chooseStageCuts(0, 3, [])).toEqual([]);
   });
 });
+
+import { detourCostKm, dropDetourStops, retraceKm } from '../../src/services/routeGeometry';
+
+describe('closed tours', () => {
+  it('RG-017 — closed: shortest circuit from a fixed start, never longer than any open order + the way back', () => {
+    const pts = [P(40, -4, 'S'), P(41, -3, 'b'), P(40.5, -3.2, 'c'), P(41.4, -4.2, 'd'), P(40.2, -3.6, 'e')];
+    const out = orderByShortestPath(pts, { closed: true });
+    expect(out[0].name).toBe('S');
+    expect(new Set(out.map(p => p.name)).size).toBe(5);
+    const tour = (xs: GeoPoint[]) => pathLen(xs) + haversineKm(xs[xs.length - 1], xs[0]);
+    const perms = (xs: GeoPoint[]): GeoPoint[][] => xs.length <= 1 ? [xs] : xs.flatMap((x, i) => perms([...xs.slice(0, i), ...xs.slice(i + 1)]).map(r => [x, ...r]));
+    const best = Math.min(...perms(pts.slice(1)).map(r => tour([pts[0], ...r])));
+    expect(tour(out)).toBeCloseTo(best, 6);
+  });
+});
+
+describe('detours', () => {
+  const A = P(40.656, -4.7, 'Ávila'), SAL = P(40.97, -5.664, 'Salamanca'), PLA = P(40.03, -6.09, 'Plasencia'), CR = P(40.6, -6.533, 'Ciudad Rodrigo');
+
+  it('RG-018 — detourCostKm: 0 on a straight line, positive off it, 0 at the ends', () => {
+    const line = [P(40, -4), P(40.5, -4), P(41, -4)];
+    expect(detourCostKm(line, 1)).toBeCloseTo(0, 3);
+    expect(detourCostKm([P(40, -4), P(40.5, -3.5), P(41, -4)], 1)).toBeGreaterThan(10);
+    expect(detourCostKm(line, 0)).toBe(0);
+    expect(detourCostKm(line, 2)).toBe(0);
+  });
+
+  it('RG-019 — dropDetourStops removes the stop that forces a big spur, keeps the one on the way', () => {
+    const r = dropDetourStops([A, SAL, PLA, CR]);   // Plasencia queda ~100 km al sur de la ruta Ávila→Ciudad Rodrigo
+    expect(r.dropped.map(p => p.name)).toEqual(['Plasencia']);
+    expect(r.kept.map(p => p.name)).toEqual(['Ávila', 'Salamanca', 'Ciudad Rodrigo']);
+  });
+
+  it('RG-020 — dropDetourStops leaves reasonable routes and short lists alone', () => {
+    const line = [P(40, -4, 'a'), P(40.5, -4.01, 'b'), P(41, -4, 'c')];
+    expect(dropDetourStops(line).dropped).toEqual([]);
+    expect(dropDetourStops([A, CR]).kept).toHaveLength(2);
+  });
+});
+
+describe('retraceKm', () => {
+  it('RG-021 — a one-way track retraces nothing', () => {
+    expect(retraceKm(straight(P(40, -4), P(41, -4)))).toBeLessThan(0.5);
+  });
+
+  it('RG-022 — an out-and-back spur counts (≈ the length of the way back)', () => {
+    const out = straight(P(40, -4), P(40.5, -4));           // ≈ 55 km
+    const back = out.slice(0, -1).reverse();
+    const km = retraceKm([...out, ...back]);
+    expect(km).toBeGreaterThan(45);
+    expect(km).toBeLessThan(65);
+  });
+
+  it('RG-023 — a plain crossing of two roads does not count as retracing', () => {
+    const ns = straight(P(40, -4), P(41, -4)), ew = straight(P(40.5, -4.6), P(40.5, -3.4));
+    expect(retraceKm([...ns, ...ew])).toBeLessThan(2);
+  });
+});

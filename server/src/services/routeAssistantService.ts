@@ -12,9 +12,11 @@ import { askAIText } from './aiTextService';
 import { searchPlaces, searchOverpassPoisAlongRoute } from './mapsService';
 import {
   dedupeNearby, dropOutliers, orderByShortestPath, trackQuality, cumulativeKm, nearestOnTrack, indexAtKm,
-  simplifyLine, chooseStageCuts, haversineKm, type StageCut,
+  simplifyLine, chooseStageCuts, haversineKm, dropDetourStops, detourCostKm, retraceKm, type StageCut,
 } from './routeGeometry';
 import { routeWithBrouter, isBrouterProfile, type BrouterProfile } from './brouterService';
+
+export type TripType = 'one_way' | 'loop' | 'out_and_back';
 
 export interface AssistantPlan {
   name: string;
@@ -25,6 +27,8 @@ export interface AssistantPlan {
   /** El usuario nombró el origen / el destino: no se reordenan. */
   startFixed: boolean;
   endFixed: boolean;
+  /** one_way: de A a B · loop: circular, vuelve al inicio por otro camino · out_and_back: ida y vuelta por el mismo camino. */
+  tripType: TripType;
   places: string[];
 }
 
@@ -39,7 +43,8 @@ export interface AssistantResult {
   ascentM: number | null;
   /** Fin de cada etapa en km de recorrido, elegido junto a alojamientos cuando los hay. */
   stageEnds: StageCut[];
-  quality: { lengthKm: number; detourRatio: number; maxGapKm: number };
+  quality: { lengthKm: number; detourRatio: number; maxGapKm: number; retraceKm: number };
+  tripType: TripType;
   warnings: string[];
 }
 
@@ -55,17 +60,20 @@ const SYSTEM_PROMPT = `You are a cycle-touring route planner. The user describes
   "days": number or null,
   "start_fixed": true | false,
   "end_fixed": true | false,
+  "trip_type": "one_way" | "loop" | "out_and_back",
   "places": ["Place, Region/Country", ...]
 }
 Rules:
 - "places" is the list of towns/cities the route should pass through. Between 2 and ${MAX_PLACES} entries. Always add the region or country to each place so it can be geocoded unambiguously.
 - Each entry must be a DIFFERENT municipality: if several monuments are in the same town, list the town once. Use real, well-known places only.
 - The ORDER of "places" does not matter unless the user named a start and/or an end: the server reorders the stops geographically. Set "start_fixed": true only if the user explicitly named where to start (then put it FIRST), and "end_fixed": true only if the user explicitly named where to finish (then put it LAST). Otherwise both false.
+- "trip_type": "one_way" (default: from A to B, or a tour that ends elsewhere), "loop" (circular route that comes back to the start by a DIFFERENT way), "out_and_back" (the user wants to go to a destination and come back along the SAME way: "ida y vuelta", "volviendo por el mismo camino"). For "out_and_back" list only the way OUT (start first, destination last); never list the way back.
+- When the user names a start AND an end, include only intermediate towns that lie ON THE WAY between them (they will be the stage ends). Never add a town that needs a detour away from that line.
 - If the user asks for stage ends in towns with accommodation, just choose towns large enough to have it; do not describe stages.
 - NEVER output coordinates. Only place names.
 - "profile": "trekking" for normal cycle touring (default), "fastbike" for road bikes, "safety" to avoid busy roads, "gravel" or "MTB" for unpaved routes.
 - "km_per_day": the daily distance the user asked for, otherwise null. "days": the number of days the user asked for, otherwise null. Never invent either: copy only what the user said.
-- If the request is not about a bike route, return {"name":"","summary":"","profile":"trekking","km_per_day":null,"days":null,"start_fixed":false,"end_fixed":false,"places":[]}.`;
+- If the request is not about a bike route, return {"name":"","summary":"","profile":"trekking","km_per_day":null,"days":null,"start_fixed":false,"end_fixed":false,"trip_type":"one_way","places":[]}.`;
 
 /** Extrae y valida el JSON de la respuesta del modelo (admite ```json … ```). */
 export function parsePlan(raw: string): AssistantPlan {
@@ -92,6 +100,7 @@ export function parsePlan(raw: string): AssistantPlan {
     days: Number.isInteger(daysRaw) && daysRaw >= 1 && daysRaw <= 60 ? daysRaw : null,
     startFixed: obj.start_fixed === true,
     endFixed: obj.end_fixed === true,
+    tripType: obj.trip_type === 'loop' || obj.trip_type === 'out_and_back' ? obj.trip_type : 'one_way',
     places,
   };
 }
@@ -99,32 +108,44 @@ export function parsePlan(raw: string): AssistantPlan {
 const MAX_GAP_KM = 5;
 const DETOUR_WARN = 2.2;
 const OFF_TRACK_WARN_M = 800;
-const LODGING_CHUNK_KM = 80;
-const LODGING_MAX_CHUNKS = 5;
+const LODGING_CHUNK_KM = 40;
+const LODGING_MAX_CHUNKS = 12;
 const LODGING_RADIUS_M = 1500;
+const LODGING_BUDGET_MS = 45000;
+const RETRACE_MIN_KM = 10;
+const RETRACE_RATIO = 0.12;
 
-/** Alojamientos (km de recorrido) a menos de ~2 km del track. null si no se pudo consultar. */
-async function findLodgingKm(points: [number, number, number | null][], cum: number[]): Promise<number[] | null> {
+/**
+ * Alojamientos (km de recorrido) a menos de ~2 km del track. Consulta tramos de 40 km
+ * (consultas pequeñas, que Overpass resuelve sin agotar el tiempo) y tolera fallos
+ * parciales: devuelve cuántos tramos fallaron para que quien llama decida qué avisar.
+ */
+async function findLodgingKm(points: [number, number, number | null][], cum: number[]): Promise<{ kms: number[]; failed: number; chunks: number }> {
   const total = cum[cum.length - 1];
   const chunks = Math.max(1, Math.ceil(total / LODGING_CHUNK_KM));
-  if (chunks > LODGING_MAX_CHUNKS) return null;
+  if (chunks > LODGING_MAX_CHUNKS) return { kms: [], failed: chunks, chunks };
   const found = new Map<string, number>();
-  try {
-    for (let c = 0; c < chunks; c++) {
-      const a = indexAtKm(cum, c * LODGING_CHUNK_KM);
-      const b = c === chunks - 1 ? points.length - 1 : indexAtKm(cum, (c + 1) * LODGING_CHUNK_KM);
-      if (b <= a) continue;
-      const res = await searchOverpassPoisAlongRoute('hotel', simplifyLine(points.slice(a, b + 1), 300), LODGING_RADIUS_M, 300);
+  let failed = 0, lastErr: unknown = null;
+  const t0 = Date.now();
+  for (let c = 0; c < chunks; c++) {
+    if (Date.now() - t0 > LODGING_BUDGET_MS) { failed += chunks - c; break; }
+    const a = indexAtKm(cum, c * LODGING_CHUNK_KM);
+    const b = c === chunks - 1 ? points.length - 1 : indexAtKm(cum, (c + 1) * LODGING_CHUNK_KM);
+    if (b <= a) continue;
+    try {
+      const res = await searchOverpassPoisAlongRoute('hotel', simplifyLine(points.slice(a, b + 1), 200), LODGING_RADIUS_M, 200);
       for (const p of res.pois as { osm_id: string; lat: number; lng: number }[]) {
         if (found.has(p.osm_id)) continue;
         const near = nearestOnTrack(points, cum, p);
         if (near.offM <= 2000) found.set(p.osm_id, near.km);
       }
+    } catch (err) {
+      failed++;
+      lastErr = err;
     }
-  } catch {
-    return null;
   }
-  return [...found.values()];
+  if (lastErr) console.warn('[planner-ai] lodging lookup failed:', (lastErr as Error)?.message);
+  return { kms: [...found.values()], failed, chunks };
 }
 
 export async function generateRoute(userId: number, prompt: string, lang = 'es'): Promise<AssistantResult> {
@@ -173,37 +194,87 @@ export async function generateRoute(userId: number, prompt: string, lang = 'es')
     throw Object.assign(new Error('Could not locate enough places on the map'), { status: 422, code: 'GEOCODE_FAILED', unresolved });
   }
 
-  // 3. Orden geográfico (un LLM no ordena bien).
-  const ordered = orderByShortestPath(stops, {
-    startFixed: !!first && stops[0] === first,
-    endFixed: !!last && stops[stops.length - 1] === last,
-  });
+  // 3. Orden geográfico (un LLM no ordena bien) y recorte de desvíos.
+  const tripType = plan.tripType;
+  const startFixed = !!first && stops[0] === first;
+  const endFixed = tripType !== 'loop' && !!last && stops[stops.length - 1] === last;
+  let ordered = tripType === 'loop'
+    ? orderByShortestPath(stops, { closed: true })
+    : orderByShortestPath(stops, { startFixed, endFixed });
+
+  // Con origen y destino nombrados, una parada que obliga a un ramal largo es un error de la IA, no un deseo del usuario.
+  if (startFixed && endFixed) {
+    const dd2 = dropDetourStops(ordered);
+    if (dd2.dropped.length) {
+      warnings.push(`detourstop:${dd2.dropped.map(d => d.name).join(' | ')}`);
+      ordered = dd2.kept;
+    }
+  }
 
   // 4. Trazado real con BRouter y comprobación de que es coherente.
-  const route = await routeWithBrouter(ordered, plan.profile);
-  const q = trackQuality(route.points, ordered);
+  const viaOf = (xs: ResolvedPlace[]) => (tripType === 'loop' ? [...xs, xs[0]] : xs);
+  let route = await routeWithBrouter(viaOf(ordered), plan.profile);
+  let q = trackQuality(route.points, viaOf(ordered));
+  let rt = retraceKm(route.points);
+  const retraceLimit = () => Math.max(RETRACE_MIN_KM, RETRACE_RATIO * q.lengthKm);
+
+  // Si el trazado repasa sus propios pasos (un ramal de ida y vuelta), se prueba sin la parada que más desvía.
+  if (tripType !== 'loop' && rt > retraceLimit()) {
+    for (let attempt = 0; attempt < 2 && ordered.length > 2; attempt++) {
+      let wi = -1, wc = 0;
+      for (let i = 1; i < ordered.length - 1; i++) {
+        const c = detourCostKm(ordered, i);
+        if (c > wc) { wc = c; wi = i; }
+      }
+      if (wi < 0) break;
+      const trial = ordered.filter((_, i) => i !== wi);
+      let tr;
+      try { tr = await routeWithBrouter(trial, plan.profile); } catch { break; }
+      const tq = trackQuality(tr.points, trial);
+      const trt = retraceKm(tr.points);
+      if (trt < rt * 0.6 || tq.lengthKm < q.lengthKm * 0.85) {
+        warnings.push(`droppedstop:${ordered[wi].name}`);
+        ordered = trial; route = tr; q = tq; rt = trt;
+        if (rt <= retraceLimit()) break;
+      } else break;
+    }
+  }
+  if (tripType !== 'loop' && rt > retraceLimit()) warnings.push(`retrace:${Math.round(rt)}`);
+
   if (q.maxGapKm > MAX_GAP_KM) {
     console.error('[planner-ai] discontinuous track', JSON.stringify({ maxGapKm: q.maxGapKm, stops: ordered.map(o => o.name) }));
     throw Object.assign(new Error(`The router returned a broken track (gap of ${q.maxGapKm.toFixed(1)} km)`), { status: 422, code: 'DISCONTINUOUS' });
   }
-  if (q.lengthKm > MAX_ROUTE_KM) {
-    throw Object.assign(new Error(`Route too long (${Math.round(q.lengthKm)} km)`), { status: 422, code: 'TOO_LONG' });
+  const mirror = tripType === 'out_and_back';
+  const totalLengthKm = q.lengthKm * (mirror ? 2 : 1);
+  if (totalLengthKm > MAX_ROUTE_KM) {
+    throw Object.assign(new Error(`Route too long (${Math.round(totalLengthKm)} km)`), { status: 422, code: 'TOO_LONG' });
   }
   if (q.detourRatio > DETOUR_WARN) warnings.push(`detour:${q.detourRatio.toFixed(1)}`);
-  const off = ordered.map((w, i) => ({ name: w.name, offM: q.waypointOffM[i] })).filter(x => x.offM > OFF_TRACK_WARN_M);
+  const stopsToCheck = viaOf(ordered);
+  const off = stopsToCheck.map((w, i) => ({ name: w.name, offM: q.waypointOffM[i] })).filter((x, i) => x.offM > OFF_TRACK_WARN_M && i < ordered.length);
   if (off.length) warnings.push(`offtrack:${off.map(x => `${x.name} (${(x.offM / 1000).toFixed(1)} km)`).join(' | ')}`);
 
+  // Ida y vuelta por el mismo camino: el regreso es la ida al revés.
+  const track: [number, number, number | null][] = mirror
+    ? [...route.points, ...route.points.slice(0, -1).reverse()]
+    : route.points;
+
   // 5. Etapas: terminar donde se pueda dormir.
-  const cum = cumulativeKm(route.points);
-  const total = cum[cum.length - 1];
+  const cumOne = cumulativeKm(route.points);
+  const oneWayKm = cumOne[cumOne.length - 1];
+  const total = mirror ? oneWayKm * 2 : oneWayKm;
   const stageCount = plan.kmPerDay ? Math.round(total / plan.kmPerDay) : plan.days ?? 0;
   const n = Math.min(40, Math.max(0, stageCount));
   let stageEnds: StageCut[] = [];
   if (n >= 2) {
-    const lodging = await findLodgingKm(route.points, cum);
-    if (lodging === null) warnings.push('nolodgingdata');
-    stageEnds = chooseStageCuts(total, n, lodging ?? []);
-    if (lodging !== null) {
+    const lod = await findLodgingKm(route.points, cumOne);
+    if (lod.failed >= lod.chunks) warnings.push('nolodgingdata');
+    else if (lod.failed > 0) warnings.push(`lodgingpartial:${lod.failed}/${lod.chunks}`);
+    // en la vuelta se pasa por los mismos alojamientos, a 2L − km
+    const kms = mirror ? [...lod.kms, ...lod.kms.map(k => 2 * oneWayKm - k)] : lod.kms;
+    stageEnds = chooseStageCuts(total, n, kms);
+    if (lod.failed < lod.chunks) {
       const bad = stageEnds.map((c, i) => (c.lodged ? 0 : i + 1)).filter(Boolean);
       if (bad.length) warnings.push(`nolodging:${bad.join(', ')}`);
     }
@@ -211,14 +282,16 @@ export async function generateRoute(userId: number, prompt: string, lang = 'es')
 
   // Un resumen en el log permite diagnosticar una ruta rara sin reproducirla.
   console.info('[planner-ai]', JSON.stringify({
-    prompt: prompt.slice(0, 120), profile: plan.profile,
+    prompt: prompt.slice(0, 120), profile: plan.profile, tripType,
     asked: plan.places, ordered: ordered.map(o => `${o.name} @${o.lat.toFixed(3)},${o.lng.toFixed(3)}`),
-    km: Math.round(q.lengthKm), detour: Math.round(q.detourRatio * 100) / 100, maxGapKm: Math.round(q.maxGapKm * 10) / 10,
-    offM: q.waypointOffM, stageEnds, warnings,
+    km: Math.round(totalLengthKm), detour: Math.round(q.detourRatio * 100) / 100, maxGapKm: Math.round(q.maxGapKm * 10) / 10,
+    retraceKm: Math.round(rt), offM: q.waypointOffM, stageEnds, warnings,
   }));
 
   return {
-    plan, waypoints: ordered, points: route.points, distanceKm: route.distanceKm, ascentM: route.ascentM,
-    stageEnds, quality: { lengthKm: q.lengthKm, detourRatio: q.detourRatio, maxGapKm: q.maxGapKm }, warnings,
+    plan, waypoints: ordered, points: track, distanceKm: route.distanceKm * (mirror ? 2 : 1), ascentM: route.ascentM,
+    stageEnds, tripType,
+    quality: { lengthKm: totalLengthKm, detourRatio: q.detourRatio, maxGapKm: q.maxGapKm, retraceKm: rt },
+    warnings,
   };
 }

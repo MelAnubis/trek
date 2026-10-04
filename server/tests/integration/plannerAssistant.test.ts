@@ -100,6 +100,7 @@ const SEG: Record<string, [number, number]> = {
   'Riaza, España': [41.2594, -3.4806], 'Turégano, España': [41.1583, -4.0114], 'Sepúlveda, España': [41.2998, -3.7453],
   'San Esteban, Segovia, España': [40.9440, -4.1100], 'Segovia, Colombia': [7.0, -74.7],
   'Madrid, España': [40.4168, -3.7038], 'Cercedilla, España': [40.7406, -4.0592],
+  'Ávila, España': [40.656, -4.7], 'Salamanca, España': [40.97, -5.664], 'Plasencia, España': [40.03, -6.09], 'Ciudad Rodrigo, España': [40.6, -6.533],
 };
 const geocode = (q: string) => ({ places: SEG[q] ? [{ name: q.split(',')[0], lat: SEG[q][0], lng: SEG[q][1] }] : [], source: 'openstreetmap' });
 const plan = (over: Record<string, unknown>) => JSON.stringify({ name: 'Ruta', summary: 'Resumen.', profile: 'trekking', km_per_day: null, days: null, start_fixed: false, end_fixed: false, places: [], ...over });
@@ -278,7 +279,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     expect(none.body.warnings).toContain('nolodging:1');
 
     ask();
-    overpassMock.mockRejectedValueOnce(new Error('Overpass down'));
+    overpassMock.mockRejectedValue(new Error('Overpass down'));
     const down = await post(user.id, PROMPT);
     expect(down.status).toBe(200);
     expect(down.body.warnings).toContain('nolodgingdata');
@@ -291,5 +292,106 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     const r = await post(user.id, PROMPT);
     expect(r.body.stageEnds).toEqual([]);
     expect(overpassMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('POST /planner/assistant — trip types and repairs', () => {
+  beforeEach(() => { searchMock.mockImplementation(async (_u: number, q: string) => geocode(q)); });
+
+  it('PLAN-046 — drops a stop that forces a detour when start and end are named (the Ávila–Ciudad Rodrigo case)', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, places: ['Ávila, España', 'Salamanca, España', 'Plasencia, España', 'Ciudad Rodrigo, España'] }));
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo por carreteras tranquilas' });
+    expect(r.status).toBe(200);
+    expect(r.body.waypoints.map((w: any) => w.name)).toEqual(['Ávila', 'Salamanca', 'Ciudad Rodrigo']);
+    expect(r.body.warnings.some((w: string) => w.startsWith('detourstop:') && w.includes('Plasencia'))).toBe(true);
+  });
+
+  it('PLAN-047 — out-and-back: the way back is the way out reversed, stages cover both legs, lodging is found on the way back too', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, trip_type: 'out_and_back', days: 4, places: ['Ávila, España', 'Salamanca, España', 'Ciudad Rodrigo, España'] }));
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.tripType).toBe('out_and_back');
+    expect(r.body.waypoints.map((w: any) => w.name)).toEqual(['Ávila', 'Salamanca', 'Ciudad Rodrigo']);   // solo la ida
+    const pts = r.body.points as [number, number][];
+    expect(pts[0]).toEqual(pts[pts.length - 1]);                        // vuelve al punto de partida
+    const half = (pts.length - 1) / 2;
+    expect(pts[half - 1][0]).toBeCloseTo(pts[half + 1][0], 6);         // simétrico alrededor del giro
+    expect(r.body.quality.lengthKm).toBeGreaterThan(300);              // ida + vuelta
+    expect(r.body.distanceKm).toBeCloseTo(r.body.points.length, -1);
+    expect(r.body.stageEnds).toHaveLength(3);                          // 4 etapas
+    expect(r.body.stageEnds[1].km).toBeGreaterThan(r.body.quality.lengthKm * 0.45);
+    expect(r.body.stageEnds[1].km).toBeLessThan(r.body.quality.lengthKm * 0.55);
+  });
+
+  it('PLAN-048 — out-and-back looks for lodging on the way out AND on the way back (mirrored km)', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, trip_type: 'out_and_back', days: 2, places: ['Madrid, España', 'Cercedilla, España'] }));
+    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.9;   // alojamiento al 90 % de la ida, junto al giro
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    const r = await post(user.id, PROMPT);
+    // 2 etapas → corte ideal justo en el giro (50 %). El alojamiento queda a ~4,6 km: al 45 % en la ida o al 55 % en la vuelta.
+    expect(r.body.stageEnds).toHaveLength(1);
+    expect(r.body.stageEnds[0].lodged).toBe(true);
+    const ratio = r.body.stageEnds[0].km / r.body.quality.lengthKm;
+    expect([0.45, 0.55].some(x => Math.abs(ratio - x) < 0.02)).toBe(true);
+  });
+
+  it('PLAN-049 — loop: comes back to the start and visits every stop in the shortest circuit', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ trip_type: 'loop', places: ['Segovia, España', 'Riaza, España', 'Pedraza, España', 'Turégano, España', 'Ayllón, España'] }));
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.tripType).toBe('loop');
+    expect(r.body.waypoints[0].name).toBe('Segovia');
+    expect(r.body.waypoints).toHaveLength(5);                           // el regreso no repite la parada
+    const via = routeMock.mock.calls[0][0] as Pt[];
+    expect(via).toHaveLength(6);
+    expect(via[5]).toEqual(via[0]);                                     // el enrutador recibe el regreso al inicio
+    expect(pathLen(via)).toBeLessThanOrEqual(pathLen(['Segovia, España', 'Riaza, España', 'Pedraza, España', 'Turégano, España', 'Ayllón, España', 'Segovia, España'].map(q => ({ lat: SEG[q][0], lng: SEG[q][1] }))) + 1e-6);
+  });
+
+  it('PLAN-050 — a track that retraces its steps is retried without the stop that causes the spur', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'Pedraza, España', 'Riaza, España', 'Ayllón, España'] }));
+    // El primer intento hace un ramal de ida y vuelta (sube a Riaza y baja por el mismo sitio antes de seguir)
+    routeMock.mockImplementationOnce(async (wps: Pt[]) => {
+      const out = trackThrough(wps.slice(0, 3)), back = out.slice(0, -1).reverse();
+      const rest = trackThrough([wps[0], wps[wps.length - 1]]);
+      return { points: [...out, ...back, ...rest.slice(1)], distanceKm: 0, ascentM: null };
+    });
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.warnings.some((w: string) => w.startsWith('droppedstop:'))).toBe(true);
+    expect(routeMock).toHaveBeenCalledTimes(2);
+    expect(r.body.waypoints.length).toBe(3);
+    expect(r.body.quality.retraceKm).toBeLessThan(10);
+  });
+
+  it('PLAN-051 — a repair that does not help is discarded; the retrace is reported instead', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Segovia, España', 'Pedraza, España', 'Riaza, España'] }));
+    const spur = async (wps: Pt[]) => {
+      const out = trackThrough(wps), back = out.slice(0, -1).reverse();
+      return { points: [...out, ...back], distanceKm: 0, ascentM: null };
+    };
+    routeMock.mockImplementation(spur);
+    const r = await post(user.id, PROMPT);
+    expect(r.status).toBe(200);
+    expect(r.body.warnings.some((w: string) => w.startsWith('retrace:'))).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('droppedstop:'))).toBe(false);
+  });
+
+  it('PLAN-052 — a partial Overpass failure keeps the lodging that was found and says so', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Madrid, España', 'Cercedilla, España'] }));
+    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.45;
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    overpassMock.mockRejectedValueOnce(new Error('timeout'));
+    const r = await post(user.id, PROMPT);
+    expect(r.body.stageEnds[0].lodged).toBe(true);
+    expect(r.body.warnings).toContain('lodgingpartial:1/2');
+    expect(r.body.warnings).not.toContain('nolodgingdata');
   });
 });

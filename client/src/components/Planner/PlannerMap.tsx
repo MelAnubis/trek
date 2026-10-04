@@ -29,6 +29,10 @@ interface Props {
   addingWaypoint: boolean
   poiLabel: (category: string) => string
   texts: { addPoi: string; cutHere: string; remove: string; kmLabel: string; offRoute: string }
+  /** false mientras el mapa está oculto (p. ej. se muestra la biblioteca): no se encuadra con tamaño 0. */
+  visible?: boolean
+  /** Cambia cuando hay que volver a encuadrar (p. ej. al volver a la pestaña del mapa en móvil). */
+  refitKey?: string | number
   onMapClick: (lat: number, lng: number) => void
   onSelectStage: (i: number) => void
   onAddPoi: (poi: PoiMarker) => void
@@ -55,18 +59,29 @@ function ClickHandler({ enabled, onClick }: { enabled: boolean; onClick: (lat: n
   return null
 }
 
-/** Encuadra la ruta al cargarla y al cambiar de etapa activa. */
-function FitBounds({ points, stages, activeStage }: { points: RoutePoint[]; stages: Stage[]; activeStage: number | null }) {
+/**
+ * Encuadra la ruta al cargarla, al cambiar de etapa activa y cada vez que el mapa vuelve a ser visible.
+ * Leaflet guarda el tamaño del contenedor: si se encuadra con el mapa oculto (tamaño 0) o recién mostrado,
+ * el zoom sale mal, así que se recalcula el tamaño justo antes de encuadrar.
+ */
+function FitBounds({ points, stages, activeStage, visible, refitKey }: {
+  points: RoutePoint[]; stages: Stage[]; activeStage: number | null; visible: boolean; refitKey?: string | number
+}) {
   const map = useMap()
   useEffect(() => {
-    if (points.length < 2) return
+    if (!visible || points.length < 2) return
     const slice = activeStage != null && stages[activeStage]
       ? points.slice(stages[activeStage].from, stages[activeStage].to + 1)
       : points
     const b = L.latLngBounds(slice.map(p => [p.lat, p.lng] as [number, number]))
-    if (b.isValid()) map.fitBounds(b, { padding: [30, 30] })
+    if (!b.isValid()) return
+    const id = requestAnimationFrame(() => {
+      map.invalidateSize()
+      map.fitBounds(b, { padding: [30, 30], maxZoom: 15 })
+    })
+    return () => cancelAnimationFrame(id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [points, activeStage, stages.length, map])
+  }, [points, activeStage, stages.length, visible, refitKey, map])
   return null
 }
 
@@ -83,7 +98,7 @@ function InvalidateOnResize() {
 }
 
 export default function PlannerMap({
-  points, stages, activeStage, waypoints, pois, hoverIdx, addingWaypoint,
+  points, stages, activeStage, waypoints, pois, hoverIdx, addingWaypoint, visible = true, refitKey,
   poiLabel, texts, onMapClick, onSelectStage, onAddPoi, onCutAtPoi, onRemoveWaypoint,
 }: Props) {
   const segments = useMemo(() => stages.map((st, i) => ({
@@ -103,7 +118,7 @@ export default function PlannerMap({
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={19} />
       <ClickHandler enabled={addingWaypoint} onClick={onMapClick} />
       <InvalidateOnResize />
-      <FitBounds points={points} stages={stages} activeStage={activeStage} />
+      <FitBounds points={points} stages={stages} activeStage={activeStage} visible={visible} refitKey={refitKey} />
 
       {segments.map(seg => (
         <Polyline

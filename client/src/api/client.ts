@@ -565,7 +565,8 @@ export const plannerApi = {
       ascentM: number | null
       /** Fin de cada etapa en km de recorrido (junto a alojamientos cuando los hay). */
       stageEnds: { km: number; lodged: boolean }[]
-      quality: { lengthKm: number; detourRatio: number; maxGapKm: number }
+      quality: { lengthKm: number; detourRatio: number; maxGapKm: number; retraceKm: number }
+      tripType: 'one_way' | 'loop' | 'out_and_back'
       warnings: string[]
     }),
   // POIs within `radius` m of the route (corridor search, Overpass `around`).

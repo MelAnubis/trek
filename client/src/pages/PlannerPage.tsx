@@ -532,6 +532,10 @@ export default function PlannerPage(): React.ReactElement {
       case 'offtrack': return t('planner.ai.warn.offtrack', { list: detail })
       case 'nolodging': return t('planner.ai.warn.nolodging', { stages: detail })
       case 'nolodgingdata': return t('planner.ai.warn.nolodgingdata')
+      case 'lodgingpartial': return t('planner.ai.warn.lodgingpartial', { n: detail })
+      case 'detourstop': return t('planner.ai.warn.detourstop', { list: detail })
+      case 'droppedstop': return t('planner.ai.warn.droppedstop', { list: detail })
+      case 'retrace': return t('planner.ai.warn.retrace', { km: detail })
       default: return detail || kind
     }
   }
@@ -824,6 +828,7 @@ export default function PlannerPage(): React.ReactElement {
               <PlannerMap
                 points={points} stages={stages} activeStage={activeStage} waypoints={waypoints} pois={visiblePois}
                 hoverIdx={hoverIdx} addingWaypoint={addingWaypoint} poiLabel={catLabel}
+                visible={!showLibrary} refitKey={mobileView}
                 texts={{ addPoi: t('planner.services.add'), cutHere: t('planner.services.cutHere'), remove: t('common.delete'), kmLabel: t('planner.km'), offRoute: t('planner.offRoute') }}
                 onMapClick={addWaypointAt}
                 onSelectStage={i => { setActiveStage(i); setTab('stages') }}
