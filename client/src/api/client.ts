@@ -550,6 +550,15 @@ export const plannerApi = {
     apiClient.get('/planner', { params, signal }).then(r => r.data as import('../utils/plannerRoute').LibraryResponse),
   overview: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
     apiClient.get('/planner/overview', { params, signal }).then(r => r.data as { routes: import('../utils/plannerRoute').OverviewRoute[] }),
+  // Cortes de etapa en poblaciones con alojamiento (±7 km del corte ideal). stageKm | stages | marks.
+  smartCuts: (id: number, body: { stageKm?: number; stages?: number; marks?: number[]; maxShiftKm?: number }) =>
+    apiClient.post(`/planner/${id}/smart-cuts`, body, { timeout: 90000 }).then(r => r.data as {
+      cuts: { index: number; km: number; lodged: boolean; shiftKm: number }[]
+      lodgingChecked: boolean
+      queries: number
+      failed: number
+      totalKm: number
+    }),
   renameFolder: (from: string, to: string | null) => apiClient.put('/planner/folders', { from, to }).then(r => r.data as { updated: number }),
   get: (id: number) => apiClient.get(`/planner/${id}`).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   create: (data: Record<string, unknown>) => apiClient.post('/planner', data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),

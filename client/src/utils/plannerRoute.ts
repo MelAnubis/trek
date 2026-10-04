@@ -26,7 +26,14 @@ export interface PlannerWaypoint {
   osm_id?: string
 }
 
-export interface Cut { index: number; name?: string }
+export interface Cut {
+  index: number
+  name?: string
+  /** true si el corte está en un sitio con alojamiento; false si no se encontró; sin definir si no se ha comprobado. */
+  lodged?: boolean
+  /** Km que se movió respecto al corte ideal al ajustarlo a un alojamiento (positivo = etapa más larga). */
+  shiftKm?: number
+}
 
 export interface PlannerSettings {
   /** Km objetivo por etapa usados por última vez en la división automática. */
@@ -96,6 +103,9 @@ export interface Stage {
   minEle: number | null
   maxEle: number | null
   name: string
+  /** Información del corte con el que termina esta etapa (la última etapa no tiene). */
+  endLodged?: boolean
+  endShiftKm?: number
 }
 
 export interface ParsedRoute {
@@ -343,6 +353,7 @@ export function buildStages(
       gain, loss,
       minEle: min == null ? null : Math.round(min), maxEle: max == null ? null : Math.round(max),
       name: named || defaultName(i),
+      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm } : {}),
     })
   }
   return stages

@@ -206,29 +206,71 @@ export function simplifyLine(track: TrackPoint[], maxPts = 300): [number, number
 
 // ── Etapas que terminan donde se puede dormir ────────────────────────────────
 
-export interface StageCut { km: number; lodged: boolean }
+/** Un núcleo con alojamiento: km de recorrido y cuántos alojamientos se agrupan (más = más probable que sea una población). */
+export interface LodgingSpot { km: number; weight: number }
+
+export interface StageCut {
+  km: number;
+  /** true si el corte cae en un sitio con alojamiento. */
+  lodged: boolean;
+  /** Km que se ha movido respecto al corte ideal (positivo = etapa más larga). */
+  shiftKm: number;
+}
+
+/** Agrupa alojamientos que están a menos de `gapKm` entre sí a lo largo del recorrido: casi siempre son un mismo pueblo. */
+export function clusterLodging(kms: number[], gapKm = 1.5): LodgingSpot[] {
+  const sorted = kms.filter(Number.isFinite).sort((a, b) => a - b);
+  const out: LodgingSpot[] = [];
+  let group: number[] = [];
+  const flush = () => { if (group.length) { out.push({ km: group[group.length >> 1], weight: group.length }); group = []; } };
+  for (const k of sorted) {
+    if (group.length && k - group[group.length - 1] > gapKm) flush();
+    group.push(k);
+  }
+  flush();
+  return out;
+}
+
+export const DEFAULT_MAX_SHIFT_KM = 7;
 
 /**
- * Cortes de etapa. Parte de cortes equiespaciados (total / nº de etapas) y, para cada
- * uno, busca el alojamiento más cercano a ±30 % de la longitud de etapa. Si no hay
- * ninguno, mantiene el corte ideal y lo marca como `lodged: false`.
+ * Cortes de etapa en sitios con alojamiento. Parte de los cortes ideales (equiespaciados, o los `marks`
+ * dados) y mueve cada uno al núcleo con alojamiento más adecuado dentro de ±`maxShiftKm` (7 km por defecto):
+ * la etapa sale algo más corta o más larga, pero se duerme en poblado. Un núcleo con varios alojamientos
+ * (un pueblo) se prefiere a un hotel suelto. Si en ese margen no hay nada, el margen se amplía (×1,7 y ×3)
+ * y se informa del desplazamiento en `shiftKm`; si aun así no hay nada, se deja el corte ideal con `lodged: false`.
  */
-export function chooseStageCuts(totalKm: number, stageCount: number, lodgingKm: number[]): StageCut[] {
-  if (!(stageCount >= 2) || !(totalKm > 0)) return [];
-  const L = totalKm / stageCount, window = 0.3 * L;
-  const sorted = lodgingKm.filter(Number.isFinite).sort((a, b) => a - b);
+export function chooseStageCuts(
+  totalKm: number, stageCount: number, spots: LodgingSpot[],
+  opts: { maxShiftKm?: number; marks?: number[] } = {},
+): StageCut[] {
+  const marks = opts.marks && opts.marks.length
+    ? opts.marks.slice().sort((a, b) => a - b)
+    : stageCount >= 2 && totalKm > 0 ? Array.from({ length: stageCount - 1 }, (_, k) => ((k + 1) * totalKm) / stageCount) : [];
+  if (!marks.length || !(totalKm > 0)) return [];
+  const maxShift = opts.maxShiftKm ?? DEFAULT_MAX_SHIFT_KM;
+  const avg = totalKm / (marks.length + 1);
+  const minGap = 0.25 * avg;                               // dos cortes nunca quedan pegados
+  const windows = [maxShift, maxShift * 1.7, maxShift * 3];
   const cuts: StageCut[] = [];
   let prev = 0;
-  for (let k = 1; k < stageCount; k++) {
-    const mark = k * L;
-    let pick: number | null = null, bd = Infinity;
-    for (const x of sorted) {
-      if (Math.abs(x - mark) <= window && x > prev + 0.4 * L && x < totalKm - 0.4 * L && Math.abs(x - mark) < bd) { bd = Math.abs(x - mark); pick = x; }
+  marks.forEach((mark, i) => {
+    const nextMark = i + 1 < marks.length ? marks[i + 1] : totalKm;
+    let pick: LodgingSpot | null = null;
+    for (const w of windows) {
+      let best = Infinity;
+      for (const sp of spots) {
+        const d = Math.abs(sp.km - mark);
+        if (d > w || sp.km < prev + minGap || sp.km > nextMark - minGap) continue;
+        const penalty = d - 1.5 * Math.min(sp.weight, 3);   // un pueblo (≥ 3 alojamientos) compensa hasta 4,5 km de desvío
+        if (penalty < best) { best = penalty; pick = sp; }
+      }
+      if (pick) break;
     }
-    const km = pick ?? mark;
-    cuts.push({ km, lodged: pick != null });
+    const km = pick ? pick.km : mark;
+    cuts.push({ km, lodged: !!pick, shiftKm: km - mark });
     prev = km;
-  }
+  });
   return cuts;
 }
 
@@ -292,4 +334,51 @@ export function retraceKm(track: TrackPoint[], minGapKm = 3, cellM = 150): numbe
   let km = 0;
   for (let i = 1; i < n; i++) if (rep[i] && rep[i - 1]) km += cum[i] - cum[i - 1];
   return km;
+}
+
+// ── Tramos entre paradas ─────────────────────────────────────────────────────
+
+export interface Leg {
+  fromKm: number;
+  toKm: number;
+  /** Km reales del trazado entre las dos paradas. */
+  roadKm: number;
+  /** Km en línea recta entre ellas. */
+  straightKm: number;
+  /** roadKm / straightKm (1,2–1,4 es normal; > 1,6 es un rodeo grande). */
+  ratio: number;
+  extraKm: number;
+}
+
+/**
+ * Para cada par de paradas consecutivas, cuánto recorre el trazado frente a la línea recta. Las paradas
+ * se sitúan en el track de forma monótona (cada una a partir de la anterior). Un tramo con ratio alto es
+ * el síntoma típico de una parada colocada al otro lado de una sierra: el enrutador da la vuelta entera.
+ */
+export function legStats(track: TrackPoint[], cum: number[], stops: GeoPoint[]): Leg[] {
+  const n = track.length;
+  if (n < 2 || stops.length < 2) return [];
+  const idx: number[] = [];
+  let from = 0;
+  for (const s of stops) {
+    const kx = Math.cos(s.lat * Math.PI / 180);
+    let best = from, bd = Infinity;
+    for (let i = from; i < n; i++) {
+      const dy = track[i][0] - s.lat, dx = (track[i][1] - s.lng) * kx;
+      const d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = i; }
+    }
+    idx.push(best);
+    from = best;
+  }
+  const legs: Leg[] = [];
+  for (let i = 0; i < stops.length - 1; i++) {
+    const roadKm = cum[idx[i + 1]] - cum[idx[i]];
+    const straightKm = haversineKm(stops[i], stops[i + 1]);
+    legs.push({
+      fromKm: cum[idx[i]], toKm: cum[idx[i + 1]], roadKm, straightKm,
+      ratio: straightKm > 0.5 ? roadKm / straightKm : 1, extraKm: roadKm - straightKm,
+    });
+  }
+  return legs;
 }

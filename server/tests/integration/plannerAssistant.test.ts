@@ -62,7 +62,7 @@ import { createUser } from '../helpers/factories';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 import { resetPlannerAiLimiter } from '../../src/routes/planner';
-import { parsePlan } from '../../src/services/routeAssistantService';
+import { parsePlan, mentionsPlace } from '../../src/services/routeAssistantService';
 
 const app: Application = createApp();
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
@@ -100,7 +100,7 @@ const SEG: Record<string, [number, number]> = {
   'Riaza, España': [41.2594, -3.4806], 'Turégano, España': [41.1583, -4.0114], 'Sepúlveda, España': [41.2998, -3.7453],
   'San Esteban, Segovia, España': [40.9440, -4.1100], 'Segovia, Colombia': [7.0, -74.7],
   'Madrid, España': [40.4168, -3.7038], 'Cercedilla, España': [40.7406, -4.0592],
-  'Ávila, España': [40.656, -4.7], 'Salamanca, España': [40.97, -5.664], 'Plasencia, España': [40.03, -6.09], 'Ciudad Rodrigo, España': [40.6, -6.533],
+  'Piedrahíta, España': [40.46, -5.33], 'Candelario, España': [40.35, -5.75], 'Ávila, España': [40.656, -4.7], 'Salamanca, España': [40.97, -5.664], 'Plasencia, España': [40.03, -6.09], 'Ciudad Rodrigo, España': [40.6, -6.533],
 };
 const geocode = (q: string) => ({ places: SEG[q] ? [{ name: q.split(',')[0], lat: SEG[q][0], lng: SEG[q][1] }] : [], source: 'openstreetmap' });
 const plan = (over: Record<string, unknown>) => JSON.stringify({ name: 'Ruta', summary: 'Resumen.', profile: 'trekking', km_per_day: null, days: null, start_fixed: false, end_fixed: false, places: [], ...over });
@@ -267,7 +267,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     const total = r.body.quality.lengthKm;
     expect(r.body.stageEnds[0].km / total).toBeGreaterThan(0.43);
     expect(r.body.stageEnds[0].km / total).toBeLessThan(0.47);
-    expect(overpassMock.mock.calls[0][0]).toBe('hotel');
+    expect(overpassMock.mock.calls[0][0]).toBe('lodging');
     expect(r.body.warnings.some((w: string) => w.startsWith('nolodging'))).toBe(false);
   });
 
@@ -275,7 +275,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     const { user } = createUser(testDb);
     ask();
     const none = await post(user.id, PROMPT);
-    expect(none.body.stageEnds).toEqual([{ km: expect.any(Number), lodged: false }]);
+    expect(none.body.stageEnds).toEqual([{ km: expect.any(Number), lodged: false, shiftKm: 0 }]);
     expect(none.body.warnings).toContain('nolodging:1');
 
     ask();
@@ -385,13 +385,106 @@ describe('POST /planner/assistant — trip types and repairs', () => {
 
   it('PLAN-052 — a partial Overpass failure keeps the lodging that was found and says so', async () => {
     const { user } = createUser(testDb);
-    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Madrid, España', 'Cercedilla, España'] }));
-    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.45;
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 3, places: ['Madrid, España', 'Cercedilla, España'] }));
+    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.33;   // junto al primer corte (≈ 1/3)
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'lodging' }], truncated: false });
     overpassMock.mockRejectedValueOnce(new Error('timeout'));
     const r = await post(user.id, PROMPT);
+    expect(r.body.stageEnds).toHaveLength(2);
     expect(r.body.stageEnds[0].lodged).toBe(true);
+    expect(r.body.stageEnds[1].lodged).toBe(false);
     expect(r.body.warnings).toContain('lodgingpartial:1/2');
+    expect(r.body.warnings).toContain('nolodging:2');
     expect(r.body.warnings).not.toContain('nolodgingdata');
+  });
+});
+
+describe('mentionsPlace', () => {
+  const place = (query: string, name: string) => ({ query, name });
+  it('PLAN-053 — matches whole place names, ignoring accents and case', () => {
+    expect(mentionsPlace('Ruta de Ávila a Ciudad Rodrigo', place('Ávila, España', 'Ávila'))).toBe(true);
+    expect(mentionsPlace('ruta de avila a ciudad rodrigo', place('Ávila, España', 'Ávila'))).toBe(true);
+    expect(mentionsPlace('Ruta de Ávila a Ciudad Rodrigo', place('Ciudad Rodrigo, España', 'Ciudad Rodrigo'))).toBe(true);
+    expect(mentionsPlace('Ruta de Ávila a Ciudad Rodrigo', place('Salamanca, España', 'Salamanca'))).toBe(false);
+  });
+  it('PLAN-054 — does not match inside other words', () => {
+    expect(mentionsPlace('Quiero ver Segovia', place('Gova, España', 'Gova'))).toBe(false);
+    expect(mentionsPlace('pasando por Béjar.', place('Béjar, Salamanca, España', 'Béjar'))).toBe(true);
+  });
+});
+
+describe('POST /planner/assistant — real-road checks and lodging cuts', () => {
+  beforeEach(() => { searchMock.mockImplementation(async (_u: number, q: string) => geocode(q)); });
+
+  // Un enrutador que, si la ruta pasa por Piedrahíta, da un rodeo enorme por el norte (da la vuelta a la sierra).
+  const mountainRouter = async (wps: Pt[]) => {
+    const withDetour: Pt[] = [];
+    wps.forEach((w, i) => {
+      if (i > 0 && Math.abs(w.lat - 40.46) < 0.001 && Math.abs(w.lng + 5.33) < 0.001) withDetour.push({ lat: 41.3, lng: -5.0 });
+      withDetour.push(w);
+    });
+    const pts = trackThrough(withDetour);
+    return { points: pts, distanceKm: pts.length, ascentM: 0 };
+  };
+
+  it('PLAN-055 — an optional stop whose leg goes round a mountain range is dropped and the route is redone', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Ávila, España', 'Piedrahíta, España', 'Ciudad Rodrigo, España'] }));   // la IA no marca extremos fijos
+    routeMock.mockImplementation(mountainRouter);
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo por carreteras tranquilas' });
+    expect(r.status).toBe(200);
+    expect(r.body.warnings).toContain('droppedstop:Piedrahíta');
+    expect(r.body.waypoints.map((w: any) => w.name)).toEqual(['Ávila', 'Ciudad Rodrigo']);
+    expect(routeMock).toHaveBeenCalledTimes(2);
+    expect(r.body.quality.lengthKm).toBeLessThan(160);                    // ≈ 139 km directos, no ≈ 250
+    expect(r.body.warnings.some((w: string) => w.startsWith('badleg:'))).toBe(false);
+  });
+
+  it('PLAN-056 — a stop the user NAMED is never dropped: the bad leg is reported instead', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ places: ['Ávila, España', 'Piedrahíta, España', 'Ciudad Rodrigo, España'] }));
+    routeMock.mockImplementation(mountainRouter);
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo pasando por Piedrahíta' });
+    expect(r.status).toBe(200);
+    expect(r.body.waypoints.map((w: any) => w.name)).toEqual(['Ávila', 'Piedrahíta', 'Ciudad Rodrigo']);
+    expect(routeMock).toHaveBeenCalledTimes(1);
+    expect(r.body.warnings.some((w: string) => w.startsWith('badleg:') && w.includes('Piedrahíta'))).toBe(true);
+  });
+
+  it('PLAN-057 — start and end stay fixed when the user names them, even if the AI does not flag them', async () => {
+    const { user } = createUser(testDb);
+    // la IA los lista al revés de como conviene; el orden fijado es el del texto (primero y último de la lista)
+    askMock.mockResolvedValueOnce(plan({ places: ['Ávila, España', 'Salamanca, España', 'Ciudad Rodrigo, España'] }));
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
+    expect(r.body.waypoints[0].name).toBe('Ávila');
+    expect(r.body.waypoints[r.body.waypoints.length - 1].name).toBe('Ciudad Rodrigo');
+  });
+
+  it('PLAN-058 — stage ends move up to ~7 km to a lodging, shorter or longer', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Ávila, España', 'Ciudad Rodrigo, España'] }));
+    // ruta recta Ávila→CR (~139 km): corte ideal a ~69,5 km; alojamientos a −5 km y a +30 km de esa marca
+    const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
+    const at = (km: number) => ({ lat: a[0] + (b[0] - a[0]) * km / 139, lng: a[1] + (b[1] - a[1]) * km / 139 });
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'x1', name: 'Hotel A', ...at(64.5), category: 'lodging' }, { osm_id: 'x2', name: 'Hotel B', ...at(100), category: 'lodging' }], truncated: false });
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
+    expect(r.status).toBe(200);
+    expect(r.body.stageEnds).toHaveLength(1);
+    expect(r.body.stageEnds[0].lodged).toBe(true);
+    expect(r.body.stageEnds[0].shiftKm).toBeGreaterThan(-6.5);
+    expect(r.body.stageEnds[0].shiftKm).toBeLessThan(-3.5);
+    expect(r.body.warnings.some((w: string) => w.startsWith('farlodging'))).toBe(false);
+  });
+
+  it('PLAN-059 — when the only lodging is farther than 7 km it is used anyway (never mid-nowhere) and the shift is flagged', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Ávila, España', 'Ciudad Rodrigo, España'] }));
+    const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
+    const at = (km: number) => ({ lat: a[0] + (b[0] - a[0]) * km / 139, lng: a[1] + (b[1] - a[1]) * km / 139 });
+    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'x1', name: 'Hotel A', ...at(82), category: 'lodging' }], truncated: false });   // +12,5 km
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
+    expect(r.body.stageEnds[0].lodged).toBe(true);
+    expect(r.body.stageEnds[0].shiftKm).toBeGreaterThan(10);
+    expect(r.body.warnings.some((w: string) => w.startsWith('farlodging:1'))).toBe(true);
   });
 });

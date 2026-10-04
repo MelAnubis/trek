@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   haversineKm, dedupeNearby, dropOutliers, orderByShortestPath, trackQuality, cumulativeKm, nearestOnTrack,
-  indexAtKm, simplifyLine, chooseStageCuts, type GeoPoint, type TrackPoint,
+  indexAtKm, simplifyLine, chooseStageCuts, clusterLodging, legStats, type GeoPoint, type TrackPoint,
 } from '../../src/services/routeGeometry';
 
 const P = (lat: number, lng: number, name = ''): GeoPoint & { name: string } => ({ lat, lng, name });
@@ -122,29 +122,83 @@ describe('track helpers', () => {
   });
 });
 
-describe('chooseStageCuts', () => {
-  it('RG-014 — picks the lodging closest to each ideal mark, within ±30 % of the stage length', () => {
-    const cuts = chooseStageCuts(300, 3, [40, 95, 104, 210, 240]);   // marcas ideales: 100 y 200; ventana ±30
-    expect(cuts).toEqual([{ km: 104, lodged: true }, { km: 210, lodged: true }]);
+describe('lodging clusters and stage cuts', () => {
+  it('RG-014 — clusterLodging groups places within 1,5 km (a town) and counts them', () => {
+    const c = clusterLodging([10, 10.4, 11.2, 30, 55, 55.3, 55.9, 56.4]);
+    expect(c.map(x => x.weight)).toEqual([3, 1, 4]);
+    expect(c[0].km).toBeGreaterThan(9.9); expect(c[0].km).toBeLessThan(11.3);
+    expect(clusterLodging([])).toEqual([]);
+    expect(clusterLodging([NaN, 5])).toEqual([{ km: 5, weight: 1 }]);
   });
 
-  it('RG-015 — without lodging near a mark, keeps the ideal cut and flags it', () => {
-    const cuts = chooseStageCuts(300, 3, [10, 290]);
-    expect(cuts).toEqual([{ km: 100, lodged: false }, { km: 200, lodged: false }]);
+  it('RG-015 — moves each cut to the closest lodging within ±7 km, shorter or longer', () => {
+    // total 300, 3 etapas → marcas 100 y 200
+    const cuts = chooseStageCuts(300, 3, [{ km: 94, weight: 1 }, { km: 205, weight: 1 }, { km: 140, weight: 5 }]);
+    expect(cuts.map(c => c.lodged)).toEqual([true, true]);
+    expect(cuts[0].km).toBe(94); expect(cuts[0].shiftKm).toBe(-6);
+    expect(cuts[1].km).toBe(205); expect(cuts[1].shiftKm).toBe(5);
   });
 
-  it('RG-016 — never picks a lodging too close to the previous cut or to the end; ignores bad input', () => {
-    const cuts = chooseStageCuts(100, 2, [5, 95, NaN, 52]);   // L=50, ventana 15, 0,4·L=20
-    expect(cuts).toEqual([{ km: 52, lodged: true }]);
-    expect(chooseStageCuts(100, 1, [50])).toEqual([]);
+  it('RG-016 — prefers a town (several lodgings) over a lone hotel when both are within reach', () => {
+    const cuts = chooseStageCuts(200, 2, [{ km: 104, weight: 1 }, { km: 106, weight: 4 }]);   // marca 100
+    expect(cuts[0].km).toBe(106);
+  });
+
+  it('RG-017 — never moves a cut more than 7 km while a lodging exists within 7 km, even a farther one is better placed', () => {
+    const cuts = chooseStageCuts(200, 2, [{ km: 109, weight: 5 }, { km: 96, weight: 1 }]);    // 109 queda a 9 km: fuera
+    expect(cuts[0].km).toBe(96);
+  });
+
+  it('RG-018 — widens the margin step by step when nothing is within 7 km, and reports the shift', () => {
+    const cuts = chooseStageCuts(400, 2, [{ km: 212, weight: 2 }]);   // marca 200, a 12 km
+    expect(cuts[0]).toEqual({ km: 212, lodged: true, shiftKm: 12 });
+    const far = chooseStageCuts(400, 2, [{ km: 230, weight: 2 }]);   // a 30 km: fuera incluso del margen ampliado (21)
+    expect(far[0]).toEqual({ km: 200, lodged: false, shiftKm: 0 });
+  });
+
+  it('RG-019 — respects custom marks (adjusting existing cuts) and never packs two cuts together', () => {
+    const cuts = chooseStageCuts(300, 0, [{ km: 98, weight: 1 }, { km: 104, weight: 1 }, { km: 203, weight: 1 }], { marks: [100, 200] });
+    expect(cuts.map(c => c.km)).toEqual([98, 203]);
+    const crowded = chooseStageCuts(300, 3, [{ km: 100, weight: 1 }, { km: 102, weight: 3 }]);   // ambos caben en la 1ª marca; la 2ª no puede reutilizarlos
+    expect(crowded[0].km).toBe(102);
+    expect(crowded[1].lodged).toBe(false);
+  });
+
+  it('RG-020 — bad input gives no cuts', () => {
+    expect(chooseStageCuts(100, 1, [{ km: 50, weight: 1 }])).toEqual([]);
     expect(chooseStageCuts(0, 3, [])).toEqual([]);
+  });
+});
+
+describe('legStats', () => {
+  const A = P(40, -4, 'A'), B = P(40.5, -4, 'B'), C = P(41, -4, 'C');
+  it('RG-021 — straight legs have ratio ≈ 1', () => {
+    const legs = legStats(straight(A, C), cumulativeKm(straight(A, C)), [A, B, C]);
+    expect(legs).toHaveLength(2);
+    legs.forEach(l => expect(l.ratio).toBeCloseTo(1, 1));
+  });
+  it('RG-022 — a leg that goes round a mountain range shows a high ratio and the extra km', () => {
+    const t: TrackPoint[] = [...straight(A, P(40.2, -3.2)), ...straight(P(40.2, -3.2), B), ...straight(B, C)];
+    const legs = legStats(t, cumulativeKm(t), [A, B, C]);
+    expect(legs[0].ratio).toBeGreaterThan(1.5);
+    expect(legs[0].extraKm).toBeGreaterThan(30);
+    expect(legs[1].ratio).toBeCloseTo(1, 1);
+  });
+  it('RG-023 — stops are located in order along the track (monotonic), even if the track passes near one twice', () => {
+    const out = straight(A, C), back = out.slice(0, -1).reverse();
+    const legs = legStats([...out, ...back], cumulativeKm([...out, ...back]), [A, C, A]);
+    expect(legs[0].roadKm).toBeGreaterThan(100);        // A→C ida
+    expect(legs[1].roadKm).toBeGreaterThan(100);        // C→A vuelta
+  });
+  it('RG-024 — fewer than 2 stops or points gives []', () => {
+    expect(legStats(straight(A, C), cumulativeKm(straight(A, C)), [A])).toEqual([]);
   });
 });
 
 import { detourCostKm, dropDetourStops, retraceKm } from '../../src/services/routeGeometry';
 
 describe('closed tours', () => {
-  it('RG-017 — closed: shortest circuit from a fixed start, never longer than any open order + the way back', () => {
+  it('RG-030 — closed: shortest circuit from a fixed start, never longer than any open order + the way back', () => {
     const pts = [P(40, -4, 'S'), P(41, -3, 'b'), P(40.5, -3.2, 'c'), P(41.4, -4.2, 'd'), P(40.2, -3.6, 'e')];
     const out = orderByShortestPath(pts, { closed: true });
     expect(out[0].name).toBe('S');
@@ -159,7 +213,7 @@ describe('closed tours', () => {
 describe('detours', () => {
   const A = P(40.656, -4.7, 'Ávila'), SAL = P(40.97, -5.664, 'Salamanca'), PLA = P(40.03, -6.09, 'Plasencia'), CR = P(40.6, -6.533, 'Ciudad Rodrigo');
 
-  it('RG-018 — detourCostKm: 0 on a straight line, positive off it, 0 at the ends', () => {
+  it('RG-031 — detourCostKm: 0 on a straight line, positive off it, 0 at the ends', () => {
     const line = [P(40, -4), P(40.5, -4), P(41, -4)];
     expect(detourCostKm(line, 1)).toBeCloseTo(0, 3);
     expect(detourCostKm([P(40, -4), P(40.5, -3.5), P(41, -4)], 1)).toBeGreaterThan(10);
@@ -167,13 +221,13 @@ describe('detours', () => {
     expect(detourCostKm(line, 2)).toBe(0);
   });
 
-  it('RG-019 — dropDetourStops removes the stop that forces a big spur, keeps the one on the way', () => {
+  it('RG-032 — dropDetourStops removes the stop that forces a big spur, keeps the one on the way', () => {
     const r = dropDetourStops([A, SAL, PLA, CR]);   // Plasencia queda ~100 km al sur de la ruta Ávila→Ciudad Rodrigo
     expect(r.dropped.map(p => p.name)).toEqual(['Plasencia']);
     expect(r.kept.map(p => p.name)).toEqual(['Ávila', 'Salamanca', 'Ciudad Rodrigo']);
   });
 
-  it('RG-020 — dropDetourStops leaves reasonable routes and short lists alone', () => {
+  it('RG-033 — dropDetourStops leaves reasonable routes and short lists alone', () => {
     const line = [P(40, -4, 'a'), P(40.5, -4.01, 'b'), P(41, -4, 'c')];
     expect(dropDetourStops(line).dropped).toEqual([]);
     expect(dropDetourStops([A, CR]).kept).toHaveLength(2);
@@ -181,11 +235,11 @@ describe('detours', () => {
 });
 
 describe('retraceKm', () => {
-  it('RG-021 — a one-way track retraces nothing', () => {
+  it('RG-034 — a one-way track retraces nothing', () => {
     expect(retraceKm(straight(P(40, -4), P(41, -4)))).toBeLessThan(0.5);
   });
 
-  it('RG-022 — an out-and-back spur counts (≈ the length of the way back)', () => {
+  it('RG-035 — an out-and-back spur counts (≈ the length of the way back)', () => {
     const out = straight(P(40, -4), P(40.5, -4));           // ≈ 55 km
     const back = out.slice(0, -1).reverse();
     const km = retraceKm([...out, ...back]);
@@ -193,7 +247,7 @@ describe('retraceKm', () => {
     expect(km).toBeLessThan(65);
   });
 
-  it('RG-023 — a plain crossing of two roads does not count as retracing', () => {
+  it('RG-036 — a plain crossing of two roads does not count as retracing', () => {
     const ns = straight(P(40, -4), P(41, -4)), ew = straight(P(40.5, -4.6), P(40.5, -3.4));
     expect(retraceKm([...ns, ...ew])).toBeLessThan(2);
   });

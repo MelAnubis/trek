@@ -83,6 +83,7 @@ export default function PlannerPage(): React.ReactElement {
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiInfo, setAiInfo] = useState<{ summary: string; warnings: string[] } | null>(null)
+  const [cutsLoading, setCutsLoading] = useState(false)
 
   // ── Servicios (POIs) ───────────────────────────────────────────────────────
   const [cats, setCats] = useState<string[]>(['water'])
@@ -180,14 +181,14 @@ export default function PlannerPage(): React.ReactElement {
   const createAndOpen = useCallback(async (o: {
     name: string; origName: string; pts: RoutePoint[]; wps: PlannerWaypoint[]; stageKm?: number | null
     /** Cortes de etapa en km de recorrido (p. ej. junto a alojamientos). Tienen prioridad sobre stageKm. */
-    cutKm?: number[] | null
+    cutKm?: { km: number; lodged?: boolean; shiftKm?: number }[] | null
   }) => {
     const c = cumulativeKm(o.pts)
     const st = routeStats(smoothElevation(o.pts, c), c)
     const stageKm = o.stageKm && o.stageKm > 0 ? Math.round(o.stageKm) : null
     const newSettings: PlannerSettings = { stageKm: stageKm ?? 60, poiRadiusM: 1000 }
     const newCuts = o.cutKm && o.cutKm.length
-      ? normalizeCuts(o.cutKm.map(km => ({ index: indexAtKm(c, km) })), o.pts.length)
+      ? normalizeCuts(o.cutKm.map(k => ({ index: indexAtKm(c, k.km), lodged: k.lodged, shiftKm: k.shiftKm })), o.pts.length)
       : stageKm ? autoSplit(c, stageKm) : []
 
     setSaveState('saving')
@@ -255,7 +256,7 @@ export default function PlannerPage(): React.ReactElement {
       const stageKm = res.plan.kmPerDay ?? (res.plan.days ? res.distanceKm / res.plan.days : null)
       await createAndOpen({
         name: res.plan.name || t('planner.untitled'), origName: 'IA', pts, wps, stageKm,
-        cutKm: res.stageEnds.map(e => e.km),
+        cutKm: res.stageEnds,
       })
       setAiInfo({ summary: res.plan.summary, warnings: res.warnings })
       setAiPrompt('')
@@ -322,22 +323,60 @@ export default function PlannerPage(): React.ReactElement {
   // ── Etapas ─────────────────────────────────────────────────────────────────
   const updateCuts = (next: Cut[]) => { markDirty(); setCuts(normalizeCuts(next, points.length)) }
 
-  const addCutAt = useCallback((idx: number): boolean => {
+  const addCutAt = useCallback((idx: number, meta?: { lodged?: boolean }): boolean => {
     if (idx <= 0 || idx >= points.length - 1) return false
     const km = cum[idx]
     const bounds = [0, ...cuts.map(c => cum[c.index]), cum[cum.length - 1]]
     if (bounds.some(b => Math.abs(b - km) < MIN_CUT_GAP_KM)) return false
     markDirty()
-    setCuts(prev => normalizeCuts([...prev, { index: idx }], points.length))
+    setCuts(prev => normalizeCuts([...prev, { index: idx, ...(meta?.lodged !== undefined ? { lodged: meta.lodged } : {}) }], points.length))
     return true
   }, [points.length, cum, cuts, markDirty])
 
-  const runAutoSplit = () => {
-    const km = settings.stageKm ?? 60
+  /** Aplica cortes calculados por el servidor (en poblaciones con alojamiento) y avisa de lo que no se pudo. */
+  const applyLodgingCuts = (res: Awaited<ReturnType<typeof plannerApi.smartCuts>>, keepNames: boolean) => {
+    const next: Cut[] = res.cuts.map((c, i) => ({
+      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm,
+      ...(keepNames && cuts.length === res.cuts.length && cuts[i].name ? { name: cuts[i].name } : {}),
+    }))
     markDirty()
-    setCuts(autoSplit(cum, km))
-    setSettings(s => ({ ...s, firstStageName: undefined }))
+    setCuts(normalizeCuts(next, points.length))
     setActiveStage(null)
+    if (!res.lodgingChecked) toast.warning(t('planner.stages.cuts.noData'))
+    else {
+      const without = res.cuts.filter(c => !c.lodged).length
+      if (without) toast.info(t('planner.stages.cuts.someWithout', { n: without }))
+    }
+  }
+
+  const runAutoSplit = async () => {
+    const km = settings.stageKm ?? 60
+    if (cutsLoading) return
+    setSettings(s => ({ ...s, firstStageName: undefined }))
+    if (routeId == null) { markDirty(); setCuts(autoSplit(cum, km)); setActiveStage(null); return }
+    setCutsLoading(true)
+    try {
+      applyLodgingCuts(await plannerApi.smartCuts(routeId, { stageKm: km }), false)
+    } catch {
+      // Sin servidor o sin datos: reparto por igual, avisando de que no están ajustados a alojamientos.
+      markDirty(); setCuts(autoSplit(cum, km)); setActiveStage(null)
+      toast.warning(t('planner.stages.cuts.noData'))
+    } finally {
+      setCutsLoading(false)
+    }
+  }
+
+  /** Mueve los cortes que ya hay (también los manuales) al alojamiento más cercano, hasta ~7 km. */
+  const snapCutsToLodging = async () => {
+    if (routeId == null || !cuts.length || cutsLoading) return
+    setCutsLoading(true)
+    try {
+      applyLodgingCuts(await plannerApi.smartCuts(routeId, { marks: normalizeCuts(cuts, points.length).map(c => cum[c.index]) }), true)
+    } catch {
+      toast.error(t('planner.stages.cuts.error'))
+    } finally {
+      setCutsLoading(false)
+    }
   }
 
   const mergeWithPrevious = (stageIdx: number) => {
@@ -389,7 +428,9 @@ export default function PlannerPage(): React.ReactElement {
 
   const cutAtPoi = (p: PoiMarker) => {
     const near = nearestOnRoute(points, cum, p.lat, p.lng)
-    if (!addCutAt(near.index)) toast.info(t('planner.stages.cutTooClose'))
+    // Un alojamiento (hotel, camping, casa rural…) como fin de etapa cuenta como corte con alojamiento.
+    const sleeps = p.category === 'hotel' || p.category === 'camping' || p.category === 'lodging'
+    if (!addCutAt(near.index, sleeps ? { lodged: true } : undefined)) toast.info(t('planner.stages.cutTooClose'))
   }
 
   // ── Búsqueda de servicios ──────────────────────────────────────────────────
@@ -536,6 +577,8 @@ export default function PlannerPage(): React.ReactElement {
       case 'detourstop': return t('planner.ai.warn.detourstop', { list: detail })
       case 'droppedstop': return t('planner.ai.warn.droppedstop', { list: detail })
       case 'retrace': return t('planner.ai.warn.retrace', { km: detail })
+      case 'farlodging': return t('planner.ai.warn.farlodging', { list: detail })
+      case 'badleg': return t('planner.ai.warn.badleg', { list: detail })
       default: return detail || kind
     }
   }
@@ -669,12 +712,20 @@ export default function PlannerPage(): React.ReactElement {
             <input style={input} type="number" min={5} max={500} step={5} value={settings.stageKm ?? 60}
               onChange={e => { markDirty(); setSettings(s => ({ ...s, stageKm: Math.max(1, Number(e.target.value) || 1) })) }} />
           </div>
-          <button type="button" style={btnPrimary} onClick={runAutoSplit}><Scissors size={15} />{t('planner.stages.split')}</button>
+          <button type="button" style={{ ...btnPrimary, opacity: cutsLoading ? 0.6 : 1 }} disabled={cutsLoading} onClick={runAutoSplit}>
+            <Scissors size={15} />{cutsLoading ? t('planner.stages.cuts.working') : t('planner.stages.split')}
+          </button>
           {cuts.length > 0 && (
             <button type="button" style={btn} onClick={() => { updateCuts([]); setActiveStage(null) }}>{t('planner.stages.clear')}</button>
           )}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.stages.hintProfile')}</div>
+        {cuts.length > 0 && (
+          <button type="button" style={{ ...btn, marginTop: 8, opacity: cutsLoading ? 0.6 : 1 }} disabled={cutsLoading} onClick={snapCutsToLodging}>
+            🛏️ {t('planner.stages.cuts.snap')}
+          </button>
+        )}
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.stages.cuts.hint')}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('planner.stages.hintProfile')}</div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -698,6 +749,14 @@ export default function PlannerPage(): React.ReactElement {
               <span>km {st.startKm.toFixed(1)}–{st.endKm.toFixed(1)}</span>
               {st.minEle != null && st.maxEle != null && <span>{st.minEle}–{st.maxEle} m</span>}
             </div>
+            {st.endLodged === true && (
+              <div style={{ fontSize: 11, marginTop: 5, color: '#15803d' }}>
+                🛏️ {t('planner.stages.end.lodged')}{st.endShiftKm != null && Math.abs(st.endShiftKm) >= 0.5 ? ` (${st.endShiftKm > 0 ? '+' : '−'}${Math.abs(st.endShiftKm).toFixed(1).replace('.', ',')} km)` : ''}
+              </div>
+            )}
+            {st.endLodged === false && (
+              <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t('planner.stages.end.none')}</div>
+            )}
             {i > 0 && (
               <button type="button" style={{ ...btn, padding: '3px 8px', fontSize: 11, marginTop: 6 }}
                 onClick={e => { e.stopPropagation(); mergeWithPrevious(i) }}>{t('planner.stages.merge')}</button>

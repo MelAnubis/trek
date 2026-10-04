@@ -181,6 +181,27 @@ describe('etapas', () => {
   })
 })
 
+describe('etapas con alojamiento', () => {
+  const pts = line(101)
+  const cum = cumulativeKm(pts)
+  const sm = smoothElevation(pts, cum)
+
+  it('cada etapa expone si su corte final tiene alojamiento y cuánto se movió; la última no tiene corte', () => {
+    const stages = buildStages(cum, sm, [{ index: 30, lodged: true, shiftKm: -3.2 }, { index: 70, lodged: false }, ], i => `E${i + 1}`)
+    expect(stages).toHaveLength(3)
+    expect(stages[0].endLodged).toBe(true)
+    expect(stages[0].endShiftKm).toBe(-3.2)
+    expect(stages[1].endLodged).toBe(false)
+    expect(stages[2].endLodged).toBeUndefined()
+  })
+
+  it('los cortes sin comprobar no inventan información, y normalizeCuts conserva los flags', () => {
+    const stages = buildStages(cum, sm, [{ index: 50 }], i => `E${i + 1}`)
+    expect(stages[0].endLodged).toBeUndefined()
+    expect(normalizeCuts([{ index: 70, lodged: true }, { index: 30, shiftKm: 2 }], 101)).toEqual([{ index: 30, shiftKm: 2 }, { index: 70, lodged: true }])
+  })
+})
+
 describe('nearestOnRoute', () => {
   const pts = line(101)
   const cum = cumulativeKm(pts)

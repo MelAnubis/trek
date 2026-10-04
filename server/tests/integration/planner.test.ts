@@ -315,3 +315,90 @@ describe('Planner library', () => {
     expect((await list(user.id)).body.routes[0].preview[0]).toEqual([10, 20]);
   });
 });
+
+// ── Cortes de etapa en poblaciones con alojamiento ────────────────────────────
+describe('Planner smart cuts', () => {
+  // track(n): 1 punto cada 0,0001° de latitud ≈ 11,12 m → 10000 puntos ≈ 111 km
+  const lat = (km: number) => 40 + km / 111.19;
+  const lodging = (id: string, km: number) => ({ osm_id: id, name: 'Hotel ' + id, lat: lat(km), lng: -3, category: 'lodging' });
+  const smart = (userId: number, id: number, b: object) =>
+    request(app).post(`/api/planner/${id}/smart-cuts`).set('Cookie', authCookie(userId)).send(b);
+
+  it('PLAN-060 — moves each cut to a lodging within ±7 km, shorter or longer, and returns point indices', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    alongMock.mockResolvedValue({ pois: [lodging('a', 52), lodging('b', 70)], truncated: false });   // marca ideal: 55,5 km
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(r.body.lodgingChecked).toBe(true);
+    expect(r.body.cuts).toHaveLength(1);
+    const c = r.body.cuts[0];
+    expect(c.lodged).toBe(true);
+    expect(c.km).toBeGreaterThan(51); expect(c.km).toBeLessThan(53);        // el de 52 km (−3,5), no el de 70 (+14,5)
+    expect(c.shiftKm).toBeLessThan(0); expect(c.shiftKm).toBeGreaterThan(-5);
+    expect(Number.isInteger(c.index)).toBe(true);
+    expect(alongMock.mock.calls[0][0]).toBe('lodging');
+  });
+
+  it('PLAN-061 — stageKm and marks modes; marks adjust existing cuts', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    alongMock.mockResolvedValue({ pois: [lodging('a', 28), lodging('b', 84)], truncated: false });
+    const byKm = await smart(user.id, r0.id, { stageKm: 37 });                  // 111/37 = 3 etapas → marcas 37 y 74
+    expect(byKm.body.cuts).toHaveLength(2);
+    const marks = await smart(user.id, r0.id, { marks: [30, 80] });
+    expect(marks.body.cuts.map((c: any) => c.lodged)).toEqual([true, true]);
+    expect(Math.round(marks.body.cuts[0].km)).toBe(28);
+    expect(Math.round(marks.body.cuts[1].km)).toBe(84);
+  });
+
+  it('PLAN-062 — Overpass down: still returns cuts at the ideal marks, flagged as not lodged', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    alongMock.mockRejectedValue(new Error('Overpass request failed'));
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(r.body.lodgingChecked).toBe(false);
+    expect(r.body.cuts).toHaveLength(1);
+    expect(r.body.cuts[0].lodged).toBe(false);
+    expect(r.body.cuts[0].km).toBeGreaterThan(54); expect(r.body.cuts[0].km).toBeLessThan(57);
+  });
+
+  it('PLAN-063 — validation, one stage means no cuts, and routes are private', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    expect((await smart(user.id, r0.id, {})).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 1 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 99 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stageKm: 1 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { marks: [0, 5] })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { marks: [500] })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 2, maxShiftKm: 99 })).status).toBe(400);
+    const one = await smart(user.id, r0.id, { stageKm: 500 });                    // > longitud: 1 etapa
+    expect(one.body.cuts).toEqual([]);
+    expect(alongMock).not.toHaveBeenCalled();
+    expect((await smart(other.id, r0.id, { stages: 2 })).status).toBe(404);
+    expect((await request(app).post(`/api/planner/${r0.id}/smart-cuts`).send({ stages: 2 })).status).toBe(401);
+  });
+
+  it('PLAN-064 — stored cuts keep their lodged / shiftKm flags', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'A');
+    const put = await request(app).put(`/api/planner/${r0.id}`).set('Cookie', authCookie(user.id))
+      .send({ cuts: [{ index: 10, lodged: true, shiftKm: -3.44, name: 'Dos' }, { index: 30, lodged: false }, { index: 40, lodged: 'x', shiftKm: 'a' }] });
+    expect(put.status).toBe(200);
+    expect(put.body.route.cuts).toEqual([
+      { index: 10, name: 'Dos', lodged: true, shiftKm: -3.4 },
+      { index: 30, lodged: false },
+      { index: 40 },
+    ]);
+  });
+
+  it('PLAN-065 — lodging is a valid category of the along-route search', async () => {
+    const { user } = createUser(testDb);
+    alongMock.mockResolvedValue({ pois: [], truncated: false });
+    const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id))
+      .send({ category: 'lodging', line: [[40, -3], [40.5, -3]] });
+    expect(r.status).toBe(200);
+  });
+});

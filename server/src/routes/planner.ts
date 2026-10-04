@@ -14,6 +14,8 @@ import { authenticate } from '../middleware/auth';
 import type { AuthRequest } from '../types';
 import { generateRoute } from '../services/routeAssistantService';
 import { makePreview } from '../services/plannerPreview';
+import { planStageCuts, MAX_CUTS_PER_REQUEST } from '../services/stageCutService';
+import { cumulativeKm, indexAtKm } from '../services/routeGeometry';
 
 const router = express.Router();
 
@@ -37,14 +39,20 @@ function validPoints(v: unknown): Pt[] | null {
   return out;
 }
 
-function validCuts(v: unknown, pointCount: number): { index: number; name?: string }[] | null {
+type StoredCut = { index: number; name?: string; lodged?: boolean; shiftKm?: number };
+
+function validCuts(v: unknown, pointCount: number): StoredCut[] | null {
   if (!Array.isArray(v) || v.length > MAX_CUTS) return null;
-  const out: { index: number; name?: string }[] = [];
+  const out: StoredCut[] = [];
   for (const c of v) {
     const index = Number((c as any)?.index);
     if (!Number.isInteger(index) || index <= 0 || index >= pointCount - 1) return null;
-    const name = typeof (c as any)?.name === 'string' ? (c as any).name.slice(0, 120) : undefined;
-    out.push(name ? { index, name } : { index });
+    const cut: StoredCut = { index };
+    if (typeof (c as any)?.name === 'string' && (c as any).name) cut.name = (c as any).name.slice(0, 120);
+    if (typeof (c as any)?.lodged === 'boolean') cut.lodged = (c as any).lodged;
+    const sh = Number((c as any)?.shiftKm);
+    if ((c as any)?.shiftKm != null && Number.isFinite(sh) && Math.abs(sh) < 1000) cut.shiftKm = Math.round(sh * 10) / 10;
+    out.push(cut);
   }
   return out;
 }
@@ -232,6 +240,75 @@ router.put('/folders', authenticate, (req: Request, res: Response) => {
   if (to === false || to === undefined) return res.status(400).json({ error: 'Invalid folder name' });
   const info = db.prepare('UPDATE planner_routes SET folder = ? WHERE user_id = ? AND folder = ?').run(to, userId, from);
   res.json({ updated: info.changes });
+});
+
+// ── Cortes de etapa en poblaciones con alojamiento ───────────────────────────
+const CUTS_LIMIT = 30;
+const cutCalls = new Map<number, number[]>();
+function cutsRateLimited(userId: number): boolean {
+  const now = Date.now();
+  const recent = (cutCalls.get(userId) || []).filter(t => now - t < AI_WINDOW_MS);
+  if (recent.length >= CUTS_LIMIT) { cutCalls.set(userId, recent); return true; }
+  recent.push(now); cutCalls.set(userId, recent);
+  return false;
+}
+/** Solo para tests. */
+export function resetPlannerCutsLimiter(): void { cutCalls.clear(); }
+
+/**
+ * Propone cortes de etapa de una ruta guardada, cada uno en un núcleo con alojamiento a ±maxShiftKm (7 por defecto)
+ * del corte ideal. Cuerpo: { stageKm } | { stages } para repartir por igual, o { marks: [km…] } para ajustar cortes existentes.
+ */
+router.post('/:id/smart-cuts', authenticate, async (req: Request, res: Response) => {
+  const userId = (req as AuthRequest).user.id;
+  const row = db.prepare('SELECT points_json FROM planner_routes WHERE id = ? AND user_id = ?').get(req.params.id, userId) as { points_json: string } | undefined;
+  if (!row) return res.status(404).json({ error: 'Route not found' });
+
+  const b = req.body || {};
+  const points = JSON.parse(row.points_json || '[]') as [number, number, number | null][];
+  if (points.length < 3) return res.status(400).json({ error: 'Route too short' });
+  const cum = cumulativeKm(points);
+  const totalKm = cum[cum.length - 1];
+
+  let marks: number[] | undefined;
+  let stageCount = 0;
+  if (Array.isArray(b.marks)) {
+    marks = b.marks.map(Number);
+    if (marks.length < 1 || marks.length > MAX_CUTS_PER_REQUEST || marks.some(m => !Number.isFinite(m) || m <= 0 || m >= totalKm)) {
+      return res.status(400).json({ error: 'Invalid marks' });
+    }
+  } else if (b.stages !== undefined) {
+    stageCount = Number(b.stages);
+    if (!Number.isInteger(stageCount) || stageCount < 2 || stageCount > MAX_CUTS_PER_REQUEST + 1) return res.status(400).json({ error: 'Invalid stages' });
+  } else if (b.stageKm !== undefined) {
+    const km = Number(b.stageKm);
+    if (!Number.isFinite(km) || km < 5 || km > 1000) return res.status(400).json({ error: 'Invalid stageKm' });
+    stageCount = Math.max(1, Math.round(totalKm / km));
+    if (stageCount > MAX_CUTS_PER_REQUEST + 1) return res.status(400).json({ error: 'Too many stages' });
+  } else {
+    return res.status(400).json({ error: 'stageKm, stages or marks required' });
+  }
+  const maxShiftKm = b.maxShiftKm === undefined ? undefined : Number(b.maxShiftKm);
+  if (maxShiftKm !== undefined && (!Number.isFinite(maxShiftKm) || maxShiftKm < 1 || maxShiftKm > 20)) return res.status(400).json({ error: 'Invalid maxShiftKm' });
+
+  if (!marks && stageCount < 2) return res.json({ cuts: [], lodgingChecked: true, queries: 0, failed: 0, totalKm });
+  if (cutsRateLimited(userId)) return res.status(429).json({ error: 'Too many requests, try again later' });
+
+  try {
+    const plan = await planStageCuts(points, cum, { stageCount, marks, maxShiftKm });
+    // índice de punto de cada corte; se descartan los que quedarían en los extremos o repetidos
+    const seen = new Set<number>();
+    const cuts = plan.cuts.flatMap(c => {
+      const index = indexAtKm(cum, c.km);
+      if (index <= 0 || index >= points.length - 1 || seen.has(index)) return [];
+      seen.add(index);
+      return [{ index, km: Math.round(cum[index] * 100) / 100, lodged: c.lodged, shiftKm: Math.round(c.shiftKm * 10) / 10 }];
+    });
+    res.json({ cuts, lodgingChecked: plan.lodgingChecked, queries: plan.queries, failed: plan.failed, totalKm });
+  } catch (err) {
+    console.error('[planner] smart-cuts error:', err);
+    res.status(500).json({ error: 'Failed to compute stage cuts' });
+  }
 });
 
 router.get('/:id', authenticate, (req: Request, res: Response) => {

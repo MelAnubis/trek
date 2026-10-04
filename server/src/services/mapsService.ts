@@ -846,6 +846,9 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   // Cycling-oriented categories used by the route planner (/planner).
   water: ['amenity=drinking_water', 'natural=spring', 'man_made=water_tap'],
   camping: ['tourism=camp_site', 'tourism=caravan_site'],
+  // Everything you can sleep in (hotels, hostels, guest houses / casas rurales, apartments, chalets, campsites).
+  // Used to end cycling stages in places with accommodation.
+  lodging: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel', 'tourism=chalet', 'tourism=camp_site', 'tourism=caravan_site'],
   supermarket: ['shop=supermarket', 'shop=convenience'],
   bike_shop: ['shop=bicycle'],
   bike_repair: ['amenity=bicycle_repair_station'],
@@ -855,7 +858,7 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
 // Categories whose OSM objects are normally unnamed (a fountain has no name).
 // They are kept with an empty name instead of being dropped; the client shows
 // the category label in that case.
-const UNNAMED_OK = new Set(['water', 'bike_repair']);
+const UNNAMED_OK = new Set(['water', 'bike_repair', 'lodging']);
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
