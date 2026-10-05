@@ -39,7 +39,7 @@ function validPoints(v: unknown): Pt[] | null {
   return out;
 }
 
-type StoredCut = { index: number; name?: string; lodged?: boolean; shiftKm?: number };
+type StoredCut = { index: number; name?: string; lodged?: boolean; shiftKm?: number; unchecked?: boolean; town?: boolean; place?: string };
 
 function validCuts(v: unknown, pointCount: number): StoredCut[] | null {
   if (!Array.isArray(v) || v.length > MAX_CUTS) return null;
@@ -50,6 +50,9 @@ function validCuts(v: unknown, pointCount: number): StoredCut[] | null {
     const cut: StoredCut = { index };
     if (typeof (c as any)?.name === 'string' && (c as any).name) cut.name = (c as any).name.slice(0, 120);
     if (typeof (c as any)?.lodged === 'boolean') cut.lodged = (c as any).lodged;
+    if (typeof (c as any)?.unchecked === 'boolean') cut.unchecked = (c as any).unchecked;
+    if (typeof (c as any)?.town === 'boolean') cut.town = (c as any).town;
+    if (typeof (c as any)?.place === 'string' && (c as any).place) cut.place = (c as any).place.slice(0, 80);
     const sh = Number((c as any)?.shiftKm);
     if ((c as any)?.shiftKm != null && Number.isFinite(sh) && Math.abs(sh) < 1000) cut.shiftKm = Math.round(sh * 10) / 10;
     out.push(cut);
@@ -302,7 +305,7 @@ router.post('/:id/smart-cuts', authenticate, async (req: Request, res: Response)
       const index = indexAtKm(cum, c.km);
       if (index <= 0 || index >= points.length - 1 || seen.has(index)) return [];
       seen.add(index);
-      return [{ index, km: Math.round(cum[index] * 100) / 100, lodged: c.lodged, shiftKm: Math.round(c.shiftKm * 10) / 10, unchecked: !!c.unchecked }];
+      return [{ index, km: Math.round(cum[index] * 100) / 100, lodged: c.lodged, shiftKm: Math.round(c.shiftKm * 10) / 10, unchecked: !!c.unchecked, town: !!c.town, ...(c.place ? { place: c.place } : {}) }];
     });
     res.json({ cuts, lodgingChecked: plan.lodgingChecked, queries: plan.queries, failed: plan.failed, totalKm });
   } catch (err) {

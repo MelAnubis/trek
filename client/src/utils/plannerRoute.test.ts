@@ -195,6 +195,13 @@ describe('etapas con alojamiento', () => {
     expect(stages[2].endLodged).toBeUndefined()
   })
 
+  it('las etapas que terminan en una población (sin alojamiento mapeado) lo indican, con su nombre', () => {
+    const stages = buildStages(cum, sm, [{ index: 40, town: true, place: 'Béjar', shiftKm: 4.2, unchecked: true }, { index: 80, lodged: true, place: 'Guijuelo' }], i => `E${i + 1}`)
+    expect(stages[0]).toMatchObject({ endTown: true, endPlace: 'Béjar', endShiftKm: 4.2, endUnchecked: true })
+    expect(stages[1]).toMatchObject({ endLodged: true, endPlace: 'Guijuelo' })
+    expect(stages[1].endTown).toBeUndefined()
+  })
+
   it('los cortes sin comprobar no inventan información, y normalizeCuts conserva los flags', () => {
     const stages = buildStages(cum, sm, [{ index: 50 }], i => `E${i + 1}`)
     expect(stages[0].endLodged).toBeUndefined()

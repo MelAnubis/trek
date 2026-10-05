@@ -553,7 +553,7 @@ export const plannerApi = {
   // Cortes de etapa en poblaciones con alojamiento (±7 km del corte ideal). stageKm | stages | marks.
   smartCuts: (id: number, body: { stageKm?: number; stages?: number; marks?: number[]; maxShiftKm?: number }) =>
     apiClient.post(`/planner/${id}/smart-cuts`, body, { timeout: 90000 }).then(r => r.data as {
-      cuts: { index: number; km: number; lodged: boolean; shiftKm: number; unchecked?: boolean }[]
+      cuts: { index: number; km: number; lodged: boolean; shiftKm: number; unchecked?: boolean; town?: boolean; place?: string }[]
       lodgingChecked: boolean
       queries: number
       failed: number

@@ -35,6 +35,10 @@ export interface Cut {
   shiftKm?: number
   /** true si no se pudo consultar OpenStreetMap para este corte (no es lo mismo que «no hay alojamiento»). */
   unchecked?: boolean
+  /** true si no hay alojamiento mapeado y el corte se ha puesto en una población. */
+  town?: boolean
+  /** Nombre de la población en el corte (o la más cercana, a ≤ 3 km, si el corte es de alojamiento). */
+  place?: string
 }
 
 export interface PlannerSettings {
@@ -109,6 +113,8 @@ export interface Stage {
   endLodged?: boolean
   endShiftKm?: number
   endUnchecked?: boolean
+  endTown?: boolean
+  endPlace?: string
 }
 
 export interface ParsedRoute {
@@ -356,7 +362,7 @@ export function buildStages(
       gain, loss,
       minEle: min == null ? null : Math.round(min), maxEle: max == null ? null : Math.round(max),
       name: named || defaultName(i),
-      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked } : {}),
+      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked, endTown: norm[i].town, endPlace: norm[i].place } : {}),
     })
   }
   return stages

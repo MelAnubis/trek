@@ -6,14 +6,16 @@
  * campings…, datos de OpenStreetMap). Solo se consulta el entorno de cada corte, no toda la
  * ruta, así que el coste es una consulta pequeña por etapa, sea cual sea la longitud.
  */
-import { getLodgingNearLine } from './lodgingTileService';
+import { getTilePois } from './lodgingTileService';
 import {
   simplifyLine, indexAtKm, nearestOnTrack, clusterLodging, chooseStageCuts,
-  DEFAULT_MAX_SHIFT_KM, type TrackPoint, type StageCut, type LodgingSpot,
+  DEFAULT_MAX_SHIFT_KM, type TrackPoint, type StageCut, type LodgingSpot, type TownSpot,
 } from './routeGeometry';
 
 const RADIUS_M = 1500;
 const MAX_OFF_TRACK_M = 1600;
+const TOWN_RADIUS_M = 2000;                    // un pueblo cuyo casco queda a ≤ 2 km del track
+const TOWN_WEIGHT: Record<string, number> = { city: 4, town: 3, village: 2 };
 const BUDGET_MS = 45000;
 export const MAX_CUTS_PER_REQUEST = 40;
 
@@ -51,6 +53,7 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
   const half = maxShift * 3 + 2;                         // el margen más amplio de chooseStageCuts, más un pueblo
   const limitKm = opts.mirrorKm ?? total;                // dónde se busca de verdad
   const found = new Map<string, number>();               // osm_id → km (en la parte consultada)
+  const townsFound = new Map<string, TownSpot>();         // osm_id → población
   const slices = new Map<number, boolean>();             // zona (km redondeado) → ¿alguna consulta falló?
   const keyOf = (mark: number) => Math.round(opts.mirrorKm && mark > opts.mirrorKm ? 2 * opts.mirrorKm - mark : mark);
   let queries = 0, failed = 0;
@@ -63,7 +66,8 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
     const a = indexAtKm(cum, Math.max(0, q - half));
     const b = indexAtKm(cum, Math.min(limitKm, q + half));
     if (b <= a) { slices.set(key, false); continue; }
-    const res = await getLodgingNearLine(simplifyLine(points.slice(a, b + 1), 200), RADIUS_M, { deadline });
+    const line = simplifyLine(points.slice(a, b + 1), 200);
+    const res = await getTilePois('lodging', line, RADIUS_M, { deadline });
     queries += res.buckets;
     failed += res.failedBuckets;
     slices.set(key, res.failedBuckets > 0);
@@ -72,12 +76,27 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
       const near = nearestOnTrack(points, cum, p);
       if (near.offM <= MAX_OFF_TRACK_M) found.set(p.osm_id, near.km);
     }
+    // Poblaciones de la misma zona: sirven de fin de etapa cuando no hay alojamiento mapeado. Si esta consulta
+    // falla no se pierde el alojamiento ya obtenido; solo se queda sin la alternativa.
+    const tr = await getTilePois('settlement', line, TOWN_RADIUS_M, { deadline });
+    queries += tr.buckets;
+    failed += tr.failedBuckets;
+    if (tr.failedBuckets > 0) slices.set(key, true);
+    for (const p of tr.pois) {
+      if (townsFound.has(p.osm_id)) continue;
+      const near = nearestOnTrack(points, cum, p);
+      if (near.offM <= TOWN_RADIUS_M) townsFound.set(p.osm_id, { km: near.km, weight: TOWN_WEIGHT[p.type ?? 'village'] ?? 2, name: p.name });
+    }
   }
 
   const kms = [...found.values()];
   const all = opts.mirrorKm ? [...kms, ...kms.map(k => 2 * opts.mirrorKm! - k)] : kms;
   const spots: LodgingSpot[] = clusterLodging(all);
-  const cuts = chooseStageCuts(total, opts.stageCount ?? 0, spots, { maxShiftKm: maxShift, marks })
+  const townList = [...townsFound.values()];
+  const towns: TownSpot[] = opts.mirrorKm
+    ? [...townList, ...townList.map(t => ({ ...t, km: 2 * opts.mirrorKm! - t.km }))]
+    : townList;
+  const cuts = chooseStageCuts(total, opts.stageCount ?? 0, spots, { maxShiftKm: maxShift, marks, towns })
     .map((c, i) => (!c.lodged && slices.get(keyOf(marks[i])) ? { ...c, unchecked: true } : c));
   return { cuts, queries, failed, lodgingChecked: queries === 0 || failed < queries };
 }

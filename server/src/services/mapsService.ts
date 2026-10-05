@@ -852,6 +852,8 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   supermarket: ['shop=supermarket', 'shop=convenience'],
   bike_shop: ['shop=bicycle'],
   bike_repair: ['amenity=bicycle_repair_station'],
+  // Cities, towns and villages: where a stage can end when no accommodation is mapped (see stageCutService).
+  settlement: ['place=city', 'place=town', 'place=village'],
   station: ['railway=station', 'railway=halt'],
 };
 

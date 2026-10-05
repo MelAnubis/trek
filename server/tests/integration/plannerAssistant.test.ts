@@ -508,3 +508,22 @@ describe('POST /planner/assistant — real-road checks and lodging cuts', () => 
     expect(r.body.warnings.some((w: string) => w.startsWith('farlodging:1'))).toBe(true);
   });
 });
+
+describe('POST /planner/assistant — stages that end in a town', () => {
+  beforeEach(() => { searchMock.mockImplementation(async (_u: number, q: string) => geocode(q)); });
+
+  it('PLAN-075 — no lodging mapped → the stage ends in a town, and the user is told which one', async () => {
+    const { user } = createUser(testDb);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Ávila, España', 'Ciudad Rodrigo, España'] }));
+    const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
+    const f = 74 / 139;                                                  // 4,5 km más allá del corte ideal (69,5)
+    overpassMock.mockImplementation(async (q: string) => (q.includes('"place"')
+      ? [{ type: 'node', id: 9, lat: a[0] + (b[0] - a[0]) * f, lon: a[1] + (b[1] - a[1]) * f, tags: { place: 'town', name: 'Piedrahíta' } }]
+      : []));
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
+    expect(r.status).toBe(200);
+    expect(r.body.stageEnds[0]).toMatchObject({ lodged: false, town: true, place: 'Piedrahíta' });
+    expect(r.body.warnings.some((w: string) => w.startsWith('towncut:1') && w.includes('Piedrahíta'))).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('nolodging:'))).toBe(false);
+  });
+});

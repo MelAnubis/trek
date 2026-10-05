@@ -217,7 +217,14 @@ export interface StageCut {
   shiftKm: number;
   /** true si no se pudo comprobar si hay alojamiento (falló la consulta): no es lo mismo que «no hay». */
   unchecked?: boolean;
+  /** true si no se encontró alojamiento y el corte se ha puesto en una población (donde normalmente lo hay). */
+  town?: boolean;
+  /** Nombre de la población en el corte (o la más cercana, a ≤ 3 km, si el corte es de alojamiento). */
+  place?: string;
 }
+
+/** Una población (ciudad, pueblo, aldea grande) con su km de recorrido. `weight`: ciudad 4, pueblo 3, aldea 2. */
+export interface TownSpot { km: number; weight: number; name: string }
 
 /** Agrupa alojamientos que están a menos de `gapKm` entre sí a lo largo del recorrido: casi siempre son un mismo pueblo. */
 export function clusterLodging(kms: number[], gapKm = 1.5): LodgingSpot[] {
@@ -234,43 +241,67 @@ export function clusterLodging(kms: number[], gapKm = 1.5): LodgingSpot[] {
 }
 
 export const DEFAULT_MAX_SHIFT_KM = 7;
+const PLACE_NAME_KM = 3;
 
 /**
- * Cortes de etapa en sitios con alojamiento. Parte de los cortes ideales (equiespaciados, o los `marks`
- * dados) y mueve cada uno al núcleo con alojamiento más adecuado dentro de ±`maxShiftKm` (7 km por defecto):
- * la etapa sale algo más corta o más larga, pero se duerme en poblado. Un núcleo con varios alojamientos
- * (un pueblo) se prefiere a un hotel suelto. Si en ese margen no hay nada, el margen se amplía (×1,7 y ×3)
- * y se informa del desplazamiento en `shiftKm`; si aun así no hay nada, se deja el corte ideal con `lodged: false`.
+ * Cortes de etapa en sitios donde dormir. Parte de los cortes ideales (equiespaciados, o los `marks` dados) y mueve
+ * cada uno hasta ±`maxShiftKm` (7 km por defecto): la etapa sale algo más corta o más larga, pero se acaba en poblado.
+ *
+ * Orden de preferencia para cada corte, ampliando el margen (×1,7 y ×3) solo si no hay nada:
+ *   1. un núcleo con alojamiento dentro del margen (un pueblo con varios se prefiere a un hotel suelto);
+ *   2. si no hay alojamiento, una POBLACIÓN dentro del mismo margen (ciudad > pueblo > aldea): donde normalmente
+ *      hay dónde dormir aunque OpenStreetMap no lo tenga mapeado;
+ *   3. si no hay nada ni así, el corte ideal.
+ * Una población cercana es mejor que un alojamiento a 15 km.
  */
 export function chooseStageCuts(
   totalKm: number, stageCount: number, spots: LodgingSpot[],
-  opts: { maxShiftKm?: number; marks?: number[] } = {},
+  opts: { maxShiftKm?: number; marks?: number[]; towns?: TownSpot[] } = {},
 ): StageCut[] {
   const marks = opts.marks && opts.marks.length
     ? opts.marks.slice().sort((a, b) => a - b)
     : stageCount >= 2 && totalKm > 0 ? Array.from({ length: stageCount - 1 }, (_, k) => ((k + 1) * totalKm) / stageCount) : [];
   if (!marks.length || !(totalKm > 0)) return [];
+  const towns = opts.towns ?? [];
   const maxShift = opts.maxShiftKm ?? DEFAULT_MAX_SHIFT_KM;
   const avg = totalKm / (marks.length + 1);
   const minGap = 0.25 * avg;                               // dos cortes nunca quedan pegados
   const windows = [maxShift, maxShift * 1.7, maxShift * 3];
   const cuts: StageCut[] = [];
   let prev = 0;
+  const nearestTown = (km: number): string | undefined => {
+    let best: TownSpot | undefined, bd = Infinity;
+    for (const t of towns) { const d = Math.abs(t.km - km); if (d <= PLACE_NAME_KM && (d < bd || (d === bd && best && t.weight > best.weight))) { bd = d; best = t; } }
+    return best?.name;
+  };
   marks.forEach((mark, i) => {
     const nextMark = i + 1 < marks.length ? marks[i + 1] : totalKm;
-    let pick: LodgingSpot | null = null;
+    const fits = (km: number) => km >= prev + minGap && km <= nextMark - minGap;
+    let lodging: LodgingSpot | null = null, town: TownSpot | null = null;
     for (const w of windows) {
       let best = Infinity;
       for (const sp of spots) {
         const d = Math.abs(sp.km - mark);
-        if (d > w || sp.km < prev + minGap || sp.km > nextMark - minGap) continue;
+        if (d > w || !fits(sp.km)) continue;
         const penalty = d - 1.5 * Math.min(sp.weight, 3);   // un pueblo (≥ 3 alojamientos) compensa hasta 4,5 km de desvío
-        if (penalty < best) { best = penalty; pick = sp; }
+        if (penalty < best) { best = penalty; lodging = sp; }
       }
-      if (pick) break;
+      if (lodging) break;
+      best = Infinity;
+      for (const t of towns) {
+        const d = Math.abs(t.km - mark);
+        if (d > w || !fits(t.km)) continue;
+        const penalty = d - 1.0 * t.weight;                // una ciudad compensa hasta 4 km; una aldea, 2
+        if (penalty < best) { best = penalty; town = t; }
+      }
+      if (town) break;
     }
-    const km = pick ? pick.km : mark;
-    cuts.push({ km, lodged: !!pick, shiftKm: km - mark });
+    const km = lodging ? lodging.km : town ? town.km : mark;
+    const place = town ? town.name : lodging ? nearestTown(lodging.km) : undefined;
+    cuts.push({
+      km, lodged: !!lodging, shiftKm: km - mark,
+      ...(town ? { town: true } : {}), ...(place ? { place } : {}),
+    });
     prev = km;
   });
   return cuts;

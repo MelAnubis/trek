@@ -400,8 +400,58 @@ describe('Planner smart cuts', () => {
     const ok = await smart(user.id, r0.id, { marks: [55.5, 100] });
     expect(ok.body.cuts[1].lodged).toBe(true);
     expect(ok.body.cuts[1].unchecked).toBe(false);
-    expect(elementsMock.mock.calls.length - callsBefore).toBeLessThanOrEqual(2);   // solo lo que faltaba
+    expect(elementsMock.mock.calls.length - callsBefore).toBeLessThanOrEqual(4);   // solo lo que faltaba (alojamientos + poblaciones de la zona nueva)
     expect(before).toBeGreaterThan(0);
+  });
+
+  // Responde distinto según lo que se pregunte: alojamientos (tourism) o poblaciones (place).
+  const byKind = (lodging: unknown[], places: unknown[]) => elementsMock.mockImplementation(async (q: string) => (q.includes('"place"') ? places : lodging));
+  const placeAt = (id: number, km: number, name: string, type = 'village') => ({ type: 'node', id, lat: lat(km), lon: -3, tags: { place: type, name } });
+
+  it('PLAN-070 — with NO lodging mapped, the cut goes to a town within ±7 km and is flagged as a town', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    byKind([], [placeAt(1, 60, 'Cercedilla'), placeAt(2, 95, 'Lejos')]);          // marca ideal: 55,5 km → pueblo a +4,5
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    const c = r.body.cuts[0];
+    expect(c).toMatchObject({ lodged: false, town: true, place: 'Cercedilla', unchecked: false });
+    expect(c.km).toBeGreaterThan(59); expect(c.km).toBeLessThan(61);
+    expect(c.shiftKm).toBeGreaterThan(3.5); expect(c.shiftKm).toBeLessThan(5.5);
+    expect(elementsMock.mock.calls.some(call => String(call[0]).includes('"place"~"^(city|town|village)$"'))).toBe(true);
+  });
+
+  it('PLAN-071 — lodging is preferred, and it is named after the town next to it; a hamlet-less area still works', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    byKind([hotelAt(1, 52)], [placeAt(2, 53, 'Navacerrada')]);
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.body.cuts[0]).toMatchObject({ lodged: true, town: false, place: 'Navacerrada' });
+  });
+
+  it('PLAN-072 — settlements with no name or an unknown type are ignored (hamlets, "place" tags that are not towns)', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    byKind([], [placeAt(1, 57, 'Caserío', 'hamlet'), placeAt(2, 57, '', 'village'), { type: 'node', id: 3, lat: lat(57), lon: -3, tags: { tourism: 'hotel', name: 'Hotel' } }]);
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.body.cuts[0]).toMatchObject({ lodged: false, town: false });         // nada utilizable → corte ideal
+    expect(r.body.cuts[0].place).toBeUndefined();
+  });
+
+  it('PLAN-073 — lodging lookup fails but towns work: the cut still ends in a town and is flagged unchecked', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockImplementation(async (q: string) => { if (q.includes('"place"')) return [placeAt(1, 58, 'Pueblo')]; throw new Error('timeout'); });
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.body.cuts[0]).toMatchObject({ lodged: false, town: true, place: 'Pueblo', unchecked: true });
+  });
+
+  it('PLAN-074 — stored cuts keep town / place / unchecked', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'A');
+    const put = await request(app).put(`/api/planner/${r0.id}`).set('Cookie', authCookie(user.id))
+      .send({ cuts: [{ index: 10, town: true, place: 'Béjar', unchecked: false }, { index: 30, town: 'x', place: 5 }] });
+    expect(put.body.route.cuts).toEqual([{ index: 10, town: true, place: 'Béjar', unchecked: false }, { index: 30 }]);
   });
 
   it('PLAN-063 — validation, one stage means no cuts, and routes are private', async () => {

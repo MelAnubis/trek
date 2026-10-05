@@ -41,7 +41,7 @@ import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine } from '../../src/services/mapsService';
-import { getLodgingNearLine, tilesForLine } from '../../src/services/lodgingTileService';
+import { getLodgingNearLine, getTilePois, tilesForLine } from '../../src/services/lodgingTileService';
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
@@ -229,5 +229,31 @@ describe('lodging tile cache', () => {
     const r = await getLodgingNearLine(line, 1500);
     expect(r.pois.length).toBeGreaterThan(0);
     expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles").get() as any).c).toBe(0);
+  });
+});
+
+describe('settlement tiles', () => {
+  const line = lineN(40.05, 40.35, 30);
+  const place = (id: number, lat: number, name: string, type = 'village') => node(id, lat, -3, { place: type, name });
+
+  it('OV-017 — settlements are cached under their own category and only cities / towns / villages with a name are kept', async () => {
+    const f = vi.fn().mockResolvedValue(ok([place(1, 40.12, 'Pueblo'), place(2, 40.2, 'Ciudad', 'city'), place(3, 40.25, 'Aldea', 'hamlet'), place(4, 40.3, '', 'town'), node(5, 40.15, -3)]));
+    vi.stubGlobal('fetch', f);
+    const r = await getTilePois('settlement', line, 2000);
+    expect(r.pois.map(p => `${p.name}:${p.type}`).sort()).toEqual(['Ciudad:city', 'Pueblo:village']);
+    expect(bodyOf(f.mock.calls[0])).toContain('["place"~"^(city|town|village)$"]');
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category = 'settlement'").get() as any).c).toBeGreaterThanOrEqual(4);
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category = 'lodging'").get() as any).c).toBe(0);
+  });
+
+  it('OV-018 — lodging and settlements do not share cache entries', async () => {
+    const f = vi.fn().mockImplementation(async (_u: string, init: { body: string }) =>
+      ok(decodeURIComponent(init.body).includes('"place"') ? [place(1, 40.12, 'Pueblo')] : [node(2, 40.12, -3)]));
+    vi.stubGlobal('fetch', f);
+    await getTilePois('settlement', line, 2000);
+    const before = f.mock.calls.length;
+    const l = await getLodgingNearLine(line, 1500);                       // aún no estaba en caché → pregunta
+    expect(f.mock.calls.length).toBeGreaterThan(before);
+    expect(l.pois.map(p => p.osm_id)).toEqual(['node:2']);
   });
 });

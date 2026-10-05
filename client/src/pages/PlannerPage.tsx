@@ -334,9 +334,12 @@ export default function PlannerPage(): React.ReactElement {
   }, [points.length, cum, cuts, markDirty])
 
   /** Aplica cortes calculados por el servidor (en poblaciones con alojamiento) y avisa de lo que no se pudo. */
+  const shiftLabel = (km?: number): string =>
+    km != null && Math.abs(km) >= 0.5 ? ` (${km > 0 ? '+' : '−'}${Math.abs(km).toFixed(1).replace('.', ',')} km)` : ''
+
   const applyLodgingCuts = (res: Awaited<ReturnType<typeof plannerApi.smartCuts>>, keepNames: boolean) => {
     const next: Cut[] = res.cuts.map((c, i) => ({
-      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm, ...(c.unchecked ? { unchecked: true } : {}),
+      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm, ...(c.unchecked ? { unchecked: true } : {}), ...(c.town ? { town: true } : {}), ...(c.place ? { place: c.place } : {}),
       ...(keepNames && cuts.length === res.cuts.length && cuts[i].name ? { name: cuts[i].name } : {}),
     }))
     markDirty()
@@ -344,9 +347,11 @@ export default function PlannerPage(): React.ReactElement {
     setActiveStage(null)
     if (!res.lodgingChecked) toast.warning(t('planner.stages.cuts.noData'))
     else {
-      const unchecked = res.cuts.filter(c => c.unchecked).length
-      const without = res.cuts.filter(c => !c.lodged && !c.unchecked).length
+      const unchecked = res.cuts.filter(c => c.unchecked && !c.town).length
+      const inTown = res.cuts.filter(c => c.town).length
+      const without = res.cuts.filter(c => !c.lodged && !c.town && !c.unchecked).length
       if (unchecked) toast.warning(t('planner.stages.cuts.unchecked', { n: unchecked }))
+      if (inTown) toast.info(t('planner.stages.cuts.inTown', { n: inTown }))
       if (without) toast.info(t('planner.stages.cuts.someWithout', { n: without }))
     }
   }
@@ -578,6 +583,7 @@ export default function PlannerPage(): React.ReactElement {
       case 'offtrack': return t('planner.ai.warn.offtrack', { list: detail })
       case 'nolodging': return t('planner.ai.warn.nolodging', { stages: detail })
       case 'nolodgingdata': return t('planner.ai.warn.nolodgingdata')
+      case 'towncut': return t('planner.ai.warn.towncut', { list: detail })
       case 'lodgingunchecked': return t('planner.ai.warn.lodgingunchecked', { stages: detail })
       case 'detourstop': return t('planner.ai.warn.detourstop', { list: detail })
       case 'droppedstop': return t('planner.ai.warn.droppedstop', { list: detail })
@@ -756,10 +762,16 @@ export default function PlannerPage(): React.ReactElement {
             </div>
             {st.endLodged === true && (
               <div style={{ fontSize: 11, marginTop: 5, color: '#15803d' }}>
-                🛏️ {t('planner.stages.end.lodged')}{st.endShiftKm != null && Math.abs(st.endShiftKm) >= 0.5 ? ` (${st.endShiftKm > 0 ? '+' : '−'}${Math.abs(st.endShiftKm).toFixed(1).replace('.', ',')} km)` : ''}
+                🛏️ {st.endPlace ? t('planner.stages.end.lodgedIn', { place: st.endPlace }) : t('planner.stages.end.lodged')}{shiftLabel(st.endShiftKm)}
               </div>
             )}
-            {st.endLodged === false && (
+            {st.endLodged !== true && st.endTown && (
+              <div style={{ fontSize: 11, marginTop: 5, color: '#a16207' }}>
+                🏘️ {t('planner.stages.end.town', { place: st.endPlace ?? '' })}{shiftLabel(st.endShiftKm)}
+                {st.endUnchecked ? ` · ${t('planner.stages.end.townUnchecked')}` : ''}
+              </div>
+            )}
+            {st.endLodged === false && !st.endTown && (
               <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t(st.endUnchecked ? 'planner.stages.end.unchecked' : 'planner.stages.end.none')}</div>
             )}
             {i > 0 && (

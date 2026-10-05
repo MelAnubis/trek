@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   haversineKm, dedupeNearby, dropOutliers, orderByShortestPath, trackQuality, cumulativeKm, nearestOnTrack,
-  indexAtKm, simplifyLine, chooseStageCuts, clusterLodging, legStats, type GeoPoint, type TrackPoint,
+  indexAtKm, simplifyLine, chooseStageCuts, clusterLodging, legStats, type GeoPoint, type TrackPoint, type TownSpot,
 } from '../../src/services/routeGeometry';
 
 const P = (lat: number, lng: number, name = ''): GeoPoint & { name: string } => ({ lat, lng, name });
@@ -167,6 +167,56 @@ describe('lodging clusters and stage cuts', () => {
   it('RG-020 — bad input gives no cuts', () => {
     expect(chooseStageCuts(100, 1, [{ km: 50, weight: 1 }])).toEqual([]);
     expect(chooseStageCuts(0, 3, [])).toEqual([]);
+  });
+});
+
+describe('towns as the fallback when no lodging is mapped', () => {
+  const town = (km: number, name: string, weight = 3): TownSpot => ({ km, name, weight });
+
+  it('RG-040 — with no lodging, the cut goes to a town within ±7 km (shorter or longer) and is flagged as a town', () => {
+    const cuts = chooseStageCuts(200, 2, [], { towns: [town(104, 'Béjar'), town(150, 'Lejos')] });   // marca 100
+    expect(cuts[0]).toMatchObject({ km: 104, lodged: false, town: true, place: 'Béjar', shiftKm: 4 });
+  });
+
+  it('RG-041 — lodging within reach still wins over a town, and the cut gets the name of the town next to it', () => {
+    const cuts = chooseStageCuts(200, 2, [{ km: 105, weight: 1 }], { towns: [town(100.5, 'Pueblo'), town(106.5, 'Salamanca', 4)] });
+    expect(cuts[0].lodged).toBe(true);
+    expect(cuts[0].town).toBeUndefined();
+    expect(cuts[0].km).toBe(105);
+    expect(cuts[0].place).toBe('Salamanca');                          // la población más cercana al alojamiento (≤ 3 km)
+  });
+
+  it('RG-042 — a nearby town beats a lodging that is far away (the margin widens one step at a time, town before lodging)', () => {
+    const cuts = chooseStageCuts(400, 2, [{ km: 215, weight: 3 }], { towns: [town(204, 'Cerca')] });   // marca 200: pueblo a 4 km, alojamiento a 15 km
+    expect(cuts[0]).toMatchObject({ km: 204, lodged: false, town: true, place: 'Cerca' });
+  });
+
+  it('RG-043 — the margin widens for towns too (7 → 12 → 21 km) and the shift is reported', () => {
+    const cuts = chooseStageCuts(400, 2, [], { towns: [town(212, 'Algo lejos')] });
+    expect(cuts[0]).toMatchObject({ km: 212, town: true, shiftKm: 12 });
+    const none = chooseStageCuts(400, 2, [], { towns: [town(240, 'Demasiado')] });
+    expect(none[0]).toEqual({ km: 200, lodged: false, shiftKm: 0 });
+  });
+
+  it('RG-044 — prefers a city over a hamlet when both are close; never packs two cuts into the same town', () => {
+    const c1 = chooseStageCuts(200, 2, [], { towns: [town(103, 'Aldea', 2), town(104, 'Ciudad', 4)] });   // casi a la misma distancia: gana la ciudad
+    expect(c1[0].place).toBe('Ciudad');
+    const c1b = chooseStageCuts(200, 2, [], { towns: [town(101, 'Aldea', 2), town(106, 'Ciudad', 4)] });  // la aldea está mucho más cerca: gana la aldea
+    expect(c1b[0].place).toBe('Aldea');
+    const c2 = chooseStageCuts(300, 3, [], { towns: [town(100, 'Única', 3)] });
+    expect(c2[0]).toMatchObject({ town: true, place: 'Única' });
+    expect(c2[1].town).toBeUndefined();                               // la 2ª marca no puede reutilizarla
+  });
+
+  it('RG-045 — the name of the lodging cut ignores towns farther than 3 km', () => {
+    const cuts = chooseStageCuts(200, 2, [{ km: 100, weight: 1 }], { towns: [town(104, 'Lejos')] });
+    expect(cuts[0].place).toBeUndefined();
+  });
+
+  it('RG-046 — marks mode (adjust existing cuts) also uses towns', () => {
+    const cuts = chooseStageCuts(300, 0, [{ km: 98, weight: 1 }], { marks: [100, 200], towns: [town(203, 'Pueblo')] });
+    expect(cuts.map(c => c.km)).toEqual([98, 203]);
+    expect(cuts[1].town).toBe(true);
   });
 });
 
