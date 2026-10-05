@@ -20,6 +20,7 @@ import crypto from 'node:crypto';
 import { db } from '../db/database';
 import { isOwner, updateJourney } from './journeyService';
 import { getPhotoThumbnailBytes } from './memories/photoResolverService';
+import { geminiModel } from './aiTextService';
 
 /** Bounds the vision request's size/cost — the gallery itself is never paginated (see journeyService.ts's GALLERY_SELECT), so this is where a large trip's photo count gets capped. */
 const MAX_CANDIDATES = 12;
@@ -80,7 +81,7 @@ function parseBestIndex(raw: string, count: number): number | null {
 async function askGeminiBestPhoto(candidates: Candidate[], journeyTitle: string): Promise<number | null> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${apiKey}`;
   const parts = [
     { text: buildPrompt(journeyTitle, candidates.length) },
     ...candidates.flatMap((c, i) => [

@@ -8,6 +8,7 @@
 // providers with a vision-capable model wired up here (Gemini, then Claude).
 // ─────────────────────────────────────────────────────────────────────────────
 
+import { geminiModel } from './aiTextService';
 export interface ReceiptScanResult {
   name: string | null;
   total_price: number | null;
@@ -62,7 +63,7 @@ async function askGeminiVision(base64: string, mimeType: string): Promise<Receip
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
   const { system, user } = buildPrompt();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent?key=${apiKey}`;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

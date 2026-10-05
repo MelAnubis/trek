@@ -26,7 +26,16 @@ export interface PlannerWaypoint {
   osm_id?: string
 }
 
-export interface Cut { index: number; name?: string }
+export interface Cut {
+  index: number
+  name?: string
+  /** true si el corte está en un sitio con alojamiento; false si no se encontró; sin definir si no se ha comprobado. */
+  lodged?: boolean
+  /** Km que se movió respecto al corte ideal al ajustarlo a un alojamiento (positivo = etapa más larga). */
+  shiftKm?: number
+  /** true si no se pudo consultar OpenStreetMap para este corte (no es lo mismo que «no hay alojamiento»). */
+  unchecked?: boolean
+}
 
 export interface PlannerSettings {
   /** Km objetivo por etapa usados por última vez en la división automática. */
@@ -46,8 +55,34 @@ export interface PlannerRouteSummary {
   elevation_loss: number
   point_count: number
   stage_count: number
+  folder: string | null
+  favorite: boolean
+  /** ~100 puntos [lat, lng] para la miniatura. */
+  preview: [number, number][]
   created_at: string
   updated_at: string
+}
+
+export interface LibraryFolder { name: string; count: number }
+
+export interface LibraryResponse {
+  routes: PlannerRouteSummary[]
+  total: number
+  page: number
+  pages: number
+  limit: number
+  folders: LibraryFolder[]
+  totals: { all: number; favorites: number; unfiled: number }
+}
+
+export interface OverviewRoute {
+  id: number
+  name: string
+  total_distance_km: number
+  elevation_gain: number
+  folder: string | null
+  favorite: boolean
+  preview: [number, number][]
 }
 
 export interface PlannerRouteFull extends PlannerRouteSummary {
@@ -70,6 +105,10 @@ export interface Stage {
   minEle: number | null
   maxEle: number | null
   name: string
+  /** Información del corte con el que termina esta etapa (la última etapa no tiene). */
+  endLodged?: boolean
+  endShiftKm?: number
+  endUnchecked?: boolean
 }
 
 export interface ParsedRoute {
@@ -317,6 +356,7 @@ export function buildStages(
       gain, loss,
       minEle: min == null ? null : Math.round(min), maxEle: max == null ? null : Math.round(max),
       name: named || defaultName(i),
+      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked } : {}),
     })
   }
   return stages

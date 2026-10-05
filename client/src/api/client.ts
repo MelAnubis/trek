@@ -546,14 +546,41 @@ export const mapsApi = {
 }
 
 export const plannerApi = {
-  list: () => apiClient.get('/planner').then(r => r.data as { routes: import('../utils/plannerRoute').PlannerRouteSummary[] }),
+  list: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
+    apiClient.get('/planner', { params, signal }).then(r => r.data as import('../utils/plannerRoute').LibraryResponse),
+  overview: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
+    apiClient.get('/planner/overview', { params, signal }).then(r => r.data as { routes: import('../utils/plannerRoute').OverviewRoute[] }),
+  // Cortes de etapa en poblaciones con alojamiento (±7 km del corte ideal). stageKm | stages | marks.
+  smartCuts: (id: number, body: { stageKm?: number; stages?: number; marks?: number[]; maxShiftKm?: number }) =>
+    apiClient.post(`/planner/${id}/smart-cuts`, body, { timeout: 90000 }).then(r => r.data as {
+      cuts: { index: number; km: number; lodged: boolean; shiftKm: number; unchecked?: boolean }[]
+      lodgingChecked: boolean
+      queries: number
+      failed: number
+      totalKm: number
+    }),
+  renameFolder: (from: string, to: string | null) => apiClient.put('/planner/folders', { from, to }).then(r => r.data as { updated: number }),
   get: (id: number) => apiClient.get(`/planner/${id}`).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   create: (data: Record<string, unknown>) => apiClient.post('/planner', data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   update: (id: number, data: Record<string, unknown>) => apiClient.put(`/planner/${id}`, data, { timeout: 60000 }).then(r => r.data as { route: import('../utils/plannerRoute').PlannerRouteFull }),
   remove: (id: number) => apiClient.delete(`/planner/${id}`).then(r => r.data),
+  // AI assistant: text request → AI picks places → geocoded → BRouter track. Slow (LLM + routing).
+  assistant: (prompt: string, lang: string) =>
+    apiClient.post('/planner/assistant', { prompt, lang }, { timeout: 120000 }).then(r => r.data as {
+      plan: { name: string; summary: string; profile: string; kmPerDay: number | null; days: number | null; places: string[] }
+      waypoints: { query: string; name: string; lat: number; lng: number }[]
+      points: [number, number, number | null][]
+      distanceKm: number
+      ascentM: number | null
+      /** Fin de cada etapa en km de recorrido (junto a alojamientos cuando los hay). */
+      stageEnds: { km: number; lodged: boolean }[]
+      quality: { lengthKm: number; detourRatio: number; maxGapKm: number; retraceKm: number }
+      tripType: 'one_way' | 'loop' | 'out_and_back'
+      warnings: string[]
+    }),
   // POIs within `radius` m of the route (corridor search, Overpass `around`).
   poisAlongRoute: (category: string, line: [number, number][], radius: number, signal?: AbortSignal) =>
-    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean }),
+    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean; partial?: boolean }),
 }
 
 export const airportsApi = {

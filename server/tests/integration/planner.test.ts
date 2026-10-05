@@ -40,9 +40,11 @@ vi.mock('../../src/config', () => ({
 // Default mock: resolveGoogleMapsUrl rejects with 400 (SSRF-like behaviour for
 // URLs that look internal); individual tests override with mockResolvedValueOnce.
 const alongMock = vi.fn();
+const elementsMock = vi.fn();
 vi.mock('../../src/services/mapsService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/services/mapsService')>()),
   searchOverpassPoisAlongRoute: (...args: unknown[]) => alongMock(...args),
+  overpassElements: (...args: unknown[]) => elementsMock(...args),
 }));
 
 import { createApp } from '../../src/app';
@@ -56,7 +58,7 @@ import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 const app: Application = createApp();
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); });
+beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); });
 afterAll(() => { testDb.close(); });
 
 function track(n: number) {
@@ -190,5 +192,253 @@ describe('POST /maps/pois/along-route', () => {
     alongMock.mockRejectedValueOnce(Object.assign(new Error('Overpass request failed'), { status: 502 }));
     const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id)).send({ category: 'water', line });
     expect(r.status).toBe(502);
+  });
+});
+
+// ── Biblioteca: carpetas, favoritos, filtros, paginación y mapa general ───────
+async function mk(userId: number, name: string, over: Record<string, unknown> = {}) {
+  const r = await request(app).post('/api/planner').set('Cookie', authCookie(userId)).send(body({ name, ...over }));
+  expect(r.status).toBe(201);
+  return r.body.route as { id: number };
+}
+const list = (userId: number, qs = '') => request(app).get(`/api/planner${qs}`).set('Cookie', authCookie(userId));
+
+describe('Planner library', () => {
+  it('PLAN-030 — stores a ~100 point preview, never the full track, in list rows', async () => {
+    const { user } = createUser(testDb);
+    await mk(user.id, 'Larga', { points: track(5000), cuts: [] });
+    const r = await list(user.id);
+    const row = r.body.routes[0];
+    expect(row.points).toBeUndefined();
+    expect(row.preview.length).toBe(100);
+    expect(row.preview[0]).toEqual([40, -3]);
+    expect(row.favorite).toBe(false);
+    expect(row.folder).toBeNull();
+  });
+
+  it('PLAN-031 — search is case-insensitive and treats % and _ literally', async () => {
+    const { user } = createUser(testDb);
+    await mk(user.id, 'Camino de Santiago'); await mk(user.id, 'Ruta 100%'); await mk(user.id, 'Ruta 1000');
+    expect((await list(user.id, '?q=santiago')).body.total).toBe(1);
+    expect((await list(user.id, '?q=100%25')).body.routes.map((r: any) => r.name)).toEqual(['Ruta 100%']);
+    expect((await list(user.id, '?q=ruta_')).body.total).toBe(0);
+  });
+
+  it('PLAN-032 — folders and favourites: set, filter, counters (always over all routes)', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A'); const b = await mk(user.id, 'B'); await mk(user.id, 'C');
+    const put = (id: number, data: object) => request(app).put(`/api/planner/${id}`).set('Cookie', authCookie(user.id)).send(data);
+    expect((await put(a.id, { folder: ' Verano 2026 ', favorite: true })).status).toBe(200);
+    expect((await put(b.id, { folder: 'Verano 2026' })).status).toBe(200);
+
+    const inFolder = await list(user.id, '?folder=' + encodeURIComponent('Verano 2026'));
+    expect(inFolder.body.routes.map((r: any) => r.name).sort()).toEqual(['A', 'B']);
+    expect((await list(user.id, '?favorite=1')).body.routes.map((r: any) => r.name)).toEqual(['A']);
+    expect((await list(user.id, '?unfiled=1')).body.routes.map((r: any) => r.name)).toEqual(['C']);
+    // los contadores no dependen del filtro activo
+    expect(inFolder.body.folders).toEqual([{ name: 'Verano 2026', count: 2 }]);
+    expect(inFolder.body.totals).toEqual({ all: 3, favorites: 1, unfiled: 1 });
+
+    // quitar carpeta con null o ''
+    expect((await put(a.id, { folder: null })).body.route.folder).toBeNull();
+    expect((await put(b.id, { folder: '   ' })).body.route.folder).toBeNull();
+  });
+
+  it('PLAN-033 — organising a route (folder/favourite) does not change its "recent" order; editing does', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A'); await mk(user.id, 'B');
+    testDb.prepare("UPDATE planner_routes SET updated_at = '2020-01-01 00:00:00' WHERE id = ?").run(a.id);
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ favorite: true, folder: 'X' });
+    expect((testDb.prepare('SELECT updated_at FROM planner_routes WHERE id = ?').get(a.id) as any).updated_at).toBe('2020-01-01 00:00:00');
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ name: 'A2' });
+    expect((testDb.prepare('SELECT updated_at FROM planner_routes WHERE id = ?').get(a.id) as any).updated_at).not.toBe('2020-01-01 00:00:00');
+  });
+
+  it('PLAN-034 — sorting and server-side pagination', async () => {
+    const { user } = createUser(testDb);
+    for (let i = 1; i <= 25; i++) await mk(user.id, `Ruta ${String(i).padStart(2, '0')}`, { total_distance_km: i * 10, elevation_gain: 1000 - i });
+    const p1 = await list(user.id, '?sort=name&limit=10&page=1');
+    expect(p1.body).toMatchObject({ total: 25, pages: 3, page: 1, limit: 10 });
+    expect(p1.body.routes.map((r: any) => r.name)[0]).toBe('Ruta 01');
+    const p3 = await list(user.id, '?sort=name&limit=10&page=3');
+    expect(p3.body.routes).toHaveLength(5);
+    expect((await list(user.id, '?sort=distance&limit=3')).body.routes.map((r: any) => r.total_distance_km)).toEqual([250, 240, 230]);
+    expect((await list(user.id, '?sort=ascent&limit=2')).body.routes.map((r: any) => r.name)).toEqual(['Ruta 01', 'Ruta 02']);
+    // página fuera de rango → se ajusta a la última; sort desconocido → recientes; límite acotado
+    expect((await list(user.id, '?limit=10&page=99')).body.page).toBe(3);
+    expect((await list(user.id, '?sort=DROP%20TABLE&limit=500')).body.limit).toBe(48);
+  });
+
+  it('PLAN-035 — rename, merge and remove a folder', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A', { folder: 'Uno' }); await mk(user.id, 'B', { folder: 'Dos' });
+    const put = (data: object) => request(app).put('/api/planner/folders').set('Cookie', authCookie(user.id)).send(data);
+    expect((await put({ from: 'Uno', to: 'Tres' })).body.updated).toBe(1);
+    expect((await put({ from: 'Tres', to: 'Dos' })).body.updated).toBe(1); // fusiona
+    expect((await list(user.id)).body.folders).toEqual([{ name: 'Dos', count: 2 }]);
+    expect((await put({ from: 'Dos', to: null })).body.updated).toBe(2); // quita la carpeta, las rutas siguen
+    const r = await list(user.id);
+    expect(r.body.total).toBe(2);
+    expect(r.body.folders).toEqual([]);
+    expect((await put({ from: '', to: 'X' })).status).toBe(400);
+    expect((await put({ from: 'Dos', to: 'x'.repeat(61) })).status).toBe(400);
+    expect(a.id).toBeGreaterThan(0);
+  });
+
+  it('PLAN-036 — overview map returns silhouettes honouring filters, only for the owner', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    await mk(user.id, 'A', { folder: 'F' }); await mk(user.id, 'B'); await mk(other.id, 'Ajena');
+    const all = await request(app).get('/api/planner/overview').set('Cookie', authCookie(user.id));
+    expect(all.body.routes).toHaveLength(2);
+    expect(all.body.routes[0].preview.length).toBeGreaterThan(1);
+    expect(all.body.routes[0].points).toBeUndefined();
+    const f = await request(app).get('/api/planner/overview?folder=F').set('Cookie', authCookie(user.id));
+    expect(f.body.routes.map((r: any) => r.name)).toEqual(['A']);
+  });
+
+  it('PLAN-037 — validates folder/favourite, and a user cannot touch another user\'s folders', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    const a = await mk(user.id, 'A', { folder: 'Mia' });
+    const put = (data: object) => request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send(data);
+    expect((await put({ folder: 5 })).status).toBe(400);
+    expect((await put({ folder: 'x'.repeat(61) })).status).toBe(400);
+    expect((await put({ favorite: 'yes' })).status).toBe(400);
+    const r = await request(app).put('/api/planner/folders').set('Cookie', authCookie(other.id)).send({ from: 'Mia', to: null });
+    expect(r.body.updated).toBe(0);
+    expect((await list(user.id, '?folder=Mia')).body.total).toBe(1);
+    expect((await request(app).get('/api/planner/overview')).status).toBe(401);
+  });
+
+  it('PLAN-038 — replacing points refreshes the preview', async () => {
+    const { user } = createUser(testDb);
+    const a = await mk(user.id, 'A');
+    const newPts = Array.from({ length: 30 }, (_, i) => [10 + i * 0.01, 20, null]);
+    await request(app).put(`/api/planner/${a.id}`).set('Cookie', authCookie(user.id)).send({ points: newPts, cuts: [] });
+    expect((await list(user.id)).body.routes[0].preview[0]).toEqual([10, 20]);
+  });
+});
+
+// ── Cortes de etapa en poblaciones con alojamiento ────────────────────────────
+describe('Planner smart cuts', () => {
+  // track(n): 1 punto cada 0,0001° de latitud ≈ 11,12 m → 10000 puntos ≈ 111 km
+  const lat = (km: number) => 40 + km / 111.19;
+  const hotelAt = (id: number, km: number) => ({ type: 'node', id, lat: lat(km), lon: -3, tags: { tourism: 'hotel', name: 'Hotel ' + id } });
+  const smart = (userId: number, id: number, b: object) =>
+    request(app).post(`/api/planner/${id}/smart-cuts`).set('Cookie', authCookie(userId)).send(b);
+
+  it('PLAN-060 — moves each cut to a lodging within ±7 km, shorter or longer, and returns point indices', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 52), hotelAt(2, 70)]);   // marca ideal: 55,5 km
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(r.body.lodgingChecked).toBe(true);
+    expect(r.body.cuts).toHaveLength(1);
+    const c = r.body.cuts[0];
+    expect(c.lodged).toBe(true);
+    expect(c.unchecked).toBe(false);
+    expect(c.km).toBeGreaterThan(51); expect(c.km).toBeLessThan(53);        // el de 52 km (−3,5), no el de 70 (+14,5)
+    expect(c.shiftKm).toBeLessThan(0); expect(c.shiftKm).toBeGreaterThan(-5);
+    expect(Number.isInteger(c.index)).toBe(true);
+    expect(elementsMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"');
+  });
+
+  it('PLAN-061 — stageKm and marks modes; marks adjust existing cuts', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 28), hotelAt(2, 84)]);
+    const byKm = await smart(user.id, r0.id, { stageKm: 37 });                  // 111/37 = 3 etapas → marcas 37 y 74
+    expect(byKm.body.cuts).toHaveLength(2);
+    const marks = await smart(user.id, r0.id, { marks: [30, 80] });
+    expect(marks.body.cuts.map((c: any) => c.lodged)).toEqual([true, true]);
+    expect(Math.round(marks.body.cuts[0].km)).toBe(28);
+    expect(Math.round(marks.body.cuts[1].km)).toBe(84);
+  });
+
+  it('PLAN-062 — Overpass down: cuts stay at the ideal marks and are flagged UNCHECKED (not "no lodging")', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockRejectedValue(Object.assign(new Error('Overpass request failed'), { status: 502 }));
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(r.body.lodgingChecked).toBe(false);
+    expect(r.body.cuts).toHaveLength(1);
+    expect(r.body.cuts[0].lodged).toBe(false);
+    expect(r.body.cuts[0].unchecked).toBe(true);
+    expect(r.body.cuts[0].km).toBeGreaterThan(54); expect(r.body.cuts[0].km).toBeLessThan(57);
+  });
+
+  it('PLAN-066 — lodging is cached by tile: a second request does not ask Overpass again, and keeps working while it is down', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 52)]);
+    const first = await smart(user.id, r0.id, { stages: 2 });
+    const calls = elementsMock.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    expect(first.body.cuts[0].lodged).toBe(true);
+
+    elementsMock.mockRejectedValue(new Error('Overpass down'));               // ahora Overpass no responde…
+    const again = await smart(user.id, r0.id, { stages: 2 });
+    expect(elementsMock.mock.calls.length).toBe(calls);                       // …y ni se le pregunta
+    expect(again.body.cuts[0].lodged).toBe(true);
+    expect(again.body.cuts[0].unchecked).toBe(false);
+  });
+
+  it('PLAN-067 — a retry only asks for the tiles that failed before', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 52)]);
+    await smart(user.id, r0.id, { marks: [55.5] });                           // cachea la zona del corte 1
+    const before = elementsMock.mock.calls.length;
+    // zona nueva (marca a 100 km): falla una vez y luego responde
+    elementsMock.mockRejectedValueOnce(new Error('timeout'));
+    const bad = await smart(user.id, r0.id, { marks: [55.5, 100] });
+    expect(bad.body.cuts[1].unchecked).toBe(true);
+    expect(bad.body.cuts[0].lodged).toBe(true);
+    elementsMock.mockResolvedValue([hotelAt(1, 52), hotelAt(2, 98)]);
+    const callsBefore = elementsMock.mock.calls.length;
+    const ok = await smart(user.id, r0.id, { marks: [55.5, 100] });
+    expect(ok.body.cuts[1].lodged).toBe(true);
+    expect(ok.body.cuts[1].unchecked).toBe(false);
+    expect(elementsMock.mock.calls.length - callsBefore).toBeLessThanOrEqual(2);   // solo lo que faltaba
+    expect(before).toBeGreaterThan(0);
+  });
+
+  it('PLAN-063 — validation, one stage means no cuts, and routes are private', async () => {
+    const { user } = createUser(testDb); const { user: other } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    expect((await smart(user.id, r0.id, {})).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 1 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 99 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stageKm: 1 })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { marks: [0, 5] })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { marks: [500] })).status).toBe(400);
+    expect((await smart(user.id, r0.id, { stages: 2, maxShiftKm: 99 })).status).toBe(400);
+    const one = await smart(user.id, r0.id, { stageKm: 500 });                    // > longitud: 1 etapa
+    expect(one.body.cuts).toEqual([]);
+    expect(elementsMock).not.toHaveBeenCalled();
+    expect((await smart(other.id, r0.id, { stages: 2 })).status).toBe(404);
+    expect((await request(app).post(`/api/planner/${r0.id}/smart-cuts`).send({ stages: 2 })).status).toBe(401);
+  });
+
+  it('PLAN-064 — stored cuts keep their lodged / shiftKm flags', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'A');
+    const put = await request(app).put(`/api/planner/${r0.id}`).set('Cookie', authCookie(user.id))
+      .send({ cuts: [{ index: 10, lodged: true, shiftKm: -3.44, name: 'Dos' }, { index: 30, lodged: false }, { index: 40, lodged: 'x', shiftKm: 'a' }] });
+    expect(put.status).toBe(200);
+    expect(put.body.route.cuts).toEqual([
+      { index: 10, name: 'Dos', lodged: true, shiftKm: -3.4 },
+      { index: 30, lodged: false },
+      { index: 40 },
+    ]);
+  });
+
+  it('PLAN-065 — lodging is a valid category of the along-route search', async () => {
+    const { user } = createUser(testDb);
+    alongMock.mockResolvedValue({ pois: [], truncated: false });
+    const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id))
+      .send({ category: 'lodging', line: [[40, -3], [40.5, -3]] });
+    expect(r.status).toBe(200);
   });
 });

@@ -846,6 +846,9 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   // Cycling-oriented categories used by the route planner (/planner).
   water: ['amenity=drinking_water', 'natural=spring', 'man_made=water_tap'],
   camping: ['tourism=camp_site', 'tourism=caravan_site'],
+  // Everything you can sleep in (hotels, hostels, guest houses / casas rurales, apartments, chalets, campsites).
+  // Used to end cycling stages in places with accommodation.
+  lodging: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel', 'tourism=chalet', 'tourism=camp_site', 'tourism=caravan_site'],
   supermarket: ['shop=supermarket', 'shop=convenience'],
   bike_shop: ['shop=bicycle'],
   bike_repair: ['amenity=bicycle_repair_station'],
@@ -855,7 +858,7 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
 // Categories whose OSM objects are normally unnamed (a fountain has no name).
 // They are kept with an empty name instead of being dropped; the client shows
 // the category label in that case.
-const UNNAMED_OK = new Set(['water', 'bike_repair']);
+const UNNAMED_OK = new Set(['water', 'bike_repair', 'lodging']);
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
@@ -873,6 +876,8 @@ interface PoiSearchResult {
   source: 'openstreetmap';
   truncated: boolean;
   clamped: boolean;
+  /** true si alguna parte de la consulta falló y el resultado está incompleto. */
+  partial?: boolean;
 }
 
 const OVERPASS_MIRRORS = [
@@ -888,38 +893,89 @@ const POI_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
 const POI_CACHE_TTL_MS = 5 * 60 * 1000;
 const POI_CACHE_MAX = 500;
 
-async function overpassFetch(query: string): Promise<OverpassPoiElement[]> {
+function overpassMirrors(): string[] {
+  const fromEnv = (process.env.OVERPASS_URLS || '').split(',').map(u => u.trim()).filter(u => /^https?:\/\//.test(u));
+  return fromEnv.length ? fromEnv : OVERPASS_MIRRORS;
+}
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+/**
+ * Consulta Overpass en todos los espejos a la vez y devuelve el primero que responde. Los espejos públicos
+ * fallan a menudo (504, 429, "sin respuesta", datos caducados), así que si fallan todos se reintenta tras una
+ * pausa. Cuando falla definitivamente, cada motivo queda en el log y en `error.detail`: sin eso un 502 no dice
+ * si era un tiempo de espera, un límite de uso o una respuesta rara.
+ * Variables: OVERPASS_URLS (lista separada por comas, p. ej. tu propia instancia) y OVERPASS_RETRY_BACKOFF_MS.
+ */
+async function overpassFetch(query: string, opts: { rounds?: number } = {}): Promise<OverpassPoiElement[]> {
+  const rounds = Math.max(1, opts.rounds ?? 2);
+  const backoff = Number(process.env.OVERPASS_RETRY_BACKOFF_MS ?? 1500);
   const body = `data=${encodeURIComponent(query)}`;
-  const controllers: AbortController[] = [];
+  const mirrors = overpassMirrors();
+  let reasons: string[] = [];
 
-  const attempt = async (url: string): Promise<OverpassPoiElement[]> => {
-    const ctrl = new AbortController();
-    controllers.push(ctrl);
-    const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
+  for (let round = 0; round < rounds; round++) {
+    const controllers: AbortController[] = [];
+    const attempt = async (url: string): Promise<OverpassPoiElement[]> => {
+      const host = new URL(url).host;
+      const ctrl = new AbortController();
+      controllers.push(ctrl);
+      const timer = setTimeout(() => ctrl.abort(), OVERPASS_TIMEOUT_MS);
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'User-Agent': UA, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' },
+          body,
+          signal: ctrl.signal,
+        });
+        if (!res.ok) throw new Error(`${host}: HTTP ${res.status}`);
+        const data = await res.json() as { elements?: OverpassPoiElement[]; remark?: string };
+        if (data.remark) throw new Error(`${host}: ${data.remark.slice(0, 120)}`);
+        if (!Array.isArray(data.elements)) throw new Error(`${host}: respuesta que no es de OSM`);
+        return data.elements;
+      } catch (err) {
+        if (ctrl.signal.aborted) throw new Error(`${host}: sin respuesta en ${OVERPASS_TIMEOUT_MS / 1000} s`);
+        throw err instanceof Error && err.message.startsWith(host) ? err : new Error(`${host}: ${(err as Error)?.message ?? err}`);
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'User-Agent': UA, 'Content-Type': 'application/x-www-form-urlencoded' },
-        body,
-        signal: ctrl.signal,
-      });
-      if (!res.ok) throw new Error(`Overpass ${res.status} @ ${url}`);
-      const data = await res.json() as { elements?: OverpassPoiElement[]; remark?: string };
-      if (data.remark) throw new Error(`Overpass remark @ ${url}: ${data.remark}`);
-      if (!Array.isArray(data.elements)) throw new Error(`Overpass non-OSM body @ ${url}`);
-      return data.elements;
+      return await Promise.any(mirrors.map(attempt));
+    } catch (err) {
+      reasons = ((err as AggregateError).errors ?? [err]).map(e => (e as Error)?.message ?? String(e));
     } finally {
-      clearTimeout(timer);
+      controllers.forEach(c => { try { c.abort(); } catch { /* noop */ } });
     }
-  };
-
-  try {
-    return await Promise.any(OVERPASS_MIRRORS.map(attempt));
-  } catch {
-    throw Object.assign(new Error('Overpass request failed'), { status: 502 });
-  } finally {
-    controllers.forEach(c => { try { c.abort(); } catch { /* noop */ } });
+    if (round < rounds - 1) await sleep(backoff * (round + 1));
   }
+  console.warn(`[overpass] ${mirrors.length} espejos fallaron tras ${rounds} intento(s): ${reasons.join(' | ')}`);
+  throw Object.assign(new Error('Overpass request failed'), { status: 502, detail: reasons });
+}
+
+/** Consulta cruda a Overpass (los llamadores construyen la query). Usada por el caché de alojamientos por teselas. */
+export async function overpassElements(query: string, opts: { rounds?: number } = {}): Promise<OverpassPoiElement[]> {
+  return overpassFetch(query, opts);
+}
+
+/**
+ * Selectores de una categoría para un área dada (p. ej. `(40,-4,41,-3)` o `(around:1500,…)`).
+ * Se agrupan los valores de la misma clave en una sola expresión regular: 8 selectores → 1, y la polilínea
+ * de `around` aparece una vez en la query en lugar de ocho (con 200 puntos eran ~35 KB de consulta).
+ */
+export function overpassSelectorsFor(category: string, area: string): string {
+  const filters = CATEGORY_OSM_FILTERS[category];
+  if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+  const byKey = new Map<string, string[]>();
+  for (const f of filters) {
+    const [k, v] = f.split('=');
+    const list = byKey.get(k);
+    if (list) list.push(v); else byKey.set(k, [v]);
+  }
+  return [...byKey].map(([k, vs]) => (vs.length === 1
+    ? `  nwr["${k}"="${vs[0]}"]${area};`
+    : `  nwr["${k}"~"^(${vs.join('|')})$"]${area};`)).join('\n');
 }
 
 export async function searchOverpassPois(
@@ -951,10 +1007,7 @@ export async function searchOverpassPois(
   if (cached) POI_CACHE.delete(cacheKey);
 
   const box = `(${south},${west},${north},${east})`;
-  const selectors = filters.map(f => {
-    const [k, v] = f.split('=');
-    return `  nwr["${k}"="${v}"]${box};`;
-  }).join('\n');
+  const selectors = overpassSelectorsFor(category, box);
   const query = `[out:json][timeout:20];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
 
   const elements = await overpassFetch(query);
@@ -994,36 +1047,37 @@ export async function searchOverpassPois(
 
 
 const ALONG_CACHE = new Map<string, { at: number; value: PoiSearchResult }>();
+const ALONG_PIECE_KM = 30;
 
-/**
- * POIs of one category within `radiusM` metres of a polyline (Overpass `around`
- * filter). Used by the route planner so a long route is queried as a corridor
- * instead of a huge bounding box. `line` is [lat, lng][] and should already be
- * simplified (≤ 400 points).
- */
-export async function searchOverpassPoisAlongRoute(
-  category: string,
-  line: [number, number][],
-  radiusM: number,
-  limit = 300,
-): Promise<PoiSearchResult> {
+function llKm(a: [number, number], b: [number, number]): number {
+  const R = 6371, r = Math.PI / 180, dLa = (b[0] - a[0]) * r, dLo = (b[1] - a[1]) * r;
+  const h = Math.sin(dLa / 2) ** 2 + Math.cos(a[0] * r) * Math.cos(b[0] * r) * Math.sin(dLo / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Parte una polilínea en tramos de ~`maxKm` que comparten el punto de unión. */
+export function splitLine(line: [number, number][], maxKm = ALONG_PIECE_KM): [number, number][][] {
+  const pieces: [number, number][][] = [];
+  let cur: [number, number][] = [line[0]];
+  let acc = 0;
+  for (let i = 1; i < line.length; i++) {
+    acc += llKm(line[i - 1], line[i]);
+    cur.push(line[i]);
+    if (acc >= maxKm && i < line.length - 1) { pieces.push(cur); cur = [line[i]]; acc = 0; }
+  }
+  if (cur.length >= 2) pieces.push(cur);
+  return pieces;
+}
+
+async function alongPiece(category: string, piece: [number, number][], radius: number, limit: number): Promise<PoiSearchResult> {
   const filters = CATEGORY_OSM_FILTERS[category];
-  if (!filters) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
-  if (line.length < 2 || line.length > 400) throw Object.assign(new Error('line must have 2-400 points'), { status: 400 });
-  const radius = Math.min(3000, Math.max(100, Math.round(radiusM)));
-  const coords = line.map(([la, lo]) => `${la.toFixed(5)},${lo.toFixed(5)}`).join(',');
-
+  const coords = piece.map(([la, lo]) => `${la.toFixed(5)},${lo.toFixed(5)}`).join(',');
   const cacheKey = `${category}|${radius}|${limit}|${coords}`;
   const cached = ALONG_CACHE.get(cacheKey);
   if (cached && Date.now() - cached.at < POI_CACHE_TTL_MS) return cached.value;
   if (cached) ALONG_CACHE.delete(cacheKey);
 
-  const selectors = filters.map(f => {
-    const [k, v] = f.split('=');
-    return `  nwr["${k}"="${v}"](around:${radius},${coords});`;
-  }).join('\n');
-  const query = `[out:json][timeout:25];\n(\n${selectors}\n);\nout center tags ${limit + 25};`;
-
+  const query = `[out:json][timeout:25];\n(\n${overpassSelectorsFor(category, `(around:${radius},${coords})`)}\n);\nout center tags ${limit + 25};`;
   const elements = await overpassFetch(query);
   const pois: OverpassPoi[] = [];
   for (const el of elements) {
@@ -1047,9 +1101,44 @@ export async function searchOverpassPoisAlongRoute(
       source: 'openstreetmap',
     });
   }
-  const truncated = pois.length > limit;
-  const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated, clamped: false };
-  if (ALONG_CACHE.size >= 100) ALONG_CACHE.delete(ALONG_CACHE.keys().next().value as string);
+  const value: PoiSearchResult = { pois: pois.slice(0, limit), source: 'openstreetmap', truncated: pois.length > limit, clamped: false };
+  if (ALONG_CACHE.size >= 200) ALONG_CACHE.delete(ALONG_CACHE.keys().next().value as string);
   ALONG_CACHE.set(cacheKey, { at: Date.now(), value });
   return value;
+}
+
+/**
+ * POIs de una categoría a menos de `radiusM` metros de una polilínea (filtro `around` de Overpass). La línea se
+ * parte en tramos de ~30 km que se consultan de dos en dos: una consulta pequeña no agota el tiempo de Overpass y
+ * un tramo que falle no tumba el resto (el resultado sale con `partial: true`; solo falla si fallan todos).
+ */
+export async function searchOverpassPoisAlongRoute(
+  category: string,
+  line: [number, number][],
+  radiusM: number,
+  limit = 300,
+): Promise<PoiSearchResult> {
+  if (!CATEGORY_OSM_FILTERS[category]) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+  if (line.length < 2 || line.length > 400) throw Object.assign(new Error('line must have 2-400 points'), { status: 400 });
+  const radius = Math.min(3000, Math.max(100, Math.round(radiusM)));
+  const pieces = splitLine(line);
+
+  const results: PoiSearchResult[] = [];
+  let failed = 0, lastErr: unknown = null;
+  for (let i = 0; i < pieces.length; i += 2) {
+    const settled = await Promise.allSettled(pieces.slice(i, i + 2).map(p => alongPiece(category, p, radius, limit)));
+    for (const r of settled) {
+      if (r.status === 'fulfilled') results.push(r.value);
+      else { failed++; lastErr = r.reason; }
+    }
+  }
+  if (!results.length) throw lastErr;
+
+  const merged = new Map<string, OverpassPoi>();
+  for (const r of results) for (const p of r.pois) if (!merged.has(p.osm_id)) merged.set(p.osm_id, p);
+  const all = [...merged.values()];
+  return {
+    pois: all.slice(0, limit), source: 'openstreetmap',
+    truncated: all.length > limit || results.some(r => r.truncated), clamped: false, partial: failed > 0,
+  };
 }
