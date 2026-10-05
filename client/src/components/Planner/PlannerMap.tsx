@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import { MapContainer, TileLayer, Polyline, CircleMarker, Marker, Popup, useMap, useMapEvents } from 'react-leaflet'
+import ArrowLayer from './ArrowLayer'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
@@ -131,6 +132,12 @@ export default function PlannerMap({
           }}
           eventHandlers={{ click: () => { if (!addingWaypoint) onSelectStage(seg.i) } }}
         />
+      ))}
+
+      {/* Sentido del recorrido: flechas del color de cada etapa, siempre visibles */}
+      {segments.map(seg => (
+        <ArrowLayer key={`arrows-${seg.i}`} positions={seg.positions} color={STAGE_COLORS[seg.i % STAGE_COLORS.length]}
+          opacity={activeStage == null || activeStage === seg.i ? 1 : 0.55} />
       ))}
 
       {points.length > 0 && (

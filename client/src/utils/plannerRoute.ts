@@ -33,6 +33,8 @@ export interface Cut {
   lodged?: boolean
   /** Km que se movió respecto al corte ideal al ajustarlo a un alojamiento (positivo = etapa más larga). */
   shiftKm?: number
+  /** true si no se pudo consultar OpenStreetMap para este corte (no es lo mismo que «no hay alojamiento»). */
+  unchecked?: boolean
 }
 
 export interface PlannerSettings {
@@ -106,6 +108,7 @@ export interface Stage {
   /** Información del corte con el que termina esta etapa (la última etapa no tiene). */
   endLodged?: boolean
   endShiftKm?: number
+  endUnchecked?: boolean
 }
 
 export interface ParsedRoute {
@@ -353,7 +356,7 @@ export function buildStages(
       gain, loss,
       minEle: min == null ? null : Math.round(min), maxEle: max == null ? null : Math.round(max),
       name: named || defaultName(i),
-      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm } : {}),
+      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked } : {}),
     })
   }
   return stages

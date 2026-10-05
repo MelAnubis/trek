@@ -336,7 +336,7 @@ export default function PlannerPage(): React.ReactElement {
   /** Aplica cortes calculados por el servidor (en poblaciones con alojamiento) y avisa de lo que no se pudo. */
   const applyLodgingCuts = (res: Awaited<ReturnType<typeof plannerApi.smartCuts>>, keepNames: boolean) => {
     const next: Cut[] = res.cuts.map((c, i) => ({
-      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm,
+      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm, ...(c.unchecked ? { unchecked: true } : {}),
       ...(keepNames && cuts.length === res.cuts.length && cuts[i].name ? { name: cuts[i].name } : {}),
     }))
     markDirty()
@@ -344,7 +344,9 @@ export default function PlannerPage(): React.ReactElement {
     setActiveStage(null)
     if (!res.lodgingChecked) toast.warning(t('planner.stages.cuts.noData'))
     else {
-      const without = res.cuts.filter(c => !c.lodged).length
+      const unchecked = res.cuts.filter(c => c.unchecked).length
+      const without = res.cuts.filter(c => !c.lodged && !c.unchecked).length
+      if (unchecked) toast.warning(t('planner.stages.cuts.unchecked', { n: unchecked }))
       if (without) toast.info(t('planner.stages.cuts.someWithout', { n: without }))
     }
   }
@@ -458,6 +460,7 @@ export default function PlannerPage(): React.ReactElement {
     try {
       const found = new Map<string, PoiMarker>()
       let anyTruncated = false
+      let anyPartial = false
       let failed = 0
       for (const cat of cats) {
         for (const [from, to] of chunks) {
@@ -465,6 +468,7 @@ export default function PlannerPage(): React.ReactElement {
             const line = simplifyLine(points.slice(from, to + 1), 300)
             const res = await plannerApi.poisAlongRoute(cat, line, radius, ctrl.signal)
             if (res.truncated) anyTruncated = true
+            if (res.partial) anyPartial = true
             for (const p of res.pois) {
               if (found.has(p.osm_id)) continue
               const near = nearestOnRoute(points, cum, p.lat, p.lng)
@@ -486,6 +490,7 @@ export default function PlannerPage(): React.ReactElement {
       })
       if (failed && !found.size) toast.error(t('planner.services.error'))
       else if (!found.size) toast.info(t('planner.services.none'))
+      else if (anyPartial) toast.warning(t('planner.services.partial'))
       else if (anyTruncated) toast.info(t('planner.services.truncated'))
     } finally {
       if (poiAbort.current === ctrl) setPoiLoading(false)
@@ -573,7 +578,7 @@ export default function PlannerPage(): React.ReactElement {
       case 'offtrack': return t('planner.ai.warn.offtrack', { list: detail })
       case 'nolodging': return t('planner.ai.warn.nolodging', { stages: detail })
       case 'nolodgingdata': return t('planner.ai.warn.nolodgingdata')
-      case 'lodgingpartial': return t('planner.ai.warn.lodgingpartial', { n: detail })
+      case 'lodgingunchecked': return t('planner.ai.warn.lodgingunchecked', { stages: detail })
       case 'detourstop': return t('planner.ai.warn.detourstop', { list: detail })
       case 'droppedstop': return t('planner.ai.warn.droppedstop', { list: detail })
       case 'retrace': return t('planner.ai.warn.retrace', { km: detail })
@@ -755,7 +760,7 @@ export default function PlannerPage(): React.ReactElement {
               </div>
             )}
             {st.endLodged === false && (
-              <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t('planner.stages.end.none')}</div>
+              <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t(st.endUnchecked ? 'planner.stages.end.unchecked' : 'planner.stages.end.none')}</div>
             )}
             {i > 0 && (
               <button type="button" style={{ ...btn, padding: '3px 8px', fontSize: 11, marginTop: 6 }}

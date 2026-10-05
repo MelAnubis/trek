@@ -278,8 +278,9 @@ export async function generateRoute(userId: number, prompt: string, lang = 'es')
     stageEnds = sp.cuts;
     if (!sp.lodgingChecked) warnings.push('nolodgingdata');
     else {
-      if (sp.failed > 0) warnings.push(`lodgingpartial:${sp.failed}/${sp.queries}`);
-      const none = stageEnds.map((c, i) => (c.lodged ? 0 : i + 1)).filter(Boolean);
+      const unchecked = stageEnds.map((c, i) => (c.unchecked ? i + 1 : 0)).filter(Boolean);
+      if (unchecked.length) warnings.push(`lodgingunchecked:${unchecked.join(', ')}`);
+      const none = stageEnds.map((c, i) => (!c.lodged && !c.unchecked ? i + 1 : 0)).filter(Boolean);
       if (none.length) warnings.push(`nolodging:${none.join(', ')}`);
       const far = stageEnds.map((c, i) => ({ c, i })).filter(x => x.c.lodged && Math.abs(x.c.shiftKm) > 7.5);
       if (far.length) warnings.push(`farlodging:${far.map(x => `${x.i + 1} (${x.c.shiftKm > 0 ? '+' : '−'}${Math.round(Math.abs(x.c.shiftKm))} km)`).join(' | ')}`);

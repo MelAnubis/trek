@@ -24,6 +24,9 @@ import { runMigrations } from '../../src/db/migrations';
 // Keep in sync with schema.ts + migrations.ts. Intentionally excluded: categories, addons,
 // photo_providers, photo_provider_fields, schema_version (seed/config data, not user data).
 const RESET_TABLES = [
+  // Route planner + shared OSM tile cache
+  'planner_routes',
+  'poi_tiles',
   // Collab
   'file_links',
   'collab_message_reactions',

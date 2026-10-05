@@ -51,7 +51,7 @@ vi.mock('../../src/services/brouterService', async (orig) => ({
 vi.mock('../../src/services/mapsService', async (orig) => ({
   ...(await orig<typeof import('../../src/services/mapsService')>()),
   searchPlaces: (...a: unknown[]) => searchMock(...a),
-  searchOverpassPoisAlongRoute: (...a: unknown[]) => overpassMock(...a),
+  overpassElements: (...a: unknown[]) => overpassMock(...a),
 }));
 
 import { createApp } from '../../src/app';
@@ -69,7 +69,7 @@ beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
   resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); resetPlannerAiLimiter();
   askMock.mockReset(); routeMock.mockReset(); searchMock.mockReset(); overpassMock.mockReset();
-  overpassMock.mockResolvedValue({ pois: [], truncated: false });
+  overpassMock.mockResolvedValue([]);
   // El enrutador simulado sigue las paradas en el orden recibido, con un punto cada ~1 km.
   routeMock.mockImplementation(async (wps: { lat: number; lng: number }[]) => {
     const points = trackThrough(wps);
@@ -93,6 +93,8 @@ function trackThrough(wps: Pt[]): [number, number, number | null][] {
   }
   return out;
 }
+/** Elemento de Overpass: un alojamiento. */
+const hotel = (id: number, lat: number, lng: number, name = 'Hotel') => ({ type: 'node', id, lat, lon: lng, tags: { tourism: 'hotel', name: `${name} ${id}` } });
 const pathLen = (xs: Pt[]) => xs.slice(1).reduce((s, p, i) => s + km(xs[i], p), 0);
 
 const SEG: Record<string, [number, number]> = {
@@ -259,7 +261,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     ask();
     // alojamiento en la recta Madrid→Cercedilla, a ~45 % del recorrido
     const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.45;
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'node:1', name: 'Hostal X', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    overpassMock.mockResolvedValue([hotel(1, a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)]);
     const r = await post(user.id, PROMPT);
     expect(r.status).toBe(200);
     expect(r.body.stageEnds).toHaveLength(1);
@@ -267,7 +269,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     const total = r.body.quality.lengthKm;
     expect(r.body.stageEnds[0].km / total).toBeGreaterThan(0.43);
     expect(r.body.stageEnds[0].km / total).toBeLessThan(0.47);
-    expect(overpassMock.mock.calls[0][0]).toBe('lodging');
+    expect(overpassMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"');   // un selector agrupado, no ocho
     expect(r.body.warnings.some((w: string) => w.startsWith('nolodging'))).toBe(false);
   });
 
@@ -278,11 +280,21 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     expect(none.body.stageEnds).toEqual([{ km: expect.any(Number), lodged: false, shiftKm: 0 }]);
     expect(none.body.warnings).toContain('nolodging:1');
 
+    // La zona ya está en el caché (sin alojamientos): con Overpass caído el resultado es el mismo y NO se marca como fallo.
     ask();
     overpassMock.mockRejectedValue(new Error('Overpass down'));
+    const cached = await post(user.id, PROMPT);
+    expect(cached.body.warnings).toContain('nolodging:1');
+    expect(cached.body.warnings).not.toContain('nolodgingdata');
+
+    // Sin caché y con Overpass caído: no se sabe, y se dice así.
+    testDb.prepare('DELETE FROM poi_tiles').run();
+    ask();
     const down = await post(user.id, PROMPT);
     expect(down.status).toBe(200);
     expect(down.body.warnings).toContain('nolodgingdata');
+    expect(down.body.warnings.some((w: string) => w.startsWith('nolodging:'))).toBe(false);
+    expect(down.body.stageEnds[0].lodged).toBe(false);
     expect(down.body.stageEnds).toHaveLength(1);
   });
 
@@ -329,7 +341,7 @@ describe('POST /planner/assistant — trip types and repairs', () => {
     const { user } = createUser(testDb);
     askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, trip_type: 'out_and_back', days: 2, places: ['Madrid, España', 'Cercedilla, España'] }));
     const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.9;   // alojamiento al 90 % de la ida, junto al giro
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'hotel' }], truncated: false });
+    overpassMock.mockResolvedValue([hotel(1, a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f)]);
     const r = await post(user.id, PROMPT);
     // 2 etapas → corte ideal justo en el giro (50 %). El alojamiento queda a ~4,6 km: al 45 % en la ida o al 55 % en la vuelta.
     expect(r.body.stageEnds).toHaveLength(1);
@@ -383,18 +395,26 @@ describe('POST /planner/assistant — trip types and repairs', () => {
     expect(r.body.warnings.some((w: string) => w.startsWith('droppedstop:'))).toBe(false);
   });
 
-  it('PLAN-052 — a partial Overpass failure keeps the lodging that was found and says so', async () => {
+  it('PLAN-052 — when Overpass fails for part of the route, those cuts are reported as UNCHECKED (not as "no lodging")', async () => {
     const { user } = createUser(testDb);
-    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 3, places: ['Madrid, España', 'Cercedilla, España'] }));
-    const a = SEG['Madrid, España'], b = SEG['Cercedilla, España'], f = 0.33;   // junto al primer corte (≈ 1/3)
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'n1', name: 'H', lat: a[0] + (b[0] - a[0]) * f, lng: a[1] + (b[1] - a[1]) * f, category: 'lodging' }], truncated: false });
-    overpassMock.mockRejectedValueOnce(new Error('timeout'));
-    const r = await post(user.id, PROMPT);
-    expect(r.body.stageEnds).toHaveLength(2);
+    askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 4, places: ['Ávila, España', 'Ciudad Rodrigo, España'] }));
+    const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
+    const at = (km: number) => [a[0] + (b[0] - a[0]) * km / 139, a[1] + (b[1] - a[1]) * km / 139];
+    // Overpass responde para la mitad este (lng > -5,6) y falla para la oeste
+    overpassMock.mockImplementation(async (query: string) => {
+      const west = Number(/\(([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\)/.exec(query)![2]);
+      if (west < -5.6) throw new Error('timeout');
+      const [la, lo] = at(34.75 + 3);                               // junto al primer corte ideal (34,75 km)
+      return [hotel(1, la, lo)];
+    });
+    const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
+    expect(r.status).toBe(200);
+    expect(r.body.stageEnds).toHaveLength(3);
     expect(r.body.stageEnds[0].lodged).toBe(true);
-    expect(r.body.stageEnds[1].lodged).toBe(false);
-    expect(r.body.warnings).toContain('lodgingpartial:1/2');
-    expect(r.body.warnings).toContain('nolodging:2');
+    expect(r.body.stageEnds[2].lodged).toBe(false);
+    expect(r.body.stageEnds[2].unchecked).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('lodgingunchecked:') && w.includes('3'))).toBe(true);
+    expect(r.body.warnings.some((w: string) => w.startsWith('nolodging:') && w.includes('3'))).toBe(false);   // no se afirma que no haya alojamiento
     expect(r.body.warnings).not.toContain('nolodgingdata');
   });
 });
@@ -466,7 +486,7 @@ describe('POST /planner/assistant — real-road checks and lodging cuts', () => 
     // ruta recta Ávila→CR (~139 km): corte ideal a ~69,5 km; alojamientos a −5 km y a +30 km de esa marca
     const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
     const at = (km: number) => ({ lat: a[0] + (b[0] - a[0]) * km / 139, lng: a[1] + (b[1] - a[1]) * km / 139 });
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'x1', name: 'Hotel A', ...at(64.5), category: 'lodging' }, { osm_id: 'x2', name: 'Hotel B', ...at(100), category: 'lodging' }], truncated: false });
+    overpassMock.mockResolvedValue([hotel(1, at(64.5).lat, at(64.5).lng), hotel(2, at(100).lat, at(100).lng)]);
     const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
     expect(r.status).toBe(200);
     expect(r.body.stageEnds).toHaveLength(1);
@@ -481,7 +501,7 @@ describe('POST /planner/assistant — real-road checks and lodging cuts', () => 
     askMock.mockResolvedValueOnce(plan({ start_fixed: true, end_fixed: true, days: 2, places: ['Ávila, España', 'Ciudad Rodrigo, España'] }));
     const a = SEG['Ávila, España'], b = SEG['Ciudad Rodrigo, España'];
     const at = (km: number) => ({ lat: a[0] + (b[0] - a[0]) * km / 139, lng: a[1] + (b[1] - a[1]) * km / 139 });
-    overpassMock.mockResolvedValueOnce({ pois: [{ osm_id: 'x1', name: 'Hotel A', ...at(82), category: 'lodging' }], truncated: false });   // +12,5 km
+    overpassMock.mockResolvedValue([hotel(1, at(82).lat, at(82).lng)]);   // +12,5 km
     const r = await post(user.id, { prompt: 'Ruta de Ávila a Ciudad Rodrigo' });
     expect(r.body.stageEnds[0].lodged).toBe(true);
     expect(r.body.stageEnds[0].shiftKm).toBeGreaterThan(10);

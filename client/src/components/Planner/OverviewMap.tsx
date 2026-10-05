@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Polyline, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { folderColor } from '../../utils/plannerLibrary'
+import ArrowLayer from './ArrowLayer'
 import { fmtKm, type OverviewRoute } from '../../utils/plannerRoute'
 
 function FitAll({ routes }: { routes: OverviewRoute[] }) {
@@ -32,6 +33,10 @@ export default function OverviewMap({ routes, openLabel, onOpen }: {
     <MapContainer center={[40.4, -3.7]} zoom={6} style={{ width: '100%', height: '100%' }}>
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="© OpenStreetMap" maxZoom={19} />
       <FitAll routes={routes} />
+      {routes.map(r => r.preview.length > 1 && (
+        <ArrowLayer key={`a${r.id}`} positions={r.preview} color={folderColor(r.folder)} spacingPx={140} size={14}
+          opacity={hover == null || hover === r.id ? 1 : 0.5} />
+      ))}
       {routes.map(r => r.preview.length > 1 && (
         <Polyline key={r.id} positions={r.preview}
           pathOptions={{

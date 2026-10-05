@@ -215,6 +215,8 @@ export interface StageCut {
   lodged: boolean;
   /** Km que se ha movido respecto al corte ideal (positivo = etapa más larga). */
   shiftKm: number;
+  /** true si no se pudo comprobar si hay alojamiento (falló la consulta): no es lo mismo que «no hay». */
+  unchecked?: boolean;
 }
 
 /** Agrupa alojamientos que están a menos de `gapKm` entre sí a lo largo del recorrido: casi siempre son un mismo pueblo. */

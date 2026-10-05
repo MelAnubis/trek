@@ -40,9 +40,11 @@ vi.mock('../../src/config', () => ({
 // Default mock: resolveGoogleMapsUrl rejects with 400 (SSRF-like behaviour for
 // URLs that look internal); individual tests override with mockResolvedValueOnce.
 const alongMock = vi.fn();
+const elementsMock = vi.fn();
 vi.mock('../../src/services/mapsService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/services/mapsService')>()),
   searchOverpassPoisAlongRoute: (...args: unknown[]) => alongMock(...args),
+  overpassElements: (...args: unknown[]) => elementsMock(...args),
 }));
 
 import { createApp } from '../../src/app';
@@ -56,7 +58,7 @@ import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 const app: Application = createApp();
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); });
+beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); });
 afterAll(() => { testDb.close(); });
 
 function track(n: number) {
@@ -320,30 +322,31 @@ describe('Planner library', () => {
 describe('Planner smart cuts', () => {
   // track(n): 1 punto cada 0,0001° de latitud ≈ 11,12 m → 10000 puntos ≈ 111 km
   const lat = (km: number) => 40 + km / 111.19;
-  const lodging = (id: string, km: number) => ({ osm_id: id, name: 'Hotel ' + id, lat: lat(km), lng: -3, category: 'lodging' });
+  const hotelAt = (id: number, km: number) => ({ type: 'node', id, lat: lat(km), lon: -3, tags: { tourism: 'hotel', name: 'Hotel ' + id } });
   const smart = (userId: number, id: number, b: object) =>
     request(app).post(`/api/planner/${id}/smart-cuts`).set('Cookie', authCookie(userId)).send(b);
 
   it('PLAN-060 — moves each cut to a lodging within ±7 km, shorter or longer, and returns point indices', async () => {
     const { user } = createUser(testDb);
     const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
-    alongMock.mockResolvedValue({ pois: [lodging('a', 52), lodging('b', 70)], truncated: false });   // marca ideal: 55,5 km
+    elementsMock.mockResolvedValue([hotelAt(1, 52), hotelAt(2, 70)]);   // marca ideal: 55,5 km
     const r = await smart(user.id, r0.id, { stages: 2 });
     expect(r.status).toBe(200);
     expect(r.body.lodgingChecked).toBe(true);
     expect(r.body.cuts).toHaveLength(1);
     const c = r.body.cuts[0];
     expect(c.lodged).toBe(true);
+    expect(c.unchecked).toBe(false);
     expect(c.km).toBeGreaterThan(51); expect(c.km).toBeLessThan(53);        // el de 52 km (−3,5), no el de 70 (+14,5)
     expect(c.shiftKm).toBeLessThan(0); expect(c.shiftKm).toBeGreaterThan(-5);
     expect(Number.isInteger(c.index)).toBe(true);
-    expect(alongMock.mock.calls[0][0]).toBe('lodging');
+    expect(elementsMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"');
   });
 
   it('PLAN-061 — stageKm and marks modes; marks adjust existing cuts', async () => {
     const { user } = createUser(testDb);
     const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
-    alongMock.mockResolvedValue({ pois: [lodging('a', 28), lodging('b', 84)], truncated: false });
+    elementsMock.mockResolvedValue([hotelAt(1, 28), hotelAt(2, 84)]);
     const byKm = await smart(user.id, r0.id, { stageKm: 37 });                  // 111/37 = 3 etapas → marcas 37 y 74
     expect(byKm.body.cuts).toHaveLength(2);
     const marks = await smart(user.id, r0.id, { marks: [30, 80] });
@@ -352,16 +355,53 @@ describe('Planner smart cuts', () => {
     expect(Math.round(marks.body.cuts[1].km)).toBe(84);
   });
 
-  it('PLAN-062 — Overpass down: still returns cuts at the ideal marks, flagged as not lodged', async () => {
+  it('PLAN-062 — Overpass down: cuts stay at the ideal marks and are flagged UNCHECKED (not "no lodging")', async () => {
     const { user } = createUser(testDb);
     const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
-    alongMock.mockRejectedValue(new Error('Overpass request failed'));
+    elementsMock.mockRejectedValue(Object.assign(new Error('Overpass request failed'), { status: 502 }));
     const r = await smart(user.id, r0.id, { stages: 2 });
     expect(r.status).toBe(200);
     expect(r.body.lodgingChecked).toBe(false);
     expect(r.body.cuts).toHaveLength(1);
     expect(r.body.cuts[0].lodged).toBe(false);
+    expect(r.body.cuts[0].unchecked).toBe(true);
     expect(r.body.cuts[0].km).toBeGreaterThan(54); expect(r.body.cuts[0].km).toBeLessThan(57);
+  });
+
+  it('PLAN-066 — lodging is cached by tile: a second request does not ask Overpass again, and keeps working while it is down', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 52)]);
+    const first = await smart(user.id, r0.id, { stages: 2 });
+    const calls = elementsMock.mock.calls.length;
+    expect(calls).toBeGreaterThan(0);
+    expect(first.body.cuts[0].lodged).toBe(true);
+
+    elementsMock.mockRejectedValue(new Error('Overpass down'));               // ahora Overpass no responde…
+    const again = await smart(user.id, r0.id, { stages: 2 });
+    expect(elementsMock.mock.calls.length).toBe(calls);                       // …y ni se le pregunta
+    expect(again.body.cuts[0].lodged).toBe(true);
+    expect(again.body.cuts[0].unchecked).toBe(false);
+  });
+
+  it('PLAN-067 — a retry only asks for the tiles that failed before', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockResolvedValue([hotelAt(1, 52)]);
+    await smart(user.id, r0.id, { marks: [55.5] });                           // cachea la zona del corte 1
+    const before = elementsMock.mock.calls.length;
+    // zona nueva (marca a 100 km): falla una vez y luego responde
+    elementsMock.mockRejectedValueOnce(new Error('timeout'));
+    const bad = await smart(user.id, r0.id, { marks: [55.5, 100] });
+    expect(bad.body.cuts[1].unchecked).toBe(true);
+    expect(bad.body.cuts[0].lodged).toBe(true);
+    elementsMock.mockResolvedValue([hotelAt(1, 52), hotelAt(2, 98)]);
+    const callsBefore = elementsMock.mock.calls.length;
+    const ok = await smart(user.id, r0.id, { marks: [55.5, 100] });
+    expect(ok.body.cuts[1].lodged).toBe(true);
+    expect(ok.body.cuts[1].unchecked).toBe(false);
+    expect(elementsMock.mock.calls.length - callsBefore).toBeLessThanOrEqual(2);   // solo lo que faltaba
+    expect(before).toBeGreaterThan(0);
   });
 
   it('PLAN-063 — validation, one stage means no cuts, and routes are private', async () => {
@@ -376,7 +416,7 @@ describe('Planner smart cuts', () => {
     expect((await smart(user.id, r0.id, { stages: 2, maxShiftKm: 99 })).status).toBe(400);
     const one = await smart(user.id, r0.id, { stageKm: 500 });                    // > longitud: 1 etapa
     expect(one.body.cuts).toEqual([]);
-    expect(alongMock).not.toHaveBeenCalled();
+    expect(elementsMock).not.toHaveBeenCalled();
     expect((await smart(other.id, r0.id, { stages: 2 })).status).toBe(404);
     expect((await request(app).post(`/api/planner/${r0.id}/smart-cuts`).send({ stages: 2 })).status).toBe(401);
   });

@@ -2625,6 +2625,19 @@ function runMigrations(db: Database.Database): void {
         try { upd.run(JSON.stringify(makePreview(JSON.parse(r.points_json))), r.id); } catch {}
       }
     },
+    // OSM lodging cache by 0.1° tile (shared by every route and user). Public Overpass servers fail often;
+    // once an area has been fetched it keeps working while they are down, and a retry only asks for what failed.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS poi_tiles (
+          category TEXT NOT NULL,
+          tile TEXT NOT NULL,
+          fetched_at INTEGER NOT NULL,
+          data TEXT NOT NULL,
+          PRIMARY KEY (category, tile)
+        )
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

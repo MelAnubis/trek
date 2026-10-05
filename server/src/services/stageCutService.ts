@@ -6,7 +6,7 @@
  * campings…, datos de OpenStreetMap). Solo se consulta el entorno de cada corte, no toda la
  * ruta, así que el coste es una consulta pequeña por etapa, sea cual sea la longitud.
  */
-import { searchOverpassPoisAlongRoute } from './mapsService';
+import { getLodgingNearLine } from './lodgingTileService';
 import {
   simplifyLine, indexAtKm, nearestOnTrack, clusterLodging, chooseStageCuts,
   DEFAULT_MAX_SHIFT_KM, type TrackPoint, type StageCut, type LodgingSpot,
@@ -19,7 +19,7 @@ export const MAX_CUTS_PER_REQUEST = 40;
 
 export interface StageCutPlan {
   cuts: StageCut[];
-  /** Consultas a OpenStreetMap hechas y cuántas fallaron. */
+  /** Consultas a OpenStreetMap hechas (las teselas ya en caché no cuentan) y cuántas fallaron. */
   queries: number;
   failed: number;
   /** false si no se obtuvo ningún dato de alojamientos (los cortes quedan a distancias iguales). */
@@ -51,37 +51,33 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
   const half = maxShift * 3 + 2;                         // el margen más amplio de chooseStageCuts, más un pueblo
   const limitKm = opts.mirrorKm ?? total;                // dónde se busca de verdad
   const found = new Map<string, number>();               // osm_id → km (en la parte consultada)
-  const done = new Set<number>();
-  let queries = 0, failed = 0, lastErr: unknown = null;
-  const t0 = Date.now();
+  const slices = new Map<number, boolean>();             // zona (km redondeado) → ¿alguna consulta falló?
+  const keyOf = (mark: number) => Math.round(opts.mirrorKm && mark > opts.mirrorKm ? 2 * opts.mirrorKm - mark : mark);
+  let queries = 0, failed = 0;
+  const deadline = Date.now() + BUDGET_MS;
 
   for (const mark of marks) {
     const q = opts.mirrorKm && mark > opts.mirrorKm ? 2 * opts.mirrorKm - mark : mark;
     const key = Math.round(q);
-    if (done.has(key)) continue;
-    done.add(key);
-    if (Date.now() - t0 > BUDGET_MS) { failed++; queries++; continue; }
+    if (slices.has(key)) continue;
     const a = indexAtKm(cum, Math.max(0, q - half));
     const b = indexAtKm(cum, Math.min(limitKm, q + half));
-    if (b <= a) continue;
-    queries++;
-    try {
-      const res = await searchOverpassPoisAlongRoute('lodging', simplifyLine(points.slice(a, b + 1), 200), RADIUS_M, 300);
-      for (const p of res.pois as { osm_id: string; lat: number; lng: number }[]) {
-        if (found.has(p.osm_id)) continue;
-        const near = nearestOnTrack(points, cum, p);
-        if (near.offM <= MAX_OFF_TRACK_M) found.set(p.osm_id, near.km);
-      }
-    } catch (err) {
-      failed++;
-      lastErr = err;
+    if (b <= a) { slices.set(key, false); continue; }
+    const res = await getLodgingNearLine(simplifyLine(points.slice(a, b + 1), 200), RADIUS_M, { deadline });
+    queries += res.buckets;
+    failed += res.failedBuckets;
+    slices.set(key, res.failedBuckets > 0);
+    for (const p of res.pois) {
+      if (found.has(p.osm_id)) continue;
+      const near = nearestOnTrack(points, cum, p);
+      if (near.offM <= MAX_OFF_TRACK_M) found.set(p.osm_id, near.km);
     }
   }
-  if (lastErr) console.warn('[stage-cuts] lodging lookup failed:', (lastErr as Error)?.message);
 
   const kms = [...found.values()];
   const all = opts.mirrorKm ? [...kms, ...kms.map(k => 2 * opts.mirrorKm! - k)] : kms;
   const spots: LodgingSpot[] = clusterLodging(all);
-  const cuts = chooseStageCuts(total, opts.stageCount ?? 0, spots, { maxShiftKm: maxShift, marks });
+  const cuts = chooseStageCuts(total, opts.stageCount ?? 0, spots, { maxShiftKm: maxShift, marks })
+    .map((c, i) => (!c.lodged && slices.get(keyOf(marks[i])) ? { ...c, unchecked: true } : c));
   return { cuts, queries, failed, lodgingChecked: queries === 0 || failed < queries };
 }

@@ -302,7 +302,7 @@ router.post('/:id/smart-cuts', authenticate, async (req: Request, res: Response)
       const index = indexAtKm(cum, c.km);
       if (index <= 0 || index >= points.length - 1 || seen.has(index)) return [];
       seen.add(index);
-      return [{ index, km: Math.round(cum[index] * 100) / 100, lodged: c.lodged, shiftKm: Math.round(c.shiftKm * 10) / 10 }];
+      return [{ index, km: Math.round(cum[index] * 100) / 100, lodged: c.lodged, shiftKm: Math.round(c.shiftKm * 10) / 10, unchecked: !!c.unchecked }];
     });
     res.json({ cuts, lodgingChecked: plan.lodgingChecked, queries: plan.queries, failed: plan.failed, totalKm });
   } catch (err) {

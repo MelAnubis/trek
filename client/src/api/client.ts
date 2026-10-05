@@ -553,7 +553,7 @@ export const plannerApi = {
   // Cortes de etapa en poblaciones con alojamiento (±7 km del corte ideal). stageKm | stages | marks.
   smartCuts: (id: number, body: { stageKm?: number; stages?: number; marks?: number[]; maxShiftKm?: number }) =>
     apiClient.post(`/planner/${id}/smart-cuts`, body, { timeout: 90000 }).then(r => r.data as {
-      cuts: { index: number; km: number; lodged: boolean; shiftKm: number }[]
+      cuts: { index: number; km: number; lodged: boolean; shiftKm: number; unchecked?: boolean }[]
       lodgingChecked: boolean
       queries: number
       failed: number
@@ -580,7 +580,7 @@ export const plannerApi = {
     }),
   // POIs within `radius` m of the route (corridor search, Overpass `around`).
   poisAlongRoute: (category: string, line: [number, number][], radius: number, signal?: AbortSignal) =>
-    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean }),
+    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean; partial?: boolean }),
 }
 
 export const airportsApi = {
