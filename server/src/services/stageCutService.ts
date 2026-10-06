@@ -7,6 +7,7 @@
  * ruta, así que el coste es una consulta pequeña por etapa, sea cual sea la longitud.
  */
 import { getTilePois } from './lodgingTileService';
+import { googleLodgingAvailable, searchGoogleLodgingNear } from './googleLodgingService';
 import {
   simplifyLine, indexAtKm, nearestOnTrack, clusterLodging, chooseStageCuts,
   DEFAULT_MAX_SHIFT_KM, type TrackPoint, type StageCut, type LodgingSpot, type TownSpot,
@@ -18,6 +19,9 @@ const TOWN_RADIUS_M = 2000;                    // un pueblo cuyo casco queda a �
 const TOWN_WEIGHT: Record<string, number> = { city: 4, town: 3, village: 2 };
 const BUDGET_MS = 45000;
 export const MAX_CUTS_PER_REQUEST = 40;
+const GOOGLE_RADIUS_M = 5000;                   // círculo de búsqueda; se piden tres centros por corte (−6, 0, +6 km)
+const GOOGLE_STEP_KM = 6;
+const MAX_GOOGLE_CALLS = 15;
 
 export interface StageCutPlan {
   cuts: StageCut[];
@@ -26,6 +30,16 @@ export interface StageCutPlan {
   failed: number;
   /** false si no se obtuvo ningún dato de alojamientos (los cortes quedan a distancias iguales). */
   lodgingChecked: boolean;
+  sources: {
+    /**
+     * Google Places como complemento de OpenStreetMap, solo para los cortes sin alojamiento en OSM:
+     * `used` (se consultó), `not-needed` (OSM bastó), `no-key` (hay cortes sin alojamiento pero no hay clave de
+     * Google en Trek) o `failed` (la consulta falló: clave sin Places API activada, cuota…).
+     */
+    google: 'used' | 'not-needed' | 'no-key' | 'failed';
+    googleQueries: number;
+    googleFound: number;
+  };
 }
 
 export interface PlanStageCutsOptions {
@@ -38,6 +52,8 @@ export interface PlanStageCutsOptions {
    * cortes de la vuelta se buscan en la ida (misma carretera) en vez de repetir las consultas.
    */
   mirrorKm?: number;
+  /** Usuario cuya clave de Google Maps (si la tiene) se usa como fuente adicional. */
+  userId?: number;
 }
 
 export async function planStageCuts(points: TrackPoint[], cum: number[], opts: PlanStageCutsOptions): Promise<StageCutPlan> {
@@ -48,7 +64,7 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
     : (opts.stageCount ?? 0) >= 2 && total > 0
       ? Array.from({ length: (opts.stageCount as number) - 1 }, (_, k) => ((k + 1) * total) / (opts.stageCount as number))
       : [];
-  if (!marks.length) return { cuts: [], queries: 0, failed: 0, lodgingChecked: true };
+  if (!marks.length) return { cuts: [], queries: 0, failed: 0, lodgingChecked: true, sources: { google: 'not-needed', googleQueries: 0, googleFound: 0 } };
 
   const half = maxShift * 3 + 2;                         // el margen más amplio de chooseStageCuts, más un pueblo
   const limitKm = opts.mirrorKm ?? total;                // dónde se busca de verdad
@@ -89,14 +105,49 @@ export async function planStageCuts(points: TrackPoint[], cum: number[], opts: P
     }
   }
 
-  const kms = [...found.values()];
-  const all = opts.mirrorKm ? [...kms, ...kms.map(k => 2 * opts.mirrorKm! - k)] : kms;
-  const spots: LodgingSpot[] = clusterLodging(all);
+  const mirrored = (xs: number[]) => (opts.mirrorKm ? [...xs, ...xs.map(k => 2 * opts.mirrorKm! - k)] : xs);
+  const osmSpots = clusterLodging(mirrored([...found.values()]), 1.5, 'osm');
+
+  // Google solo donde OpenStreetMap no ha dado ningún alojamiento dentro del margen: es un complemento, no el sustituto.
+  const needGoogle = marks.filter(m => !osmSpots.some(sp => Math.abs(sp.km - m) <= maxShift));
+  const sources: StageCutPlan['sources'] = { google: 'not-needed', googleQueries: 0, googleFound: 0 };
+  let googleSpots: LodgingSpot[] = [];
+  if (needGoogle.length && opts.userId != null) {
+    if (!googleLodgingAvailable(opts.userId)) sources.google = 'no-key';
+    else {
+      sources.google = 'used';
+      const gKms: number[] = [];
+      outer: for (const mark of needGoogle) {
+        const q = opts.mirrorKm && mark > opts.mirrorKm ? 2 * opts.mirrorKm - mark : mark;     // en una ida y vuelta se busca en la ida
+        for (const center of [q, q - GOOGLE_STEP_KM, q + GOOGLE_STEP_KM]) {
+          if (center < 0 || center > limitKm) continue;
+          if (sources.googleQueries >= MAX_GOOGLE_CALLS) break outer;
+          const pt = points[indexAtKm(cum, center)];
+          sources.googleQueries++;
+          try {
+            for (const g of await searchGoogleLodgingNear(opts.userId, pt[0], pt[1], GOOGLE_RADIUS_M)) {
+              const near = nearestOnTrack(points, cum, g);
+              if (near.offM <= MAX_OFF_TRACK_M) gKms.push(near.km);
+            }
+          } catch (err) {
+            // Un fallo de Google (clave sin la API activada, cuota…) no tira el resto: se deja de insistir.
+            console.warn('[stage-cuts] Google lodging lookup failed:', (err as Error)?.message);
+            sources.google = 'failed';
+            break outer;
+          }
+        }
+      }
+      sources.googleFound = gKms.length;
+      googleSpots = clusterLodging(mirrored(gKms), 1.5, 'google');
+    }
+  }
+  const spots: LodgingSpot[] = [...osmSpots, ...googleSpots];
+
   const townList = [...townsFound.values()];
   const towns: TownSpot[] = opts.mirrorKm
     ? [...townList, ...townList.map(t => ({ ...t, km: 2 * opts.mirrorKm! - t.km }))]
     : townList;
   const cuts = chooseStageCuts(total, opts.stageCount ?? 0, spots, { maxShiftKm: maxShift, marks, towns })
     .map((c, i) => (!c.lodged && slices.get(keyOf(marks[i])) ? { ...c, unchecked: true } : c));
-  return { cuts, queries, failed, lodgingChecked: queries === 0 || failed < queries };
+  return { cuts, queries, failed, lodgingChecked: queries === 0 || failed < queries || spots.length > 0, sources };
 }

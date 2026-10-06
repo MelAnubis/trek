@@ -274,7 +274,7 @@ export async function generateRoute(userId: number, prompt: string, lang = 'es')
   const n = Math.min(40, Math.max(0, stageCount));
   let stageEnds: StageCut[] = [];
   if (n >= 2) {
-    const sp = await planStageCuts(track, cumulativeKm(track), { stageCount: n, mirrorKm: mirror ? oneWayKm : undefined });
+    const sp = await planStageCuts(track, cumulativeKm(track), { stageCount: n, mirrorKm: mirror ? oneWayKm : undefined, userId });
     stageEnds = sp.cuts;
     if (!sp.lodgingChecked) warnings.push('nolodgingdata');
     else {
@@ -284,6 +284,7 @@ export async function generateRoute(userId: number, prompt: string, lang = 'es')
       if (inTown.length) warnings.push(`towncut:${inTown.join(' | ')}`);
       const none = stageEnds.map((c, i) => (!c.lodged && !c.town && !c.unchecked ? i + 1 : 0)).filter(Boolean);
       if (none.length) warnings.push(`nolodging:${none.join(', ')}`);
+      if (sp.sources.google === 'failed') warnings.push('googlefailed');
       const far = stageEnds.map((c, i) => ({ c, i })).filter(x => (x.c.lodged || x.c.town) && Math.abs(x.c.shiftKm) > 7.5);
       if (far.length) warnings.push(`farlodging:${far.map(x => `${x.i + 1} (${x.c.shiftKm > 0 ? '+' : '−'}${Math.round(Math.abs(x.c.shiftKm))} km)`).join(' | ')}`);
     }

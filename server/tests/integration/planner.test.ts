@@ -41,10 +41,18 @@ vi.mock('../../src/config', () => ({
 // URLs that look internal); individual tests override with mockResolvedValueOnce.
 const alongMock = vi.fn();
 const elementsMock = vi.fn();
+const googleAvailableMock = vi.fn();
+const googleSearchMock = vi.fn();
 vi.mock('../../src/services/mapsService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/services/mapsService')>()),
   searchOverpassPoisAlongRoute: (...args: unknown[]) => alongMock(...args),
   overpassElements: (...args: unknown[]) => elementsMock(...args),
+}));
+
+vi.mock('../../src/services/googleLodgingService', () => ({
+  googleLodgingAvailable: (...a: unknown[]) => googleAvailableMock(...a),
+  searchGoogleLodgingNear: (...a: unknown[]) => googleSearchMock(...a),
+  resetGoogleLodgingCache: () => {},
 }));
 
 import { createApp } from '../../src/app';
@@ -58,7 +66,7 @@ import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 const app: Application = createApp();
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); });
+beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); googleAvailableMock.mockReset(); googleAvailableMock.mockReturnValue(false); googleSearchMock.mockReset(); googleSearchMock.mockResolvedValue([]); });
 afterAll(() => { testDb.close(); });
 
 function track(n: number) {
@@ -340,7 +348,7 @@ describe('Planner smart cuts', () => {
     expect(c.km).toBeGreaterThan(51); expect(c.km).toBeLessThan(53);        // el de 52 km (−3,5), no el de 70 (+14,5)
     expect(c.shiftKm).toBeLessThan(0); expect(c.shiftKm).toBeGreaterThan(-5);
     expect(Number.isInteger(c.index)).toBe(true);
-    expect(elementsMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"');
+    expect(elementsMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|resort|camp_site|caravan_site)$"');
   });
 
   it('PLAN-061 — stageKm and marks modes; marks adjust existing cuts', async () => {
@@ -452,6 +460,77 @@ describe('Planner smart cuts', () => {
     const put = await request(app).put(`/api/planner/${r0.id}`).set('Cookie', authCookie(user.id))
       .send({ cuts: [{ index: 10, town: true, place: 'Béjar', unchecked: false }, { index: 30, town: 'x', place: 5 }] });
     expect(put.body.route.cuts).toEqual([{ index: 10, town: true, place: 'Béjar', unchecked: false }, { index: 30 }]);
+  });
+
+  const g = (id: string, km: number, name = 'Hotel Google') => ({ id, name, lat: lat(km), lng: -3 });
+
+  it('PLAN-080 — OSM has nothing but the user has a Google key: Google fills the gap and the cut says so', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    googleAvailableMock.mockReturnValue(true);
+    googleSearchMock.mockResolvedValue([g('p1', 58)]);                          // marca ideal 55,5 → +2,5 km
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(r.body.cuts[0]).toMatchObject({ lodged: true, source: 'google', unchecked: false });
+    expect(r.body.cuts[0].km).toBeGreaterThan(57); expect(r.body.cuts[0].km).toBeLessThan(59);
+    expect(r.body.sources).toMatchObject({ google: 'used', googleFound: expect.any(Number) });
+    expect(r.body.sources.googleQueries).toBeLessThanOrEqual(3);
+    expect(googleSearchMock.mock.calls[0][0]).toBe(user.id);
+    expect(googleSearchMock.mock.calls[0][3]).toBe(5000);
+  });
+
+  it('PLAN-081 — Google is NOT used when OSM already found a lodging near the cut (no needless spending)', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    googleAvailableMock.mockReturnValue(true);
+    elementsMock.mockImplementation(async (q: string) => (q.includes('"place"') ? [] : [hotelAt(1, 52)]));
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.body.cuts[0]).toMatchObject({ lodged: true, source: 'osm' });
+    expect(googleSearchMock).not.toHaveBeenCalled();
+    expect(r.body.sources).toMatchObject({ google: 'not-needed', googleQueries: 0 });
+  });
+
+  it('PLAN-082 — without a Google key the response says so (so the app can suggest adding one) and towns still work', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    googleAvailableMock.mockReturnValue(false);
+    elementsMock.mockImplementation(async (q: string) => (q.includes('"place"') ? [placeAt(1, 60, 'Cercedilla')] : []));
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.body.sources.google).toBe('no-key');
+    expect(r.body.cuts[0]).toMatchObject({ town: true, place: 'Cercedilla' });
+    expect(googleSearchMock).not.toHaveBeenCalled();
+  });
+
+  it('PLAN-083 — a Google failure (API not enabled, quota…) does not break the request and stops insisting', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    googleAvailableMock.mockReturnValue(true);
+    googleSearchMock.mockRejectedValue(Object.assign(new Error('Places API (New) has not been used'), { status: 403 }));
+    elementsMock.mockImplementation(async (q: string) => (q.includes('"place"') ? [placeAt(1, 60, 'Cercedilla')] : []));
+    const r = await smart(user.id, r0.id, { marks: [30, 55, 80] });
+    expect(r.status).toBe(200);
+    expect(r.body.sources.google).toBe('failed');
+    expect(googleSearchMock).toHaveBeenCalledTimes(1);                          // no se sigue gastando
+    expect(r.body.cuts.length).toBe(3);
+  });
+
+  it('PLAN-084 — never makes more than 15 Google requests in one go', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    googleAvailableMock.mockReturnValue(true);
+    const marks = Array.from({ length: 12 }, (_, i) => 5 + i * 8.5);
+    const r = await smart(user.id, r0.id, { marks });
+    expect(r.status).toBe(200);
+    expect(googleSearchMock.mock.calls.length).toBeLessThanOrEqual(15);
+    expect(r.body.sources.googleQueries).toBeLessThanOrEqual(15);
+  });
+
+  it('PLAN-085 — the source of each cut is stored with the route', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'A');
+    const put = await request(app).put(`/api/planner/${r0.id}`).set('Cookie', authCookie(user.id))
+      .send({ cuts: [{ index: 10, lodged: true, source: 'google' }, { index: 30, source: 'booking' }] });
+    expect(put.body.route.cuts).toEqual([{ index: 10, lodged: true, source: 'google' }, { index: 30 }]);
   });
 
   it('PLAN-063 — validation, one stage means no cuts, and routes are private', async () => {

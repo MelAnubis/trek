@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseRouteFile, cumulativeKm, simplifyPoints, simplifyLine, smoothElevation, gainLoss,
   autoSplit, buildStages, normalizeCuts, indexAtKm, nearestOnRoute, stageIndexOfPoint,
-  buildGpx, buildStageGpx, waypointsForStage, xmlEscape, safeFileName, type RoutePoint, type PlannerWaypoint,
+  buildGpx, buildStageGpx, waypointsForStage, xmlEscape, safeFileName, bookingSearchUrl, googleMapsHotelsUrl, type RoutePoint, type PlannerWaypoint,
 } from './plannerRoute'
 
 // Ruta recta hacia el norte: 0,01° de latitud ≈ 1,11 km por punto.
@@ -253,5 +253,23 @@ describe('GPX de salida', () => {
     expect(xmlEscape(`<&>"'`)).toBe('&lt;&amp;&gt;&quot;&apos;')
     expect(safeFileName('Camino de Santiago: etapa 1/3')).toBe('Camino_de_Santiago_etapa_1_3')
     expect(safeFileName('???')).toBe('ruta')
+  })
+})
+
+describe('enlaces para comprobar el alojamiento', () => {
+  it('Booking: busca la población (con tildes y espacios codificados) en el idioma del usuario', () => {
+    expect(bookingSearchUrl('Béjar', 'es-ES')).toBe('https://www.booking.com/searchresults.html?ss=B%C3%A9jar&lang=es')
+    expect(bookingSearchUrl('Ciudad Rodrigo & más', 'en')).toBe('https://www.booking.com/searchresults.html?ss=Ciudad%20Rodrigo%20%26%20m%C3%A1s&lang=en-gb')
+    expect(bookingSearchUrl('X', 'fr')).toContain('lang=en-gb')
+  })
+
+  it('Google Maps: hoteles alrededor de las coordenadas del final de la etapa', () => {
+    expect(googleMapsHotelsUrl(40.3861, -5.7571)).toBe('https://www.google.com/maps/search/hotel/@40.38610,-5.75710,14z')
+  })
+
+  it('la fuente del alojamiento llega a la etapa', () => {
+    const pts = line(101), cum = cumulativeKm(pts), sm = smoothElevation(pts, cum)
+    const st = buildStages(cum, sm, [{ index: 50, lodged: true, source: 'google' }], i => `E${i + 1}`)
+    expect(st[0].endSource).toBe('google')
   })
 })

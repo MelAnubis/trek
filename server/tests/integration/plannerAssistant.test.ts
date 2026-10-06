@@ -269,7 +269,7 @@ describe('POST /planner/assistant — stages end where you can sleep', () => {
     const total = r.body.quality.lengthKm;
     expect(r.body.stageEnds[0].km / total).toBeGreaterThan(0.43);
     expect(r.body.stageEnds[0].km / total).toBeLessThan(0.47);
-    expect(overpassMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"');   // un selector agrupado, no ocho
+    expect(overpassMock.mock.calls[0][0]).toContain('"tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|resort|camp_site|caravan_site)$"');   // un selector agrupado, no ocho
     expect(r.body.warnings.some((w: string) => w.startsWith('nolodging'))).toBe(false);
   });
 

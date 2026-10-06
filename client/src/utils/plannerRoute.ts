@@ -35,6 +35,8 @@ export interface Cut {
   shiftKm?: number
   /** true si no se pudo consultar OpenStreetMap para este corte (no es lo mismo que «no hay alojamiento»). */
   unchecked?: boolean
+  /** De dónde viene el alojamiento junto al que se ha puesto el corte. */
+  source?: 'osm' | 'google'
   /** true si no hay alojamiento mapeado y el corte se ha puesto en una población. */
   town?: boolean
   /** Nombre de la población en el corte (o la más cercana, a ≤ 3 km, si el corte es de alojamiento). */
@@ -115,6 +117,7 @@ export interface Stage {
   endUnchecked?: boolean
   endTown?: boolean
   endPlace?: string
+  endSource?: 'osm' | 'google'
 }
 
 export interface ParsedRoute {
@@ -362,7 +365,7 @@ export function buildStages(
       gain, loss,
       minEle: min == null ? null : Math.round(min), maxEle: max == null ? null : Math.round(max),
       name: named || defaultName(i),
-      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked, endTown: norm[i].town, endPlace: norm[i].place } : {}),
+      ...(i < norm.length ? { endLodged: norm[i].lodged, endShiftKm: norm[i].shiftKm, endUnchecked: norm[i].unchecked, endTown: norm[i].town, endPlace: norm[i].place, endSource: norm[i].source } : {}),
     })
   }
   return stages
@@ -587,3 +590,19 @@ export function fmtKm(km: number): string {
 }
 
 export function newWaypointId(): string { return uid() }
+
+// ── Enlaces para comprobar el alojamiento a mano ─────────────────────────────
+
+/**
+ * Búsqueda en Booking de la población donde acaba la etapa. Es solo un enlace que abre el usuario: Booking no tiene
+ * API pública de búsqueda y no se hace scraping de su web.
+ */
+export function bookingSearchUrl(place: string, locale = 'es'): string {
+  const lang = locale.toLowerCase().startsWith('es') ? 'es' : 'en-gb'
+  return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(place)}&lang=${lang}`
+}
+
+/** Hoteles alrededor de un punto en Google Maps. */
+export function googleMapsHotelsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/search/hotel/@${lat.toFixed(5)},${lng.toFixed(5)},14z`
+}

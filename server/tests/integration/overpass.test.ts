@@ -110,11 +110,11 @@ describe('overpassFetch (through overpassElements)', () => {
 });
 
 describe('selectors and along-route search', () => {
-  it('OV-006 — values of the same key collapse into ONE regex selector (and the polyline appears once)', () => {
+  it('OV-006 — values of the same key collapse into ONE regex selector (the polyline appears once per key, not once per value)', () => {
     const q = overpassSelectorsFor('lodging', '(around:1500,40.1,-3.1,40.2,-3.2)');
-    expect(q.split('\n')).toHaveLength(1);
-    expect(q).toContain('["tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|camp_site|caravan_site)$"]');
-    expect(q.match(/40\.1,-3\.1/g)).toHaveLength(1);
+    expect(q.split('\n')).toHaveLength(2);                              // clave tourism (regex) + building=hotel
+    expect(q).toContain('["tourism"~"^(hotel|hostel|guest_house|apartment|motel|chalet|resort|camp_site|caravan_site)$"]');
+    expect(q.match(/40\.1,-3\.1/g)).toHaveLength(2);                // una vez por selector, no ocho
     expect(overpassSelectorsFor('sights', '(1,2,3,4)').split('\n')).toHaveLength(2);     // tourism + historic
     expect(() => overpassSelectorsFor('nope', '(1,2,3,4)')).toThrow('Unknown POI category');
   });
@@ -172,7 +172,7 @@ describe('lodging tile cache', () => {
     expect(first.pois.map(p => p.osm_id).sort()).toEqual(['node:1', 'node:2']);
     expect(first.failedBuckets).toBe(0);
     const calls = f.mock.calls.length;
-    expect(testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category = 'lodging'").get()).toMatchObject({ c: expect.any(Number) });
+    expect(testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category LIKE 'lodging:%'").get()).toMatchObject({ c: expect.any(Number) });
     expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles").get() as any).c).toBeGreaterThanOrEqual(4);
 
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('down')));   // Overpass caído
@@ -242,8 +242,8 @@ describe('settlement tiles', () => {
     const r = await getTilePois('settlement', line, 2000);
     expect(r.pois.map(p => `${p.name}:${p.type}`).sort()).toEqual(['Ciudad:city', 'Pueblo:village']);
     expect(bodyOf(f.mock.calls[0])).toContain('["place"~"^(city|town|village)$"]');
-    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category = 'settlement'").get() as any).c).toBeGreaterThanOrEqual(4);
-    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category = 'lodging'").get() as any).c).toBe(0);
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category LIKE 'settlement:%'").get() as any).c).toBeGreaterThanOrEqual(4);
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category LIKE 'lodging:%'").get() as any).c).toBe(0);
   });
 
   it('OV-018 — lodging and settlements do not share cache entries', async () => {
@@ -255,5 +255,26 @@ describe('settlement tiles', () => {
     const l = await getLodgingNearLine(line, 1500);                       // aún no estaba en caché → pregunta
     expect(f.mock.calls.length).toBeGreaterThan(before);
     expect(l.pois.map(p => p.osm_id)).toEqual(['node:2']);
+  });
+});
+
+describe('cache versioning and the broader lodging filter', () => {
+  const line = lineN(40.05, 40.35, 30);
+
+  it('OV-019 — lodging also asks for resorts and buildings tagged as hotel (casas rurales, hostales…)', () => {
+    const q = overpassSelectorsFor('lodging', '(1,2,3,4)');
+    expect(q).toContain('resort');
+    expect(q).toContain('["building"="hotel"]');
+  });
+
+  it('OV-020 — tiles stored by an older filter version are ignored and refetched', async () => {
+    const f = vi.fn().mockResolvedValue(ok([node(1, 40.12, -3)]));
+    vi.stubGlobal('fetch', f);
+    await getLodgingNearLine(line, 1500);
+    testDb.prepare("UPDATE poi_tiles SET category = 'lodging'").run();          // como las guardadas antes de ampliar los filtros
+    const before = f.mock.calls.length;
+    await getLodgingNearLine(line, 1500);
+    expect(f.mock.calls.length).toBeGreaterThan(before);
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category LIKE 'lodging:v%'").get() as any).c).toBeGreaterThan(0);
   });
 });

@@ -10,7 +10,7 @@ let googleApiCallCount = 0;
 export function getGoogleApiCallCount(): number { return googleApiCallCount; }
 export function resetGoogleApiCallCount(): void { googleApiCallCount = 0; }
 
-function googleFetch(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
+export function googleFetch(endpoint: string, label: string, init?: RequestInit): Promise<Response> {
   googleApiCallCount++;
   console.debug(`[Google API] #${googleApiCallCount} ${label} → ${endpoint}`);
   const referer = process.env.APP_URL ? getAppUrl() : undefined;
@@ -848,7 +848,7 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   camping: ['tourism=camp_site', 'tourism=caravan_site'],
   // Everything you can sleep in (hotels, hostels, guest houses / casas rurales, apartments, chalets, campsites).
   // Used to end cycling stages in places with accommodation.
-  lodging: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel', 'tourism=chalet', 'tourism=camp_site', 'tourism=caravan_site'],
+  lodging: ['tourism=hotel', 'tourism=hostel', 'tourism=guest_house', 'tourism=apartment', 'tourism=motel', 'tourism=chalet', 'tourism=resort', 'tourism=camp_site', 'tourism=caravan_site', 'building=hotel'],
   supermarket: ['shop=supermarket', 'shop=convenience'],
   bike_shop: ['shop=bicycle'],
   bike_repair: ['amenity=bicycle_repair_station'],

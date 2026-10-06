@@ -15,7 +15,7 @@ import { saveTextFile } from '../utils/saveFile'
 import {
   PLANNER_CATEGORIES, CATEGORY_BY_KEY, GENERIC_WAYPOINT,
   parseRouteFile, simplifyPoints, simplifyLine, cumulativeKm, smoothElevation, routeStats, buildStages,
-  autoSplit, normalizeCuts, nearestOnRoute, indexAtKm, buildGpx, buildStageGpx, safeFileName, fmtKm,
+  autoSplit, normalizeCuts, nearestOnRoute, indexAtKm, haversineM, bookingSearchUrl, googleMapsHotelsUrl, buildGpx, buildStageGpx, safeFileName, fmtKm,
   toCompact, fromCompact, newWaypointId,
   type RoutePoint, type Cut, type PlannerWaypoint, type PlannerSettings, type PlannerRouteSummary,
 } from '../utils/plannerRoute'
@@ -339,7 +339,7 @@ export default function PlannerPage(): React.ReactElement {
 
   const applyLodgingCuts = (res: Awaited<ReturnType<typeof plannerApi.smartCuts>>, keepNames: boolean) => {
     const next: Cut[] = res.cuts.map((c, i) => ({
-      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm, ...(c.unchecked ? { unchecked: true } : {}), ...(c.town ? { town: true } : {}), ...(c.place ? { place: c.place } : {}),
+      index: c.index, lodged: c.lodged, shiftKm: c.shiftKm, ...(c.unchecked ? { unchecked: true } : {}), ...(c.town ? { town: true } : {}), ...(c.place ? { place: c.place } : {}), ...(c.source ? { source: c.source } : {}),
       ...(keepNames && cuts.length === res.cuts.length && cuts[i].name ? { name: cuts[i].name } : {}),
     }))
     markDirty()
@@ -353,6 +353,10 @@ export default function PlannerPage(): React.ReactElement {
       if (unchecked) toast.warning(t('planner.stages.cuts.unchecked', { n: unchecked }))
       if (inTown) toast.info(t('planner.stages.cuts.inTown', { n: inTown }))
       if (without) toast.info(t('planner.stages.cuts.someWithout', { n: without }))
+      // Sin alojamiento en OpenStreetMap: se explica por qué Google no ayudó (sin clave / no responde) en vez de dejarlo en silencio.
+      const missing = res.cuts.filter(c => !c.lodged).length
+      if (missing && res.sources?.google === 'no-key') toast.info(t('planner.stages.cuts.noGoogleKey', { n: missing }))
+      else if (res.sources?.google === 'failed') toast.warning(t('planner.stages.cuts.googleFailed'))
     }
   }
 
@@ -471,7 +475,7 @@ export default function PlannerPage(): React.ReactElement {
         for (const [from, to] of chunks) {
           try {
             const line = simplifyLine(points.slice(from, to + 1), 300)
-            const res = await plannerApi.poisAlongRoute(cat, line, radius, ctrl.signal)
+            const res = await plannerApi.poisAlongRoute(cat === 'hotel' ? 'lodging' : cat, line, radius, ctrl.signal)
             if (res.truncated) anyTruncated = true
             if (res.partial) anyPartial = true
             for (const p of res.pois) {
@@ -583,6 +587,7 @@ export default function PlannerPage(): React.ReactElement {
       case 'offtrack': return t('planner.ai.warn.offtrack', { list: detail })
       case 'nolodging': return t('planner.ai.warn.nolodging', { stages: detail })
       case 'nolodgingdata': return t('planner.ai.warn.nolodgingdata')
+      case 'googlefailed': return t('planner.ai.warn.googlefailed')
       case 'towncut': return t('planner.ai.warn.towncut', { list: detail })
       case 'lodgingunchecked': return t('planner.ai.warn.lodgingunchecked', { stages: detail })
       case 'detourstop': return t('planner.ai.warn.detourstop', { list: detail })
@@ -762,7 +767,7 @@ export default function PlannerPage(): React.ReactElement {
             </div>
             {st.endLodged === true && (
               <div style={{ fontSize: 11, marginTop: 5, color: '#15803d' }}>
-                🛏️ {st.endPlace ? t('planner.stages.end.lodgedIn', { place: st.endPlace }) : t('planner.stages.end.lodged')}{shiftLabel(st.endShiftKm)}
+                🛏️ {st.endPlace ? t('planner.stages.end.lodgedIn', { place: st.endPlace }) : t('planner.stages.end.lodged')}{shiftLabel(st.endShiftKm)}{st.endSource === 'google' ? ' · Google' : ''}
               </div>
             )}
             {st.endLodged !== true && st.endTown && (
@@ -774,6 +779,20 @@ export default function PlannerPage(): React.ReactElement {
             {st.endLodged === false && !st.endTown && (
               <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t(st.endUnchecked ? 'planner.stages.end.unchecked' : 'planner.stages.end.none')}</div>
             )}
+            {(() => {
+              // Enlaces para comprobar el alojamiento a mano (Booking no tiene API pública: solo abrimos su buscador).
+              const end = points[st.to]
+              if (!end) return null
+              const wp = waypoints.find(w => w.name && haversineM(w.lat, w.lng, end.lat, end.lng) < 3000)
+              const place = st.endPlace || wp?.name
+              const link: React.CSSProperties = { color: 'var(--accent, #e85d24)', fontWeight: 600, textDecoration: 'none' }
+              return (
+                <div style={{ display: 'flex', gap: 12, marginTop: 5, fontSize: 11 }} onClick={e => e.stopPropagation()}>
+                  {place && <a href={bookingSearchUrl(place, locale)} target="_blank" rel="noopener noreferrer" style={link}>🔎 {t('planner.stages.end.booking')}</a>}
+                  <a href={googleMapsHotelsUrl(end.lat, end.lng)} target="_blank" rel="noopener noreferrer" style={link}>📍 {t('planner.stages.end.googleMaps')}</a>
+                </div>
+              )
+            })()}
             {i > 0 && (
               <button type="button" style={{ ...btn, padding: '3px 8px', fontSize: 11, marginTop: 6 }}
                 onClick={e => { e.stopPropagation(); mergeWithPrevious(i) }}>{t('planner.stages.merge')}</button>

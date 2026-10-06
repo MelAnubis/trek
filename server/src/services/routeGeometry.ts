@@ -207,7 +207,7 @@ export function simplifyLine(track: TrackPoint[], maxPts = 300): [number, number
 // ── Etapas que terminan donde se puede dormir ────────────────────────────────
 
 /** Un núcleo con alojamiento: km de recorrido y cuántos alojamientos se agrupan (más = más probable que sea una población). */
-export interface LodgingSpot { km: number; weight: number }
+export interface LodgingSpot { km: number; weight: number; /** De dónde viene el dato. */ src?: 'osm' | 'google' }
 
 export interface StageCut {
   km: number;
@@ -217,6 +217,8 @@ export interface StageCut {
   shiftKm: number;
   /** true si no se pudo comprobar si hay alojamiento (falló la consulta): no es lo mismo que «no hay». */
   unchecked?: boolean;
+  /** Fuente del alojamiento en el que se ha puesto el corte. */
+  source?: 'osm' | 'google';
   /** true si no se encontró alojamiento y el corte se ha puesto en una población (donde normalmente lo hay). */
   town?: boolean;
   /** Nombre de la población en el corte (o la más cercana, a ≤ 3 km, si el corte es de alojamiento). */
@@ -227,11 +229,11 @@ export interface StageCut {
 export interface TownSpot { km: number; weight: number; name: string }
 
 /** Agrupa alojamientos que están a menos de `gapKm` entre sí a lo largo del recorrido: casi siempre son un mismo pueblo. */
-export function clusterLodging(kms: number[], gapKm = 1.5): LodgingSpot[] {
+export function clusterLodging(kms: number[], gapKm = 1.5, src?: 'osm' | 'google'): LodgingSpot[] {
   const sorted = kms.filter(Number.isFinite).sort((a, b) => a - b);
   const out: LodgingSpot[] = [];
   let group: number[] = [];
-  const flush = () => { if (group.length) { out.push({ km: group[group.length >> 1], weight: group.length }); group = []; } };
+  const flush = () => { if (group.length) { out.push({ km: group[group.length >> 1], weight: group.length, ...(src ? { src } : {}) }); group = []; } };
   for (const k of sorted) {
     if (group.length && k - group[group.length - 1] > gapKm) flush();
     group.push(k);
@@ -300,6 +302,7 @@ export function chooseStageCuts(
     const place = town ? town.name : lodging ? nearestTown(lodging.km) : undefined;
     cuts.push({
       km, lodged: !!lodging, shiftKm: km - mark,
+      ...(lodging?.src ? { source: lodging.src } : {}),
       ...(town ? { town: true } : {}), ...(place ? { place } : {}),
     });
     prev = km;

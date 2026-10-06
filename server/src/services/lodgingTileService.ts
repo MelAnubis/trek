@@ -11,6 +11,9 @@ import { db } from '../db/database';
 import { overpassElements, overpassSelectorsFor } from './mapsService';
 
 const TILE_DEG = 0.1;
+/** Súbelo al cambiar los filtros de una categoría: las teselas guardadas con los filtros antiguos dejan de valer. */
+const CACHE_VERSION = 2;
+const cacheKey = (category: string) => `${category}:v${CACHE_VERSION}`;
 const BUCKET_TILES = 4;                       // una consulta cubre hasta 4×4 teselas (0,4° × 0,4°)
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const PRUNE_AFTER_MS = 120 * 24 * 60 * 60 * 1000;
@@ -65,7 +68,7 @@ export function tilesForLine(line: [number, number][], radiusM: number): Set<str
 const parseKey = (k: string): [number, number] => { const [a, b] = k.split(':'); return [Number(a), Number(b)]; };
 
 function readTile(category: string, key: string): StoredPoi[] | null {
-  const row = db.prepare('SELECT fetched_at, data FROM poi_tiles WHERE category = ? AND tile = ?').get(category, key) as { fetched_at: number; data: string } | undefined;
+  const row = db.prepare('SELECT fetched_at, data FROM poi_tiles WHERE category = ? AND tile = ?').get(cacheKey(category), key) as { fetched_at: number; data: string } | undefined;
   if (!row || Date.now() - row.fetched_at > TTL_MS) return null;
   try { return JSON.parse(row.data) as StoredPoi[]; } catch { return null; }
 }
@@ -125,7 +128,7 @@ export async function getTilePois(category: TileCategory, line: [number, number]
       const complete = elements.length < ELEMENT_CAP;    // al tope puede faltar algo: se usa pero no se cachea
       const now = Date.now();
       for (const [k, list] of perTile) {
-        if (complete) upsert.run(category, k, now, JSON.stringify(list));
+        if (complete) upsert.run(cacheKey(category), k, now, JSON.stringify(list));
         if (needed.includes(k)) data.set(k, list);
       }
     } catch {
