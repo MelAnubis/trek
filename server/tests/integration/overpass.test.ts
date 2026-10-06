@@ -40,16 +40,18 @@ vi.mock('../../src/config', () => ({
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine } from '../../src/services/mapsService';
-import { getLodgingNearLine, getTilePois, tilesForLine } from '../../src/services/lodgingTileService';
+import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine, nominatimLodgingElements, resetNominatimCache } from '../../src/services/mapsService';
+import { getLodgingNearLine, getTilePois, tilesForLine, searchTilePoisAlongRoute, tileCategoryFor } from '../../src/services/lodgingTileService';
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
   resetTestDb(testDb);
   process.env.OVERPASS_RETRY_BACKOFF_MS = '1';
+  process.env.NOMINATIM_FALLBACK_PAUSE_MS = '0';
+  resetNominatimCache();
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); delete process.env.OVERPASS_URLS; delete process.env.OVERPASS_RETRY_BACKOFF_MS; });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); delete process.env.OVERPASS_URLS; delete process.env.OVERPASS_RETRY_BACKOFF_MS; delete process.env.NOMINATIM_FALLBACK_PAUSE_MS; });
 afterAll(() => { testDb.close(); });
 
 const ok = (elements: unknown[]) => ({ ok: true, status: 200, json: async () => ({ elements }) });
@@ -276,5 +278,112 @@ describe('cache versioning and the broader lodging filter', () => {
     await getLodgingNearLine(line, 1500);
     expect(f.mock.calls.length).toBeGreaterThan(before);
     expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles WHERE category LIKE 'lodging:v%'").get() as any).c).toBeGreaterThan(0);
+  });
+});
+
+describe('when Overpass is down: stale data and Nominatim', () => {
+  const line = lineN(40.05, 40.35, 30);
+  const isNominatim = (u: string) => u.includes('nominatim.openstreetmap.org');
+  const nomRow = (id: number, lat: number, lon: number, type = 'hotel', name = 'N' + id, category = 'tourism') =>
+    ({ osm_type: 'node', osm_id: id, lat: String(lat), lon: String(lon), category, type, name });
+
+  it('OV-021 — expired tiles are used when the refresh fails (better old data than none), and it is not a failure', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([node(1, 40.12, -3)])));
+    await getTilePois('settlement', line, 2000);                                    // vacío para settlement; nos vale cualquier categoría
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([node(1, 40.12, -3), node(2, 40.2, -3)])));
+    await getLodgingNearLine(line, 1500);
+    testDb.prepare('UPDATE poi_tiles SET fetched_at = ?').run(Date.now() - 40 * 24 * 3600 * 1000);   // caducado
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (u: string) => (isNominatim(u) ? http(503) : http(504))));
+    const r = await getTilePois('camping', line, 1500);                              // nada en caché para camping → fallo real
+    expect(r.failedBuckets).toBeGreaterThan(0);
+    const l = await getLodgingNearLine(line, 1500);                                  // lodging sí tiene caducado → se usa
+    expect(l.pois.length).toBe(2);
+    expect(l.staleTiles).toBeGreaterThan(0);
+    expect(l.failedBuckets).toBe(0);
+    expect(l.errors.length).toBeGreaterThan(0);
+  });
+
+  it('OV-022 — lodging falls back to Nominatim when every Overpass mirror fails; the result is used but NOT cached', async () => {
+    const f = vi.fn().mockImplementation(async (u: string) => (isNominatim(u)
+      ? ok(null as unknown as unknown[]) && { ok: true, status: 200, json: async () => [nomRow(1, 40.12, -3), nomRow(2, 40.2, -3, 'guest_house'), nomRow(3, 40.25, -3, 'restaurant', 'No', 'amenity')] }
+      : http(504)));
+    vi.stubGlobal('fetch', f);
+    const r = await getLodgingNearLine(line, 1500);
+    expect(r.pois.map(p => p.osm_id).sort()).toEqual(['node:1', 'node:2']);       // el restaurante no es un alojamiento
+    expect(r.failedBuckets).toBe(0);
+    expect(r.fallbackTiles).toBeGreaterThan(0);
+    expect(r.errors.some(e => e.includes('HTTP 504'))).toBe(true);
+    expect((testDb.prepare("SELECT COUNT(*) AS c FROM poi_tiles").get() as any).c).toBe(0);      // puede estar incompleto: no se guarda
+    const nom = f.mock.calls.filter(c => isNominatim(String(c[0])));
+    expect(nom.length).toBeGreaterThanOrEqual(4);                                  // hotel, hostal, casa rural, camping
+    const url = new URL(String(nom[0][0]));
+    expect(url.searchParams.get('bounded')).toBe('1');
+    expect(url.searchParams.get('viewbox')!.split(',')).toHaveLength(4);
+    expect((nom[0][1] as { headers: Record<string, string> }).headers['User-Agent']).toContain('Trek');
+  });
+
+  it('OV-023 — Nominatim is only a fallback for lodging; other categories just fail', async () => {
+    const f = vi.fn().mockImplementation(async () => http(504));
+    vi.stubGlobal('fetch', f);
+    const r = await getTilePois('camping', line, 1500);
+    expect(r.failedBuckets).toBeGreaterThan(0);
+    expect(f.mock.calls.some(c => isNominatim(String(c[0])))).toBe(false);
+  });
+
+  it('OV-024 — if Nominatim fails too, lodging fails and reports why', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(http(503)));
+    const r = await getLodgingNearLine(line, 1500);
+    expect(r.failedBuckets).toBeGreaterThan(0);
+    expect(r.errors.length).toBeGreaterThan(0);
+  });
+
+  it('OV-025 — nominatimLodgingElements keeps only tourism lodging types and de-duplicates across terms', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => [nomRow(1, 40.1, -3), nomRow(1, 40.1, -3), nomRow(2, 40.1, -3, 'museum'), nomRow(3, 40.1, -3, 'camp_site')] }));
+    const els = await nominatimLodgingElements(40, -3.1, 40.2, -2.9);
+    expect(els.map(e => e.id).sort()).toEqual([1, 3]);
+    expect(els[0].tags?.tourism).toBeTruthy();
+  });
+});
+
+describe('panel search through tiles (searchTilePoisAlongRoute)', () => {
+  const line = lineN(40.05, 40.35, 30);
+
+  it('OV-026 — "hotel" means every kind of lodging; categories that are not tiled return null', () => {
+    expect(tileCategoryFor('hotel')).toBe('lodging');
+    expect(tileCategoryFor('camping')).toBe('camping');
+    expect(tileCategoryFor('restaurant')).toBeNull();
+    expect(tileCategoryFor('cafe')).toBeNull();
+  });
+
+  it('OV-027 — drops unnamed shops but keeps unnamed fountains (and not undrinkable ones); keeps the requested category', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([
+      node(1, 40.12, -3, { shop: 'supermarket', name: 'Súper' }), node(2, 40.13, -3, { shop: 'supermarket' }),
+    ])));
+    const sm = await searchTilePoisAlongRoute('supermarket', line, 1500);
+    expect(sm.pois.map(p => p.name)).toEqual(['Súper']);
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([
+      node(3, 40.12, -3, { amenity: 'drinking_water' }), node(4, 40.13, -3, { amenity: 'drinking_water', drinking_water: 'no' }),
+    ])));
+    const w = await searchTilePoisAlongRoute('water', line, 1500);
+    expect(w.pois.map(p => p.osm_id)).toEqual(['node:3']);
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([node(5, 40.12, -3)])));
+    const h = await searchTilePoisAlongRoute('hotel', line, 1500);
+    expect(h.pois[0]).toMatchObject({ category: 'hotel', osm_id: 'node:5', source: 'openstreetmap' });
+  });
+
+  it('OV-028 — throws 502 with the reasons only when nothing could be obtained; partial otherwise', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(http(504)));
+    await expect(searchTilePoisAlongRoute('camping', line, 1500)).rejects.toMatchObject({ status: 502, detail: expect.any(Array) });
+
+    // una mitad responde y la otra no → resultado parcial
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (_u: string, init: { body: string }) => {
+      const south = Number(/\(([-\d.]+),([-\d.]+),/.exec(decodeURIComponent(init.body))![1]);   // (sur,oeste,norte,este)
+      return south < 40.2 ? ok([node(7, 40.31, -3, { tourism: 'camp_site', name: 'Camping' })]) : http(504);
+    }));
+    const r = await searchTilePoisAlongRoute('camping', lineN(40.05, 40.45, 40), 1500);
+    expect(r.partial).toBe(true);
+    expect(r.pois.map(p => p.name)).toContain('Camping');
   });
 });

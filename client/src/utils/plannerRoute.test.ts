@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   parseRouteFile, cumulativeKm, simplifyPoints, simplifyLine, smoothElevation, gainLoss,
   autoSplit, buildStages, normalizeCuts, indexAtKm, nearestOnRoute, stageIndexOfPoint,
-  buildGpx, buildStageGpx, waypointsForStage, xmlEscape, safeFileName, bookingSearchUrl, googleMapsHotelsUrl, type RoutePoint, type PlannerWaypoint,
+  buildGpx, buildStageGpx, waypointsForStage, xmlEscape, safeFileName, bookingSearchUrl, googleMapsHotelsUrl, addDaysIso, nightOfStage, type RoutePoint, type PlannerWaypoint,
 } from './plannerRoute'
 
 // Ruta recta hacia el norte: 0,01° de latitud ≈ 1,11 km por punto.
@@ -271,5 +271,29 @@ describe('enlaces para comprobar el alojamiento', () => {
     const pts = line(101), cum = cumulativeKm(pts), sm = smoothElevation(pts, cum)
     const st = buildStages(cum, sm, [{ index: 50, lodged: true, source: 'google' }], i => `E${i + 1}`)
     expect(st[0].endSource).toBe('google')
+  })
+})
+
+describe('fechas de las noches para Booking', () => {
+  it('addDaysIso suma días respetando meses y años, y rechaza fechas que no existen', () => {
+    expect(addDaysIso('2026-10-30', 3)).toBe('2026-11-02')
+    expect(addDaysIso('2026-12-31', 1)).toBe('2027-01-01')
+    expect(addDaysIso('2028-02-28', 1)).toBe('2028-02-29')
+    expect(addDaysIso('2026-02-30', 1)).toBeNull()
+    expect(addDaysIso('12/10/2026', 1)).toBeNull()
+    expect(addDaysIso('', 1)).toBeNull()
+  })
+
+  it('la noche de cada etapa: la 1ª termina el día de salida y se duerme esa noche', () => {
+    expect(nightOfStage('2026-10-12', 0)).toEqual({ checkin: '2026-10-12', checkout: '2026-10-13' })
+    expect(nightOfStage('2026-10-12', 3)).toEqual({ checkin: '2026-10-15', checkout: '2026-10-16' })
+    expect(nightOfStage(undefined, 0)).toBeUndefined()
+    expect(nightOfStage('no-es-fecha', 0)).toBeUndefined()
+  })
+
+  it('el enlace de Booking lleva las fechas solo cuando hay fecha de salida', () => {
+    expect(bookingSearchUrl('Béjar', 'es', { checkin: '2026-10-12', checkout: '2026-10-13' }))
+      .toBe('https://www.booking.com/searchresults.html?ss=B%C3%A9jar&lang=es&checkin=2026-10-12&checkout=2026-10-13&group_adults=1&no_rooms=1')
+    expect(bookingSearchUrl('Béjar', 'es')).not.toContain('checkin')
   })
 })

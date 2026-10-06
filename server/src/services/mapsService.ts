@@ -861,6 +861,8 @@ const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
 // They are kept with an empty name instead of being dropped; the client shows
 // the category label in that case.
 const UNNAMED_OK = new Set(['water', 'bike_repair', 'lodging']);
+/** ¿Tiene sentido un POI sin nombre en esta categoría? (una fuente o un alojamiento sin nombre sí; una tienda, no). */
+export const categoryAllowsUnnamed = (category: string): boolean => UNNAMED_OK.has(category);
 
 export const POI_CATEGORY_KEYS = Object.keys(CATEGORY_OSM_FILTERS);
 
@@ -959,6 +961,66 @@ async function overpassFetch(query: string, opts: { rounds?: number } = {}): Pro
 /** Consulta cruda a Overpass (los llamadores construyen la query). Usada por el caché de alojamientos por teselas. */
 export async function overpassElements(query: string, opts: { rounds?: number } = {}): Promise<OverpassPoiElement[]> {
   return overpassFetch(query, opts);
+}
+
+// ── Alternativa a Overpass: Nominatim ────────────────────────────────────────
+// Cuando Overpass (servidores públicos) no responde, Nominatim sigue siendo otra infraestructura distinta y suele
+// estar disponible. Es la misma base de datos de OpenStreetMap, pero con otro servidor. Se usa solo como último
+// recurso, con pocas consultas y respetando su límite de 1 petición por segundo.
+
+const NOMINATIM_LODGING_TERMS = ['hotel', 'hostal', 'casa rural', 'camping'];
+const NOMINATIM_LODGING_TYPES = new Set(['hotel', 'hostel', 'guest_house', 'apartment', 'motel', 'chalet', 'resort', 'camp_site', 'caravan_site']);
+const NOMINATIM_BOX_CACHE = new Map<string, { at: number; value: OverpassPoiElement[] }>();
+
+/** Vacía la caché en memoria de Nominatim (tests). */
+export function resetNominatimCache(): void { NOMINATIM_BOX_CACHE.clear(); }
+
+/**
+ * Alojamientos de OpenStreetMap dentro de una caja, vía Nominatim, con la forma de los elementos de Overpass.
+ * Cada término devuelve como mucho 50 resultados, así que el resultado puede estar incompleto: quien lo use no
+ * debe darlo por definitivo ni guardarlo como si lo fuera.
+ */
+export async function nominatimLodgingElements(south: number, west: number, north: number, east: number): Promise<OverpassPoiElement[]> {
+  const key = [south, west, north, east].map(n => n.toFixed(3)).join(',');
+  const hit = NOMINATIM_BOX_CACHE.get(key);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.value;
+
+  const pause = Number(process.env.NOMINATIM_FALLBACK_PAUSE_MS ?? 1100);
+  const found = new Map<string, OverpassPoiElement>();
+  let ok = 0, lastErr = '';
+  for (let i = 0; i < NOMINATIM_LODGING_TERMS.length; i++) {
+    if (i > 0 && pause > 0) await sleep(pause);
+    const params = new URLSearchParams({
+      format: 'jsonv2', q: NOMINATIM_LODGING_TERMS[i], bounded: '1', limit: '50',
+      viewbox: `${west},${north},${east},${south}`,           // izquierda, arriba, derecha, abajo
+      addressdetails: '0', 'accept-language': 'es',
+    });
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+        headers: { 'User-Agent': UA, Accept: 'application/json' }, signal: AbortSignal.timeout(10000),
+      });
+      if (!res.ok) { lastErr = `nominatim.openstreetmap.org: HTTP ${res.status}`; continue; }
+      const rows = await res.json() as { osm_type?: string; osm_id?: number; lat?: string; lon?: string; category?: string; class?: string; type?: string; name?: string; display_name?: string }[];
+      ok++;
+      for (const r of Array.isArray(rows) ? rows : []) {
+        const cls = r.category ?? r.class;
+        if (cls !== 'tourism' || !r.type || !NOMINATIM_LODGING_TYPES.has(r.type)) continue;
+        const lat = Number(r.lat), lon = Number(r.lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon) || r.osm_id == null || !r.osm_type) continue;
+        found.set(`${r.osm_type}:${r.osm_id}`, {
+          type: r.osm_type, id: r.osm_id, lat, lon,
+          tags: { tourism: r.type, name: r.name || (r.display_name ? r.display_name.split(',')[0] : '') },
+        } as OverpassPoiElement);
+      }
+    } catch (err) {
+      lastErr = `nominatim.openstreetmap.org: ${(err as Error)?.message ?? err}`;
+    }
+  }
+  if (!ok) throw Object.assign(new Error(lastErr || 'Nominatim request failed'), { status: 502 });
+  const value = [...found.values()];
+  if (NOMINATIM_BOX_CACHE.size >= 100) NOMINATIM_BOX_CACHE.delete(NOMINATIM_BOX_CACHE.keys().next().value as string);
+  NOMINATIM_BOX_CACHE.set(key, { at: Date.now(), value });
+  return value;
 }
 
 /**

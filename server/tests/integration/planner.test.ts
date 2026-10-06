@@ -186,19 +186,19 @@ describe('POST /maps/pois/along-route', () => {
 
   it('PLAN-010 — returns the service result and forwards radius', async () => {
     const { user } = createUser(testDb);
-    alongMock.mockResolvedValueOnce({ pois: [{ osm_id: 'node:9', name: '', lat: 40.2, lng: -3, category: 'water' }], truncated: false });
+    alongMock.mockResolvedValueOnce({ pois: [{ osm_id: 'node:9', name: 'Bar', lat: 40.2, lng: -3, category: 'restaurant' }], truncated: false });
     const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id))
-      .send({ category: 'water', line, radius: 1500 });
+      .send({ category: 'restaurant', line, radius: 1500 });
     expect(r.status).toBe(200);
     expect(r.body.pois[0].osm_id).toBe('node:9');
-    expect(alongMock).toHaveBeenCalledWith('water', [[40, -3], [40.5, -3]], 1500);
+    expect(alongMock).toHaveBeenCalledWith('restaurant', [[40, -3], [40.5, -3]], 1500);
   });
 
   it('PLAN-011 — requires authentication and surfaces upstream errors', async () => {
-    expect((await request(app).post('/api/maps/pois/along-route').send({ category: 'water', line })).status).toBe(401);
+    expect((await request(app).post('/api/maps/pois/along-route').send({ category: 'restaurant', line })).status).toBe(401);
     const { user } = createUser(testDb);
     alongMock.mockRejectedValueOnce(Object.assign(new Error('Overpass request failed'), { status: 502 }));
-    const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id)).send({ category: 'water', line });
+    const r = await request(app).post('/api/maps/pois/along-route').set('Cookie', authCookie(user.id)).send({ category: 'restaurant', line });
     expect(r.status).toBe(502);
   });
 });

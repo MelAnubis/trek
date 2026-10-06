@@ -48,6 +48,8 @@ export interface PlannerSettings {
   stageKm?: number
   /** Radio de búsqueda de servicios, en metros. */
   poiRadiusM?: number
+  /** Fecha de salida (AAAA-MM-DD): con ella los enlaces a Booking llevan las fechas de cada noche. */
+  startDate?: string
   /** Nombre personalizado de la primera etapa (las demás lo guardan en el corte que las abre). */
   firstStageName?: string
 }
@@ -597,9 +599,26 @@ export function newWaypointId(): string { return uid() }
  * Búsqueda en Booking de la población donde acaba la etapa. Es solo un enlace que abre el usuario: Booking no tiene
  * API pública de búsqueda y no se hace scraping de su web.
  */
-export function bookingSearchUrl(place: string, locale = 'es'): string {
+export function bookingSearchUrl(place: string, locale = 'es', night?: { checkin: string; checkout: string }): string {
   const lang = locale.toLowerCase().startsWith('es') ? 'es' : 'en-gb'
-  return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(place)}&lang=${lang}`
+  const dates = night ? `&checkin=${night.checkin}&checkout=${night.checkout}&group_adults=1&no_rooms=1` : ''
+  return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(place)}&lang=${lang}${dates}`
+}
+
+/** Suma `n` días a una fecha AAAA-MM-DD (en UTC, sin sorpresas por el cambio de hora). Devuelve null si la fecha no es válida. */
+export function addDaysIso(iso: string, n: number): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null
+  const d = new Date(`${iso}T00:00:00Z`)
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== iso) return null
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Noche que se pasa al final de la etapa `stageIdx` (0 = primera) si se sale el día `startDate`. */
+export function nightOfStage(startDate: string | undefined, stageIdx: number): { checkin: string; checkout: string } | undefined {
+  if (!startDate) return undefined
+  const checkin = addDaysIso(startDate, stageIdx), checkout = addDaysIso(startDate, stageIdx + 1)
+  return checkin && checkout ? { checkin, checkout } : undefined
 }
 
 /** Hoteles alrededor de un punto en Google Maps. */

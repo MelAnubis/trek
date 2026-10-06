@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
+import { searchTilePoisAlongRoute, tileCategoryFor } from '../services/lodgingTileService'
 import {
   searchPlaces,
   getPlaceDetails,
@@ -186,13 +187,18 @@ router.post('/pois/along-route', authenticate, async (req: Request, res: Respons
     pts.push([la, lo])
   }
   try {
-    const result = await searchOverpassPoisAlongRoute(category, pts, Number(radius) || 1000)
+    // Las categorías poco densas (alojamiento, camping, estaciones, tiendas de bici, supermercados, agua) se sirven
+    // por teselas con caché: sobreviven a las caídas de Overpass. Las densas (restaurantes, cafés…) van por corredor.
+    const result = tileCategoryFor(category)
+      ? await searchTilePoisAlongRoute(category, pts, Number(radius) || 1000)
+      : await searchOverpassPoisAlongRoute(category, pts, Number(radius) || 1000)
     res.json(result)
   } catch (err: unknown) {
     const status = (err as { status?: number }).status || 500
     const message = err instanceof Error ? err.message : 'POI search error'
     if (status >= 500) console.error('[Maps] along-route POI error:', err)
-    res.status(status).json({ error: message })
+    const detail = (err as { detail?: string[] }).detail
+    res.status(status).json({ error: message, ...(detail?.length ? { detail: detail.slice(0, 3) } : {}) })
   }
 })
 

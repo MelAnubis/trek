@@ -15,7 +15,7 @@ import { saveTextFile } from '../utils/saveFile'
 import {
   PLANNER_CATEGORIES, CATEGORY_BY_KEY, GENERIC_WAYPOINT,
   parseRouteFile, simplifyPoints, simplifyLine, cumulativeKm, smoothElevation, routeStats, buildStages,
-  autoSplit, normalizeCuts, nearestOnRoute, indexAtKm, haversineM, bookingSearchUrl, googleMapsHotelsUrl, buildGpx, buildStageGpx, safeFileName, fmtKm,
+  autoSplit, normalizeCuts, nearestOnRoute, indexAtKm, haversineM, bookingSearchUrl, googleMapsHotelsUrl, nightOfStage, buildGpx, buildStageGpx, safeFileName, fmtKm,
   toCompact, fromCompact, newWaypointId,
   type RoutePoint, type Cut, type PlannerWaypoint, type PlannerSettings, type PlannerRouteSummary,
 } from '../utils/plannerRoute'
@@ -470,6 +470,8 @@ export default function PlannerPage(): React.ReactElement {
       const found = new Map<string, PoiMarker>()
       let anyTruncated = false
       let anyPartial = false
+      let anyFallback = false
+      let lastDetail = ''
       let failed = 0
       for (const cat of cats) {
         for (const [from, to] of chunks) {
@@ -478,6 +480,7 @@ export default function PlannerPage(): React.ReactElement {
             const res = await plannerApi.poisAlongRoute(cat === 'hotel' ? 'lodging' : cat, line, radius, ctrl.signal)
             if (res.truncated) anyTruncated = true
             if (res.partial) anyPartial = true
+            if (res.fallback) anyFallback = true
             for (const p of res.pois) {
               if (found.has(p.osm_id)) continue
               const near = nearestOnRoute(points, cum, p.lat, p.lng)
@@ -489,6 +492,8 @@ export default function PlannerPage(): React.ReactElement {
           } catch (err) {
             if (ctrl.signal.aborted) return
             failed++
+            const d = (err as { response?: { data?: { detail?: string[] } } })?.response?.data?.detail
+            if (d?.length && !lastDetail) lastDetail = d.slice(0, 2).join(' · ')
           }
         }
       }
@@ -497,9 +502,10 @@ export default function PlannerPage(): React.ReactElement {
         found.forEach((v, k) => merged.set(k, v))
         return [...merged.values()].sort((x, y) => x.km - y.km)
       })
-      if (failed && !found.size) toast.error(t('planner.services.error'))
+      if (failed && !found.size) toast.error(lastDetail ? `${t('planner.services.error')} (${lastDetail})` : t('planner.services.error'))
       else if (!found.size) toast.info(t('planner.services.none'))
       else if (anyPartial) toast.warning(t('planner.services.partial'))
+      else if (anyFallback) toast.info(t('planner.services.fallback'))
       else if (anyTruncated) toast.info(t('planner.services.truncated'))
     } finally {
       if (poiAbort.current === ctrl) setPoiLoading(false)
@@ -740,6 +746,12 @@ export default function PlannerPage(): React.ReactElement {
             🛏️ {t('planner.stages.cuts.snap')}
           </button>
         )}
+        <div style={{ marginTop: 10 }}>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{t('planner.stages.startDate')}</div>
+          <input style={input} type="date" value={settings.startDate ?? ''}
+            onChange={e => { markDirty(); setSettings(s => ({ ...s, startDate: e.target.value || undefined })) }} />
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{t('planner.stages.startDate.hint')}</div>
+        </div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.stages.cuts.hint')}</div>
         <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('planner.stages.hintProfile')}</div>
       </div>
@@ -788,7 +800,7 @@ export default function PlannerPage(): React.ReactElement {
               const link: React.CSSProperties = { color: 'var(--accent, #e85d24)', fontWeight: 600, textDecoration: 'none' }
               return (
                 <div style={{ display: 'flex', gap: 12, marginTop: 5, fontSize: 11 }} onClick={e => e.stopPropagation()}>
-                  {place && <a href={bookingSearchUrl(place, locale)} target="_blank" rel="noopener noreferrer" style={link}>🔎 {t('planner.stages.end.booking')}</a>}
+                  {place && <a href={bookingSearchUrl(place, locale, nightOfStage(settings.startDate, i))} target="_blank" rel="noopener noreferrer" style={link}>🔎 {t('planner.stages.end.booking')}</a>}
                   <a href={googleMapsHotelsUrl(end.lat, end.lng)} target="_blank" rel="noopener noreferrer" style={link}>📍 {t('planner.stages.end.googleMaps')}</a>
                 </div>
               )

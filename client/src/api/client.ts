@@ -581,7 +581,7 @@ export const plannerApi = {
     }),
   // POIs within `radius` m of the route (corridor search, Overpass `around`).
   poisAlongRoute: (category: string, line: [number, number][], radius: number, signal?: AbortSignal) =>
-    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean; partial?: boolean }),
+    apiClient.post('/maps/pois/along-route', { category, line, radius }, { signal, timeout: 40000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; truncated: boolean; partial?: boolean; stale?: boolean; fallback?: boolean }),
 }
 
 export const airportsApi = {
