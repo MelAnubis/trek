@@ -5,6 +5,7 @@ import { X, Sun, Cloud, CloudRain, CloudSnow, CloudDrizzle, CloudLightning, Wind
 const RES_TYPE_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, event: Ticket, tour: Users, other: FileText }
 const RES_TYPE_COLORS = { flight: '#3b82f6', hotel: '#8b5cf6', restaurant: '#ef4444', train: '#06b6d4', car: '#6b7280', cruise: '#0ea5e9', event: '#f59e0b', tour: '#10b981', other: '#6b7280' }
 import { weatherApi, accommodationsApi } from '../../api/client'
+import DayLodgingModal from './DayLodgingModal'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import CustomSelect from '../shared/CustomSelect'
@@ -83,6 +84,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const [dayAccommodations, setDayAccommodations] = useState<any[]>([])
   const [accommodations, setAccommodations] = useState([])
   const [showHotelPicker, setShowHotelPicker] = useState(false)
+  const [showLodging, setShowLodging] = useState(false)
   const [hotelDayRange, setHotelDayRange] = useState({ start: day?.id, end: day?.id })
   const [hotelCategoryFilter, setHotelCategoryFilter] = useState('')
   const [hotelForm, setHotelForm] = useState({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
@@ -448,6 +450,29 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
               }}>
                 <Hotel size={12} /> {t('day.addAccommodation')}
               </button> : null
+            )}
+
+            {/* Alojamiento de la noche: abre Booking con la localidad final del día y da de alta el hotel elegido */}
+            {canEditDays && (
+              <button type="button" onClick={() => setShowLodging(true)} style={{
+                width: '100%', marginTop: 8, padding: 9, border: '1px solid var(--border-primary)', borderRadius: 10,
+                background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'inherit',
+              }}>
+                <Hotel size={12} /> {t('day.lodging.open')}
+              </button>
+            )}
+            {showLodging && day && (
+              <DayLodgingModal day={day} days={days} tripId={tripId} onClose={() => setShowLodging(false)}
+                onSaved={() => {
+                  accommodationsApi.list(tripId).then(data => {
+                    setAccommodations(data.accommodations || [])
+                    const allForDay = (data.accommodations || []).filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
+                    setDayAccommodations(allForDay)
+                    setAccommodation(allForDay[0] || null)
+                  }).catch(() => {})
+                  onAccommodationChange?.()
+                }} />
             )}
 
             {/* Hotel Picker Popup — portal to body to escape transform stacking context */}

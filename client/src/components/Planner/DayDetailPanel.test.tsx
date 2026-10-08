@@ -44,6 +44,28 @@ beforeEach(() => {
 
 describe('DayDetailPanel', () => {
 
+  // ── Alojamiento en Booking ───────────────────────────────────────────────────
+
+  it('FE-PLANNER-DAYDETAIL-LODGING-001: el botón «Buscar alojamiento en Booking» abre la ventana con la localidad del día', async () => {
+    const user = userEvent.setup();
+    const paris = buildPlace({ id: 31, name: 'París', address: '75001 Paris, Île-de-France, Francia', lat: 48.86, lng: 2.34 });
+    const dayWithPlace = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris', assignments: [{ id: 1, day_id: 1, order_index: 0, notes: null, place: paris } as any] });
+    render(<DayDetailPanel {...defaultProps} day={dayWithPlace} days={[dayWithPlace]} />);
+    await user.click(await screen.findByRole('button', { name: /Booking/ }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect((screen.getByLabelText(/Localidad|Town/) as HTMLInputElement).value).toBe('Paris, Île-de-France, Francia');
+    const link = screen.getByRole('link', { name: /Buscar en Booking|Search on Booking/ }) as HTMLAnchorElement;
+    expect(link.href).toContain('checkin=2025-06-15&checkout=2025-06-16');
+  });
+
+  it('FE-PLANNER-DAYDETAIL-LODGING-002: se puede cerrar sin crear nada', async () => {
+    const user = userEvent.setup();
+    render(<DayDetailPanel {...defaultProps} />);
+    await user.click(await screen.findByRole('button', { name: /Booking/ }));
+    await user.click(await screen.findByRole('button', { name: /Cancelar|Cancel/ }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
   // ── Rendering ────────────────────────────────────────────────────────────────
 
   it('FE-PLANNER-DAYDETAIL-001: renders without crashing', () => {

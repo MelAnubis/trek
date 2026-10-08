@@ -599,9 +599,9 @@ export function newWaypointId(): string { return uid() }
  * Búsqueda en Booking de la población donde acaba la etapa. Es solo un enlace que abre el usuario: Booking no tiene
  * API pública de búsqueda y no se hace scraping de su web.
  */
-export function bookingSearchUrl(place: string, locale = 'es', night?: { checkin: string; checkout: string }): string {
+export function bookingSearchUrl(place: string, locale = 'es', night?: { checkin: string; checkout: string; adults?: number }): string {
   const lang = locale.toLowerCase().startsWith('es') ? 'es' : 'en-gb'
-  const dates = night ? `&checkin=${night.checkin}&checkout=${night.checkout}&group_adults=1&no_rooms=1` : ''
+  const dates = night ? `&checkin=${night.checkin}&checkout=${night.checkout}&group_adults=${night.adults && night.adults > 0 ? Math.round(night.adults) : 1}&no_rooms=1` : ''
   return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(place)}&lang=${lang}${dates}`
 }
 
