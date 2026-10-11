@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { localityFromPlace, dayLocality, parseBookingUrl, nightsBetween, kmBetween } from './lodgingLinks'
+import { localityFromPlace, dayLocality, parseBookingUrl, nightsBetween, kmBetween, daysWithLodging } from './lodgingLinks'
 import { bookingSearchUrl } from './plannerRoute'
 
 const place = (name: string, address: string | null) => ({ name, address } as any)
@@ -85,5 +85,24 @@ describe('fechas y distancias', () => {
     expect(bookingSearchUrl('Baena, Córdoba, España', 'es', { checkin: '2026-10-22', checkout: '2026-10-23', adults: 3 }))
       .toBe('https://www.booking.com/searchresults.html?ss=Baena%2C%20C%C3%B3rdoba%2C%20Espa%C3%B1a&lang=es&checkin=2026-10-22&checkout=2026-10-23&group_adults=3&no_rooms=1')
     expect(bookingSearchUrl('X', 'es', { checkin: '2026-10-22', checkout: '2026-10-23' })).toContain('group_adults=1')
+  })
+})
+
+describe('daysWithLodging', () => {
+  const days = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]
+
+  it('un hotel cubre de su primer a su último día, ambos incluidos', () => {
+    const r = [{ type: 'hotel', accommodation_start_day_id: 2, accommodation_end_day_id: 3 }]
+    expect([...daysWithLodging(r, days)]).toEqual([2, 3])
+  })
+
+  it('una reserva de hotel pendiente (solo day_id / end_day_id) también cuenta, y sin fin dura una noche', () => {
+    expect([...daysWithLodging([{ type: 'hotel', day_id: 1 }], days)]).toEqual([1])
+    expect([...daysWithLodging([{ type: 'hotel', day_id: 3, end_day_id: 4 }], days)]).toEqual([3, 4])
+  })
+
+  it('ignora lo que no es hotel, los días que no están en el viaje y los rangos al revés', () => {
+    expect(daysWithLodging([{ type: 'flight', day_id: 1 }, { type: 'hotel', day_id: 99 }, { type: 'hotel' }], days).size).toBe(0)
+    expect([...daysWithLodging([{ type: 'hotel', day_id: 3, end_day_id: 2 }], days)]).toEqual([3])
   })
 })

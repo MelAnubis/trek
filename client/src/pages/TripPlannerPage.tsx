@@ -1413,6 +1413,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
               assignments={assignments}
               files={files}
               onAdd={() => { setEditingReservation(null); setShowReservationModal(true) }}
+              lodgingTools
+              onLodgingChange={loadAccommodations}
               onEdit={(r) => { setEditingReservation(r); setShowReservationModal(true) }}
               onDelete={handleDeleteReservation}
               onNavigateToFiles={() => handleTabChange('dateien')}

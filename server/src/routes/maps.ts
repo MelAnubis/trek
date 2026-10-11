@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import { searchTilePoisAlongRoute, tileCategoryFor } from '../services/lodgingTileService'
+import { findLodgingOptions } from '../services/lodgingOptionsService'
 import {
   searchPlaces,
   getPlaceDetails,
@@ -169,6 +170,36 @@ router.get('/pois', authenticate, async (req: Request, res: Response) => {
     res.status(status).json({ error: message })
   }
 })
+
+// POST /lodging-near — alojamientos de una localidad para elegir uno (OpenStreetMap + Google si hay clave). Sin precios.
+const LODGING_NEAR_LIMIT = 40
+const lodgingNearCalls = new Map<number, number[]>()
+router.post('/lodging-near', authenticate, async (req: Request, res: Response) => {
+  const { lat, lng, radius } = req.body || {}
+  const la = Number(lat), lo = Number(lng)
+  if (!Number.isFinite(la) || !Number.isFinite(lo) || Math.abs(la) > 90 || Math.abs(lo) > 180) {
+    return res.status(400).json({ error: 'lat and lng required' })
+  }
+  const r = radius === undefined ? 2500 : Number(radius)
+  if (!Number.isFinite(r) || r < 200 || r > 5000) return res.status(400).json({ error: 'radius must be 200-5000 m' })
+
+  // Cada llamada puede gastar cuota de Google: límite por usuario y hora.
+  const userId = (req as AuthRequest).user.id
+  const now = Date.now()
+  const recent = (lodgingNearCalls.get(userId) || []).filter(t => now - t < 3600_000)
+  if (recent.length >= LODGING_NEAR_LIMIT) { lodgingNearCalls.set(userId, recent); return res.status(429).json({ error: 'Too many requests, try again later' }) }
+  recent.push(now); lodgingNearCalls.set(userId, recent)
+
+  try {
+    res.json(await findLodgingOptions(userId, la, lo, r))
+  } catch (err) {
+    console.error('[Maps] lodging-near error:', err)
+    res.status(500).json({ error: 'Failed to search accommodation' })
+  }
+})
+
+/** Solo para tests. */
+export function resetLodgingNearLimiter(): void { lodgingNearCalls.clear() }
 
 // POST /pois/along-route — OSM POIs of a category within `radius` metres of a polyline
 router.post('/pois/along-route', authenticate, async (req: Request, res: Response) => {

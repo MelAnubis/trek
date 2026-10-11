@@ -33,6 +33,7 @@ function setup(opts: { budget?: boolean; search?: unknown; members?: number; day
   seedStore(useAddonStore, { addons: budget ? [{ id: 'budget', name: 'Budget', type: 'trip', icon: 'x', enabled: true }] : [], loaded: true } as any)
   server.use(
     http.get('/api/trips/1/members', () => HttpResponse.json({ owner: { id: 1 }, members: Array.from({ length: opts.members ?? 2 }, (_, i) => ({ id: 10 + i })) })),
+    http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
     http.post('/api/maps/search', async ({ request }) => { searchBody = await request.json(); return HttpResponse.json(opts.search ?? { places: [] }) }),
     http.post('/api/trips/1/places', async ({ request }) => { placeBody = await request.json(); return HttpResponse.json({ place: { id: 555, ...placeBody } }, { status: 201 }) }),
     http.post('/api/trips/1/reservations', async ({ request }) => { reservationBody = await request.json(); return HttpResponse.json({ reservation: { id: 777, trip_id: 1, ...reservationBody } }, { status: 201 }) }),

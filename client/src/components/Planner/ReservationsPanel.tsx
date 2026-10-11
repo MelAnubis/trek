@@ -8,7 +8,7 @@ import { useTranslation } from '../../i18n'
 import {
   Plane, Hotel, Utensils, Train, Car, Ship, Bus, Sailboat, Bike, CarTaxiFront, Route, Ticket, FileText, MapPin,
   Calendar, Hash, CheckCircle2, Circle, Pencil, Trash2, Plus, ChevronDown, ChevronRight, Users,
-  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Upload, Download,
+  ExternalLink, BookMarked, Lightbulb, Link2, Clock, ArrowRight, AlertCircle, Upload, Download, Search,
 } from 'lucide-react'
 import { openFile } from '../../utils/fileDownload'
 import Markdown from 'react-markdown'
@@ -16,6 +16,8 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import type { Reservation, Day, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime, formatTime } from '../../utils/formatters'
+import DayLodgingModal from './DayLodgingModal'
+import GenerateLodgingModal from './GenerateLodgingModal'
 
 interface AssignmentLookupEntry {
   dayNumber: number
@@ -79,9 +81,11 @@ interface ReservationCardProps {
   assignmentLookup: Record<number, AssignmentLookupEntry>
   canEdit: boolean
   days?: Day[]
+  /** Abre la búsqueda de alojamiento de una reserva de hotel pendiente de elegir. */
+  onFindLodging?: (reservation: Reservation) => void
 }
 
-function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [] }: ReservationCardProps) {
+function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateToFiles, assignmentLookup, canEdit, days = [], onFindLodging }: ReservationCardProps) {
   const { toggleReservationStatus } = useTripStore()
   const toast = useToast()
   const { t, locale } = useTranslation()
@@ -236,6 +240,16 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
 
       {/* Body */}
       <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 12, flex: 1 }}>
+        {/* Reserva de alojamiento pendiente de elegir: opciones de la localidad de ese día */}
+        {canEdit && onFindLodging && isHotel && !confirmed && !r.accommodation_id && (
+          <button type="button" onClick={() => onFindLodging(r)} style={{
+            appearance: 'none', cursor: 'pointer', fontFamily: 'inherit', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+            padding: '9px 12px', borderRadius: 10, fontSize: 13, fontWeight: 600,
+            border: '1px dashed var(--accent)', background: 'transparent', color: 'var(--accent)',
+          }}>
+            <Search size={14} />{t('lodging.find')}
+          </button>
+        )}
         {/* Day label for transport/hotel reservations linked to days */}
         {(isTransportType || isHotel) && startDay && (
           <div>
@@ -505,14 +519,20 @@ interface ReservationsPanelProps {
   titleKey?: string
   addManualKey?: string
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
+  /** Muestra las herramientas de alojamiento por día (generar reservas pendientes y elegir hotel). Solo en la pestaña Reservas. */
+  lodgingTools?: boolean
+  /** Se llama tras asignar un alojamiento a una reserva, para recargar los alojamientos del viaje. */
+  onLodgingChange?: () => void
 }
 
-export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', onImportBooking, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, pushUndo }: ReservationsPanelProps) {
+export default function ReservationsPanel({ tripId, reservations, days, assignments, files = [], onAdd, onEdit, onDelete, onNavigateToFiles, titleKey = 'reservations.title', addManualKey = 'reservations.addManual', onImportBooking, onImport, bookingImportAvailable, onAirTrailImport, airTrailAvailable, pushUndo, lodgingTools, onLodgingChange }: ReservationsPanelProps) {
   const { t, locale } = useTranslation()
   const can = useCanDo()
   const trip = useTripStore((s) => s.trip)
   const canEdit = can('reservation_edit', trip)
   const [showHint, setShowHint] = useState(() => !localStorage.getItem('hideReservationHint'))
+  const [showGenerateLodging, setShowGenerateLodging] = useState(false)
+  const [lodgingFor, setLodgingFor] = useState<Reservation | null>(null)
 
   const storageKey = `trek-reservation-filters-${tripId}`
   const [typeFilters, setTypeFilters] = useState<Set<string>>(() => {
@@ -653,6 +673,22 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                   <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
                 </button>
               )}
+              {lodgingTools && days.length > 0 && (
+                <button onClick={() => setShowGenerateLodging(true)} style={{
+                  appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
+                  background: 'var(--bg-secondary)', color: 'var(--text-primary)',
+                  transition: 'opacity 0.15s ease',
+                }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  title={t('lodging.generate.title')}
+                >
+                  <Hotel size={14} strokeWidth={2} />
+                  <span className="hidden sm:inline">{t('lodging.generate.open')}</span>
+                </button>
+              )}
               <button onClick={onAdd} style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -687,17 +723,31 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           <>
             {allPending.length > 0 && (
               <Section title={t('reservations.pending')} count={allPending.length} accent="gray" storageKey={`trek:bookings-pending-open:${tripId}`}>
-                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+                {allPending.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} onFindLodging={lodgingTools ? setLodgingFor : undefined} />)}
               </Section>
             )}
             {allConfirmed.length > 0 && (
               <Section title={t('reservations.confirmed')} count={allConfirmed.length} accent="green" storageKey={`trek:bookings-confirmed-open:${tripId}`}>
-                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} />)}
+                {allConfirmed.map(r => <ReservationCard key={r.id} r={r} tripId={tripId} onEdit={onEdit} onDelete={onDelete} files={files} onNavigateToFiles={onNavigateToFiles} assignmentLookup={assignmentLookup} canEdit={canEdit} days={days} onFindLodging={setLodgingFor} />)}
               </Section>
             )}
           </>
         )}
       </div>
+
+      {showGenerateLodging && (
+        <GenerateLodgingModal tripId={tripId} days={days} assignments={assignments} reservations={reservations} onClose={() => setShowGenerateLodging(false)} />
+      )}
+      {lodgingFor && (() => {
+        // Día de la reserva (con los lugares de ese día, para sacar la localidad final).
+        const day = days.find(d => d.id === lodgingFor.day_id) ?? days.find(d => d.id === lodgingFor.accommodation_start_day_id)
+        if (!day) return null
+        const dayWithPlaces = { ...day, assignments: assignments?.[String(day.id)] ?? day.assignments }
+        return (
+          <DayLodgingModal day={dayWithPlaces} days={days} tripId={tripId} reservation={lodgingFor}
+            onClose={() => setLodgingFor(null)} onSaved={() => { useTripStore.getState().loadReservations?.(tripId); onLodgingChange?.() }} />
+        )
+      })()}
     </div>
   )
 }

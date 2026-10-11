@@ -540,6 +540,14 @@ export const mapsApi = {
   placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => r.data),
   reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => r.data),
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => r.data),
+  // Alojamientos de una localidad (OpenStreetMap + Google si hay clave). Sin precio ni disponibilidad.
+  lodgingNear: (lat: number, lng: number, radius = 2500) =>
+    apiClient.post('/maps/lodging-near', { lat, lng, radius }, { timeout: 60000 }).then(r => r.data as {
+      options: { id: string; name: string; lat: number; lng: number; distance_m: number; sources: ('osm' | 'google')[]; osm_id?: string; google_place_id?: string }[]
+      sources: { osm: 'ok' | 'partial' | 'failed'; google: 'used' | 'no-key' | 'failed'; errors: string[] }
+      center: { lat: number; lng: number }
+      radius_m: number
+    }),
   // OSM-only POI explore: places of a category within the current map viewport bbox.
   pois: (category: string, bbox: { south: number; west: number; north: number; east: number }, signal?: AbortSignal) =>
     apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),

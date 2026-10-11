@@ -98,3 +98,24 @@ export function kmBetween(a: { lat: number; lng: number }, b: { lat: number; lng
   const h = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin(dLo / 2) ** 2
   return 2 * R * Math.asin(Math.sqrt(h))
 }
+
+/**
+ * Días del viaje que ya tienen alojamiento: los que caen dentro de alguna reserva de hotel (con el hotel ya asignado
+ * o solo pendiente de elegir), de su primer a su último día, ambos incluidos.
+ */
+export function daysWithLodging(
+  reservations: { type?: string; day_id?: number | null; end_day_id?: number | null; accommodation_start_day_id?: number | null; accommodation_end_day_id?: number | null }[],
+  days: { id: number }[],
+): Set<number> {
+  const covered = new Set<number>()
+  const indexOf = (id: number | null | undefined) => (id == null ? -1 : days.findIndex(d => d.id === id))
+  for (const r of reservations) {
+    if (r.type !== 'hotel') continue
+    const a = indexOf(r.accommodation_start_day_id ?? r.day_id)
+    if (a < 0) continue
+    const bRaw = indexOf(r.accommodation_end_day_id ?? r.end_day_id)
+    const b = bRaw < 0 ? a : Math.max(a, bRaw)
+    for (let i = a; i <= b; i++) covered.add(days[i].id)
+  }
+  return covered
+}
