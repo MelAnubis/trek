@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCircle, Package, X } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Package, X } from 'lucide-react'
 import type { BookDocument } from '../../types/book'
 import { sheetsFor } from './bookSheets'
 import { printApi, type PrintShippingAddress } from '../../api/client'
@@ -54,6 +54,10 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
     printApi.listOrders().then(d => setOrders(d.orders || [])).catch(() => {})
   }, [])
 
+  // Lulu only has products for the named presets (see luluService's
+  // PRESET_TO_PACKAGE) — a custom trim size would be refused by the server
+  // with a 422 after the traveler filled in the whole form. Say so up front.
+  const unprintableSize = doc.page.preset === 'custom'
   const addressComplete = address.name && address.street1 && address.city && address.postcode && address.countryCode
 
   const getEstimate = async () => {
@@ -110,6 +114,12 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
             </div>
           ) : (
             <>
+              {unprintableSize && (
+                <p role="alert" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#b45309', lineHeight: 1.5, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+                  <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 2 }} />
+                  <span>{t('journey.studio.print.customSizeWarning', { w: Math.round(doc.page.pageWidth * 10) / 10, h: Math.round(doc.page.pageHeight * 10) / 10 })}</span>
+                </p>
+              )}
               <p style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-tertiary)' }}>
                 {t('journey.studio.print.pdfUrlHint')}
               </p>
@@ -190,11 +200,11 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
             <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
               {t('common.cancel')}
             </button>
-            <button onClick={() => void getEstimate()} disabled={!addressComplete || estimating}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, fontWeight: 600, cursor: !addressComplete || estimating ? 'default' : 'pointer', opacity: !addressComplete || estimating ? 0.5 : 1, fontFamily: 'inherit', color: 'var(--text-primary)' }}>
+            <button onClick={() => void getEstimate()} disabled={unprintableSize || !addressComplete || estimating}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, fontWeight: 600, cursor: unprintableSize || !addressComplete || estimating ? 'default' : 'pointer', opacity: unprintableSize || !addressComplete || estimating ? 0.5 : 1, fontFamily: 'inherit', color: 'var(--text-primary)' }}>
               {estimating ? t('journey.studio.print.estimating') : t('journey.studio.print.getEstimate')}
             </button>
-            <button onClick={() => void placeOrder()} disabled={!estimate || !interiorPdfUrl || !contactEmail || ordering}
+            <button onClick={() => void placeOrder()} disabled={unprintableSize || !estimate || !interiorPdfUrl || !contactEmail || ordering}
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: ordering ? 'default' : 'pointer', opacity: !estimate || !interiorPdfUrl || !contactEmail || ordering ? 0.5 : 1, fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
               {ordering ? t('journey.studio.print.placingOrder') : t('journey.studio.print.placeOrder')}
             </button>

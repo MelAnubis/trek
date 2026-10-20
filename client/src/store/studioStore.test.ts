@@ -1,4 +1,4 @@
-// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-029
+// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-036
 import { useStudioStore } from './studioStore'
 import type { BookDocument, BookTextElement } from '../types/book'
 
@@ -285,5 +285,57 @@ describe('studioStore — page setup', () => {
     expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true })
     useStudioStore.getState().setPageNumbers(false)
     expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: false })
+  })
+
+  it('FE-STORE-STUDIO-030: setPagePreset reflows elements by default, and leaves them alone when asked not to', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPagePreset('a4-portrait')
+    expect(useStudioStore.getState().doc!.spreads[1].elements[0].frame.h).toBeGreaterThan(10)
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPagePreset('a4-portrait', false)
+    expect(useStudioStore.getState().doc!.spreads[1].elements[0].frame).toEqual({ x: 0, y: 0, w: 20, h: 10 })
+  })
+
+  it('FE-STORE-STUDIO-031: a reflowing preset change undoes back to the original frames in one step', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPagePreset('a5-landscape')
+    useStudioStore.getState().undo()
+    const d = useStudioStore.getState().doc!
+    expect(d.page.preset).toBe('square-210')
+    expect(d.spreads[1].elements[0].frame).toEqual({ x: 0, y: 0, w: 20, h: 10 })
+  })
+
+  it('FE-STORE-STUDIO-032: setPageSize goes custom for a free size, and back to a preset when the pair matches one', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageSize('h', 250)
+    expect(useStudioStore.getState().doc!.page).toMatchObject({ preset: 'custom', pageWidth: 210, pageHeight: 250 })
+    useStudioStore.getState().setPageSize('h', 297)
+    expect(useStudioStore.getState().doc!.page.preset).toBe('a4-portrait')
+  })
+
+  it('FE-STORE-STUDIO-033: setPageSize clamps out-of-range values', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageSize('w', 2)
+    expect(useStudioStore.getState().doc!.page.pageWidth).toBe(50)
+  })
+
+  it('FE-STORE-STUDIO-034: an unchanged size or edge is not an undo step', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageSize('w', 210)
+    useStudioStore.getState().setPageEdge('bleed', 3)
+    expect(useStudioStore.getState().canUndo()).toBe(false)
+  })
+
+  it('FE-STORE-STUDIO-035: setPageEdge changes bleed and safe margin within their limits', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageEdge('bleed', 50)
+    useStudioStore.getState().setPageEdge('safe', 10)
+    expect(useStudioStore.getState().doc!.page).toMatchObject({ bleed: 20, safe: 10 })
+  })
+
+  it('FE-STORE-STUDIO-036: a safe-margin change never moves elements', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageEdge('safe', 15)
+    expect(useStudioStore.getState().doc!.spreads[1].elements[0].frame).toEqual({ x: 0, y: 0, w: 20, h: 10 })
   })
 })

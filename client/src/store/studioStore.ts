@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { BookDocument, BookElement, BookFrame, BookPageSetup, BookSpread } from '../types/book'
 import { elementId } from '../components/Studio/bookIds'
-import { PAGE_PRESETS } from '../components/Studio/pagePresets'
+import { PAGE_PRESETS, clampPageEdge, clampPageSize, presetMatching, reflowDocument } from '../components/Studio/pagePresets'
 
 /**
  * The book being edited. Ported from liketrek/trek's
@@ -73,8 +73,17 @@ interface StudioState {
   /** Whether a spread may be moved, deleted or duplicated at all. */
   canEditSpread: (index: number) => boolean
 
-  /** Switch to a named page preset — elements keep their own mm frames, unrescaled, the same as upstream: a size change is a format decision, not a request to relayout. */
-  setPagePreset: (preset: BookPageSetup['preset']) => void
+  /**
+   * Switch to a named page preset. With `reflow` (the default) every element
+   * is re-placed proportionally onto the new sheet — see reflowDocument; with
+   * it off, elements keep their own mm frames, the way upstream does it.
+   * Either way it is one undo step.
+   */
+  setPagePreset: (preset: BookPageSetup['preset'], reflow?: boolean) => void
+  /** A free trim size on one axis. Lands on whichever preset the new pair matches, `custom` otherwise. */
+  setPageSize: (axis: 'w' | 'h', value: number, reflow?: boolean) => void
+  /** Bleed or safe margin. A bleed change can reflow (full-bleed elements follow the new edge); the safe margin is a guide only. */
+  setPageEdge: (which: 'bleed' | 'safe', value: number, reflow?: boolean) => void
   setPageNumbers: (show: boolean) => void
 
   undo: () => void
@@ -247,12 +256,35 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     return !!sp && sp.role === 'inner'
   },
 
-  setPagePreset: preset => get().commit(doc => ({
-    ...doc,
-    page: preset === 'custom'
+  setPagePreset: (preset, reflow = true) => get().commit(doc => {
+    const next: BookPageSetup = preset === 'custom'
       ? { ...doc.page, preset }
-      : { ...doc.page, preset, pageWidth: PAGE_PRESETS[preset].pageWidth, pageHeight: PAGE_PRESETS[preset].pageHeight, bleed: PAGE_PRESETS[preset].bleed },
-  })),
+      : { ...doc.page, preset, pageWidth: PAGE_PRESETS[preset].pageWidth, pageHeight: PAGE_PRESETS[preset].pageHeight, bleed: PAGE_PRESETS[preset].bleed }
+    return reflow ? reflowDocument(doc, next) : { ...doc, page: next }
+  }),
+
+  setPageSize: (axis, value, reflow = true) => {
+    const doc = get().doc
+    if (!doc) return
+    const pageWidth = axis === 'w' ? clampPageSize(value) : doc.page.pageWidth
+    const pageHeight = axis === 'h' ? clampPageSize(value) : doc.page.pageHeight
+    if (pageWidth === doc.page.pageWidth && pageHeight === doc.page.pageHeight) return
+    get().commit(d => {
+      const next: BookPageSetup = { ...d.page, preset: presetMatching(pageWidth, pageHeight), pageWidth, pageHeight }
+      return reflow ? reflowDocument(d, next) : { ...d, page: next }
+    })
+  },
+
+  setPageEdge: (which, value, reflow = true) => {
+    const doc = get().doc
+    if (!doc) return
+    const v = clampPageEdge(which, value)
+    if (v === doc.page[which]) return
+    get().commit(d => {
+      const next: BookPageSetup = { ...d.page, [which]: v }
+      return reflow && which === 'bleed' ? reflowDocument(d, next) : { ...d, page: next }
+    })
+  },
 
   setPageNumbers: show => get().commit(doc => ({ ...doc, page: { ...doc.page, pageNumbers: { show } } })),
 

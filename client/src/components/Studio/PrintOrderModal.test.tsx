@@ -1,4 +1,4 @@
-// FE-PRINTORDERMODAL-001 to FE-PRINTORDERMODAL-008
+// FE-PRINTORDERMODAL-001 to FE-PRINTORDERMODAL-010
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { PrintOrderModal } from './PrintOrderModal'
 import { printApi } from '../../api/client'
@@ -104,5 +104,18 @@ describe('PrintOrderModal', () => {
     render(<PrintOrderModal journeyId={1} title="Trip" doc={doc()} onClose={onClose} />)
     fireEvent.click(screen.getByLabelText('common.close'))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('FE-PRINTORDERMODAL-009: a custom page size warns up front and blocks the estimate', () => {
+    const custom = { ...doc(), page: { ...PAGE, preset: 'custom' as const, pageWidth: 200, pageHeight: 250 } }
+    render(<PrintOrderModal journeyId={1} title="Trip" doc={custom} onClose={() => {}} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('journey.studio.print.customSizeWarning')
+    fillAddress()
+    expect(screen.getByText('journey.studio.print.getEstimate')).toBeDisabled()
+  })
+
+  it('FE-PRINTORDERMODAL-010: a named preset shows no size warning', () => {
+    render(<PrintOrderModal journeyId={1} title="Trip" doc={doc()} onClose={() => {}} />)
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })

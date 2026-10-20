@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Check, ChevronDown, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -21,6 +21,7 @@ import { PrintOrderModal } from '../components/Studio/PrintOrderModal'
 import '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
+import { PageFormatMenu } from '../components/Studio/PageFormatMenu'
 import { resolveBindings, type BindingSource } from '../components/Studio/resolveBindings'
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate, buildOverviewRouteImages } from '../components/Studio/buildRouteImages'
@@ -68,8 +69,15 @@ export default function JourneyStudioPage() {
   const copySelection = useStudioStore(s => s.copy)
   const pasteClipboard = useStudioStore(s => s.paste)
   const setDocPagePreset = useStudioStore(s => s.setPagePreset)
+  const setDocPageSize = useStudioStore(s => s.setPageSize)
+  const setDocPageEdge = useStudioStore(s => s.setPageEdge)
 
   const [zoom, setZoom] = useState(0.4)
+  // Fit the spread to the viewport until the user picks a zoom themselves;
+  // a page-size change re-arms it, since the old zoom was chosen for a sheet
+  // that no longer exists (an A4 landscape spread at A5's zoom overflows).
+  const [autoFit, setAutoFit] = useState(true)
+  const viewportRef = useRef<HTMLDivElement>(null)
   const [showExport, setShowExport] = useState(false)
   const [showPrintOrder, setShowPrintOrder] = useState(false)
   const [printOnDemandAvailable, setPrintOnDemandAvailable] = useState(false)
@@ -79,8 +87,6 @@ export default function JourneyStudioPage() {
   // Per-viewer editing convenience, not part of the document — whether the
   // spread fold is drawn, same as upstream's own bookView toggle.
   const [bookView, setBookView] = useState(true)
-  const [showPageMenu, setShowPageMenu] = useState(false)
-  const pageMenuRef = useRef<HTMLDivElement>(null)
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
 
   const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
@@ -142,15 +148,6 @@ export default function JourneyStudioPage() {
     if (!doc || !bookLoaded) return
     queueSave(doc, current?.title || '')
   }, [doc, bookLoaded, queueSave, current?.title])
-
-  useEffect(() => {
-    if (!showPageMenu) return
-    const close = (e: PointerEvent) => {
-      if (!pageMenuRef.current?.contains(e.target as Node)) setShowPageMenu(false)
-    }
-    document.addEventListener('pointerdown', close)
-    return () => document.removeEventListener('pointerdown', close)
-  }, [showPageMenu])
 
   const backToJourney = () => {
     void saveNow()
@@ -299,6 +296,25 @@ export default function JourneyStudioPage() {
       setAutoBookBuilding(false)
     }
   }
+  // The sheet's on-screen size at zoom 1, in CSS px (see StudioCanvas: the
+  // sheet is pageWidth (×2 for an inner spread) by pageHeight millimetres).
+  const sheetWmm = doc ? (spread && spread.role === 'inner' ? doc.page.pageWidth * 2 : doc.page.pageWidth) : 0
+  const sheetHmm = doc?.page.pageHeight ?? 0
+  useLayoutEffect(() => {
+    const el = viewportRef.current
+    if (!autoFit || !el || !sheetWmm || !sheetHmm) return
+    const fit = () => {
+      const pad = 80 // the viewport's own 40px padding on each side
+      const z = Math.min((el.clientWidth - pad) / (sheetWmm * BASE_PX_PER_MM), (el.clientHeight - pad) / (sheetHmm * BASE_PX_PER_MM))
+      if (Number.isFinite(z) && z > 0) setZoom(Math.round(Math.min(ZOOM_STEPS[ZOOM_STEPS.length - 1], Math.max(ZOOM_STEPS[0], z)) * 100) / 100)
+    }
+    fit()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [autoFit, sheetWmm, sheetHmm])
+
   const zoomIndex = ZOOM_STEPS.reduce((best, z, i) => (Math.abs(z - zoom) < Math.abs(ZOOM_STEPS[best] - zoom) ? i : best), 0)
 
   const font: React.CSSProperties = { fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }
@@ -347,36 +363,13 @@ export default function JourneyStudioPage() {
             </button>
           )}
           {doc && (
-            <div ref={pageMenuRef} style={{ position: 'relative' }}>
-              <button onClick={() => setShowPageMenu(v => !v)} title={t('journey.studio.format')} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-                border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)',
-                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                {doc.page.preset === 'custom'
-                  ? `${Math.round(doc.page.pageWidth)} × ${Math.round(doc.page.pageHeight)} mm`
-                  : t(PAGE_PRESETS[doc.page.preset].labelKey)}
-                <ChevronDown size={13} style={{ opacity: 0.6 }} />
-              </button>
-              {showPageMenu && (
-                <div style={{
-                  position: 'absolute', top: '100%', right: 0, marginTop: 4, minWidth: 180, borderRadius: 10,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                  padding: 4, zIndex: 20,
-                }}>
-                  {(Object.keys(PAGE_PRESETS) as (keyof typeof PAGE_PRESETS)[]).map(key => (
-                    <button key={key} onClick={() => { setDocPagePreset(key); setShowPageMenu(false) }} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, width: '100%',
-                      textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none',
-                      fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit',
-                    }}>
-                      {t(PAGE_PRESETS[key].labelKey)}
-                      {doc.page.preset === key && <Check size={13} />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
+            <PageFormatMenu
+              page={doc.page}
+              t={t}
+              onPreset={(preset, reflow) => { setDocPagePreset(preset, reflow); setAutoFit(true) }}
+              onSize={(axis, v, reflow) => { setDocPageSize(axis, v, reflow); setAutoFit(true) }}
+              onEdge={(which, v, reflow) => setDocPageEdge(which, v, reflow)}
+            />
           )}
           {doc && autoInput && (
             <div className="relative group" style={{ position: 'relative' }}>
@@ -499,7 +492,7 @@ export default function JourneyStudioPage() {
           <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} onGeneratePacking={generatePackingList} onGenerateAccommodations={generateAccommodationsList} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
+            <div ref={viewportRef} style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
               <div style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' }}>
                 <StudioCanvas
                   spread={spread}
@@ -517,14 +510,19 @@ export default function JourneyStudioPage() {
 
             {/* Zoom */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 16px', borderTop: '1px solid var(--border-secondary)', flexShrink: 0 }}>
-              <button onClick={() => setZoom(ZOOM_STEPS[Math.max(0, zoomIndex - 1)])}
+              <button onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.max(0, zoomIndex - 1)]) }}
                 style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                 <Minus size={13} />
               </button>
               <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-              <button onClick={() => setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1)])}
+              <button onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1)]) }}
                 style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
                 <Plus size={13} />
+              </button>
+              <button onClick={() => setAutoFit(true)} aria-pressed={autoFit} title={t('journey.studio.zoomFit')}
+                style={{ height: 26, padding: '0 9px', display: 'flex', alignItems: 'center', borderRadius: 6, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
+                  border: autoFit ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: autoFit ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-muted)' }}>
+                {t('journey.studio.zoomFit')}
               </button>
             </div>
           </div>
