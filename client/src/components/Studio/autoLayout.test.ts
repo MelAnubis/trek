@@ -1,5 +1,5 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-032
-import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, tightenHeroStory, type AutoInput, type AutoEntry } from './autoLayout'
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-045
+import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, tightenHeroStory, pairPhotosToFrames, cropCost, stationsSpread, type AutoInput, type AutoEntry } from './autoLayout'
 import { TEMPLATES, applyTemplate } from './templates'
 import type { BookElement, BookSpread } from '../../types/book'
 
@@ -496,5 +496,75 @@ describe('buildBook — pros/cons footer', () => {
     const footer = entrySpreadRow.elements.filter(e => e.kind === 'list' || (e.kind === 'text' && (e.text === 'Pros' || e.text === 'Cons')))
     const footerH = PAGE.pageHeight - Math.min(...footer.map(e => e.frame.y))
     expect(footerH).toBeLessThan(PAGE.pageHeight / 3)
+  })
+})
+
+describe('shape-aware placement', () => {
+  const portrait = (id: number) => ({ photoId: id, width: 3000, height: 4500 })
+  const landscape = (id: number) => ({ photoId: id, width: 4500, height: 3000 })
+
+  it('FE-AUTOLAYOUT-039: a portrait photo goes into the tallest frame, landscapes into the wide ones', () => {
+    const frames = [{ w: 100, h: 60 }, { w: 40, h: 90 }, { w: 100, h: 55 }]
+    const order = pairPhotosToFrames(frames, [landscape(1), portrait(2), landscape(3)])
+    expect(order[1]).toBe(1) // the tall frame takes photo index 1, the portrait
+    expect(new Set(order)).toEqual(new Set([0, 1, 2]))
+  })
+
+  it('FE-AUTOLAYOUT-040: photos with unknown size keep their order and cost nothing', () => {
+    const frames = [{ w: 100, h: 60 }, { w: 40, h: 90 }]
+    expect(pairPhotosToFrames(frames, [{ photoId: 1 }, { photoId: 2 }])).toEqual([0, 1])
+    expect(cropCost(frames, [{ photoId: 1 }, { photoId: 2 }])).toBe(0)
+  })
+
+  it('FE-AUTOLAYOUT-041: the crop cost of a matched pairing is lower than the mismatched one', () => {
+    const frames = [{ w: 40, h: 90 }, { w: 100, h: 60 }]
+    const matched = cropCost(frames, [portrait(1), landscape(2)])
+    const forced = cropCost([{ w: 100, h: 60 }, { w: 100, h: 60 }], [portrait(1), landscape(2)])
+    expect(matched).toBeLessThan(forced)
+  })
+
+  it('FE-AUTOLAYOUT-042: the placed photo frames match the photos\' shapes on a portrait page', () => {
+    const A4P = { ...PAGE, preset: 'a4-portrait' as const, pageWidth: 210, pageHeight: 297 }
+    const doc = buildBook(input({ page: A4P, entries: [entry({ story: null, photos: [portrait(1), landscape(2)] })] }))
+    const sp = doc.spreads.find(x => x.entryId === 1)!
+    const placed = sp.elements.filter((e): e is Extract<BookElement, { kind: 'photo' }> => e.kind === 'photo' && e.photoId != null)
+    const p1 = placed.find(e => e.photoId === 1)
+    const p2 = placed.find(e => e.photoId === 2)
+    expect(p1).toBeDefined()
+    expect(p2).toBeDefined()
+    expect(p1!.frame.h / p1!.frame.w).toBeGreaterThanOrEqual(p2!.frame.h / p2!.frame.w)
+  })
+})
+
+describe('stations', () => {
+  const bare = (id: number, title: string, date: string): AutoEntry => ({ id, title, story: null, location: null, date, photos: [] })
+
+  it('FE-AUTOLAYOUT-043: consecutive stops with no photos and no story become one itinerary spread, in order', () => {
+    const doc = buildBook(input({ stationsLabel: 'Etapas', entries: [entry({ id: 1 }), bare(2, 'Hakone', '2026-04-03'), bare(3, 'Nara', '2026-04-04'), entry({ id: 4, date: '2026-04-05' })] }))
+    const inner = doc.spreads.filter(sp => sp.role === 'inner')
+    const ids = inner.map(sp => sp.entryId)
+    const stIdx = ids.indexOf(null)
+    expect(ids.indexOf(1)).toBeLessThan(stIdx)
+    expect(ids.indexOf(4)).toBeGreaterThan(stIdx)
+    const texts = inner[stIdx].elements.filter(e => e.kind === 'text').map(e => (e as Extract<BookElement, { kind: 'text' }>).text)
+    expect(texts).toEqual(expect.arrayContaining(['ETAPAS', 'Hakone', 'Nara']))
+  })
+
+  it('FE-AUTOLAYOUT-044: an entry with nothing at all — no name either — is still left out', () => {
+    const doc = buildBook(input({ entries: [entry({ id: 1 }), { id: 9, title: null, story: null, location: null, date: null, photos: [] }] }))
+    expect(doc.spreads.some(sp => sp.elements.some(e => e.kind === 'text' && (e as { text: string }).text.toUpperCase() === 'STATIONS'))).toBe(false)
+  })
+
+  it('FE-AUTOLAYOUT-045: a long run splits into spreads of at most 26 stops, each under the element cap, inside the page', () => {
+    const many = Array.from({ length: 30 }, (_, k) => bare(100 + k, `Stop ${k}`, '2026-05-01'))
+    const doc = buildBook(input({ entries: many }))
+    const st = doc.spreads.filter(sp => sp.role === 'inner' && sp.entryId === null && sp.background === '#faf8f4')
+    expect(st.length).toBe(2)
+    for (const sp of st) {
+      expect(sp.elements.length).toBeLessThanOrEqual(90)
+      for (const el of sp.elements) expect(el.frame.y + el.frame.h).toBeLessThanOrEqual(PAGE.pageHeight)
+    }
+    const small = stationsSpread(many.slice(0, 26), input({ page: { ...PAGE, preset: 'a5-landscape', pageWidth: 210, pageHeight: 148 } }))
+    for (const el of small.elements) expect(el.frame.y + el.frame.h).toBeLessThanOrEqual(148)
   })
 })

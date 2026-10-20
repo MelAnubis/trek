@@ -233,12 +233,13 @@ export default function JourneyStudioPage() {
         story: e.story ?? null,
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
-        photos: (e.photos || []).map(p => ({ photoId: p.photo_id })),
+        photos: (e.photos || []).map(p => ({ photoId: p.photo_id, width: p.width ?? null, height: p.height ?? null })),
         prosCons: e.pros_cons ?? null,
         lat: e.location_lat ?? null,
         lng: e.location_lng ?? null,
       })),
       page: doc.page,
+      stationsLabel: t('journey.studio.stations'),
       journeyStats: {
         days,
         entries: current.stats?.entries ?? withContent.length,
@@ -253,7 +254,7 @@ export default function JourneyStudioPage() {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, doc?.page, locale, gpxTracks])
+  }, [current, doc?.page, locale, gpxTracks, t])
 
   const spread = doc?.spreads[activeSpread] ?? null
 

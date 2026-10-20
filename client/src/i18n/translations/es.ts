@@ -2109,6 +2109,7 @@ const es: Record<string, string> = {
   'journey.studio.reflowOnResize': 'Ajustar el contenido al nuevo tamaño',
   'journey.studio.reflowOnResizeHint': 'Recoloca fotos, textos y formas de forma proporcional. Se puede deshacer.',
   'journey.studio.zoomFit': 'Ajustar',
+  'journey.studio.stations': 'Etapas',
   'journey.studio.resizeNotice': 'Página cambiada a {w} × {h} mm. Puedes remaquetar el libro entero para el nuevo formato (se puede deshacer) o quedarte con la maquetación actual.',
   'journey.studio.relayoutBook': 'Remaquetar libro',
   'journey.studio.keepLayout': 'Mantener',

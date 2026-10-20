@@ -2300,6 +2300,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.studio.reflowOnResize': 'Fit content to the new size',
   'journey.studio.reflowOnResizeHint': 'Moves photos, text and shapes proportionally. Can be undone.',
   'journey.studio.zoomFit': 'Fit',
+  'journey.studio.stations': 'Stops',
   'journey.studio.resizeNotice': 'Page changed to {w} × {h} mm. You can lay out the whole book again for the new format (undoable) or keep the current layout.',
   'journey.studio.relayoutBook': 'Relayout book',
   'journey.studio.keepLayout': 'Keep',

@@ -25,6 +25,68 @@ import type { RouteImages } from './buildRouteImages'
 
 export interface AutoPhoto {
   photoId: number
+  /** Pixel size, when known (journey_photos.width/height) — lets the layout match portrait photos to tall frames. Omitted or null: treated as unknown and never penalised. */
+  width?: number | null
+  height?: number | null
+}
+
+/*
+ * ── Shape-aware placement ──────────────────────────────────────────────────
+ *
+ * Upstream picks templates by what the photos *are* — portrait, landscape,
+ * panorama — not just how many there are, and that is most of the difference
+ * between a book that looks arranged and one that looks poured in. It matters
+ * most right after a page-size change: the same three photos want a different
+ * grid on an A4 portrait page than on a 30 × 30 square.
+ *
+ * Cost is the crop: |ln(frame aspect / photo aspect)|, 0 for a perfect fit,
+ * ~0.4 for a 3:2 landscape in a square, ~0.8 for a portrait in a 3:2 slot.
+ * Photos and frames are paired by rank (narrowest photo to narrowest frame),
+ * which minimises the summed crop for this cost.
+ */
+function aspectOf(p: AutoPhoto): number | null {
+  return p.width && p.height && p.width > 0 && p.height > 0 ? p.width / p.height : null
+}
+
+/** For each frame (in slot order), the index into `photos` that should fill it. Unknown-shape photos fill whatever is left, in their original order. */
+export function pairPhotosToFrames(frames: { w: number; h: number }[], photos: AutoPhoto[]): number[] {
+  const n = Math.min(frames.length, photos.length)
+  const use = photos.slice(0, n).map((p, i) => ({ i, a: aspectOf(p) }))
+  const known = use.filter(u => u.a != null).sort((x, y) => x.a! - y.a!)
+  const unknown = use.filter(u => u.a == null)
+  const slots = frames.slice(0, n).map((f, i) => ({ i, a: f.w / Math.max(0.01, f.h) }))
+  // Known shapes take the frames whose shape is most extreme at each end
+  // first — sorting frames and photos together pairs rank to rank.
+  const out = new Array<number>(n).fill(-1)
+  if (known.length) {
+    const order = [...slots].sort((x, y) => x.a - y.a)
+    // Spread the known photos across the sorted frames proportionally so a
+    // single portrait among landscapes still gets the tallest frame.
+    const picks = known.map((_, k) => Math.round(known.length === 1 ? (known[0].a! < 1 ? 0 : order.length - 1) : (k * (order.length - 1)) / (known.length - 1)))
+    const taken = new Set<number>()
+    known.forEach((ph, k) => {
+      let j = picks[k]
+      while (taken.has(j)) j = (j + 1) % order.length
+      taken.add(j)
+      out[order[j].i] = ph.i
+    })
+  }
+  let u = 0
+  for (let i = 0; i < n; i++) if (out[i] === -1) out[i] = unknown[u++].i
+  return out
+}
+
+/** Summed crop of pairing these photos into these frames — 0 when every shape is unknown. */
+export function cropCost(frames: { w: number; h: number }[], photos: AutoPhoto[]): number {
+  const pairs = pairPhotosToFrames(frames, photos)
+  let cost = 0
+  pairs.forEach((pi, fi) => {
+    const a = aspectOf(photos[pi])
+    if (a == null) return
+    const f = frames[fi]
+    cost += Math.abs(Math.log((f.w / Math.max(0.01, f.h)) / a))
+  })
+  return cost
 }
 
 export interface AutoEntry {
@@ -83,6 +145,8 @@ export interface AutoInput {
    * plain text-only closing card.
    */
   overviewRoute?: RouteImages | null
+  /** Heading over a list of bare stops, already translated ("Etapas"). Omitted: the English word. */
+  stationsLabel?: string
 }
 
 function photoEl(id: string, photoId: number | null): BookElement {
@@ -121,11 +185,12 @@ function seedSpread(id: string, role: BookSpread['role'], elements: BookElement[
 }
 
 /** How well a template suits an entry's content: more is better, -1 means it would leave a hole or need words that aren't there. */
-function templateFit(tpl: Template, photos: number, hasStory: boolean, page: BookPageSetup): number {
+function templateFit(tpl: Template, photos: AutoPhoto[], hasStory: boolean, page: BookPageSetup): number {
   const slots = tpl.build(page)
-  const frames = slots.filter(s => s.kind === 'photo').length
+  const frames = slots.filter(s => s.kind === 'photo')
   const wantsBody = slots.some(s => s.kind === 'body')
-  if (frames > photos + 1) return -1
+  const count = photos.length
+  if (frames.length > count + 1) return -1
   if (wantsBody && !hasStory) return -1
   // A slot that straddles the gutter reads as one picture (or one line of
   // text) only when the spread is viewed uncut. Auto-layout targets
@@ -133,10 +198,14 @@ function templateFit(tpl: Template, photos: number, hasStory: boolean, page: Boo
   // requires — so a template that depends on the facing page is never a
   // candidate: each generated page has to stand on its own.
   if (crossesGutter(tpl, page)) return -1
-  return 100 - Math.abs(frames - photos) * 10 - (wantsBody === hasStory ? 0 : 5)
+  // Up to ~12 points for shape fit: enough to choose between two grids of the
+  // right size, never enough to make a 2-photo layout win for 5 photos.
+  const crop = cropCost(frames.map(f => f.frame), photos)
+  const shapePenalty = Math.min(12, (crop / Math.max(1, Math.min(frames.length, count))) * 15)
+  return 100 - Math.abs(frames.length - count) * 10 - (wantsBody === hasStory ? 0 : 5) - shapePenalty
 }
 
-function bestTemplate(candidates: Template[], photos: number, hasStory: boolean, page: BookPageSetup, seed: number): Template {
+function bestTemplate(candidates: Template[], photos: AutoPhoto[], hasStory: boolean, page: BookPageSetup, seed: number): Template {
   const scored = candidates.map(t => ({ t, score: templateFit(t, photos, hasStory, page) }))
   const best = Math.max(...scored.map(s => s.score))
   // Ties within 5 points of the best pick by a rotating index, so a run of
@@ -245,15 +314,22 @@ function entrySpread(entry: AutoEntry, input: AutoInput, seed: number): BookSpre
     spread = applyReferenceTemplate(refTemplate, refEntry, { page: layoutPage, locale, journeyStats: input.journeyStats })
   } else {
     const elements: BookElement[] = []
-    entry.photos.forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
+    const hasStory = !!entry.story?.trim()
+    const tpl = bestTemplate(TEMPLATES, entry.photos, hasStory, layoutPage, seed)
+    // applyTemplate fills photo frames in pool order, so hand it the photos
+    // already in the order that puts each into its best-shaped frame; the
+    // ones that don't fit go after, and end up parked as before.
+    const frames = tpl.build(layoutPage).filter(sl => sl.kind === 'photo').map(sl => sl.frame)
+    const order = pairPhotosToFrames(frames, entry.photos)
+    const placed = new Set(order)
+    ;[...order.map(i => entry.photos[i]), ...entry.photos.filter((_, i) => !placed.has(i))]
+      .forEach(p => elements.push(photoEl(elementId('p'), p.photoId)))
     const heading = entry.title || entry.location || ''
     if (heading) elements.push(boundTextEl(elementId('t'), heading, 22, { source: 'entry.title', entryId: entry.id }))
     const meta = formatMeta(entry.date, entry.title ? entry.location : null, locale)
     if (meta) elements.push(textEl(elementId('t'), meta, 7.5))
     if (entry.story?.trim()) elements.push(boundTextEl(elementId('t'), entry.story.trim(), 10, { source: 'entry.story', entryId: entry.id }))
 
-    const hasStory = !!entry.story?.trim()
-    const tpl = bestTemplate(TEMPLATES, entry.photos.length, hasStory, layoutPage, seed)
     const raw = seedSpread(elementId('sp'), 'inner', elements, entry.id)
     const laidOut = applyTemplate(raw, tpl, layoutPage)
     spread = tpl.id === 'hero-story' ? tightenHeroStory(laidOut, layoutPage) : laidOut
@@ -538,8 +614,64 @@ export function relayoutSpread(spread: BookSpread, input: AutoInput, seed = 0): 
   return { ...entrySpread(entry, input, seed), id: spread.id }
 }
 
+/*
+ * ── Stations ──────────────────────────────────────────────────────────────
+ *
+ * Ported from upstream's stationsSpread: a stop with a name but no photos and
+ * no story used to vanish from the book entirely — it isn't worth a spread of
+ * its own, but a journey's itinerary is part of its story. Consecutive bare
+ * stops are set as a printed itinerary instead: date and place, two columns
+ * of up to 13 rows each (13 × 3 elements × 2 + heading stays under the
+ * schema's 90-element cap per spread).
+ */
+const STATIONS_PER_PAGE = 13
+
+export function hasSubstance(entry: AutoEntry): boolean {
+  return entry.photos.length > 0 || !!entry.story?.trim()
+}
+
+function stationShape(frame: { x: number; y: number; w: number; h: number }, fill: string): BookElement {
+  return {
+    id: elementId('s'), kind: 'shape', frame, rotation: 0, opacity: 1, locked: false,
+    shape: 'rect', fill, gradient: 'none', stroke: null, strokeWidth: 0, strokeStyle: 'solid', radius: 0,
+  } as BookElement
+}
+
+export function stationsSpread(entries: AutoEntry[], input: AutoInput): BookSpread {
+  const { page, locale } = input
+  const W = page.pageWidth
+  const H = page.pageHeight
+  const m = Math.max(12, Math.min(18, W * 0.085))
+  const els: BookElement[] = []
+  els.push(stationShape({ x: m, y: m + 12, w: 14, h: 0.5 }, '#c2410c'))
+  els.push({ ...textEl(elementId('t'), (input.stationsLabel || 'Stations').toUpperCase(), 8), frame: { x: m, y: m + 18, w: W - m * 2, h: 8 }, weight: 600, tracking: 0.16, color: '#8a8578' })
+
+  const top = m + 34
+  const step = Math.min(13, (H - top - m) / STATIONS_PER_PAGE)
+  // Type scales with the row height a small page leaves, never above 11pt.
+  const nameSize = Math.max(7, Math.min(11, step * 0.85))
+  ;[entries.slice(0, STATIONS_PER_PAGE), entries.slice(STATIONS_PER_PAGE, STATIONS_PER_PAGE * 2)].forEach((column, side) => {
+    const x = side * W + m
+    const w = W - m * 2
+    column.forEach((entry, i) => {
+      const y = top + i * step
+      if (entry.date) {
+        const d = new Date(`${entry.date}T00:00:00`)
+        const label = Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString(locale, { day: 'numeric', month: 'short' }).toUpperCase()
+        if (label) els.push({ ...textEl(elementId('t'), label, 7), frame: { x, y, w: w * 0.3, h: 5 }, weight: 600, tracking: 0.1, color: '#a09a8e' })
+      }
+      const name = entry.title || entry.location || ''
+      if (name) {
+        els.push({ ...boundTextEl(elementId('t'), name, nameSize, entry.title ? { source: 'entry.title', entryId: entry.id } : { source: 'entry.location', entryId: entry.id }), frame: { x: x + w * 0.32, y: y - 1.5, w: w * 0.68, h: Math.max(5, step - 4) }, weight: 600, color: '#141414' })
+      }
+      els.push(stationShape({ x, y: y + step - 4.5, w, h: 0.15 }, '#ddd8cf'))
+    })
+  })
+  return { id: elementId('sp'), role: 'inner', background: '#faf8f4', elements: els, parked: [], entryId: null }
+}
+
 export function buildBook(input: AutoInput): BookDocument {
-  const withContent = input.entries.filter(e => e.photos.length > 0 || !!e.story?.trim())
+  const withContent = input.entries.filter(hasSubstance)
   const dates = withContent.map(e => e.date).filter((d): d is string => !!d).sort()
   const dateRange = dates.length
     ? (dates[0] === dates[dates.length - 1]
@@ -556,12 +688,28 @@ export function buildBook(input: AutoInput): BookDocument {
   const firstIndexForDate = new Map<string, number>()
   withContent.forEach((entry, i) => { if (entry.date && !firstIndexForDate.has(entry.date)) firstIndexForDate.set(entry.date, i) })
 
-  withContent.forEach((entry, i) => {
+  // Walk every entry in journey order: entries with substance get their own
+  // spread as before; runs of bare named stops between them become station
+  // lists (see stationsSpread) instead of disappearing.
+  let bare: AutoEntry[] = []
+  const flushBare = () => {
+    for (let k = 0; k < bare.length; k += STATIONS_PER_PAGE * 2) spreads.push(stationsSpread(bare.slice(k, k + STATIONS_PER_PAGE * 2), input))
+    bare = []
+  }
+  let i = 0
+  input.entries.forEach(entry => {
+    if (!hasSubstance(entry)) {
+      if (entry.title?.trim() || entry.location?.trim()) bare.push(entry)
+      return
+    }
+    flushBare()
     if (entry.date && routeImages?.has(entry.date) && firstIndexForDate.get(entry.date) === i) {
       spreads.push(routeSpread(entry.date, routeImages.get(entry.date)!, input.page, input.locale))
     }
     spreads.push(entrySpread(entry, input, i))
+    i++
   })
+  flushBare()
   spreads.push(summarySpread(input, dateRange))
 
   return { version: 1, title: input.title, page: input.page, spreads: spreads.slice(0, 150) }
