@@ -1,4 +1,4 @@
-// FE-COMP-BOOKPHOTO-001 to FE-COMP-BOOKPHOTO-008
+// FE-COMP-BOOKPHOTO-001 to FE-COMP-BOOKPHOTO-009
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { BookPhotoImg } from './BookPhotoImg';
@@ -67,6 +67,24 @@ describe('BookPhotoImg — editing mode (default)', () => {
 
     unmount();
     expect(revokeSpy).toHaveBeenCalledTimes(1);
+  });
+  it('FE-COMP-BOOKPHOTO-009: unmounted before the download lands — no state update, and the blob is freed anyway', async () => {
+    const { Blob: NodeBlob } = await import('node:buffer');
+    let release!: () => void;
+    const gate = new Promise<void>(r => { release = r; });
+    vi.spyOn(globalThis, 'fetch').mockImplementationOnce(async () => {
+      await gate;
+      return { ok: true, blob: () => Promise.resolve(new NodeBlob(['img'], { type: 'image/jpeg' }) as unknown as Blob) } as unknown as Response;
+    });
+    const revokeSpy = vi.spyOn(URL, 'revokeObjectURL');
+    const errSpy = vi.spyOn(console, 'error');
+
+    const { unmount } = render(<BookPhotoImg photoId={42} big />);
+    unmount();
+    release();
+
+    await waitFor(() => expect(revokeSpy).toHaveBeenCalledTimes(1));
+    expect(errSpy).not.toHaveBeenCalled();
   });
 });
 

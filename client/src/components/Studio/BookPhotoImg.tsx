@@ -36,11 +36,16 @@ export function BookPhotoImg({ photoId, big, print, publicToken, style }: { phot
   useEffect(() => {
     if (plain) return
     let revoke = ''
+    let cancelled = false
     fetchImageAsBlob(url).then(blobUrl => {
+      // Unmounted (or the photo changed) before the download finished: no
+      // state update on a dead component, and free the blob straight away
+      // instead of leaking it — flipping pages in the Studio does this a lot.
+      if (cancelled) { if (blobUrl) URL.revokeObjectURL(blobUrl); return }
       revoke = blobUrl
       setSrc(blobUrl)
-    })
-    return () => { if (revoke) URL.revokeObjectURL(revoke) }
+    }).catch(() => { /* leave the placeholder; the next render retries */ })
+    return () => { cancelled = true; if (revoke) URL.revokeObjectURL(revoke) }
   }, [url, plain])
 
   if (plain) return <img src={url} alt="" draggable={false} loading={publicToken ? 'lazy' : undefined} style={style} />
