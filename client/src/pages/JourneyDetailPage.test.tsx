@@ -2838,6 +2838,37 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-121b ─────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-121b: ProviderPicker album browser — open an album and come back', () => {
+    it('shows albums as cards, opens one to its photos, and "← Albums" returns to the list', async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      server.use(
+        http.get('/api/integrations/memories/:provider/albums/:albumId/photos', () =>
+          HttpResponse.json({ assets: [{ id: 'alb-asset-1', city: 'Siena', createdAt: '2026-03-17' }] })),
+      );
+      await openGalleryWithProvider(user);
+
+      const pickerModal = screen.getByText('Add to').closest('[class*="fixed"]')!;
+      const albumTab = Array.from(pickerModal.querySelectorAll('button')).find(btn => btn.textContent === 'Albums')!;
+      await user.click(albumTab);
+
+      // A card in the browser, under the "match the trip dates" heading.
+      const card = await screen.findByTitle('Italy Album');
+      expect(screen.getByTestId('album-browser')).toBeInTheDocument();
+      expect(screen.getByText(/Match the trip dates/i)).toBeInTheDocument();
+
+      await user.click(card);
+      await waitFor(() => expect(screen.getByText('Siena')).toBeInTheDocument());
+      expect(screen.queryByTestId('album-browser')).not.toBeInTheDocument();
+
+      const back = Array.from(pickerModal.querySelectorAll('button')).find(b => b.textContent?.trim() === 'Albums' && b !== albumTab)!;
+      expect(back).toBeTruthy();
+      await user.click(back);
+      await waitFor(() => expect(screen.getByTestId('album-browser')).toBeInTheDocument());
+      expect(screen.queryByText('Siena')).not.toBeInTheDocument();
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-122 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-122: DatePicker clicking a day selects it', () => {
     it('clicking a day cell in the calendar selects that date', async () => {

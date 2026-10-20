@@ -18,6 +18,8 @@ import type { JourneyMapAutoHandle as JourneyMapHandle } from '../components/Jou
 import JournalBody from '../components/Journey/JournalBody'
 import MarkdownToolbar from '../components/Journey/MarkdownToolbar'
 import PhotoLightbox from '../components/Journey/PhotoLightbox'
+import { AlbumBrowser, normalizeAlbums } from '../components/Journey/AlbumBrowser'
+import type { PickerAlbum } from '../components/Journey/albumBrowser'
 import { useToast } from '../components/shared/Toast'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
 import {
@@ -26,7 +28,7 @@ import {
   UserPlus, Plus, Minus, Calendar, Camera, BookOpen, X, Check, ImagePlus, Trash2, Pencil,
   Laugh, Smile, Meh, Annoyed, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronUp, ChevronDown, Eye, EyeOff,
-  Archive, ArchiveRestore, Settings as SettingsIcon, Sparkles,
+  Archive, ArchiveRestore, Settings as SettingsIcon, Sparkles, ChevronLeft,
 } from 'lucide-react'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
@@ -1934,10 +1936,11 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
   onClose: () => void
   onAdd: (groups: Array<{ assetIds: string[]; passphrase?: string }>, entryId: number | null) => Promise<void>
 }) {
-  const { t } = useTranslation()
+  const { t, locale } = useTranslation()
   const [filter, setFilter] = useState<'trip' | 'custom' | 'all' | 'album'>('trip')
   const [photos, setPhotos] = useState<any[]>([])
-  const [albums, setAlbums] = useState<Array<{ id: string; albumName: string; assetCount: number; passphrase?: string }>>([])
+  const [albums, setAlbums] = useState<PickerAlbum[]>([])
+  const [albumsLoading, setAlbumsLoading] = useState(false)
   const [selectedAlbum, setSelectedAlbum] = useState<string | null>(null)
   const [selectedAlbumPassphrase, setSelectedAlbumPassphrase] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(false)
@@ -2015,11 +2018,28 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
   }
 
   const loadAlbums = async () => {
+    setAlbumsLoading(true)
     try {
       const res = await fetch(`/api/integrations/memories/${provider}/albums`, { credentials: 'include' })
-      if (res.ok) setAlbums((await res.json()).albums || [])
+      if (res.ok) setAlbums(normalizeAlbums((await res.json()).albums || []))
     } catch {}
+    setAlbumsLoading(false)
   }
+
+  const pickAlbum = (a: PickerAlbum) => {
+    setSelectedAlbum(a.id)
+    setSelectedAlbumPassphrase(a.passphrase)
+    loadAlbumPhotos(a)
+  }
+
+  const backToAlbums = () => {
+    cancelPending()
+    setSelectedAlbum(null)
+    setSelectedAlbumPassphrase(undefined)
+    setPhotos([])
+    setLoading(false)
+  }
+  const currentAlbum = selectedAlbum ? albums.find(a => a.id === selectedAlbum) ?? null : null
 
   // load on mount / filter change
   useEffect(() => {
@@ -2132,22 +2152,20 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
             )}
 
             {filter === 'album' && (
-              <div className="flex gap-2 overflow-x-auto flex-1">
-                {albums.map((a: any) => (
-                  <button
-                    key={a.id}
-                    onClick={() => { setSelectedAlbum(a.id); setSelectedAlbumPassphrase(a.passphrase); loadAlbumPhotos(a) }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap flex-shrink-0 border ${
-                      selectedAlbum === a.id
-                        ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 border-zinc-900 dark:border-white'
-                        : 'border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800'
-                    }`}
-                  >
-                    {a.albumName || a.name || 'Album'}{a.assetCount != null ? ` (${a.assetCount})` : ''}
+              currentAlbum ? (
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <button onClick={backToAlbums}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[12px] font-medium border border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 flex-shrink-0">
+                    <ChevronLeft size={13} /> {t('journey.picker.albums')}
                   </button>
-                ))}
-                {albums.length === 0 && !loading && <span className="text-[12px] text-zinc-400">{t('journey.picker.noAlbums')}</span>}
-              </div>
+                  <span className="text-[13px] font-semibold text-zinc-900 dark:text-white truncate">{currentAlbum.albumName || 'Album'}</span>
+                  {currentAlbum.assetCount != null && (
+                    <span className="text-[12px] text-zinc-400 flex-shrink-0">{t('journey.picker.albumPhotos', { count: currentAlbum.assetCount })}</span>
+                  )}
+                </div>
+              ) : (
+                <span className="text-[12px] text-zinc-500">{albums.length ? t('journey.picker.albumsPickHint') : ''}</span>
+              )
             )}
           </div>
         </div>
@@ -2232,7 +2250,19 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
 
         {/* Photo grid */}
         <div className="flex-1 overflow-y-auto overscroll-contain p-4 min-h-0">
-          {loading ? (
+          {filter === 'album' && !selectedAlbum ? (
+            <AlbumBrowser
+              albums={albums}
+              loading={albumsLoading}
+              provider={provider}
+              userId={userId}
+              tripFrom={tripRange.from}
+              tripTo={tripRange.to}
+              onPick={pickAlbum}
+              t={t}
+              locale={locale}
+            />
+          ) : loading ? (
             <div className="flex justify-center py-12">
               <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
             </div>
