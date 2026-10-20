@@ -100,6 +100,10 @@ vi.mock('../components/Files/FileManager', () => ({
 vi.mock('../components/Budget/BudgetPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'budget-panel' }),
 }));
+// The Costs tab renders CostsPanel (which replaced BudgetPanel there).
+vi.mock('../components/Budget/CostsPanel', () => ({
+  default: () => React.createElement('div', { 'data-testid': 'budget-panel' }),
+}));
 
 vi.mock('../components/Packing/PackingListPanel', () => ({
   default: () => React.createElement('div', { 'data-testid': 'packing-list-panel' }),
@@ -454,7 +458,7 @@ describe('TripPlannerPage', () => {
 
       vi.useRealTimers();
 
-      const budgetTab = await screen.findByTitle('Budget');
+      const budgetTab = await screen.findByTitle('Costs'); // the budget tab's label (trip.tabs.budget)
       fireEvent.click(budgetTab);
 
       await waitFor(() => {

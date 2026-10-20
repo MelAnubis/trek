@@ -10,7 +10,13 @@ vi.mock('../../api/websocket', () => ({
   removeListener: vi.fn(),
 }));
 
-import { render, screen, fireEvent } from '../../../tests/helpers/render';
+// The lightbox fetches each photo with the user's auth and shows it as a blob:
+// URL once it arrives — stand in for that fetch so the <img> appears.
+vi.mock('../../api/authUrl', () => ({
+  fetchImageAsBlob: vi.fn((src: string) => Promise.resolve(`blob:${src}`)),
+}));
+
+import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import PhotoLightbox from './PhotoLightbox';
 
@@ -31,12 +37,11 @@ describe('PhotoLightbox', () => {
     expect(document.body).toBeInTheDocument();
   });
 
-  it('FE-COMP-LIGHTBOX-002: shows photo image', () => {
+  it('FE-COMP-LIGHTBOX-002: shows photo image', async () => {
     const onClose = vi.fn();
     render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
-    const img = screen.getByRole('img');
-    expect(img).toBeInTheDocument();
-    expect(img).toHaveAttribute('src', '/photos/1.jpg');
+    const img = await screen.findByRole('img');
+    expect(img).toHaveAttribute('src', 'blob:/photos/1.jpg');
   });
 
   it('FE-COMP-LIGHTBOX-003: shows close button', () => {
@@ -47,23 +52,22 @@ describe('PhotoLightbox', () => {
     expect(buttons.length).toBeGreaterThan(0);
   });
 
-  it('FE-COMP-LIGHTBOX-004: previous/next navigation works', () => {
+  it('FE-COMP-LIGHTBOX-004: previous/next navigation works', async () => {
     const onClose = vi.fn();
     render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
     // Initially shows photo 1
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    const img = screen.getByRole('img');
-    expect(img).toHaveAttribute('src', '/photos/1.jpg');
+    expect(await screen.findByRole('img')).toHaveAttribute('src', 'blob:/photos/1.jpg');
 
     // Navigate to next photo via ArrowRight key
     fireEvent.keyDown(window, { key: 'ArrowRight' });
     expect(screen.getByText('2 / 3')).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/photos/2.jpg');
+    await waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:/photos/2.jpg'));
 
     // Navigate back via ArrowLeft key
     fireEvent.keyDown(window, { key: 'ArrowLeft' });
     expect(screen.getByText('1 / 3')).toBeInTheDocument();
-    expect(screen.getByRole('img')).toHaveAttribute('src', '/photos/1.jpg');
+    await waitFor(() => expect(screen.getByRole('img')).toHaveAttribute('src', 'blob:/photos/1.jpg'));
   });
 
   it('FE-COMP-LIGHTBOX-005: keyboard Escape closes lightbox', () => {

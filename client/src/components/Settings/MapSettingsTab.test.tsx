@@ -82,14 +82,14 @@ describe('MapSettingsTab', () => {
 
   it('FE-COMP-MAP-009: tile URL text input is shown', () => {
     render(<MapSettingsTab />);
-    const tileInput = screen.getByPlaceholderText(/openstreetmap/i);
+    const tileInput = screen.getByPlaceholderText(/basemaps\.cartocdn\.com/i);
     expect(tileInput).toBeInTheDocument();
   });
 
   it('FE-COMP-MAP-010: typing a custom tile URL updates the text input', async () => {
     const user = userEvent.setup();
     render(<MapSettingsTab />);
-    const tileInput = screen.getByPlaceholderText(/openstreetmap/i);
+    const tileInput = screen.getByPlaceholderText(/basemaps\.cartocdn\.com/i);
     await user.clear(tileInput);
     // Escape curly braces so userEvent doesn't treat them as special keys
     await user.type(tileInput, 'https://custom.tiles/{{z}/{{x}/{{y}.png');

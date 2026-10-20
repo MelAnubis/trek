@@ -307,13 +307,12 @@ describe('JourneyPage', () => {
     });
     await user.click(screen.getByText('Thailand 2026'));
 
-    // The modal footer has a Create/Create Journey button — find it by its disabled-capable parent
-    // The footer buttons live inside the border-t div at the bottom of the modal
-    const footerDiv = document.querySelector('.border-t.border-zinc-200');
-    const footerButtons = footerDiv?.querySelectorAll('button');
-    // The last button in the footer is the submit button
-    const submitBtn = footerButtons ? footerButtons[footerButtons.length - 1] : null;
+    // The submit button sits right after the modal's Cancel button — found by
+    // that relationship rather than by styling classes, which keep changing.
+    const cancelBtn = screen.getByRole('button', { name: /^cancel$/i });
+    const submitBtn = cancelBtn.nextElementSibling as HTMLButtonElement | null;
     expect(submitBtn).toBeTruthy();
+    expect(submitBtn).not.toBeDisabled();
     await user.click(submitBtn!);
 
     await waitFor(() => {

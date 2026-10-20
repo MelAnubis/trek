@@ -260,7 +260,9 @@ describe('TripFormModal', () => {
         items: [{ type: 'image/png', getAsFile: () => file }],
       },
     });
-    expect(mockCreateObjectURL).toHaveBeenCalledWith(file);
+    // The pasted file goes through normalizeImageFile (HEIC → JPEG) first,
+    // which is async — a PNG comes back unchanged, one tick later.
+    await waitFor(() => expect(mockCreateObjectURL).toHaveBeenCalledWith(file));
 
     Object.defineProperty(URL, 'createObjectURL', { writable: true, configurable: true, value: original });
   });

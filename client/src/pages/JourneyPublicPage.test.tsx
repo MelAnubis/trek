@@ -223,10 +223,10 @@ describe('JourneyPublicPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Tokyo 2026')).toBeInTheDocument();
     });
-    // Footer shows "TREK" brand and "Made with" text
-    expect(screen.getByText('TREK')).toBeInTheDocument();
-    expect(screen.getByText(/Made with/)).toBeInTheDocument();
-    expect(screen.getByText('GitHub')).toBeInTheDocument();
+    // Footer: "Shared via Trek Wanderer" (this fork's branding; upstream's
+    // "Made with … GitHub" credit line isn't shown on public pages here).
+    expect(screen.getByText('Trek Wanderer', { selector: 'strong' })).toBeInTheDocument();
+    expect(screen.queryByText('GitHub')).toBeNull();
   });
 
   it('FE-PAGE-PUBLICJOURNEY-008: gallery tab switches view', async () => {

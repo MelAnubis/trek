@@ -134,9 +134,11 @@ describe('Navbar', () => {
   it('FE-COMP-NAVBAR-016: app version shown in user menu', async () => {
     const user = userEvent.setup();
     render(<Navbar />);
+    // The bar itself also carries a version chip, so check the menu adds its own.
+    const before = screen.queryAllByText('v2.9.10').length;
     await user.click(screen.getByText('testuser'));
     await waitFor(() => {
-      expect(screen.getByText('v2.9.10')).toBeInTheDocument();
+      expect(screen.getAllByText('v2.9.10').length).toBe(before + 1);
     });
   });
 

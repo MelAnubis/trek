@@ -33,14 +33,14 @@ vi.mock('leaflet', () => {
   return {
     default: {
       map: vi.fn(() => mockMap),
-      tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+      tileLayer: vi.fn(() => ({ addTo: vi.fn(), on: vi.fn(), setUrl: vi.fn() })),
       marker: vi.fn(() => mockMarker),
       polyline: vi.fn(() => ({ addTo: vi.fn() })),
       divIcon: vi.fn(() => ({})),
       latLngBounds: vi.fn(() => ({})),
     },
     map: vi.fn(() => mockMap),
-    tileLayer: vi.fn(() => ({ addTo: vi.fn() })),
+    tileLayer: vi.fn(() => ({ addTo: vi.fn(), on: vi.fn(), setUrl: vi.fn() })),
     marker: vi.fn(() => mockMarker),
     polyline: vi.fn(() => ({ addTo: vi.fn() })),
     divIcon: vi.fn(() => ({})),

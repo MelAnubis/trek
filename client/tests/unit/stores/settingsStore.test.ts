@@ -158,7 +158,7 @@ describe('settingsStore', () => {
 
       const state = useSettingsStore.getState();
       expect(state.settings.dark_mode).toBe(true);
-      expect(state.settings.default_currency).toBe('USD');
+      expect(state.settings.default_currency).toBe('EUR'); // this fork's default
     });
   });
 

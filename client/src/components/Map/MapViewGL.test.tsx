@@ -40,6 +40,16 @@ vi.mock('mapbox-gl', () => ({
     })),
     LngLatBounds: vi.fn(() => ({ extend: vi.fn().mockReturnThis() })),
     NavigationControl: vi.fn(),
+    // MapViewGL creates two popups up front (place hover, track click).
+    Popup: vi.fn(() => ({
+      setLngLat: vi.fn().mockReturnThis(),
+      setHTML: vi.fn().mockReturnThis(),
+      setDOMContent: vi.fn().mockReturnThis(),
+      addTo: vi.fn().mockReturnThis(),
+      remove: vi.fn().mockReturnThis(),
+      isOpen: vi.fn(() => false),
+      on: vi.fn().mockReturnThis(),
+    })),
   },
 }))
 vi.mock('mapbox-gl/dist/mapbox-gl.css', () => ({}))

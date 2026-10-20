@@ -72,9 +72,9 @@ describe('DemoBanner', () => {
   });
 
   // FE-COMP-DEMOBANNER-009
-  it('shows "What is TREK?" section', () => {
+  it('shows "What is Trek Wanderer?" section', () => {
     render(<DemoBanner />);
-    expect(screen.getByText('What is TREK?')).toBeInTheDocument();
+    expect(screen.getByText('What is Trek Wanderer?')).toBeInTheDocument();
   });
 
   // FE-COMP-DEMOBANNER-010
@@ -94,7 +94,7 @@ describe('DemoBanner', () => {
   it('self-host link points to GitHub', () => {
     render(<DemoBanner />);
     const link = screen.getByText('self-host it').closest('a')!;
-    expect(link).toHaveAttribute('href', 'https://github.com/mauriceboe/TREK');
+    expect(link).toHaveAttribute('href', 'https://github.com/MelAnubis/trek');
     expect(link).toHaveAttribute('target', '_blank');
   });
 
