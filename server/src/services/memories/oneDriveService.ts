@@ -121,16 +121,42 @@ async function getAccessToken(userId: number): Promise<string | null> {
   if (Math.floor(Date.now() / 1000) < expiry - 60) {
     return decrypt_api_key(user.onedrive_access_token);
   }
-  return refreshToken(userId);
+  // One refresh at a time per user. The picker fires dozens of thumbnail
+  // requests at once; each used to refresh on its own, and since Microsoft
+  // rotates the refresh token on every use, all but the first raced against
+  // a token that had just been replaced — and those thumbnails came back
+  // broken.
+  const running = refreshInFlight.get(userId);
+  if (running) return running;
+  const job = refreshToken(userId).finally(() => refreshInFlight.delete(userId));
+  refreshInFlight.set(userId, job);
+  return job;
 }
+const refreshInFlight = new Map<number, Promise<string | null>>();
 
 // ── Graph API helper ─────────────────────────────────────────────────────────
-async function graphGet(userId: number, path: string): Promise<{ data?: any; error?: string; status?: number }> {
+const GRAPH_TIMEOUT_MS = 20_000;
+
+async function graphGet(userId: number, path: string, attempt = 0): Promise<{ data?: any; error?: string; status?: number }> {
   const token = await getAccessToken(userId);
   if (!token) return { error: 'Not connected to OneDrive', status: 401 };
-  const r = await fetch(`${GRAPH_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-  });
+  let r: Awaited<ReturnType<typeof fetch>>;
+  try {
+    // A Graph call that never answers used to hang the picker forever (no
+    // timeout at all); now it fails like any other error.
+    r = await fetch(`${GRAPH_BASE}${path}`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(GRAPH_TIMEOUT_MS) as any,
+    });
+  } catch (e: any) {
+    return { error: e?.name === 'TimeoutError' || e?.name === 'AbortError' ? 'OneDrive did not answer in time' : (e?.message || 'Network error'), status: 504 };
+  }
+  // Throttled: Graph says how long to wait. Honour it once (capped), then give up.
+  if ((r.status === 429 || r.status === 503) && attempt === 0) {
+    const wait = Math.min(5, Number(r.headers?.get?.('Retry-After')) || 2);
+    await new Promise(res => setTimeout(res, wait * 1000));
+    return graphGet(userId, path, 1);
+  }
   if (!r.ok) {
     const e = await r.json().catch(() => ({})) as any;
     return { error: e?.error?.message || r.statusText, status: r.status };
@@ -185,6 +211,151 @@ function dayEnd(date: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date}T23:59:59.999Z` : new Date(date).toISOString();
 }
 
+// ── Photo index (one pass over the drive, cached) ──────────────────────────
+//
+// Both the date search and the album list used to walk the drive folder by
+// folder — up to 500 (search) and 600 (albums) sequential Graph calls, each
+// waiting on the last, and the search redid the whole walk for every "load
+// more" page. On a real photo library that is minutes, which in the picker
+// looked like a spinner that never ends.
+//
+// Instead: one `delta` query per scope, which Graph answers with every item
+// under it in a handful of large pages (no recursion), kept for a few
+// minutes per user. Two scopes, matching what each feature always covered:
+// 'photos' (the Photos special folder) for the date search, 'drive' (the
+// whole drive) for the album list. Photos carry their capture date and parent folder, so the
+// same index answers "photos between these dates" and "folders that hold
+// photos" (the album fallback). If delta isn't available, the old breadth-
+// first walk runs instead — now in parallel and against a time budget.
+
+export interface IndexedPhoto { id: string; name: string; taken: string | null; parentId: string | null }
+interface PhotoIndex {
+  photos: IndexedPhoto[]
+  folders: Map<string, { name: string; parentId: string | null }>
+  builtAt: number
+  /** Stopped early (time budget or errors) — results may be incomplete. */
+  partial: boolean
+  source: 'delta' | 'walk'
+}
+
+const INDEX_TTL_MS = 10 * 60_000;
+const PARTIAL_INDEX_TTL_MS = 60_000;
+const INDEX_BUDGET_MS = 60_000;
+const WALK_CONCURRENCY = 6;
+const INDEX_SELECT = 'id,name,folder,file,photo,image,fileSystemInfo,createdDateTime,parentReference,deleted';
+
+export type IndexScope = 'photos' | 'drive';
+const SCOPE_ROOT: Record<IndexScope, string> = { photos: '/me/drive/special/photos', drive: '/me/drive/root' };
+const indexCache = new Map<string, PhotoIndex>();
+const indexInFlight = new Map<string, Promise<PhotoIndex>>();
+
+/** Tests only: forget cached indexes (user ids repeat across a reset test DB). */
+export function __resetOneDriveIndexCache(): void { indexCache.clear(); indexInFlight.clear(); }
+
+function isImageItem(item: any): boolean {
+  return !!(item.photo || item.image || item.file?.mimeType?.startsWith('image/'));
+}
+
+/** A capture date we trust for date filtering — never the upload time alone. */
+function trustedTakenDate(item: any): string | null {
+  if (!item.photo?.takenDateTime && !item.fileSystemInfo?.createdDateTime && !item.fileSystemInfo?.lastModifiedDateTime) return null;
+  return resolveTakenDate(item);
+}
+
+function addToIndex(idx: Pick<PhotoIndex, 'photos' | 'folders'>, item: any, seen: Set<string>): void {
+  if (!item?.id || item.deleted || seen.has(item.id)) return;
+  seen.add(item.id);
+  const parentId = item.parentReference?.id ?? null;
+  if (item.folder) { idx.folders.set(item.id, { name: item.name || '', parentId }); return; }
+  if (isImageItem(item)) idx.photos.push({ id: item.id, name: item.name || '', taken: trustedTakenDate(item), parentId });
+}
+
+function nextLinkPath(next: string | undefined): string | null {
+  if (!next) return null;
+  try { const u = new URL(next); return u.pathname.replace('/v1.0', '') + u.search; } catch { return null; }
+}
+
+async function buildIndexViaDelta(userId: number, scope: IndexScope, deadline: number): Promise<PhotoIndex | null> {
+  const idx: PhotoIndex = { photos: [], folders: new Map(), builtAt: Date.now(), partial: false, source: 'delta' };
+  const seen = new Set<string>();
+  let url: string | null = `${SCOPE_ROOT[scope]}/delta?$select=${INDEX_SELECT}`;
+  let pages = 0;
+  while (url) {
+    if (Date.now() > deadline) { idx.partial = true; break; }
+    const result = await graphGet(userId, url);
+    if (result.error) {
+      if (pages === 0) { console.warn('[oneDrive] delta unavailable, falling back to folder walk:', result.status, result.error); return null; }
+      console.error('[oneDrive] delta page failed, index is partial:', result.status, result.error);
+      idx.partial = true;
+      break;
+    }
+    pages++;
+    for (const item of result.data?.value || []) addToIndex(idx, item, seen);
+    url = nextLinkPath(result.data?.['@odata.nextLink']);
+  }
+  console.log(`[oneDrive] ${scope} index via delta: ${idx.photos.length} photo(s), ${idx.folders.size} folder(s), ${pages} page(s)${idx.partial ? ' (partial)' : ''}`);
+  return idx;
+}
+
+async function buildIndexViaWalk(userId: number, scope: IndexScope, deadline: number): Promise<PhotoIndex> {
+  const idx: PhotoIndex = { photos: [], folders: new Map(), builtAt: Date.now(), partial: false, source: 'walk' };
+  const seen = new Set<string>();
+  const query = `$select=${INDEX_SELECT}&$top=200`;
+  const queue: string[] = [`${SCOPE_ROOT[scope]}/children?${query}`];
+  const MAX_FOLDERS = 1500;
+  let visited = 0;
+  let busy = 0;
+  // A small pool over one shared queue. A worker that finds the queue empty
+  // waits while others are still reading folders (they may add subfolders),
+  // and stops once nobody is.
+  const worker = async () => {
+    for (;;) {
+      if (Date.now() > deadline || visited >= MAX_FOLDERS) { if (queue.length) idx.partial = true; return; }
+      const first = queue.shift();
+      if (!first) {
+        if (busy === 0) return;
+        await new Promise(r => setTimeout(r, 25));
+        continue;
+      }
+      busy++;
+      visited++;
+      try {
+        let url: string | null = first;
+        while (url) {
+          const result = await graphGet(userId, url);
+          if (result.error) { idx.partial = true; console.error('[oneDrive] walk folder failed:', url, result.status, result.error); break; }
+          for (const item of result.data?.value || []) {
+            addToIndex(idx, item, seen);
+            if (item.folder) queue.push(`/me/drive/items/${item.id}/children?${query}`);
+          }
+          url = nextLinkPath(result.data?.['@odata.nextLink']);
+        }
+      } finally {
+        busy--;
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: WALK_CONCURRENCY }, worker));
+  console.log(`[oneDrive] ${scope} index via folder walk: ${idx.photos.length} photo(s), ${idx.folders.size} folder(s), ${visited} folder(s) visited${idx.partial ? ' (partial)' : ''}`);
+  return idx;
+}
+
+export async function getPhotoIndex(userId: number, scope: IndexScope = 'photos'): Promise<PhotoIndex> {
+  const key = `${userId}:${scope}`;
+  const cached = indexCache.get(key);
+  if (cached && Date.now() - cached.builtAt < (cached.partial ? PARTIAL_INDEX_TTL_MS : INDEX_TTL_MS)) return cached;
+  const running = indexInFlight.get(key);
+  if (running) return running;
+  const job = (async () => {
+    const deadline = Date.now() + INDEX_BUDGET_MS;
+    const idx = (await buildIndexViaDelta(userId, scope, deadline)) ?? (await buildIndexViaWalk(userId, scope, deadline));
+    indexCache.set(key, idx);
+    return idx;
+  })().finally(() => indexInFlight.delete(key));
+  indexInFlight.set(key, job);
+  return job;
+}
+
 // ── Connection status ────────────────────────────────────────────────────────
 export function getConnectionSettings(userId: number) {
   const user = db.prepare('SELECT onedrive_access_token FROM users WHERE id = ?').get(userId) as any;
@@ -226,53 +397,6 @@ function looksAutoGenerated(name: string): boolean {
   return /^\d{4}$/.test(name) || /^\d{1,2}$/.test(name);
 }
 
-// Walks a folder tree breadth-first, fully paginating each folder's children
-// (a single 200-item page used to silently truncate large folders — both the
-// subfolder discovery and the photo count were wrong for anything bigger).
-// Only folders that actually contain at least one photo/image are surfaced
-// as albums — previously *any* named folder qualified, which polluted the
-// album picker with non-photo folders (Documents, work files, etc.) that
-// happened to live under the walked root.
-async function walkFoldersForAlbums(
-  userId: number,
-  rootPath: string,
-  seen: Set<string>,
-  albums: { id: string; name: string; count: number }[],
-  maxFolders: number,
-): Promise<number> {
-  const childrenQuery = '$select=id,name,folder,photo,image&$top=200';
-  const queue: { id: string | null; name: string; path: string }[] = [
-    { id: null, name: '', path: rootPath },
-  ];
-  let foldersVisited = 0;
-
-  while (queue.length > 0 && foldersVisited < maxFolders) {
-    const node = queue.shift()!;
-    foldersVisited++;
-    const result = await graphGetAllPages(userId, `${node.path}?${childrenQuery}`);
-    if (result.error) {
-      console.error('[oneDrive] listAlbums folder fetch failed:', node.path, result.error);
-      continue;
-    }
-
-    let photoCount = 0;
-    for (const item of result.items) {
-      if (item.folder) {
-        queue.push({ id: item.id, name: item.name, path: `/me/drive/items/${item.id}/children` });
-        continue;
-      }
-      if (item.photo || item.image) photoCount++;
-    }
-
-    if (node.id && photoCount > 0 && !looksAutoGenerated(node.name) && !seen.has(node.id)) {
-      seen.add(node.id);
-      albums.push({ id: node.id, name: node.name, count: photoCount });
-    }
-  }
-
-  return foldersVisited;
-}
-
 // ── List albums (best-effort: real Albums, falling back to named folders) ────
 export async function listAlbums(userId: number) {
   const seen = new Set<string>();
@@ -299,20 +423,25 @@ export async function listAlbums(userId: number) {
   }
   const bundleAlbumCount = albums.length;
 
-  // Fallback / complement: walk the Photos folder tree and, additionally,
-  // the whole drive root — a personal OneDrive doesn't guarantee every
-  // manually-named photo folder lives under the "Photos" special folder
-  // (e.g. folders created from the OneDrive web UI or synced from a PC
-  // outside the Pictures library land under the drive root instead). Both
-  // walks share `seen` so a folder reachable from either root is only
-  // listed once, and each gets its own folder budget so a large non-photo
-  // drive tree can't starve out the Photos walk.
-  const MAX_FOLDERS_PER_SOURCE = 300;
-  const photosVisited = await walkFoldersForAlbums(userId, '/me/drive/special/photos/children', seen, albums, MAX_FOLDERS_PER_SOURCE);
-  const rootVisited = await walkFoldersForAlbums(userId, '/me/drive/root/children', seen, albums, MAX_FOLDERS_PER_SOURCE);
+  // Fallback / complement: every folder that directly holds photos, from the
+  // drive-wide index (Photos library and anything outside it alike) — see
+  // getPhotoIndex. Same rules as before: named folders only, not Camera
+  // Roll's bare year/month folders, each listed once.
+  const idx = await getPhotoIndex(userId, 'drive');
+  const perFolder = new Map<string, number>();
+  for (const p of idx.photos) if (p.parentId) perFolder.set(p.parentId, (perFolder.get(p.parentId) || 0) + 1);
+  for (const [folderId, count] of perFolder) {
+    const folder = idx.folders.get(folderId);
+    if (!folder || !folder.name || looksAutoGenerated(folder.name) || seen.has(folderId)) continue;
+    // A drive root ("root") has no name worth showing; anything with a
+    // parent is a real folder.
+    if (!folder.parentId) continue;
+    seen.add(folderId);
+    albums.push({ id: folderId, name: folder.name, count });
+  }
 
-  console.log(`[oneDrive] listAlbums: ${bundleAlbumCount} real album(s) + ${albums.length - bundleAlbumCount} named folder(s) with photos, ${photosVisited + rootVisited} folder(s) visited`);
-  return { albums };
+  console.log(`[oneDrive] listAlbums: ${bundleAlbumCount} real album(s) + ${albums.length - bundleAlbumCount} named folder(s) with photos (index: ${idx.source}${idx.partial ? ', partial' : ''})`);
+  return { albums, partial: idx.partial };
 }
 
 // ── Single-item capture date lookup ─────────────────────────────────────────
@@ -373,73 +502,81 @@ export async function searchPhotos(userId: number, from?: string, to?: string, p
   // trip out of the results.
   const from_ = from ? dayStart(from) : undefined;
   const to_   = to   ? dayEnd(to)     : undefined;
-  const collected: any[] = [];
 
-  // Walk the special "photos" folder — the same root browseTimeline()/listAlbums()
-  // already use successfully — recursively, instead of assuming a fixed
-  // "Fotos/<year>/<month>" layout. Most accounts don't have that exact folder
-  // structure (different name, no year/month subfolders, deeper nesting, etc.),
-  // which made date-range search come back empty even when photos existed.
-  // Date filtering still happens per-item below, same as before.
-  const MAX_FOLDERS = 500;
-  const childrenQuery = '$select=id,name,folder,photo,image,file,thumbnails,createdDateTime,fileSystemInfo&$top=200&$expand=thumbnails';
-  const queue: string[] = [`/me/drive/special/photos/children?${childrenQuery}`];
-  let foldersVisited = 0;
+  // One cached drive-wide index instead of a fresh folder walk per request
+  // (and per page) — see getPhotoIndex. Same scope the search always had.
+  const idx = await getPhotoIndex(userId, 'photos');
 
-  while (queue.length > 0 && foldersVisited < MAX_FOLDERS) {
-    let url: string | null = queue.shift()!;
-    foldersVisited++;
-    while (url) {
-      const result = await graphGet(userId, url);
-      if (result.error) {
-        console.error('[oneDrive] searchPhotos folder fetch failed:', url, result.status, result.error);
-        break;
-      }
-      const items = result.data?.value || [];
-      for (const item of items) {
-        if (item.folder) {
-          queue.push(`/me/drive/items/${item.id}/children?${childrenQuery}`);
-          continue;
-        }
-        if (!(item.photo || item.image || item.file?.mimeType?.startsWith('image/'))) continue;
-        // Only trust an actual EXIF/filesystem capture date for date-range
-        // filtering — falling back to the OneDrive upload timestamp (the old
-        // behavior) meant photos taken well outside the trip could still
-        // match just because they happened to be uploaded during it.
-        if ((from_ || to_) && !item.photo?.takenDateTime && !item.fileSystemInfo?.createdDateTime && !item.fileSystemInfo?.lastModifiedDateTime) {
-          continue;
-        }
-        const taken = resolveTakenDate(item);
-        if (from_ && taken < from_) continue;
-        if (to_   && taken > to_)   continue;
-        collected.push(item);
-      }
-      const next = result.data?.['@odata.nextLink'];
-      if (!next) { url = null; break; }
-      try { const u = new URL(next); url = u.pathname.replace('/v1.0', '') + u.search; }
-      catch { url = null; }
+  const collected = idx.photos.filter(p => {
+    // Only an actual EXIF/filesystem capture date counts for a date range —
+    // the OneDrive upload time alone let unrelated photos match a trip just
+    // because they were uploaded during it.
+    if (from_ || to_) {
+      if (!p.taken) return false;
+      if (from_ && p.taken < from_) return false;
+      if (to_ && p.taken > to_) return false;
     }
-  }
-
-  collected.sort((a, b) => resolveTakenDate(b).localeCompare(resolveTakenDate(a)));
+    return true;
+  });
+  collected.sort((a, b) => (b.taken || '').localeCompare(a.taken || ''));
 
   if (page === 1) {
-    console.log(`[oneDrive] searchPhotos: visited ${foldersVisited} folder(s), matched ${collected.length} photo(s) in range`, { from, to });
+    console.log(`[oneDrive] searchPhotos: ${collected.length} photo(s) in range of ${idx.photos.length} indexed (${idx.source}${idx.partial ? ', partial' : ''})`, { from, to });
   }
 
   const start = (page - 1) * size;
   return {
-    assets: collected.slice(start, start + size).map((p: any) => ({
-      id:        p.id,
-      name:      p.name,
-      takenAt:   resolveTakenDate(p),
-      thumbnail: p.thumbnails?.[0]?.large?.url || p.thumbnails?.[0]?.medium?.url || p.thumbnails?.[0]?.small?.url,
+    assets: collected.slice(start, start + size).map(p => ({
+      id:      p.id,
+      name:    p.name,
+      takenAt: p.taken,
     })),
     hasMore: collected.length > start + size,
+    partial: idx.partial,
   };
 }
 
 // ── Stream/proxy a OneDrive photo ────────────────────────────────────────────
+// Thumbnails: each costs two Graph round trips (look up the pre-signed URL,
+// then fetch it), and the picker asks for ~50 at once. Unbounded, that is
+// exactly what gets an account throttled (429) — and every throttled one was
+// a broken image with nothing in the log. So: at most a few lookups at a
+// time per process, a short in-memory cache of the bytes (scrolling back up,
+// switching tabs, the gallery after adding), and a log line on failure.
+const THUMB_CONCURRENCY = 4;
+const THUMB_CACHE_MAX = 400;
+const THUMB_CACHE_TTL_MS = 60 * 60_000;
+const thumbCache = new Map<string, { buf: Buffer; type: string; at: number }>();
+let thumbSlots = THUMB_CONCURRENCY;
+const thumbWaiters: Array<() => void> = [];
+
+async function withThumbSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (thumbSlots > 0) thumbSlots--;
+  else await new Promise<void>(resolve => thumbWaiters.push(resolve));
+  try { return await fn(); }
+  finally {
+    const next = thumbWaiters.shift();
+    if (next) next(); else thumbSlots++;
+  }
+}
+
+/** Tests only. */
+export function __resetOneDriveThumbCache(): void { thumbCache.clear(); }
+
+async function fetchThumbnailBytes(userId: number, assetId: string, size: 'thumbnail' | 'original'): Promise<{ buf: Buffer; type: string } | { status: number; error: string }> {
+  // 'original' has always been the large thumbnail too (already JPEG — no
+  // HEIC for the browser to choke on); both go through the same lookup.
+  const meta = await graphGet(userId, `/me/drive/items/${encodeURIComponent(assetId)}/thumbnails`);
+  if (meta.error) return { status: meta.status || 502, error: meta.error };
+  const set = meta.data?.value?.[0];
+  const url: string | undefined = set?.large?.url || set?.medium?.url || set?.small?.url;
+  if (!url) return { status: 404, error: 'no thumbnail for this item' };
+  // Pre-signed URL: no auth header, but still bounded in time.
+  const r = await fetch(url, { signal: AbortSignal.timeout(GRAPH_TIMEOUT_MS) as any });
+  if (!r.ok) return { status: r.status, error: `thumbnail download ${r.status}` };
+  return { buf: Buffer.from(await r.arrayBuffer()), type: r.headers.get('content-type') || 'image/jpeg' };
+}
+
 export async function streamOneDriveAsset(
   res: Response,
   userId: number,
@@ -449,37 +586,30 @@ export async function streamOneDriveAsset(
   const token = await getAccessToken(userId);
   if (!token) { res.status(401).json({ error: 'Not connected' }); return; }
 
+  const key = `${userId}:${assetId}:${size}`;
+  const hit = thumbCache.get(key);
+  if (hit && Date.now() - hit.at < THUMB_CACHE_TTL_MS) {
+    res.setHeader('Content-Type', hit.type);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.end(hit.buf);
+    return;
+  }
+
   try {
-    let url: string;
-    if (size === 'thumbnail') {
-      const meta = await graphGet(userId, `/me/drive/items/${assetId}/thumbnails`);
-      if (meta.error || !meta.data?.value?.length) {
-        res.status(404).json({ error: 'Thumbnail not found' }); return;
-      }
-      url = meta.data.value[0]?.large?.url || meta.data.value[0]?.medium?.url || meta.data.value[0]?.small?.url;
-      if (!url) { res.status(404).json({ error: 'Thumbnail URL not found' }); return; }
-      // Thumbnails from Graph are pre-signed URLs, no auth needed
-      const r = await fetch(url);
-      if (!r.ok) { res.status(r.status).end(); return; }
-      res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-      res.setHeader('Cache-Control', 'private, max-age=3600');
-      const buf = await r.arrayBuffer();
-      res.end(Buffer.from(buf));
-    } else {
-      // Use large thumbnail from Graph (already JPEG, no HEIC issues)
-      const meta = await graphGet(userId, `/me/drive/items/${assetId}/thumbnails/0`);
-      if (meta.error || !meta.data) { res.status(404).json({ error: 'Not found' }); return; }
-      const url = meta.data.large?.url || meta.data.medium?.url || meta.data.small?.url;
-      if (!url) { res.status(404).json({ error: 'Thumbnail URL not found' }); return; }
-      const r = await fetch(url);
-      if (!r.ok) { res.status(r.status).end(); return; }
-      res.setHeader('Content-Type', r.headers.get('content-type') || 'image/jpeg');
-      res.setHeader('Cache-Control', 'private, max-age=3600');
-      const buf = await r.arrayBuffer();
-      res.end(Buffer.from(buf));
+    const got = await withThumbSlot(() => fetchThumbnailBytes(userId, assetId, size));
+    if ('error' in got) {
+      console.warn(`[oneDrive] ${size} failed for ${assetId}: ${got.status} ${got.error}`);
+      res.status(got.status === 429 ? 503 : got.status).json({ error: got.error });
+      return;
     }
+    thumbCache.set(key, { ...got, at: Date.now() });
+    if (thumbCache.size > THUMB_CACHE_MAX) thumbCache.delete(thumbCache.keys().next().value as string);
+    res.setHeader('Content-Type', got.type);
+    res.setHeader('Cache-Control', 'private, max-age=3600');
+    res.end(got.buf);
   } catch (e: any) {
-    res.status(500).json({ error: e.message });
+    console.warn(`[oneDrive] ${size} failed for ${assetId}:`, e?.message || e);
+    if (!res.headersSent) res.status(502).json({ error: e?.message || 'thumbnail failed' });
   }
 }
 

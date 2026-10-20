@@ -2263,8 +2263,11 @@ function ProviderPicker({ provider, userId, entries, trips, existingAssetIds, on
               locale={locale}
             />
           ) : loading ? (
-            <div className="flex justify-center py-12">
+            <div className="flex flex-col items-center gap-3 py-12">
               <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
+              {provider === 'onedrive' && (
+                <p className="text-[12px] text-zinc-400 text-center max-w-[320px]">{t('journey.picker.onedriveIndexing')}</p>
+              )}
             </div>
           ) : photos.length === 0 ? (
             <div className="text-center py-12">

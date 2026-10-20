@@ -2705,6 +2705,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'journey.picker.dateRange': 'Date Range',
   'journey.picker.allPhotos': 'All Photos',
   'journey.picker.albums': 'Albums',
+  'journey.picker.onedriveIndexing': 'OneDrive takes a moment the first time while it goes through your photo library. After that it is quick.',
   'journey.picker.albumsMatchTrip': 'Match the trip dates',
   'journey.picker.albumsUndated': 'No date',
   'journey.picker.albumsResults': 'Results',

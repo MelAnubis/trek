@@ -2481,6 +2481,7 @@ const es: Record<string, string> = {
   'journey.picker.dateRange': 'Rango de fechas',
   'journey.picker.allPhotos': 'Todas las fotos',
   'journey.picker.albums': 'Álbumes',
+  'journey.picker.onedriveIndexing': 'OneDrive tarda un poco la primera vez: está repasando tu biblioteca de fotos. Después va rápido.',
   'journey.picker.albumsMatchTrip': 'Coinciden con las fechas del viaje',
   'journey.picker.albumsUndated': 'Sin fecha',
   'journey.picker.albumsResults': 'Resultados',
