@@ -1,4 +1,4 @@
-import type { BookDocument, BookSpread } from '../../types/book'
+import type { BookDocument, BookPageNumbers, BookPageSetup, BookSpread } from '../../types/book'
 
 /**
  * Cutting a book into printable sheets. Ported from liketrek/trek's
@@ -86,21 +86,27 @@ export function edgesFor(sheet: Sheet): BleedEdges {
   return { top: true, bottom: true, left: sheet.offset === 0, right: sheet.offset !== 0 }
 }
 
-/** Where the folio numbering starts — this fork doesn't yet expose page-number configuration, so this mirrors upstream's own default (2: the cover is a separate sheet and doesn't count). */
-const FOLIO_START_AT = 2
-
-/** The left page's number for an inner spread at this position — the right page is one more. Exported for SpreadView's own on-page folio numbers, which need the same arithmetic as the Pages panel's label. */
-export function folio(spreadIndex: number): number {
-  return FOLIO_START_AT + (spreadIndex - 1) * 2
+/** Folio settings with every optional field filled — a book saved when this was only `{ show }` reads as upstream's defaults. */
+export const FOLIO_DEFAULTS: Required<BookPageNumbers> = {
+  show: false, startAt: 2, position: 'outer', margin: 12, size: 8, autoColor: true, color: '#8a8578', font: 'sans',
 }
-function folioRange(spreadIndex: number): string {
-  const left = folio(spreadIndex)
+export function folioSettings(page: Pick<BookPageSetup, 'pageNumbers'>): Required<BookPageNumbers> {
+  return { ...FOLIO_DEFAULTS, ...(page.pageNumbers ?? {}) } as Required<BookPageNumbers>
+}
+
+/** The left page's number for an inner spread at this position (cover at index 0) — the right page is one more. Exported for SpreadView's own on-page folios, which need the same arithmetic as the Pages panel's label. */
+export function folio(spreadIndex: number, startAt: number = FOLIO_DEFAULTS.startAt): number {
+  return startAt + (spreadIndex - 1) * 2
+}
+function folioRange(spreadIndex: number, startAt?: number): string {
+  const left = folio(spreadIndex, startAt)
   return `${left} – ${left + 1}`
 }
 
 /** A book, as leaves. Covers stay whole in both modes — half a cover is not a thing anybody prints. */
 export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
   const { pageWidth, pageHeight } = doc.page
+  const startAt = folioSettings(doc.page).startAt
   const out: Sheet[] = []
 
   doc.spreads.forEach((spread, spreadIndex) => {
@@ -118,7 +124,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
       const width = mode === 'spreads' ? pageWidth * 2 : spreadWidth
       out.push({
         spread, spreadIndex, offset: 0, width, height: pageHeight, spreadWidth, single,
-        label: single ? '' : folioRange(spreadIndex),
+        label: single ? '' : folioRange(spreadIndex, startAt),
       })
       return
     }
@@ -126,7 +132,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
     for (const half of [0, 1]) {
       out.push({
         spread, spreadIndex, offset: half * pageWidth, width: pageWidth, height: pageHeight, spreadWidth,
-        single: true, label: String(folio(spreadIndex) + half),
+        single: true, label: String(folio(spreadIndex, startAt) + half),
       })
     }
   })

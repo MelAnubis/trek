@@ -75,12 +75,20 @@ describe('bookElementSchema — text kind — self-hosted font library', () => {
 describe('bookPageSetupSchema — pageNumbers', () => {
   it('BOOKSCHEMA-007: a page saved before pageNumbers existed defaults to off', () => {
     const parsed = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 });
-    expect(parsed.pageNumbers).toEqual({ show: false });
+    expect(parsed.pageNumbers).toEqual({ show: false, startAt: 2, position: 'outer', margin: 12, size: 8, autoColor: true, color: '#8a8578', font: 'sans' });
   });
 
   it('BOOKSCHEMA-008: an explicit show:true round-trips', () => {
     const parsed = bookPageSetupSchema.parse({ preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5, pageNumbers: { show: true } });
-    expect(parsed.pageNumbers).toEqual({ show: true });
+    expect(parsed.pageNumbers).toMatchObject({ show: true, position: 'outer', startAt: 2 });
+  });
+
+  it('BOOKSCHEMA-008b: folio settings round-trip, and a bad field falls back instead of failing the page', () => {
+    const page = { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 };
+    const ok = bookPageSetupSchema.parse({ ...page, pageNumbers: { show: true, startAt: 1, position: 'centre', margin: 8, size: 10, autoColor: false, color: '#112233', font: 'serif' } });
+    expect(ok.pageNumbers).toEqual({ show: true, startAt: 1, position: 'centre', margin: 8, size: 10, autoColor: false, color: '#112233', font: 'serif' });
+    const bad = bookPageSetupSchema.parse({ ...page, pageNumbers: { show: true, position: 'diagonal', size: 999, color: 'red' } });
+    expect(bad.pageNumbers).toMatchObject({ show: true, position: 'outer', size: 8, color: '#8a8578' });
   });
 });
 

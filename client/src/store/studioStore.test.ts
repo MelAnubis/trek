@@ -1,4 +1,4 @@
-// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-036
+// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-037
 import { useStudioStore } from './studioStore'
 import type { BookDocument, BookTextElement } from '../types/book'
 
@@ -337,5 +337,14 @@ describe('studioStore — page setup', () => {
     useStudioStore.getState().load(doc())
     useStudioStore.getState().setPageEdge('safe', 15)
     expect(useStudioStore.getState().doc!.spreads[1].elements[0].frame).toEqual({ x: 0, y: 0, w: 20, h: 10 })
+  })
+
+  it('FE-STORE-STUDIO-037: setPageNumbers patches folio settings without losing the others, one undo step each', () => {
+    useStudioStore.getState().load(doc())
+    useStudioStore.getState().setPageNumbers(true)
+    useStudioStore.getState().setPageNumbers({ position: 'centre', startAt: 1 })
+    expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true, position: 'centre', startAt: 1 })
+    useStudioStore.getState().undo()
+    expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true })
   })
 })

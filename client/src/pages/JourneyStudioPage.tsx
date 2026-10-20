@@ -77,6 +77,10 @@ export default function JourneyStudioPage() {
   // a page-size change re-arms it, since the old zoom was chosen for a sheet
   // that no longer exists (an A4 landscape spread at A5's zoom overflows).
   const [autoFit, setAutoFit] = useState(true)
+  // After a trim-size change: offer to lay the whole book out again for the
+  // new format (the same Auto layout → whole book action), since a reflow
+  // keeps the old composition and a 30×30 layout is rarely the right A5 one.
+  const [resizeNotice, setResizeNotice] = useState(false)
   const viewportRef = useRef<HTMLDivElement>(null)
   const [showExport, setShowExport] = useState(false)
   const [showPrintOrder, setShowPrintOrder] = useState(false)
@@ -291,6 +295,7 @@ export default function JourneyStudioPage() {
         }
       }
       commit(() => buildBook({ ...autoInput, routeImagesByDate, overviewRoute }))
+      setResizeNotice(false)
       toast.success(t('journey.studio.autoLayoutDone'))
     } finally {
       setAutoBookBuilding(false)
@@ -366,8 +371,8 @@ export default function JourneyStudioPage() {
             <PageFormatMenu
               page={doc.page}
               t={t}
-              onPreset={(preset, reflow) => { setDocPagePreset(preset, reflow); setAutoFit(true) }}
-              onSize={(axis, v, reflow) => { setDocPageSize(axis, v, reflow); setAutoFit(true) }}
+              onPreset={(preset, reflow) => { if (preset !== doc.page.preset) setResizeNotice(true); setDocPagePreset(preset, reflow); setAutoFit(true) }}
+              onSize={(axis, v, reflow) => { setResizeNotice(true); setDocPageSize(axis, v, reflow); setAutoFit(true) }}
               onEdge={(which, v, reflow) => setDocPageEdge(which, v, reflow)}
             />
           )}
@@ -492,6 +497,31 @@ export default function JourneyStudioPage() {
           <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} onGeneratePacking={generatePackingList} onGenerateAccommodations={generateAccommodationsList} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {resizeNotice && (
+              <div role="status" data-testid="resize-notice" style={{
+                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', flexShrink: 0,
+                borderBottom: '1px solid var(--border-secondary)', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
+              }}>
+                <span style={{ flex: 1, minWidth: 200 }}>
+                  {t('journey.studio.resizeNotice', { w: Math.round(doc.page.pageWidth * 10) / 10, h: Math.round(doc.page.pageHeight * 10) / 10 })}
+                </span>
+                {autoInput && (
+                  <button onClick={handleAutoBook} disabled={autoBookBuilding} style={{
+                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none',
+                    fontSize: 12, fontWeight: 600, cursor: autoBookBuilding ? 'default' : 'pointer', opacity: autoBookBuilding ? 0.6 : 1,
+                    fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
+                  }}>
+                    <Sparkles size={13} /> {t('journey.studio.relayoutBook')}
+                  </button>
+                )}
+                <button onClick={() => setResizeNotice(false)} style={{
+                  padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none',
+                  fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)',
+                }}>
+                  {t('journey.studio.keepLayout')}
+                </button>
+              </div>
+            )}
             <div ref={viewportRef} style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
               <div style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' }}>
                 <StudioCanvas

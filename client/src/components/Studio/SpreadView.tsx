@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react'
 import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { BookPhotoImg } from './BookPhotoImg'
-import { folio } from './bookSheets'
+import { folio, folioSettings } from './bookSheets'
+import { folioInk } from './folioColour'
 import { AccommodationView, BadgeView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 
@@ -304,34 +305,55 @@ export function ElementView({
  * The folios — drawn by the renderer rather than stored as elements, since
  * the number a page carries is a function of where the spread sits in the
  * book, not something that survives the spread being moved or deleted.
- * Simpler than upstream's own PageNumbers.tsx: a fixed position (outer
- * corner) and colour rather than a position/font/auto-contrast picker — see
- * StudioInspector's Document panel for the one setting this fork exposes.
- * The cover carries none, same as upstream: a folio on a cover is a mistake
- * in every book ever bound.
+ * Follows upstream's PageNumbers.tsx: start number, outer/inner/centre
+ * position, margin from the trim, size, font, and a colour that is either
+ * fixed or picked per page from what the number lands on (folioColour.ts).
+ * The cover and back cover carry none: a folio on a cover is a mistake in
+ * every book ever bound.
  */
 function PageNumbers({ spread, page, spreadIndex }: { spread: BookSpread; page: BookPageSetup; spreadIndex: number }) {
-  if (!page.pageNumbers?.show || spread.role !== 'inner') return null
-  const left = folio(spreadIndex)
-  const right = left + 1
+  const cfg = folioSettings(page)
+  if (!cfg.show || spread.role !== 'inner') return null
+  const left = folio(spreadIndex, cfg.startAt)
   const W = page.pageWidth
-  const boxW = W * 0.4
-  const common: CSSProperties = {
-    position: 'absolute',
-    top: `${page.pageHeight - 12}mm`,
-    width: `${boxW}mm`,
-    fontSize: '8pt',
-    fontWeight: 500,
-    letterSpacing: '0.08em',
-    lineHeight: 1,
-    color: '#8a8578',
-    fontVariantNumeric: 'tabular-nums',
-    pointerEvents: 'none',
+  const y = page.pageHeight - cfg.margin
+
+  const place = (side: 'left' | 'right') => {
+    const pageX = side === 'left' ? 0 : W
+    if (cfg.position === 'centre') return { x: pageX, w: W, align: 'center' as const }
+    const atLeftEdge = side === 'left' ? cfg.position === 'outer' : cfg.position !== 'outer'
+    return atLeftEdge
+      ? { x: pageX + cfg.margin, w: W * 0.4, align: 'left' as const }
+      : { x: pageX + W * 0.6 - cfg.margin, w: W * 0.4, align: 'right' as const }
   }
+
   return (
     <>
-      <div style={{ ...common, left: '6mm', textAlign: 'left' }}>{left}</div>
-      <div style={{ ...common, left: `${W * 2 - boxW - 6}mm`, textAlign: 'right' }}>{right}</div>
+      {([['left', left], ['right', left + 1]] as const).map(([side, number]) => {
+        const at = place(side)
+        // Sampled where the digits actually are, not at the box's left edge.
+        const ink = cfg.autoColor
+          ? folioInk(spread, at.align === 'left' ? at.x + 3 : at.align === 'right' ? at.x + at.w - 3 : at.x + at.w / 2, y + cfg.size * 0.18)
+          : { color: cfg.color, shadow: undefined }
+        return (
+          <div key={side} data-folio={number} style={{
+            position: 'absolute',
+            left: `${at.x}mm`,
+            top: `${y}mm`,
+            width: `${at.w}mm`,
+            textAlign: at.align,
+            fontFamily: fontStack(cfg.font),
+            fontSize: `${cfg.size}pt`,
+            fontWeight: 500,
+            letterSpacing: '0.08em',
+            lineHeight: 1,
+            color: ink.color,
+            textShadow: ink.shadow,
+            fontVariantNumeric: 'tabular-nums',
+            pointerEvents: 'none',
+          }}>{number}</div>
+        )
+      })}
     </>
   )
 }

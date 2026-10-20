@@ -1,4 +1,4 @@
-// FE-SPREADVIEW-001 to FE-SPREADVIEW-014
+// FE-SPREADVIEW-001 to FE-SPREADVIEW-018
 import { render } from '@testing-library/react'
 import { ElementView, SpreadView } from './SpreadView'
 import type { BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
@@ -110,5 +110,42 @@ describe('PhotoView — shape masking', () => {
     const s = { ...spread(), elements: [photoEl({ photoId: 55 })] }
     const { container } = render(<SpreadView spread={s} page={PAGE} big print publicToken="share-tok" />)
     expect(container.querySelector('img')).toHaveAttribute('src', '/api/public/journey/share-tok/photos/55/original')
+  })
+})
+
+describe('SpreadView — page numbers', () => {
+  const folios = (c: HTMLElement) => Array.from(c.querySelectorAll<HTMLElement>('[data-folio]'))
+
+  it('FE-SPREADVIEW-015: an inner spread numbers both pages from startAt; the cover carries none', () => {
+    const { container } = render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, startAt: 10 } }} spreadIndex={2} />)
+    expect(folios(container).map(f => f.textContent)).toEqual(['12', '13'])
+    const cover = render(<SpreadView spread={spread('cover')} page={PAGE} spreadIndex={0} />)
+    expect(folios(cover.container)).toHaveLength(0)
+  })
+
+  it('FE-SPREADVIEW-016: outer puts the numbers at the outside edges, inner next to the gutter, centre centred', () => {
+    const outer = folios(render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, position: 'outer', margin: 10 } }} spreadIndex={1} />).container)
+    expect(outer[0].style.left).toBe('10mm')
+    expect(outer[0].style.textAlign).toBe('left')
+    expect(outer[1].style.textAlign).toBe('right')
+    const inner = folios(render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, position: 'inner', margin: 10 } }} spreadIndex={1} />).container)
+    expect(inner[0].style.textAlign).toBe('right')
+    expect(inner[1].style.left).toBe('220mm')
+    const centre = folios(render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, position: 'centre' } }} spreadIndex={1} />).container)
+    expect(centre.map(f => f.style.textAlign)).toEqual(['center', 'center'])
+  })
+
+  it('FE-SPREADVIEW-017: size and margin set the type and its distance from the bottom trim', () => {
+    const [f] = folios(render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, size: 11, margin: 20 } }} spreadIndex={1} />).container)
+    expect(f.style.fontSize).toBe('11pt')
+    expect(f.style.top).toBe('190mm')
+  })
+
+  it('FE-SPREADVIEW-018: auto colour goes light over a full-bleed photo; a fixed colour is used as given', () => {
+    const sp = { ...spread(), elements: [photoEl({ frame: { x: -3, y: -3, w: 426, h: 216 } })] }
+    const auto = folios(render(<SpreadView spread={sp} page={PAGE} spreadIndex={1} />).container)
+    expect(auto[0].style.color).toBe('rgb(255, 255, 255)')
+    const fixed = folios(render(<SpreadView spread={sp} page={{ ...PAGE, pageNumbers: { show: true, autoColor: false, color: '#112233' } }} spreadIndex={1} />).container)
+    expect(fixed[0].style.color).toBe('rgb(17, 34, 51)')
   })
 })

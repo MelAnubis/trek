@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { BookDocument, BookElement, BookFrame, BookPageSetup, BookSpread } from '../types/book'
+import type { BookDocument, BookElement, BookFrame, BookPageNumbers, BookPageSetup, BookSpread } from '../types/book'
 import { elementId } from '../components/Studio/bookIds'
 import { PAGE_PRESETS, clampPageEdge, clampPageSize, presetMatching, reflowDocument } from '../components/Studio/pagePresets'
 
@@ -84,7 +84,8 @@ interface StudioState {
   setPageSize: (axis: 'w' | 'h', value: number, reflow?: boolean) => void
   /** Bleed or safe margin. A bleed change can reflow (full-bleed elements follow the new edge); the safe margin is a guide only. */
   setPageEdge: (which: 'bleed' | 'safe', value: number, reflow?: boolean) => void
-  setPageNumbers: (show: boolean) => void
+  /** `true`/`false` toggles them (the old call shape); an object patches any folio setting. One undo step either way. */
+  setPageNumbers: (patch: boolean | Partial<BookPageNumbers>) => void
 
   undo: () => void
   redo: () => void
@@ -286,7 +287,10 @@ export const useStudioStore = create<StudioState>((set, get) => ({
     })
   },
 
-  setPageNumbers: show => get().commit(doc => ({ ...doc, page: { ...doc.page, pageNumbers: { show } } })),
+  setPageNumbers: patch => get().commit(doc => {
+    const p = typeof patch === 'boolean' ? { show: patch } : patch
+    return { ...doc, page: { ...doc.page, pageNumbers: { show: false, ...doc.page.pageNumbers, ...p } } }
+  }),
 
   addSpread: index => {
     const doc = get().doc

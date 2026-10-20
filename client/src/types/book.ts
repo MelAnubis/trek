@@ -252,6 +252,20 @@ export interface BookSpread {
   entryId: number | null;
 }
 
+/** Folio settings — mirrors the server's bookPageNumbersSchema. Only `show` is required: a book saved before the rest existed reads as the defaults (see FOLIO_DEFAULTS). */
+export interface BookPageNumbers {
+  show: boolean;
+  startAt?: number;
+  position?: 'outer' | 'inner' | 'centre';
+  /** Millimetres from the trim edge. */
+  margin?: number;
+  /** Points. */
+  size?: number;
+  autoColor?: boolean;
+  color?: string;
+  font?: BookFontFamily;
+}
+
 export interface BookPageSetup {
   preset: 'square-210' | 'square-300' | 'a4-landscape' | 'a4-portrait' | 'a5-landscape' | 'custom';
   pageWidth: number;
@@ -259,7 +273,7 @@ export interface BookPageSetup {
   bleed: number;
   safe: number;
   /** Optional — a document saved before this existed just has none, same as no bleed/safe override before those had a default. */
-  pageNumbers?: { show: boolean };
+  pageNumbers?: BookPageNumbers;
 }
 
 export interface BookDocument {

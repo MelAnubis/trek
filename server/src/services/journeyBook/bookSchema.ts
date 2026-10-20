@@ -375,13 +375,34 @@ export const bookSpreadSchema = z.object({
 });
 export type BookSpread = z.infer<typeof bookSpreadSchema>;
 
+/**
+ * Folio settings — mirrors upstream's bookPageNumbersSchema
+ * (liketrek/TREK shared/src/book/book.schema.ts). Every field defaults and
+ * falls back (`.catch`), so a book saved when this was only `{ show }` reads
+ * exactly as before: outer corner, 8pt, 12 mm from the trim, auto colour.
+ */
+export const bookPageNumbersSchema = z.object({
+  show: z.boolean().catch(false).default(false),
+  /** The number the first inner spread's left page carries. */
+  startAt: z.number().int().min(0).max(9999).catch(2).default(2),
+  position: z.enum(['outer', 'inner', 'centre']).catch('outer').default('outer'),
+  /** Millimetres from the trim edge. */
+  margin: z.number().finite().min(0).max(60).catch(12).default(12),
+  size: z.number().min(4).max(48).catch(8).default(8),
+  /** Pick the colour from what the number lands on; `color` is used when off. */
+  autoColor: z.boolean().catch(true).default(true),
+  color: hex.catch('#8a8578').default('#8a8578'),
+  font: z.enum(BOOK_FONTS_IDS).catch('sans').default('sans'),
+});
+export type BookPageNumbers = z.infer<typeof bookPageNumbersSchema>;
+
 export const bookPageSetupSchema = z.object({
   preset: z.enum(['square-210', 'square-300', 'a4-landscape', 'a4-portrait', 'a5-landscape', 'custom']).default('square-210'),
   pageWidth: mm.refine(v => v > 0, 'page width must be positive').catch(210).default(210),
   pageHeight: mm.refine(v => v > 0, 'page height must be positive').catch(210).default(210),
   bleed: mm.refine(v => v >= 0, 'bleed cannot be negative').catch(3).default(3),
   safe: mm.refine(v => v >= 0, 'safe margin cannot be negative').catch(5).default(5),
-  pageNumbers: z.object({ show: z.boolean().default(false) }).default(() => ({ show: false })),
+  pageNumbers: bookPageNumbersSchema.default(() => bookPageNumbersSchema.parse({})),
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 

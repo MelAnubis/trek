@@ -1,8 +1,9 @@
 import { Lock, Plus, Trash2, Unlock } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
+import { folioSettings } from './bookSheets'
 import { CURRENCIES } from '../Budget/BudgetPanel.constants'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
@@ -45,27 +46,100 @@ const INPUT: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border
 function DocumentPanel({ doc }: { doc: BookDocument }) {
   const { t } = useTranslation()
   const setPageNumbers = useStudioStore(s => s.setPageNumbers)
-  const pageNumbersOn = doc.page.pageNumbers?.show ?? false
+  const cfg = folioSettings(doc.page)
+  const seg = (on: boolean): React.CSSProperties => ({
+    flex: 1, padding: '6px 4px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', borderRadius: 6,
+    border: on ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+    background: on ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
+  })
 
   return (
-    <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14 }}>
+    <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
       <span style={{ ...LABEL, display: 'block', marginBottom: 14 }}>{t('journey.studio.document')}</span>
 
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.pageNumbers')}</span>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
           <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('journey.studio.pageNumbers')}</span>
-          <ToggleSwitch on={pageNumbersOn} onToggle={() => setPageNumbers(!pageNumbersOn)} />
+          <ToggleSwitch on={cfg.show} onToggle={() => setPageNumbers(!cfg.show)} />
         </div>
       </div>
 
-      <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 40, marginBottom: 8 }}>
+      {cfg.show && (
+        <div data-testid="folio-settings">
+          <div style={FIELD}>
+            <span style={LABEL}>{t('journey.studio.folio.position')}</span>
+            <div style={{ display: 'flex', gap: 4 }}>
+              {(['outer', 'centre', 'inner'] as const).map(pos => (
+                <button key={pos} aria-pressed={cfg.position === pos} onClick={() => setPageNumbers({ position: pos })} style={seg(cfg.position === pos)}>
+                  {t(`journey.studio.folio.position.${pos}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+            <label style={FIELD}>
+              <span style={LABEL}>{t('journey.studio.folio.startAt')}</span>
+              <NumberField value={cfg.startAt} min={0} max={9999} step={1} onCommit={v => setPageNumbers({ startAt: Math.round(v) })} />
+            </label>
+            <label style={FIELD}>
+              <span style={LABEL}>{t('journey.studio.folio.size')}</span>
+              <NumberField value={cfg.size} min={4} max={48} step={0.5} onCommit={v => setPageNumbers({ size: v })} />
+            </label>
+            <label style={FIELD}>
+              <span style={LABEL}>{t('journey.studio.folio.margin')}</span>
+              <NumberField value={cfg.margin} min={0} max={60} step={0.5} onCommit={v => setPageNumbers({ margin: v })} />
+            </label>
+          </div>
+
+          <div style={FIELD}>
+            <span style={LABEL}>{t('journey.studio.folio.font')}</span>
+            <select style={INPUT} value={cfg.font} onChange={e => setPageNumbers({ font: e.target.value as typeof cfg.font })}>
+              {BOOK_FONT_ORDER.map(f => <option key={f} value={f}>{BOOK_FONTS[f].name}</option>)}
+            </select>
+          </div>
+
+          <div style={FIELD}>
+            <span style={LABEL}>{t('journey.studio.folio.color')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('journey.studio.folio.autoColor')}</span>
+              <ToggleSwitch on={cfg.autoColor} onToggle={() => setPageNumbers({ autoColor: !cfg.autoColor })} />
+            </div>
+            {!cfg.autoColor && (
+              <input type="color" aria-label={t('journey.studio.folio.color')} value={cfg.color}
+                onChange={e => setPageNumbers({ color: e.target.value, autoColor: false })}
+                style={{ width: '100%', height: 28, marginTop: 6, border: '1px solid var(--border-primary)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+            )}
+            <span style={{ fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4 }}>{t('journey.studio.folio.autoColorHint')}</span>
+          </div>
+        </div>
+      )}
+
+      <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 24, marginBottom: 8 }}>
         {t('journey.studio.inspectorEmpty')}
       </p>
       <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center' }}>
         {t('journey.studio.pageDimensions', { w: Math.round(doc.page.pageWidth), h: Math.round(doc.page.pageHeight) })}
       </p>
     </div>
+  )
+}
+
+/** Commits on blur or Enter, so typing "1", "12" isn't two undo steps; out-of-range values are clamped. */
+function NumberField({ value, min, max, step, onCommit }: { value: number; min: number; max: number; step: number; onCommit: (v: number) => void }) {
+  const [draft, setDraft] = useState(String(value))
+  useEffect(() => { setDraft(String(value)) }, [value])
+  const commit = () => {
+    const n = Number(draft.replace(',', '.'))
+    if (draft.trim() === '' || !Number.isFinite(n)) { setDraft(String(value)); return }
+    const v = Math.min(max, Math.max(min, n))
+    if (v !== value) onCommit(v); else setDraft(String(value))
+  }
+  return (
+    <input style={INPUT} type="number" inputMode="decimal" min={min} max={max} step={step} value={draft}
+      onChange={e => setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit() } }} />
   )
 }
 
