@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { Map, Save, Layers, Box, ChevronDown, Check, AlertTriangle } from 'lucide-react'
+import { Map, Save, Layers, Box, Globe2, ChevronDown, Check, AlertTriangle } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import CustomSelect from '../shared/CustomSelect'
 import { MapView } from '../Map/MapView'
 import MapboxPreview from './MapboxPreview'
+import { OPENFREEMAP_STYLES, maplibreStyleUrl } from '../Map/glEngine'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
 import type { Place } from '../../types'
@@ -137,7 +138,7 @@ function StyleDropdown({ value, onChange }: { value: string; onChange: (v: strin
   )
 }
 
-type Provider = 'leaflet' | 'mapbox-gl'
+type Provider = 'leaflet' | 'maplibre' | 'mapbox-gl'
 
 export default function MapSettingsTab(): React.ReactElement {
   const { settings, updateSettings } = useSettingsStore()
@@ -148,6 +149,7 @@ export default function MapSettingsTab(): React.ReactElement {
   const [mapTileUrl, setMapTileUrl] = useState<string>(settings.map_tile_url || '')
   const [mapboxToken, setMapboxToken] = useState<string>(settings.mapbox_access_token || '')
   const [mapboxStyle, setMapboxStyle] = useState<string>(settings.mapbox_style || 'mapbox://styles/mapbox/standard')
+  const [maplibreStyle, setMaplibreStyle] = useState<string>(maplibreStyleUrl(settings.maplibre_style))
   const [mapbox3d, setMapbox3d] = useState<boolean>(settings.mapbox_3d_enabled !== false)
   const [mapboxQuality, setMapboxQuality] = useState<boolean>(settings.mapbox_quality_mode === true)
   const [defaultLat, setDefaultLat] = useState<number | string>(settings.default_lat || 48.8566)
@@ -159,6 +161,7 @@ export default function MapSettingsTab(): React.ReactElement {
     setMapTileUrl(settings.map_tile_url || '')
     setMapboxToken(settings.mapbox_access_token || '')
     setMapboxStyle(settings.mapbox_style || 'mapbox://styles/mapbox/standard')
+    setMaplibreStyle(maplibreStyleUrl(settings.maplibre_style))
     setMapbox3d(settings.mapbox_3d_enabled !== false)
     setMapboxQuality(settings.mapbox_quality_mode === true)
     setDefaultLat(settings.default_lat || 48.8566)
@@ -199,6 +202,7 @@ export default function MapSettingsTab(): React.ReactElement {
         map_tile_url: mapTileUrl,
         mapbox_access_token: mapboxToken,
         mapbox_style: mapboxStyle,
+        maplibre_style: maplibreStyle,
         mapbox_3d_enabled: mapbox3d,
         mapbox_quality_mode: mapboxQuality,
         default_lat: parseFloat(String(defaultLat)),
@@ -222,7 +226,7 @@ export default function MapSettingsTab(): React.ReactElement {
       {/* Provider picker — big cards so the choice is obvious */}
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">{t('settings.mapProvider')}</label>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <button
             type="button"
             onClick={() => setProvider('leaflet')}
@@ -236,6 +240,21 @@ export default function MapSettingsTab(): React.ReactElement {
             <div>
               <div className="text-sm font-medium text-slate-900 dark:text-white">Leaflet</div>
               <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapLeafletSubtitle')}</div>
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setProvider('maplibre')}
+            className={`flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
+              provider === 'maplibre'
+                ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200'
+                : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'
+            }`}
+          >
+            <Globe2 size={18} className="mt-0.5 flex-shrink-0 text-slate-700 dark:text-slate-300" />
+            <div className="min-w-0">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">MapLibre</div>
+              <div className="hidden sm:block text-xs text-slate-500 mt-0.5">{t('settings.mapMaplibreSubtitle')}</div>
             </div>
           </button>
           <button
@@ -305,6 +324,45 @@ export default function MapSettingsTab(): React.ReactElement {
             </div>
           )}
           <p className="text-xs text-slate-400 mt-1">{t('settings.mapDefaultHint')}</p>
+        </div>
+      )}
+
+      {/* MapLibre + OpenFreeMap settings — no token, no account */}
+      {provider === 'maplibre' && (
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('settings.mapStyle')}</label>
+            <div role="radiogroup" aria-label={t('settings.mapStyle')} className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-2">
+              {OPENFREEMAP_STYLES.map(st => (
+                <button key={st.id} type="button" role="radio" aria-checked={maplibreStyle === st.url} onClick={() => setMaplibreStyle(st.url)}
+                  className={`px-3 py-2 rounded-lg border text-sm text-left ${maplibreStyle === st.url ? 'border-slate-900 bg-slate-50 dark:bg-slate-800 dark:border-slate-200' : 'border-slate-200 hover:border-slate-400 dark:border-slate-700'}`}>
+                  <span className="text-slate-900 dark:text-white">{t(`settings.maplibreStyle.${st.id}`)}</span>
+                </button>
+              ))}
+            </div>
+            <input
+              type="text"
+              value={maplibreStyle}
+              onChange={(e) => setMaplibreStyle(e.target.value)}
+              placeholder="https://tiles.openfreemap.org/styles/liberty"
+              className="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm font-mono focus:ring-2 focus:ring-slate-400 focus:border-transparent"
+            />
+            <p className="text-xs text-slate-400 mt-1">{t('settings.mapMaplibreStyleHint')}</p>
+          </div>
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">{t('settings.map3dBuildings')}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{t('settings.mapMaplibre3dHint')}</div>
+            </div>
+            <ToggleSwitch on={mapbox3d} onToggle={() => setMapbox3d(!mapbox3d)} />
+          </div>
+          <div className="flex items-start gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700">
+            <div className="flex-1">
+              <div className="text-sm font-medium text-slate-900 dark:text-white">{t('settings.mapGlobe')}</div>
+              <div className="text-xs text-slate-500 mt-0.5">{t('settings.mapGlobeHint')}</div>
+            </div>
+            <ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} />
+          </div>
         </div>
       )}
 
@@ -410,10 +468,11 @@ export default function MapSettingsTab(): React.ReactElement {
 
       <div>
         <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
-          {provider === 'mapbox-gl' ? (
+          {provider !== 'leaflet' ? (
             <MapboxPreview
+              engine={provider === 'maplibre' ? 'maplibre' : 'mapbox'}
               token={mapboxToken}
-              style={mapboxStyle}
+              style={provider === 'maplibre' ? maplibreStyle : mapboxStyle}
               lat={parseFloat(String(defaultLat)) || 48.8566}
               lng={parseFloat(String(defaultLng)) || 2.3522}
               // Zoom in close so the style's character (3D buildings,

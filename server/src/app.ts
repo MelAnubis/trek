@@ -151,6 +151,8 @@ export function createApp(): express.Application {
           "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
           "https://router.project-osrm.org/route/v1/",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
+          // MapLibre + OpenFreeMap: style JSON, vector tiles, sprites and glyphs.
+          "https://tiles.openfreemap.org",
           // Bikepack integration (iframe + API calls)
           "https://trekwanderer.info:448"
         ],

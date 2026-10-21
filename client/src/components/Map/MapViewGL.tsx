@@ -1,12 +1,14 @@
 import { useEffect, useRef, useMemo, useState, createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from './mapboxSetup'
+import { GL_MARKER_SELECTOR, addOpenMapTiles3dBuildings, glLib, setActiveGLEngine } from './glEngine'
+import { useGLEngine } from './useGLEngine'
 import { attachLocationMarker, type LocationMarkerHandle } from './locationMarkerMapbox'
 import { ReservationMapboxOverlay } from './reservationsMapbox'
 import LocationButton from './LocationButton'
@@ -177,8 +179,13 @@ export function MapViewGL({
   onAssignTrackDay,
   selectedDayId = null,
 }: Props) {
-  const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
-  const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
+  // Mapbox (with the user's token) or MapLibre + OpenFreeMap (no key) — see glEngine.ts.
+  const engineInfo = useGLEngine()
+  const engine = engineInfo?.engine ?? 'mapbox'
+  const isMapbox = engine === 'mapbox'
+  const mapboxStyle = engineInfo?.style ?? ''
+  const mapboxToken = engineInfo?.token ?? ''
+  const gl = glLib(engine)
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) !== false
@@ -217,28 +224,29 @@ export function MapViewGL({
 
   // Build/rebuild the map on style/token/3d change
   useEffect(() => {
-    if (!containerRef.current || !mapboxToken) return
-    mapboxgl.accessToken = mapboxToken
+    if (!containerRef.current || !engineInfo) return
+    setActiveGLEngine(engine)
+    if (isMapbox) gl.accessToken = mapboxToken
 
-    const map = new mapboxgl.Map({
+    const map = new gl.Map({
       container: containerRef.current,
       style: mapboxStyle,
       center: [center[1], center[0]],
       zoom,
       pitch: mapbox3d ? 45 : 0,
       attributionControl: true,
-      antialias: mapboxQuality,
-      projection: mapboxQuality ? 'globe' : 'mercator',
-    })
+      // Mapbox takes these in the constructor; MapLibre sets the globe after load.
+      ...(isMapbox ? { antialias: mapboxQuality, projection: mapboxQuality ? 'globe' : 'mercator' } : {}),
+    } as mapboxgl.MapOptions)
     mapRef.current = map
-    popupRef.current = new mapboxgl.Popup({
+    popupRef.current = new gl.Popup({
       closeButton: false,
       closeOnClick: false,
       offset: 18,
       maxWidth: '240px',
       className: 'trek-map-popup',
     })
-    trackPopupRef.current = new mapboxgl.Popup({
+    trackPopupRef.current = new gl.Popup({
       closeButton: true,
       closeOnClick: true,
       offset: 12,
@@ -250,7 +258,14 @@ export function MapViewGL({
     ;(window as any).__trek_map = map
 
     map.on('load', () => {
-      if (mapbox3d) {
+      if (!isMapbox) {
+        if (mapbox3d) addOpenMapTiles3dBuildings(map, document.documentElement.classList.contains('dark'))
+        if (mapboxQuality) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          try { (map as any).setProjection({ type: 'globe' }) } catch { /* older style spec */ }
+        }
+      }
+      if (isMapbox && mapbox3d) {
         // Terrain is only valuable on satellite styles — on clean vector
         // styles it makes route lines drift off the HTML markers because
         // the lines snap to DEM height while markers stay at sea level.
@@ -268,7 +283,7 @@ export function MapViewGL({
       // non-satellite Standard style still looks great without terrain,
       // so flatten it out to keep markers pinned. (Satellite variants
       // are left alone — the DEM is what gives them their character.)
-      if (mapboxStyle === 'mapbox://styles/mapbox/standard') {
+      if (isMapbox && mapboxStyle === 'mapbox://styles/mapbox/standard') {
         try { map.setTerrain(null) } catch { /* noop */ }
       }
       // initial route source — kept around so updates can setData() cheaply
@@ -364,7 +379,7 @@ export function MapViewGL({
 
     map.on('click', (e) => {
       const t = e.originalEvent.target as HTMLElement
-      if (t.closest('.mapboxgl-marker')) return // markers handle their own click
+      if (t.closest(GL_MARKER_SELECTOR)) return // markers handle their own click
       onClickRefs.current.map?.({ latlng: { lat: e.lngLat.lat, lng: e.lngLat.lng } })
     })
     // Emit the viewport bbox so the POI-explore pill can fetch OSM places.
@@ -454,7 +469,7 @@ export function MapViewGL({
       mapRef.current = null
       setMapReady(false)
     }
-  }, [mapboxStyle, mapboxToken, mapbox3d]) // rebuild on style changes only
+  }, [engine, mapboxStyle, mapboxToken, mapbox3d]) // rebuild on engine/style changes only
 
   // Photo loading — mirrors the Leaflet MapView. Updates via RAF to batch
   // simultaneous thumb arrivals into one re-render.
@@ -550,7 +565,7 @@ export function MapViewGL({
       // pitch. Tried `pitchAlignment: 'map'` to snap markers onto terrain,
       // but it rotates the element by the pitch angle and visually offsets
       // the anchor by ~100px at 45° tilt, which caused the observed drift.
-      const m = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      const m = new gl.Marker({ element: el, anchor: 'center' })
         .setLngLat([place.lng, place.lat])
         .addTo(map)
       markersRef.current.set(place.id, m)
@@ -572,15 +587,16 @@ export function MapViewGL({
       })
       el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
-      const m = new mapboxgl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
+      const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
       poiMarkersRef.current.push(m)
     }
   }, [pois, mapReady])
 
-  // Update route geojson
+  // Update route geojson. Waits for mapReady: a route that arrived before the
+  // style loaded used to be dropped (no source yet) and never redrawn.
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     const src = map.getSource('trip-route') as mapboxgl.GeoJSONSource | undefined
     if (!src) return
     const features = (route || []).filter(seg => seg && seg.length > 1).map(seg => ({
@@ -589,7 +605,7 @@ export function MapViewGL({
       geometry: { type: 'LineString' as const, coordinates: seg.map(([lat, lng]) => [lng, lat]) },
     }))
     src.setData({ type: 'FeatureCollection', features })
-  }, [route])
+  }, [route, mapReady])
 
   // Travel-time pills between consecutive places. The GL map accepted the
   // routeSegments prop but never drew anything, so the labels that Leaflet
@@ -609,7 +625,7 @@ export function MapViewGL({
         <span style="opacity:0.3">|</span>
         <span style="display:flex;align-items:center;gap:2px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2-4H7L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>${seg.drivingText ?? ''}</span>
       </div>`
-      const m = new mapboxgl.Marker({ element: el, anchor: 'center' })
+      const m = new gl.Marker({ element: el, anchor: 'center' })
         .setLngLat([seg.mid[1], seg.mid[0]])
         .addTo(map)
       routeLabelMarkersRef.current.push(m)
@@ -623,7 +639,7 @@ export function MapViewGL({
   // Update GPX geometries
   useEffect(() => {
     const map = mapRef.current
-    if (!map) return
+    if (!map || !mapReady) return
     const src = map.getSource('trip-gpx') as mapboxgl.GeoJSONSource | undefined
     if (!src) return
     const features = places.flatMap(place => {
@@ -639,7 +655,7 @@ export function MapViewGL({
       } catch { return [] }
     })
     src.setData({ type: 'FeatureCollection', features })
-  }, [places])
+  }, [places, mapReady])
 
   // Update multi-track GPX geojson — one feature per uploaded track, all
   // rendered simultaneously; the track assigned to the selected day (if any)
@@ -723,7 +739,7 @@ export function MapViewGL({
     const target = dayPlaces.length > 0 ? dayPlaces : places
     const valid = target.filter(p => p.lat && p.lng)
     if (valid.length === 0) return
-    const bounds = new mapboxgl.LngLatBounds()
+    const bounds = new gl.LngLatBounds()
     valid.forEach(p => bounds.extend([p.lng, p.lat]))
     const run = () => {
       try {
@@ -794,7 +810,7 @@ export function MapViewGL({
     else map.once('load', apply)
   }, [userPosition, trackingMode])
 
-  if (!mapboxToken) {
+  if (!engineInfo) {
     return (
       <div className="w-full h-full flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6">
         <div className="text-sm text-zinc-500">

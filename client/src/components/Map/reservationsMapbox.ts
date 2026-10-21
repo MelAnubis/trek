@@ -8,7 +8,8 @@
 
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { activeGL } from './glEngine'
 import { Plane, Train, Ship, Car, Bus, Sailboat, Bike, CarTaxiFront, Route } from 'lucide-react'
 import type { Reservation, ReservationEndpoint } from '../../types'
 
@@ -333,7 +334,7 @@ export class ReservationMapboxOverlay {
               this.opts.onEndpointClick?.(item.res.id)
             })
           }
-          const marker = new mapboxgl.Marker({ element: node, anchor: 'center' })
+          const marker = new (activeGL().Marker)({ element: node, anchor: 'center' })
             .setLngLat([ep.lng, ep.lat])
             .addTo(map)
           this.endpointMarkers.push(marker)
@@ -356,7 +357,7 @@ export class ReservationMapboxOverlay {
         const el = document.createElement('div')
         el.style.cssText = `width:${width}px;height:${height}px;pointer-events:none;`
         el.innerHTML = html
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        const marker = new (activeGL().Marker)({ element: el, anchor: 'center' })
           .setLngLat([mid[1], mid[0]])
           .addTo(map)
         this.statsMarkers.push({ marker, arc })

@@ -248,7 +248,9 @@ export interface Settings {
   route_calculation?: boolean
   blur_booking_codes?: boolean
   map_booking_labels?: boolean
-  map_provider?: 'leaflet' | 'mapbox-gl'
+  map_provider?: 'leaflet' | 'maplibre' | 'mapbox-gl'
+  /** OpenFreeMap (or any MapLibre) style URL — see glEngine.ts. */
+  maplibre_style?: string
   mapbox_access_token?: string
   mapbox_style?: string
   mapbox_3d_enabled?: boolean

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback } from 'react'
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
 import { isStandardFamily, supportsCustom3d, wantsTerrain, addCustom3dBuildings, addTerrainAndSky } from '../Map/mapboxSetup'
+import { addOpenMapTiles3dBuildings, glLib, setActiveGLEngine } from '../Map/glEngine'
+import { useGLEngine } from '../Map/useGLEngine'
 
 export interface JourneyMapGLHandle {
   highlightMarker: (id: string | null) => void
@@ -162,6 +164,8 @@ function ensureJourneyPopupStyle() {
       to { opacity: 1; }
     }
   `
+  // The same rules for MapLibre's class names (.maplibregl-*).
+  s.textContent += s.textContent.replace(/mapboxgl-/g, 'maplibregl-')
   document.head.appendChild(s)
 }
 
@@ -205,8 +209,12 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   const stableTrail = trail || EMPTY_TRAIL
   const stablePhotoMarkers = photoMarkers || EMPTY_PHOTO_MARKERS
   const stableWaypointMarkers = waypointMarkers || EMPTY_WAYPOINT_MARKERS
-  const mapboxStyle = useSettingsStore(s => s.settings.mapbox_style || 'mapbox://styles/mapbox/standard')
-  const mapboxToken = useSettingsStore(s => s.settings.mapbox_access_token || '')
+  const engineInfo = useGLEngine()
+  const engine = engineInfo?.engine ?? 'mapbox'
+  const isMapbox = engine === 'mapbox'
+  const mapboxStyle = engineInfo?.style ?? ''
+  const mapboxToken = engineInfo?.token ?? ''
+  const gl = glLib(engine)
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -256,7 +264,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       const el = popupRef.current.getElement()
       if (el) el.classList.toggle('trek-dark', !!darkRef.current)
     } else {
-      popupRef.current = new mapboxgl.Popup({
+      popupRef.current = new gl.Popup({
         closeButton: false,
         closeOnClick: false,
         closeOnMove: false,
@@ -329,39 +337,46 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   // Build map once per style/token change. Markers and layers are rebuilt
   // inside the same effect so they stay in sync with the active style.
   useEffect(() => {
-    if (!containerRef.current || !mapboxToken) return
-    mapboxgl.accessToken = mapboxToken
+    if (!containerRef.current || !engineInfo) return
+    setActiveGLEngine(engine)
+    if (isMapbox) gl.accessToken = mapboxToken
 
     const items = buildItems(entries)
     itemsRef.current = items
 
-    const bounds = new mapboxgl.LngLatBounds()
+    const bounds = new gl.LngLatBounds()
     items.forEach(i => bounds.extend([i.lng, i.lat]))
     stableTrail.forEach(seg => seg.points.forEach(p => bounds.extend([p.lng, p.lat])))
     stableWaypointMarkers.forEach(wp => bounds.extend([wp.lng, wp.lat]))
     const totalTrailPoints = stableTrail.reduce((n, s) => n + s.points.length, 0)
     const hasPoints = items.length > 0 || totalTrailPoints > 0
 
-    const map = new mapboxgl.Map({
+    const map = new gl.Map({
       container: containerRef.current,
       style: mapboxStyle,
       center: hasPoints ? bounds.getCenter() : [0, 30],
       zoom: hasPoints ? 2 : 1,
       pitch: mapbox3d && fullScreen ? 45 : 0,
       attributionControl: true,
-      antialias: mapboxQuality,
-      projection: mapboxQuality ? 'globe' : 'mercator',
-    })
+      ...(isMapbox ? { antialias: mapboxQuality, projection: mapboxQuality ? 'globe' : 'mercator' } : {}),
+    } as mapboxgl.MapOptions)
     mapRef.current = map
 
     map.on('load', () => {
-      if (mapbox3d) {
+      if (!isMapbox) {
+        if (mapbox3d) addOpenMapTiles3dBuildings(map, !!darkRef.current)
+        if (mapboxQuality) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          try { (map as any).setProjection({ type: 'globe' }) } catch { /* noop */ }
+        }
+      }
+      if (isMapbox && mapbox3d) {
         if (!isStandardFamily(mapboxStyle) && wantsTerrain(mapboxStyle)) addTerrainAndSky(map)
         if (supportsCustom3d(mapboxStyle)) addCustom3dBuildings(map, !!darkRef.current)
       }
       // Flatten Mapbox Standard's built-in DEM so HTML markers (at Z=0)
       // stay pinned to their coordinates at every zoom and pitch.
-      if (mapboxStyle === 'mapbox://styles/mapbox/standard') {
+      if (isMapbox && mapboxStyle === 'mapbox://styles/mapbox/standard') {
         try { map.setTerrain(null) } catch { /* noop */ }
       }
 
@@ -426,7 +441,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       // markers
       items.forEach((item) => {
         const el = markerHtml(item.dayColor, item.dayLabel, false)
-        const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+        const marker = new gl.Marker({ element: el, anchor: 'bottom' })
           .setLngLat([item.lng, item.lat])
           .addTo(map)
         el.addEventListener('click', (ev) => {
@@ -444,7 +459,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
         const el = document.createElement('div')
         el.style.cssText = 'width:26px;height:26px;border-radius:50%;background:#111 center/cover no-repeat;' +
           `background-image:url('${p.thumbUrl}');border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.35);cursor:pointer`
-        new mapboxgl.Marker({ element: el, anchor: 'center' })
+        new gl.Marker({ element: el, anchor: 'center' })
           .setLngLat([p.lng, p.lat])
           .addTo(map)
         el.addEventListener('click', (ev) => {
@@ -463,9 +478,9 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
           <circle cx="10" cy="10" r="8" fill="#fff" stroke="#374151" stroke-width="1.5"/>
           <path d="M7 5v10M7 5l6 2-6 2" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>`
-        new mapboxgl.Marker({ element: el, anchor: 'center' })
+        new gl.Marker({ element: el, anchor: 'center' })
           .setLngLat([wp.lng, wp.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 12, closeButton: false }).setText(wp.name))
+          .setPopup(new gl.Popup({ offset: 12, closeButton: false }).setText(wp.name))
           .addTo(map)
       })
 
@@ -494,7 +509,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
       try { map.remove() } catch { /* noop */ }
       mapRef.current = null
     }
-  }, [entries, stableTrail, stablePhotoMarkers, stableWaypointMarkers, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
+  }, [entries, stableTrail, stablePhotoMarkers, stableWaypointMarkers, engine, mapboxStyle, mapboxToken, mapbox3d, mapboxQuality, fullScreen, paddingBottom])
 
   // external activeMarkerId → highlight + flyTo
   useEffect(() => {
@@ -515,7 +530,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
     return () => clearTimeout(t)
   }, [activeMarkerId, highlightMarker, mapbox3d, fullScreen])
 
-  if (!mapboxToken) {
+  if (!engineInfo) {
     return (
       <div
         style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}

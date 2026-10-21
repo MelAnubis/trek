@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef } from 'react'
-import { useSettingsStore } from '../../store/settingsStore'
+import { useGLEngine } from '../Map/useGLEngine'
 import JourneyMap, { type JourneyMapHandle } from './JourneyMap'
 import JourneyMapGL, { type JourneyMapGLHandle } from './JourneyMapGL'
 
@@ -33,14 +33,13 @@ interface Props {
 }
 
 const JourneyMapAuto = forwardRef<JourneyMapAutoHandle, Props>(function JourneyMapAuto(props, ref) {
-  const provider = useSettingsStore(s => s.settings.map_provider)
-  const token = useSettingsStore(s => s.settings.mapbox_access_token)
+  const glEngine = useGLEngine()
   const leafletRef = useRef<JourneyMapHandle>(null)
   const glRef = useRef<JourneyMapGLHandle>(null)
 
-  // Fall back to Leaflet when the user selected Mapbox GL but hasn't
-  // supplied a token yet — otherwise the map would just show a stub.
-  const useGL = provider === 'mapbox-gl' && !!token
+  // GL for MapLibre, or for Mapbox once a token is set (without one the
+  // map would just show a stub) — see useGLEngine.
+  const useGL = !!glEngine
 
   useImperativeHandle(ref, () => ({
     highlightMarker: (id) => (useGL ? glRef.current : leafletRef.current)?.highlightMarker(id),

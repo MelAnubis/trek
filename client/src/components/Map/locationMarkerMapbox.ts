@@ -1,4 +1,5 @@
-import mapboxgl from 'mapbox-gl'
+import type mapboxgl from 'mapbox-gl'
+import { activeGL } from './glEngine'
 import type { GeoPosition } from '../../hooks/useGeolocation'
 
 // Build the DOM element that backs the mapbox Marker. We animate the
@@ -69,7 +70,7 @@ export interface LocationMarkerHandle {
 export function attachLocationMarker(map: mapboxgl.Map): LocationMarkerHandle {
   ensurePulseStyle()
   const { root, cone } = buildLocationEl()
-  const marker = new mapboxgl.Marker({ element: root, anchor: 'center' })
+  const marker = new (activeGL().Marker)({ element: root, anchor: 'center' })
 
   const ensureAccuracyLayer = () => {
     if (map.getSource('trek-location-accuracy')) return

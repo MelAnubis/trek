@@ -1,16 +1,15 @@
-import { useSettingsStore } from '../../store/settingsStore'
 import { MapView } from './MapView'
 import { MapViewGL } from './MapViewGL'
+import { useGLEngine } from './useGLEngine'
 
-// Auto-selects the map renderer based on user settings. Keeps the existing
-// Leaflet MapView untouched so the Mapbox GL variant can mature iteratively
-// behind a toggle. Atlas is not affected — it imports Leaflet directly.
+// Auto-selects the map renderer based on user settings: the GL map for
+// Mapbox (with a token) or MapLibre + OpenFreeMap (no key), Leaflet
+// otherwise. Mapbox without a token falls back to Leaflet so the trip
+// planner never shows an empty map. Atlas is not affected — it imports
+// Leaflet directly.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function MapViewAuto(props: any) {
-  const provider = useSettingsStore(s => s.settings.map_provider)
-  const token = useSettingsStore(s => s.settings.mapbox_access_token)
-  // Fall back to Leaflet when Mapbox is selected but no token is set,
-  // so trip planner never shows an empty map due to a missing token.
-  if (provider === 'mapbox-gl' && token) return <MapViewGL {...props} />
+  const gl = useGLEngine()
+  if (gl) return <MapViewGL {...props} />
   return <MapView {...props} />
 }
