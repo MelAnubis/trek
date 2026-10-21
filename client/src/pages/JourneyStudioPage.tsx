@@ -22,6 +22,8 @@ import '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
 import { PageFormatMenu } from '../components/Studio/PageFormatMenu'
+import { AutoLayoutMenu, readAutoStyle, type AutoStyle } from '../components/Studio/AutoLayoutMenu'
+import type { EditorialDesign } from '../components/Studio/editorialLayouts'
 import { resolveBindings, type BindingSource } from '../components/Studio/resolveBindings'
 import type { BookPageSetup } from '../types/book'
 import { buildRouteImagesByDate, buildOverviewRouteImages } from '../components/Studio/buildRouteImages'
@@ -86,6 +88,7 @@ export default function JourneyStudioPage() {
   const [showPrintOrder, setShowPrintOrder] = useState(false)
   const [printOnDemandAvailable, setPrintOnDemandAvailable] = useState(false)
   const [autoBookBuilding, setAutoBookBuilding] = useState(false)
+  const [autoStyle, setAutoStyle] = useState<AutoStyle>(readAutoStyle)
   const [pagePreset, setPagePreset] = useState<BookPageSetup['preset']>('square-210')
   const [customPage, setCustomPage] = useState({ pageWidth: 210, pageHeight: 210, bleed: 3 })
   // Per-viewer editing convenience, not part of the document — whether the
@@ -238,9 +241,12 @@ export default function JourneyStudioPage() {
         prosCons: e.pros_cons ?? null,
         lat: e.location_lat ?? null,
         lng: e.location_lng ?? null,
+        country: e.country_code ?? null,
       })),
       page: doc.page,
       stationsLabel: t('journey.studio.stations'),
+      style: autoStyle,
+      dayLabel: t('journey.studio.dayLabel'),
       journeyStats: {
         days,
         entries: current.stats?.entries ?? withContent.length,
@@ -256,7 +262,7 @@ export default function JourneyStudioPage() {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, doc?.page, locale, gpxTracks, t])
+  }, [current, doc?.page, locale, gpxTracks, t, autoStyle])
 
   const spread = doc?.spreads[activeSpread] ?? null
 
@@ -267,6 +273,14 @@ export default function JourneyStudioPage() {
       spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : relayoutSpread(sp, autoInput, activeSpread) ?? sp)),
     }))
     toast.success(t('journey.studio.autoLayoutDone'))
+  }
+
+  const handleDesign = (design: EditorialDesign) => {
+    if (!autoInput || !spread?.entryId) return
+    commit(d => ({
+      ...d,
+      spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : relayoutSpread(sp, autoInput, activeSpread, design) ?? sp)),
+    }))
   }
 
   const handleAutoBook = async () => {
@@ -380,29 +394,16 @@ export default function JourneyStudioPage() {
             />
           )}
           {doc && autoInput && (
-            <div className="relative group" style={{ position: 'relative' }}>
-              <button style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-                border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)',
-                fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <Sparkles size={14} /> {t('journey.studio.autoLayout')}
-              </button>
-              <div className="st-auto-menu" style={{
-                position: 'absolute', top: '100%', right: 0, marginTop: 4, minWidth: 160, borderRadius: 10,
-                border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                padding: 4, zIndex: 20, opacity: 0, visibility: 'hidden', transition: 'opacity 0.1s',
-              }}>
-                <button onClick={handleAutoSpread} disabled={!spread?.entryId}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: spread?.entryId ? 'pointer' : 'default', opacity: spread?.entryId ? 1 : 0.4, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
-                  {t('journey.studio.autoLayoutSpread')}
-                </button>
-                <button onClick={handleAutoBook} disabled={autoBookBuilding}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 10px', borderRadius: 6, border: 'none', background: 'none', fontSize: 12, cursor: autoBookBuilding ? 'default' : 'pointer', opacity: autoBookBuilding ? 0.5 : 1, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
-                  {autoBookBuilding ? t('journey.studio.autoLayoutBookBuilding') : t('journey.studio.autoLayoutBook')}
-                </button>
-              </div>
-            </div>
+            <AutoLayoutMenu
+              t={t}
+              style={autoStyle}
+              onStyle={setAutoStyle}
+              canSpread={!!spread?.entryId}
+              building={autoBookBuilding}
+              onSpread={handleAutoSpread}
+              onDesign={handleDesign}
+              onBook={() => { void handleAutoBook() }}
+            />
           )}
           {doc && (
             <>
@@ -594,7 +595,6 @@ export default function JourneyStudioPage() {
         <PrintOrderModal journeyId={journeyId} title={current?.title || doc.title} doc={doc} onClose={() => setShowPrintOrder(false)} />
       )}
 
-      <style>{`.group:hover .st-auto-menu { opacity: 1 !important; visibility: visible !important; }`}</style>
     </div>
   )
 }

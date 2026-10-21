@@ -1,4 +1,4 @@
-// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-045
+// FE-AUTOLAYOUT-001 to FE-AUTOLAYOUT-050
 import { buildBook, emptyBook, estimateTextHeight, relayoutSpread, tightenHeroStory, pairPhotosToFrames, cropCost, stationsSpread, type AutoInput, type AutoEntry } from './autoLayout'
 import { TEMPLATES, applyTemplate } from './templates'
 import type { BookElement, BookSpread } from '../../types/book'
@@ -573,5 +573,51 @@ describe('stations', () => {
     }
     const small = stationsSpread(many.slice(0, 26), input({ page: { ...PAGE, preset: 'a5-landscape', pageWidth: 210, pageHeight: 148 } }))
     for (const el of small.elements) expect(el.frame.y + el.frame.h).toBeLessThanOrEqual(148)
+  })
+})
+
+describe('editorial style', () => {
+  const dated = [
+    entry({ id: 1, date: '2026-04-01', country: 'jp', lat: 35.0, lng: 135.7 }),
+    entry({ id: 2, date: '2026-04-05', country: 'jp', lat: 34.7, lng: 135.5, prosCons: { pros: ['Templos'], cons: ['Gente'] } }),
+  ]
+
+  it('FE-AUTOLAYOUT-046: style editorial lays entries out with the travel marks; classic adds none', () => {
+    const ed = buildBook(input({ entries: dated, style: 'editorial', dayLabel: 'Día' }))
+    const edEntry = ed.spreads.find(s => s.entryId === 1)!
+    expect(edEntry.elements.some(e => e.kind === 'countries')).toBe(true)
+    expect(edEntry.elements.some(e => e.kind === 'badge' && e.variant === 'day' && e.text === 'DÍA 1')).toBe(true)
+    const cl = buildBook(input({ entries: dated }))
+    expect(cl.spreads.find(s => s.entryId === 1)!.elements.some(e => e.kind === 'countries' || e.kind === 'badge')).toBe(false)
+  })
+
+  it('FE-AUTOLAYOUT-047: day numbers come from the whole journey — the last day is day 5 of 5', () => {
+    const ed = buildBook(input({ entries: dated, style: 'editorial' }))
+    const last = ed.spreads.find(s => s.entryId === 2)!
+    expect(last.elements.some(e => e.kind === 'badge' && e.variant === 'day' && /\b5$/.test(e.text))).toBe(true)
+  })
+
+  it('FE-AUTOLAYOUT-048: pros and cons still ride along under an editorial design, above the footer line', () => {
+    const ed = buildBook(input({ entries: dated, style: 'editorial' }))
+    const sp = ed.spreads.find(s => s.entryId === 2)!
+    expect(sp.elements.some(e => e.kind === 'list' && e.items.some(i => i.text === 'Templos'))).toBe(true)
+  })
+
+  it('FE-AUTOLAYOUT-050: under the dark immersive design, the pros/cons strip gets paper behind it, not black', () => {
+    const inp = input({ entries: dated })
+    const sp = relayoutSpread(buildBook(inp).spreads.find(s => s.entryId === 2)!, inp, 0, 'immersive')!
+    expect(sp.background).toBe('#faf8f4')
+    const plain = relayoutSpread(buildBook(inp).spreads.find(s => s.entryId === 1)!, inp, 0, 'immersive')!
+    expect(plain.background).toBe('#0d0d0f')
+  })
+
+  it('FE-AUTOLAYOUT-049: relayoutSpread with a design forces that design, keeping the spread id — even in a classic book', () => {
+    const inp = input({ entries: dated })
+    const doc = buildBook(inp)
+    const original = doc.spreads.find(s => s.entryId === 1)!
+    const relaid = relayoutSpread(original, inp, 0, 'panel')!
+    expect(relaid.id).toBe(original.id)
+    // The panel design's dark page.
+    expect(relaid.elements.some(e => e.kind === 'shape' && e.fill === '#12161d')).toBe(true)
   })
 })

@@ -3,6 +3,8 @@ import { TEMPLATES, COVER_TEMPLATES, applyTemplate, crossesGutter, type Template
 import { pickReferenceTemplate, applyReferenceTemplate, type ReferenceEntry } from './referenceTemplates'
 import { elementId } from './bookIds'
 import type { RouteImages } from './buildRouteImages'
+import { editorialSpread, journeyDays, type EditorialDesign } from './editorialLayouts'
+import { isLight } from './bookStyles'
 
 /**
  * Auto layout: turn a journey's own material into a populated book.
@@ -151,6 +153,14 @@ export interface AutoInput {
   overviewRoute?: RouteImages | null
   /** Heading over a list of bare stops, already translated ("Etapas"). Omitted: the English word. */
   stationsLabel?: string
+  /**
+   * 'classic' (default): this file's templates, each page standing on its
+   * own. 'editorial': upstream's open-book designs with the travel marks
+   * (flag, coordinates, day chip, progress rule) — see editorialLayouts.ts.
+   */
+  style?: 'classic' | 'editorial'
+  /** The word before a day number on an editorial day chip ("DÍA"). */
+  dayLabel?: string
 }
 
 function photoEl(id: string, photoId: number | null): BookElement {
@@ -300,8 +310,9 @@ function toReferenceEntry(entry: AutoEntry): ReferenceEntry {
  * (see this file's own header), then this file's programmatic templates
  * when none of the six fit.
  */
-function entrySpread(entry: AutoEntry, input: AutoInput, seed: number): BookSpread {
+function entrySpread(entry: AutoEntry, input: AutoInput, seed: number, design?: EditorialDesign): BookSpread {
   const { page, locale } = input
+  if (design || input.style === 'editorial') return editorialEntrySpread(entry, input, seed, design)
   const pros = (entry.prosCons?.pros ?? []).map(s => s.trim()).filter(Boolean)
   const cons = (entry.prosCons?.cons ?? []).map(s => s.trim()).filter(Boolean)
   const footerH = prosConsFooterHeight(pros, cons)
@@ -343,6 +354,30 @@ function entrySpread(entry: AutoEntry, input: AutoInput, seed: number): BookSpre
     spread = { ...spread, elements: [...spread.elements, ...prosConsFooterElements(pros, cons, page, footerH)] }
   }
   return spread
+}
+
+/**
+ * An entry in one of the editorial designs. The day number and the count
+ * come from the whole journey's dates, so the progress rule means the same
+ * thing on every page; pros and cons still ride along as the footer.
+ */
+function editorialEntrySpread(entry: AutoEntry, input: AutoInput, seed: number, design?: EditorialDesign): BookSpread {
+  const days = journeyDays(input.entries.map(e => e.date))
+  const pros = (entry.prosCons?.pros ?? []).map(s => s.trim()).filter(Boolean)
+  const cons = (entry.prosCons?.cons ?? []).map(s => s.trim()).filter(Boolean)
+  const footerH = prosConsFooterHeight(pros, cons)
+  const layoutPage: BookPageSetup = footerH > 0 ? { ...input.page, pageHeight: input.page.pageHeight - footerH } : input.page
+  const spread = editorialSpread(
+    { ...entry, dayNumber: days.dayOf(entry.date), dayCount: days.count },
+    { locale: input.locale, page: layoutPage, dayLabel: input.dayLabel },
+    seed,
+    design,
+  )
+  if (footerH === 0) return spread
+  // The footer is set in dark ink, under the design rather than on it — so a
+  // dark sheet (the immersive design's) goes back to paper for the strip.
+  const background = spread.background && !isLight(spread.background) ? '#faf8f4' : spread.background
+  return { ...spread, background, elements: [...spread.elements, ...prosConsFooterElements(pros, cons, input.page, footerH)] }
 }
 
 const PROS_CONS_MAX_ITEMS = 6
@@ -628,11 +663,11 @@ export function emptyBook(page: BookPageSetup, title = ''): BookDocument {
 }
 
 /** Regenerate one spread from the entry it came from (re-picks a template — different from applying one by hand). Null if the spread has no entryId, or the entry no longer exists. */
-export function relayoutSpread(spread: BookSpread, input: AutoInput, seed = 0): BookSpread | null {
+export function relayoutSpread(spread: BookSpread, input: AutoInput, seed = 0, design?: EditorialDesign): BookSpread | null {
   if (spread.entryId == null) return null
   const entry = input.entries.find(e => e.id === spread.entryId)
   if (!entry) return null
-  return { ...entrySpread(entry, input, seed), id: spread.id }
+  return { ...entrySpread(entry, input, seed, design), id: spread.id }
 }
 
 /*
