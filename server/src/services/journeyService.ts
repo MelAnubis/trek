@@ -333,6 +333,30 @@ export function removeTripFromJourney(journeyId: number, tripId: number, userId:
 
 // ── Sync engine ──────────────────────────────────────────────────────────
 
+/**
+ * The date a trip place's skeleton entry goes on.
+ *
+ * A dated trip day gives it directly. An undated one used to fall back to
+ * *today* for every place, so a 7-day trip without dates landed entirely on
+ * one day of the journey. Instead the day keeps its position: the trip's
+ * start date (if it has one) or, failing that, the day the journey was
+ * created, plus (day number - 1) days. The anchor is stored data, not the
+ * clock, so places added later land on the same days as the first sync.
+ */
+function placeEntryDate(journeyId: number, tripId: number, place: { day_date?: string | null; day_number?: number | null }): string {
+  if (place.day_date && /^\d{4}-\d{2}-\d{2}/.test(place.day_date)) return place.day_date.slice(0, 10);
+  const trip = db.prepare('SELECT start_date FROM trips WHERE id = ?').get(tripId) as { start_date: string | null } | undefined;
+  let anchor = trip?.start_date && /^\d{4}-\d{2}-\d{2}/.test(trip.start_date) ? trip.start_date.slice(0, 10) : null;
+  if (!anchor) {
+    const j = db.prepare('SELECT created_at FROM journeys WHERE id = ?').get(journeyId) as { created_at: number } | undefined;
+    anchor = new Date(j?.created_at ?? Date.now()).toISOString().slice(0, 10);
+  }
+  const offset = Math.max(0, (Number(place.day_number) || 1) - 1);
+  const d = new Date(`${anchor}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + offset);
+  return d.toISOString().slice(0, 10);
+}
+
 export function syncTripPlaces(journeyId: number, tripId: number, authorId: number) {
   const places = db.prepare(`
     SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, da.assignment_end_time, d.day_number
@@ -360,7 +384,7 @@ export function syncTripPlaces(journeyId: number, tripId: number, authorId: numb
     if (existingPlaceIds.has(place.id)) continue;
     existingPlaceIds.add(place.id);
 
-    const entryDate = place.day_date || new Date().toISOString().split('T')[0];
+    const entryDate = placeEntryDate(journeyId, tripId, place);
     const entryTime = place.assignment_time || place.place_time || null;
     const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
     dateMaxOrder.set(entryDate, nextOrder);
@@ -418,7 +442,9 @@ export function onPlaceCreated(tripId: number, placeId: number) {
     if (already) continue;
 
     const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as { user_id: number };
-    const entryDate = place.day_date;
+    // Was `place.day_date` alone — null on an undated trip, which the NOT NULL
+    // entry_date column rejected, so the place never reached the journey.
+    const entryDate = placeEntryDate(link.journey_id, tripId, place);
     const maxOrder = db.prepare(
       'SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?'
     ).get(link.journey_id, entryDate) as { m: number | null };
@@ -461,7 +487,8 @@ export function onPlaceUpdated(placeId: number) {
         WHERE id = ?
       `).run(
         place.name,
-        place.day_date || entry.entry_date,
+        // Moved to another day: follow it — undated days included (see placeEntryDate).
+        place.day_id && entry.source_trip_id ? placeEntryDate(entry.journey_id, entry.source_trip_id, place) : (place.day_date || entry.entry_date),
         place.assignment_time || place.place_time || entry.entry_time,
         place.address || place.name,
         place.lat || null, place.lng || null,

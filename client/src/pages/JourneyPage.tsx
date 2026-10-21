@@ -440,7 +440,7 @@ export default function JourneyPage() {
       {/* Create Modal */}
       {showCreate && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-5"
+          className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto"
           style={{
             background: 'var(--modal-backdrop)',
             backdropFilter: 'blur(12px) saturate(150%)',
@@ -448,7 +448,7 @@ export default function JourneyPage() {
           }}
         >
           <div
-            className="modal-glass rounded-2xl max-w-[640px] w-full max-h-[90vh] flex flex-col overflow-hidden"
+            className="modal-glass rounded-2xl max-w-[640px] w-full max-h-[calc(100dvh-2.5rem)] sm:max-h-[90vh] flex flex-col overflow-hidden"
             style={{ paddingBottom: 'var(--bottom-nav-h)' }}
           >
 

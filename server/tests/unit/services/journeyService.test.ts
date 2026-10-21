@@ -1009,6 +1009,63 @@ describe('syncTripPlaces', () => {
   });
 });
 
+describe('syncTripPlaces — trips without dates', () => {
+  // Regression: an undated trip day has no date, and every place fell back
+  // to today's date — a multi-day trip ended up entirely on day 1.
+  function undatedTrip(userId: number, days: number) {
+    const trip = createTrip(testDb, userId, { title: 'Sin fechas' });
+    testDb.prepare('DELETE FROM days WHERE trip_id = ?').run(trip.id);
+    const out = Array.from({ length: days }, (_, i) => createDay(testDb, trip.id, { day_number: i + 1 }));
+    return { trip, days: out };
+  }
+
+  it('JOURNEY-SVC-057b: places on different undated days land on consecutive, distinct journey dates', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { trip, days } = undatedTrip(user.id, 3);
+    const names = ['Burgos', 'Atienza', 'Teruel'];
+    days.forEach((d, i) => createDayAssignment(testDb, d.id, createPlace(testDb, trip.id, { name: names[i] }).id));
+
+    syncTripPlaces(journey.id, trip.id, user.id);
+
+    const rows = testDb.prepare("SELECT title, entry_date FROM journey_entries WHERE journey_id = ? ORDER BY entry_date").all(journey.id) as any[];
+    expect(rows.map(r => r.title)).toEqual(names);
+    expect(new Set(rows.map(r => r.entry_date)).size).toBe(3);
+    const t = rows.map(r => new Date(`${r.entry_date}T00:00:00Z`).getTime());
+    expect(t[1] - t[0]).toBe(86400000);
+    expect(t[2] - t[1]).toBe(86400000);
+  });
+
+  it('JOURNEY-SVC-057c: an undated trip with a start date counts its days from that start', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { trip, days } = undatedTrip(user.id, 2);
+    testDb.prepare("UPDATE trips SET start_date = '2026-04-22' WHERE id = ?").run(trip.id);
+    createDayAssignment(testDb, days[1].id, createPlace(testDb, trip.id, { name: 'Día dos' }).id);
+
+    syncTripPlaces(journey.id, trip.id, user.id);
+
+    const row = testDb.prepare('SELECT entry_date FROM journey_entries WHERE journey_id = ?').get(journey.id) as any;
+    expect(row.entry_date).toBe('2026-04-23');
+  });
+
+  it('JOURNEY-SVC-057d: a place added later to an undated day joins the same journey date as its day-mates', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const { trip, days } = undatedTrip(user.id, 2);
+    createDayAssignment(testDb, days[1].id, createPlace(testDb, trip.id, { name: 'Primero' }).id);
+    addTripToJourney(journey.id, trip.id, user.id);
+
+    const later = createPlace(testDb, trip.id, { name: 'Después' });
+    createDayAssignment(testDb, days[1].id, later.id);
+    onPlaceCreated(trip.id, later.id); // used to fail: NULL entry_date
+
+    const rows = testDb.prepare('SELECT title, entry_date FROM journey_entries WHERE journey_id = ?').all(journey.id) as any[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0].entry_date).toBe(rows[1].entry_date);
+  });
+});
+
 // -- onPlaceCreated / onPlaceUpdated / onPlaceDeleted -------------------------
 
 describe('onPlaceCreated', () => {

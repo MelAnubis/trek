@@ -3088,17 +3088,17 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.75)' }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.trips.linkTrip')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-6 py-5 flex flex-col gap-4 min-h-0 flex-1">
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.trips.searchTrip')}</label>
             <input
@@ -3109,7 +3109,7 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
             />
           </div>
 
-          <div className="max-h-[280px] overflow-y-auto flex flex-col gap-1">
+          <div className="max-h-[280px] min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1">
             {filtered.length === 0 && (
               <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.trips.noTripsAvailable')}</p>
             )}
@@ -3185,17 +3185,17 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-5" style={{ background: 'rgba(9,9,11,0.75)' }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
+      <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
-        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.contributors.invite')}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800">
             <X size={16} />
           </button>
         </div>
 
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-6 py-5 flex flex-col gap-4 min-h-0 flex-1">
           {/* Search */}
           <div>
             <label className="text-[10px] font-semibold tracking-[0.12em] uppercase text-zinc-500 block mb-1.5">{t('journey.contributors.searchUser')}</label>
@@ -3208,7 +3208,7 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
           </div>
 
           {/* User list */}
-          <div className="max-h-[200px] overflow-y-auto flex flex-col gap-1">
+          <div className="max-h-[200px] min-h-0 overflow-y-auto overscroll-contain flex flex-col gap-1">
             {filtered.length === 0 && (
               <p className="text-[12px] text-zinc-400 text-center py-4">{t('journey.contributors.noUsers')}</p>
             )}
