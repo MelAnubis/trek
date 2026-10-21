@@ -165,7 +165,9 @@ export function registerBudgetTools(server: McpServer, userId: number, scopes: s
     async ({ tripId, itemId, memberId, paid }) => {
       if (isDemoUser(userId)) return demoDenied();
       if (!canAccessTrip(tripId, userId)) return noAccess();
-      const member = toggleMemberPaid(itemId, memberId, paid);
+      // (itemId, tripId, userId, paid) — the trip id was missing, which shifted
+      // every argument by one: the member id was used as the trip id.
+      const member = toggleMemberPaid(itemId, tripId, memberId, paid);
       safeBroadcast(tripId, 'budget:member-paid-updated', { itemId, member });
       return ok({ member });
     }

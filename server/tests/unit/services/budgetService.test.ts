@@ -48,10 +48,28 @@ function makeMember(budget_item_id: number, user_id: number, paid: boolean | 0 |
   } as BudgetItemMember & { budget_item_id: number };
 }
 
+/**
+ * Who paid now lives in budget_item_payers (one row per payer with the
+ * amount they put in), not in a `paid` flag on each split member — that is
+ * what the Costs panel writes and what calculateSettlement reads. These
+ * scenarios still say "alice paid" with the flag, so translate: the flagged
+ * members become payers who split the item's total equally between them.
+ */
+function payersFrom(items: BudgetItem[], members: (BudgetItemMember & { budget_item_id: number })[]) {
+  return items.flatMap(item => {
+    const paid = members.filter(m => m.budget_item_id === item.id && m.paid);
+    return paid.map(m => ({ budget_item_id: item.id, user_id: m.user_id, amount: item.total_price / paid.length, username: m.username, avatar: null }));
+  });
+}
+
 function setupDb(items: BudgetItem[], members: (BudgetItemMember & { budget_item_id: number })[]) {
+  const payers = payersFrom(items, members);
   mockDb.db.prepare.mockImplementation((sql: string) => {
     if (sql.includes('SELECT * FROM budget_items')) {
       return { all: vi.fn(() => items), get: vi.fn(), run: vi.fn() };
+    }
+    if (sql.includes('budget_item_payers')) {
+      return { all: vi.fn(() => payers), get: vi.fn(), run: vi.fn() };
     }
     if (sql.includes('budget_item_members')) {
       return { all: vi.fn(() => members), get: vi.fn(), run: vi.fn() };

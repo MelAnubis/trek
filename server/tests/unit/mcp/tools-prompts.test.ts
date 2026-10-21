@@ -47,12 +47,16 @@ vi.mock('../../../src/services/adminService', () => ({
   getCollabFeatures: vi.fn().mockReturnValue({ chat: true, notes: true, polls: true, whatsnext: true }),
 }));
 
-const { mockGetTripSummary } = vi.hoisted(() => ({
+const { mockGetTripSummary, realGetTripSummary } = vi.hoisted(() => ({
   mockGetTripSummary: vi.fn(),
+  realGetTripSummary: { fn: null as null | ((id: any) => any) },
 }));
-vi.mock('../../../src/services/tripService', () => ({
-  getTripSummary: mockGetTripSummary,
-}));
+vi.mock('../../../src/services/tripService', async () => {
+  const actual = await vi.importActual<typeof import('../../../src/services/tripService')>('../../../src/services/tripService');
+  // Real getTripSummary by default (see beforeEach), overridable per test.
+  realGetTripSummary.fn = actual.getTripSummary;
+  return { ...actual, getTripSummary: mockGetTripSummary };
+});
 
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
@@ -70,29 +74,10 @@ beforeEach(() => {
   broadcastMock.mockClear();
   isAddonEnabledMock.mockReturnValue(true);
 
-  // Default mock: returns a trip-summary-shaped value from the real in-memory DB
-  // so that the trip title / existence match what tests insert, but budget/packing
-  // are arrays (as prompts.ts expects), not the object shape getTripSummary now returns.
-  mockGetTripSummary.mockImplementation((tripId: any) => {
-    const trip = testDb.prepare('SELECT * FROM trips WHERE id = ?').get(tripId) as any;
-    if (!trip) return null;
-    const members = testDb.prepare(`
-      SELECT u.id, u.username as name, u.email
-      FROM trip_members m JOIN users u ON u.id = m.user_id
-      WHERE m.trip_id = ?
-    `).all(tripId) as any[];
-    const budgetRows = testDb.prepare('SELECT * FROM budget_items WHERE trip_id = ?').all(tripId) as any[];
-    const packingRows = testDb.prepare('SELECT * FROM packing_items WHERE trip_id = ?').all(tripId) as any[];
-    return {
-      trip,
-      days: [],
-      members,
-      budget: budgetRows,   // array shape expected by prompts.ts
-      packing: packingRows, // array shape expected by prompts.ts
-      reservations: [],
-      collabNotes: [],
-    };
-  });
+  // The real getTripSummary over the in-memory DB. This used to be a stand-in
+  // returning flat arrays "as prompts.ts expects" — which hid that the real
+  // summary returns grouped objects and both prompts threw on every use.
+  mockGetTripSummary.mockImplementation((tripId: any) => realGetTripSummary.fn!(tripId));
 });
 
 afterAll(() => {
@@ -182,18 +167,17 @@ describe('Prompt: trip-summary', () => {
     const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2026-07-01', end_date: '2026-07-03' });
     addTripMember(testDb, trip.id, member.id);
 
+    const tent = createPackingItem(testDb, trip.id, { name: 'Tent' });
+    createPackingItem(testDb, trip.id, { name: 'Stove' });
+    testDb.prepare('UPDATE packing_items SET checked = 1 WHERE id = ?').run(tent.id);
+    createBudgetItem(testDb, trip.id, { name: 'Hotel', total_price: 120 });
+
     const server = buildServer(user.id);
-    // The prompt callback accesses packing/budget from getTripSummary which returns
-    // object shapes; this verifies the trip is accessible and a response is produced.
-    try {
-      const text = await invokePrompt(server, 'trip-summary', { tripId: trip.id });
-      expect(text).toContain('Paris Trip');
-    } catch (err: any) {
-      // getTripSummary returns { packing: { items, total, checked }, budget: { items, total, ... } }
-      // but prompts.ts calls packing.filter() expecting an array — known source discrepancy.
-      // Verify the trip IS accessible (access denied would not throw, it returns a message).
-      expect(err.message).not.toContain('access denied');
-    }
+    const text = await invokePrompt(server, 'trip-summary', { tripId: trip.id });
+    expect(text).toContain('Paris Trip');
+    expect(text).toContain('Members: 2');
+    expect(text).toContain('Packing: 1/2 items packed');
+    expect(text).toContain('Budget: 120');
   });
 
   it('returns "Trip not found." when getTripSummary returns null for accessible trip', async () => {
@@ -216,11 +200,11 @@ describe('Prompt: trip-summary', () => {
     mockGetTripSummary.mockReturnValueOnce({
       trip: { id: trip.id, title: null, description: null, start_date: null, end_date: null, currency: null, user_id: user.id },
       days: [],
-      members: [],
-      budget: [],
-      packing: [],
+      members: { owner: null, collaborators: [] },
+      budget: { items: [], item_count: 0, total: 0, currency: null },
+      packing: { items: [], total: 0, checked: 0 },
       reservations: [],
-      collabNotes: [],
+      collab_notes: [],
     });
 
     const server = buildServer(user.id);
@@ -335,19 +319,9 @@ describe('Prompt: budget-overview', () => {
     const trip = createTrip(testDb, user.id, { title: 'Budget Trip' });
 
     const server = buildServer(user.id);
-    // The prompt destructures budget from getTripSummary, which now returns
-    // { items, item_count, total, currency } instead of an array.
-    // prompts.ts calls budget?.reduce() expecting an array — known source discrepancy.
-    // This test verifies the prompt is reachable and the trip access check passes.
-    try {
-      const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
-      // If source shape matches, text should contain the trip title
-      expect(text).toContain('Budget Trip');
-    } catch (err: any) {
-      // The TypeError from budget.reduce confirms the trip was accessible
-      // (access denied produces a message, not an exception).
-      expect(err.message).toContain('is not a function');
-    }
+    const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Budget Trip');
+    expect(text).toContain('No expenses recorded.');
   });
 
   it('produces output for an accessible trip with budget items', async () => {
@@ -357,13 +331,9 @@ describe('Prompt: budget-overview', () => {
     createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 500 });
 
     const server = buildServer(user.id);
-    try {
-      const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
-      expect(text).toContain('Italy Trip');
-    } catch (err: any) {
-      // Confirms trip was accessible; TypeError from budget.reduce is a source discrepancy
-      expect(err.message).toContain('is not a function');
-    }
+    const text = await invokePrompt(server, 'budget-overview', { tripId: trip.id });
+    expect(text).toContain('Italy Trip');
+    expect(text).toContain('**Total: 800');
   });
 
   it('returns "Trip not found." when getTripSummary returns null for accessible trip', async () => {

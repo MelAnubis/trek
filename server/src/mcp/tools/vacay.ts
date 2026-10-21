@@ -105,7 +105,8 @@ export function registerVacayTools(server: McpServer, userId: number, scopes: st
         const planId = getActivePlanId(userId);
         const me = getCurrentUser(userId);
         if (!me) return { content: [{ type: 'text' as const, text: 'User not found.' }], isError: true };
-        const result = sendVacayInvite(planId, userId, me.username, me.email, targetUserId);
+        const { username, email } = me as unknown as { username: string; email: string };
+        const result = sendVacayInvite(planId, userId, username, email, targetUserId);
         if (result.error) return { content: [{ type: 'text' as const, text: result.error }], isError: true };
         return ok({ success: true });
       }

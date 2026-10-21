@@ -342,10 +342,13 @@ describe('Budget summary and settlement', () => {
       .put(`/api/trips/${trip.id}/budget/${item.id}/members`)
       .set('Cookie', authCookie(user.id))
       .send({ user_ids: [user.id, user2.id] });
-    await request(app)
-      .put(`/api/trips/${trip.id}/budget/${item.id}/members/${user.id}/paid`)
+    // Who paid is recorded as payers with amounts (what the Costs panel
+    // sends); the old per-member `paid` flag doesn't feed the settlement.
+    const payersRes = await request(app)
+      .put(`/api/trips/${trip.id}/budget/${item.id}/payers`)
       .set('Cookie', authCookie(user.id))
-      .send({ paid: true });
+      .send({ payers: [{ user_id: user.id, amount: 60 }] });
+    expect(payersRes.status).toBe(200);
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/budget/settlement`)

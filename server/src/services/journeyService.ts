@@ -544,6 +544,8 @@ export function createEntry(journeyId: number, userId: number, data: {
   tags?: string[];
   pros_cons?: { pros: string[]; cons: string[] };
   visibility?: string;
+  /** Position within its day. Omitted: after the day's last entry. */
+  sort_order?: number;
 }, sid?: string): JourneyEntry | null {
   if (!canEdit(journeyId, userId)) return null;
 
@@ -573,7 +575,9 @@ export function createEntry(journeyId: number, userId: number, data: {
     data.tags?.length ? JSON.stringify(data.tags) : null,
     prosConsJson,
     data.visibility || 'private',
-    (maxOrder?.m ?? -1) + 1,
+    // The MCP create_journey_entry tool takes a sort_order; it used to be
+    // dropped here, so every entry it created landed last regardless.
+    Number.isInteger(data.sort_order) && (data.sort_order as number) >= 0 ? data.sort_order : (maxOrder?.m ?? -1) + 1,
     now, now
   );
 

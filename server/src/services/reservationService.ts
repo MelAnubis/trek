@@ -15,7 +15,14 @@ export interface ReservationEndpoint {
   local_date: string | null;
 }
 
-type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence'> & { sequence?: number };
+// The optional text fields may be left out entirely (the insert stores null).
+type EndpointInput = Omit<ReservationEndpoint, 'id' | 'reservation_id' | 'sequence' | 'code' | 'timezone' | 'local_time' | 'local_date'> & {
+  sequence?: number;
+  code?: string | null;
+  timezone?: string | null;
+  local_time?: string | null;
+  local_date?: string | null;
+};
 
 export function verifyTripAccess(tripId: string | number, userId: number) {
   return canAccessTrip(tripId, userId);

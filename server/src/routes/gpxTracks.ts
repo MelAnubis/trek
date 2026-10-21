@@ -475,7 +475,7 @@ export async function enrichWithElevation(
       try {
         const controller = new AbortController();
         const tid = setTimeout(() => controller.abort(), 15000);
-        let r: Response;
+        let r: globalThis.Response;
         try { r = await fetch(`${baseUrl}?locations=${locs}`, { signal: controller.signal }); }
         finally { clearTimeout(tid); }
         if (!r.ok) { console.warn('[elevation] custom API error', r.status); continue; }
@@ -499,7 +499,7 @@ export async function enrichWithElevation(
       try {
         const controller = new AbortController();
         const tid = setTimeout(() => controller.abort(), 20000);
-        let r: Response;
+        let r: globalThis.Response;
         try {
           r = await fetch(
             `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
@@ -648,10 +648,10 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
 
     // Enrich with elevation if the GPX has no altitude data and an elevation API is available
     const hasElevation = parsed.points.some(p => p.ele != null);
-    let finalPoints = parsed.points;
+    let finalPoints: typeof parsed.points = parsed.points;
     if (!hasElevation) {
       try {
-        finalPoints = await enrichWithElevation(parsed.points);
+        finalPoints = (await enrichWithElevation(parsed.points)) as typeof parsed.points;
         console.log(`[gpx] elevation enriched: ${finalPoints.filter(p => p.ele != null).length}/${finalPoints.length} points`);
       } catch (err: any) {
         console.warn('[gpx] elevation enrichment failed:', err.message);
@@ -680,13 +680,13 @@ router.post('/upload', authenticate, requireTripAccess, uploadGpx.single('gpx'),
         form.append('file', fileBlob, req.file.originalname);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000);
-        let r: Response;
+        let r: globalThis.Response;
         try {
           r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
         } finally {
           clearTimeout(timeoutId);
         }
-        const data = await r.json();
+        const data = await r.json() as any;
         // Cycling → IBP para bicicleta; Trekking → IBP para senderismo (clave "hiking", acrónimo HKG)
         const ibp = isTrekking ? (data?.hiking?.ibp ?? data?.hkg?.ibp) : data?.bicycle?.ibp;
         if (ibp != null) {
@@ -785,7 +785,7 @@ router.post('/:trackId/recalculate-ibp', authenticate, requireTripAccess, async 
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
-    let r: Response;
+    let r: globalThis.Response;
     try {
       r = await fetch('https://www.ibpindex.com/api/', { method: 'POST', body: form, signal: controller.signal });
     } finally {
@@ -1264,7 +1264,10 @@ const uploadNavPhoto = multer({
 // Body (multipart): photo (file), lat, lng, altitude?, taken_at?, caption?
 router.post('/nav-photos', authenticate, requireTripAccess, uploadNavPhoto.single('photo'), (req: Request, res: Response) => {
   const tripId = Number((req as AuthRequest).params.id);
-  const userId = (req as AuthRequest).user!.userId;
+  // `user.id` — there is no `userId` on the authenticated user, so this was
+  // undefined, the NOT NULL user_id insert failed and every navigation photo
+  // upload came back as a 500.
+  const userId = (req as AuthRequest).user!.id;
   const file   = (req as any).file;
   if (!file) return res.status(400).json({ error: 'No photo uploaded' });
 

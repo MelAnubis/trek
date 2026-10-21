@@ -696,7 +696,7 @@ export async function importNaverList(
   tripId: string,
   url: string,
   opts?: ListImportOptions,
-): Promise<{ places: any[]; listName: string } | { error: string; status: number }> {
+): Promise<{ places: any[]; listName: string; skipped?: number } | { error: string; status: number }> {
   let resolvedUrl = url;
   const limit = 20;
 

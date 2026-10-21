@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate, adminOnly } from '../middleware/auth';
 import { db } from '../db/database';
-import type { AuthRequest } from '../middleware/auth';
+import type { AuthRequest } from '../types';
 
 const router = express.Router();
 router.use(authenticate, adminOnly);
@@ -67,7 +67,7 @@ async function wmtSearch(query: string): Promise<any[]> {
           signal: controller.signal,
         });
         if (!r.ok) return [];
-        const data = await r.json();
+        const data = await r.json() as any;
         return (data.results || []).map((rt: any) => ({
           osmId: rt.id,
           name: rt.name || query,
@@ -192,7 +192,7 @@ async function fetchKomootTourInfo(tourId: string): Promise<{ name: string; dist
       signal: ctrl.signal,
     });
     if (r.ok) {
-      const d = await r.json();
+      const d = await r.json() as any;
       return { name: d.name || `Komoot ${tourId}`, distanceKm: Math.round((d.distance || 0) / 100) / 10, description: d.summary || null };
     }
   } catch { /* fall through to page */ } finally { clearTimeout(tid); }
@@ -217,7 +217,7 @@ async function fetchKomootPoints(tourId: string): Promise<{ lat: number; lng: nu
       signal: ctrl.signal,
     });
     if (r.ok) {
-      const d = await r.json();
+      const d = await r.json() as any;
       const items: any[] = d?._embedded?.coordinates?.items ?? [];
       if (items.length >= 10) return items.map((p: any) => ({ lat: p.lat, lng: p.lng, ele: p.alt ?? null }));
       // Try recursive search in case the structure is different
@@ -416,7 +416,7 @@ async function enrichMissingElevation(
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 20000);
-      let r: Response;
+      let r: globalThis.Response;
       try {
         r = await fetch(
           `https://api.open-meteo.com/v1/elevation?latitude=${lats}&longitude=${lngs}`,
@@ -512,7 +512,7 @@ async function snapToRoads(pts: { lat: number; lng: number }[]): Promise<{ lat: 
         { headers: { 'User-Agent': 'TrekWanderer/1.0' }, signal: ctrl.signal },
       );
       if (!r.ok) { console.warn(`[route-discovery osrm] ${r.status}`); return null; }
-      const data = await r.json();
+      const data = await r.json() as any;
       if (data.code !== 'Ok') { console.warn('[route-discovery osrm] code:', data.code); return null; }
       const coords: [number, number][] = data.routes?.[0]?.geometry?.coordinates ?? [];
       if (coords.length < 2) return null;
@@ -789,7 +789,7 @@ router.post('/fetch-gpx', async (req: Request, res: Response) => {
     try {
       const ctrl = new AbortController();
       const tid = setTimeout(() => ctrl.abort(), 30000);
-      let r: Response;
+      let r: globalThis.Response;
       try {
         r = await fetch(gpxUrl, { headers: { 'User-Agent': 'TrekWanderer/1.0', Accept: 'application/gpx+xml,text/xml,*/*' }, signal: ctrl.signal });
       } finally { clearTimeout(tid); }

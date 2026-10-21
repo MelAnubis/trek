@@ -187,8 +187,8 @@ function setAdminGlobalPref(event: NotifEventType, channel: 'email' | 'webhook' 
 function applyUserChannelPrefs(
   userId: number,
   prefs: Partial<Record<string, Partial<Record<string, boolean>>>>,
-  upsert: ReturnType<typeof db.prepare>,
-  del: ReturnType<typeof db.prepare>
+  upsert: { run: (...args: unknown[]) => unknown },
+  del: { run: (...args: unknown[]) => unknown }
 ): void {
   for (const [eventType, channels] of Object.entries(prefs)) {
     if (!channels) continue;

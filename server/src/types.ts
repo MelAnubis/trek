@@ -200,6 +200,8 @@ export interface TripFile {
   budget_item_id?: number | null;
   uploaded_by?: number | null;
   uploaded_by_name?: string | null;
+  /** Joined from users.avatar when listing files. */
+  uploaded_by_avatar?: string | null;
   filename: string;
   original_name: string;
   file_size?: number | null;
@@ -367,6 +369,8 @@ export interface JourneyEntry {
   mood?: string | null;
   weather?: string | null;
   tags?: string | null;
+  /** JSON-encoded { pros: string[]; cons: string[] }, or null. */
+  pros_cons?: string | null;
   visibility: 'private' | 'shared' | 'public';
   sort_order: number;
   created_at: number;

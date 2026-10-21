@@ -358,7 +358,7 @@ router.get('/:id/bundle', authenticate, (req: Request, res: Response) => {
   const reservations = listReservations(tripId);
   const files = listFiles(tripId, false);
   const accommodations = listAccommodations(tripId);
-  const { owner, members } = listMembers(tripId, trip.user_id);
+  const { owner, members } = listMembers(tripId, (trip as { user_id: number }).user_id);
   const allMembers = [owner, ...(members || [])].filter(Boolean);
 
   res.json({

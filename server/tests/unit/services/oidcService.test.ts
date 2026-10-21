@@ -83,17 +83,23 @@ afterAll(() => {
 // ── createState / consumeState ────────────────────────────────────────────────
 
 describe('createState / consumeState', () => {
-  it('OIDC-SVC-001: createState returns a hex token', () => {
-    const state = createState('https://example.com/callback');
+  // createState also starts PKCE: it returns the state token plus the S256
+  // challenge for the authorize URL, and keeps the verifier for the callback.
+  it('OIDC-SVC-001: createState returns a hex state and a base64url S256 challenge', () => {
+    const { state, codeChallenge } = createState('https://example.com/callback');
     expect(state).toMatch(/^[0-9a-f]{64}$/);
+    expect(codeChallenge).toMatch(/^[A-Za-z0-9_-]{43}$/);
   });
 
-  it('OIDC-SVC-002: consumeState returns stored data and deletes state', () => {
-    const state = createState('https://example.com/callback', 'invite-abc');
+  it('OIDC-SVC-002: consumeState returns stored data (with the PKCE verifier) and deletes state', () => {
+    const { state, codeChallenge } = createState('https://example.com/callback', 'invite-abc');
     const data = consumeState(state);
     expect(data).not.toBeNull();
     expect(data!.redirectUri).toBe('https://example.com/callback');
     expect(data!.inviteToken).toBe('invite-abc');
+    // The stored verifier is the one the challenge was derived from.
+    const expected = require('crypto').createHash('sha256').update(data!.codeVerifier!).digest('base64url');
+    expect(codeChallenge).toBe(expected);
     // State is consumed — second call returns null
     expect(consumeState(state)).toBeNull();
   });
@@ -103,8 +109,8 @@ describe('createState / consumeState', () => {
   });
 
   it('OIDC-SVC-004: two different states do not conflict', () => {
-    const s1 = createState('http://a.example.com');
-    const s2 = createState('http://b.example.com');
+    const s1 = createState('http://a.example.com').state;
+    const s2 = createState('http://b.example.com').state;
     expect(s1).not.toBe(s2);
     expect(consumeState(s1)!.redirectUri).toBe('http://a.example.com');
     expect(consumeState(s2)!.redirectUri).toBe('http://b.example.com');

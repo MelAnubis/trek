@@ -79,7 +79,7 @@ describe('Tool: create_budget_item', () => {
     });
   });
 
-  it('defaults category to "Other" when not specified', async () => {
+  it('defaults category to "other" (the lowercase key the Costs panel uses) when not specified', async () => {
     const { user } = createUser(testDb);
     const trip = createTrip(testDb, user.id);
     await withHarness(user.id, async (h) => {
@@ -88,7 +88,7 @@ describe('Tool: create_budget_item', () => {
         arguments: { tripId: trip.id, name: 'Misc', total_price: 10 },
       });
       const data = parseToolResult(result) as any;
-      expect(data.item.category).toBe('Other');
+      expect(data.item.category).toBe('other');
     });
   });
 
@@ -219,5 +219,25 @@ describe('Tool: delete_budget_item', () => {
       const result = await h.client.callTool({ name: 'delete_budget_item', arguments: { tripId: trip.id, itemId: item.id } });
       expect(result.isError).toBe(true);
     });
+  });
+});
+
+describe('Tool: toggle_budget_member_paid', () => {
+  it('marks the right member of the right item as paid (trip id is passed through)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const item = createBudgetItem(testDb, trip.id, { name: 'Dinner', total_price: 40 });
+    testDb.prepare('INSERT INTO budget_item_members (budget_item_id, user_id, paid) VALUES (?, ?, 0)').run(item.id, user.id);
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({
+        name: 'toggle_budget_member_paid',
+        arguments: { tripId: trip.id, itemId: item.id, memberId: user.id, paid: true },
+      });
+      const data = parseToolResult(result) as any;
+      expect(data.member).toMatchObject({ user_id: user.id, paid: 1 });
+    });
+    const row = testDb.prepare('SELECT paid FROM budget_item_members WHERE budget_item_id = ? AND user_id = ?').get(item.id, user.id) as { paid: number };
+    expect(row.paid).toBe(1);
   });
 });

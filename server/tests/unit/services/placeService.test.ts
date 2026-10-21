@@ -41,6 +41,27 @@ vi.mock('../../../src/config', () => ({
   updateJwtSecret: () => {},
 }));
 
+// The list importers run every user URL through checkSsrf, which resolves
+// the hostname with real DNS. Tests mustn't need the network (in a sandbox
+// without DNS every Naver/Google list import came back "URL is not allowed"),
+// so here a well-formed http(s) URL counts as public. The guard's own rules
+// are covered by security.test.ts and ssrfGuard's tests.
+vi.mock('../../../src/utils/ssrfGuard', async () => {
+  const actual = await vi.importActual<typeof import('../../../src/utils/ssrfGuard')>('../../../src/utils/ssrfGuard');
+  return {
+    ...actual,
+    checkSsrf: vi.fn(async (rawUrl: string) => {
+      try {
+        const u = new URL(rawUrl);
+        if (!['http:', 'https:'].includes(u.protocol)) return { allowed: false, isPrivate: false, error: 'Only HTTP and HTTPS URLs are allowed' };
+      } catch {
+        return { allowed: false, isPrivate: false, error: 'Invalid URL' };
+      }
+      return { allowed: true, isPrivate: false, resolvedIp: '93.184.216.34' };
+    }),
+  };
+});
+
 import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';

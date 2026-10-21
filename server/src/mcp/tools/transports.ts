@@ -20,8 +20,10 @@ const endpointSchema = z.array(z.object({
   sequence: z.number().int().min(0).describe('Order within the route (0-based)'),
   name: z.string().min(1).describe('Location name (e.g. "Paris Gare de Lyon", "ZRH Terminal 2")'),
   code: z.string().optional().describe('IATA airport code for flights (e.g. "ZRH"). Leave empty for other transport types.'),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
+  // Required: reservation_endpoints.lat/lng are NOT NULL, so an endpoint
+  // without them used to fail the whole save with a database error.
+  lat: z.number().min(-90).max(90).describe('Latitude (required) — for airports, from search_airports'),
+  lng: z.number().min(-180).max(180).describe('Longitude (required)'),
   timezone: z.string().optional().describe('IANA timezone (e.g. "Europe/Zurich"). Use airport tz for flights.'),
   local_time: z.string().optional().describe('Local departure/arrival time at this endpoint, e.g. "14:35"'),
   local_date: z.string().optional().describe('Local date at this endpoint, YYYY-MM-DD'),
