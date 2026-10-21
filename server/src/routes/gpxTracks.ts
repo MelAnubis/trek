@@ -19,6 +19,7 @@ import { authenticate } from '../middleware/auth';
 import { requireTripAccess } from '../middleware/tripAccess';
 import { db } from '../db/database';
 import type { AuthRequest } from '../types';
+import { buildTripGpx, gpxFilename } from '../services/tripGpxExport';
 
 const router = express.Router({ mergeParams: true });
 
@@ -570,6 +571,22 @@ router.get('/', authenticate, requireTripAccess, (req: Request, res: Response) =
        FROM gpx_tracks WHERE trip_id = ? ORDER BY sort_order ASC, id ASC`
     ).all(tripId) as any[];
     res.json(tracks);
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── GET /api/trips/:id/gpx/export ────────────────────────────────────────────
+// The whole trip as one GPX: places as waypoints, each day as a route,
+// every track as a track — see services/tripGpxExport.ts.
+router.get('/export', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const tripId = (req as AuthRequest).params.id;
+  try {
+    const out = buildTripGpx(tripId);
+    if (!out) return res.status(404).json({ error: 'Trip not found' });
+    res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${gpxFilename(out.title)}"`);
+    res.send(out.xml);
   } catch (e: any) {
     res.status(500).json({ error: e.message });
   }

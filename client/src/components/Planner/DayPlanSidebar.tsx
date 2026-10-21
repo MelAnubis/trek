@@ -2,6 +2,7 @@
 interface DragDataPayload { placeId?: string; assignmentId?: string; noteId?: string; reservationId?: string; fromDayId?: string; phase?: 'single' | 'start' | 'middle' | 'end' }
 declare global { interface Window { __dragData: DragDataPayload | null } }
 
+import { exportTripGpx } from '../../utils/tripGpx'
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
 import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, ArrowUpDown, X, Route as RouteIcon, Sailboat, Bike, CarTaxiFront } from 'lucide-react'
@@ -955,6 +956,25 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               </div>
             )}
           </div>
+          <Tooltip label={t('dayplan.gpxTooltip')} placement="bottom">
+            <button
+              onClick={async () => {
+                try { await exportTripGpx(tripId, trip?.title || 'trip') }
+                catch { toast.error(t('dayplan.gpxExportFailed')) }
+              }}
+              aria-label={t('dayplan.gpxTooltip')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
+                padding: '5px 10px', borderRadius: 8,
+                border: '1px solid var(--border-primary)', background: 'none',
+                color: 'var(--text-muted)', fontSize: 11, fontWeight: 500,
+                cursor: 'pointer', fontFamily: 'inherit',
+              }}
+            >
+              <FileDown size={13} strokeWidth={2} />
+              GPX
+            </button>
+          </Tooltip>
           {(() => {
             const allExpanded = days.length > 0 && days.every(d => expandedDays.has(d.id))
             const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')

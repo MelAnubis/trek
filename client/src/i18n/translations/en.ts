@@ -324,6 +324,8 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.notificationsActive': 'Active channel',
   'settings.notificationsManagedByAdmin': 'Notification events are configured by your administrator.',
   'dayplan.icsTooltip': 'Export calendar (ICS)',
+  'dayplan.gpxTooltip': 'Export trip as GPX (places, daily routes and tracks) for Garmin, OsmAnd, Komoot…',
+  'dayplan.gpxExportFailed': 'Could not export the GPX',
   'share.linkTitle': 'Public Link',
   'share.linkHint': 'Create a link anyone can use to view this trip without logging in. Read-only — no editing possible.',
   'share.createLink': 'Create link',

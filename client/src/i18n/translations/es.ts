@@ -236,6 +236,8 @@ const es: Record<string, string> = {
   'admin.smtp.testSuccess': 'Correo de prueba enviado correctamente',
   'admin.smtp.testFailed': 'Error al enviar correo de prueba',
   'dayplan.icsTooltip': 'Exportar calendario (ICS)',
+  'dayplan.gpxTooltip': 'Exportar viaje como GPX (lugares, rutas por día y tracks) para Garmin, OsmAnd, Komoot…',
+  'dayplan.gpxExportFailed': 'No se pudo exportar el GPX',
   'share.linkTitle': 'Enlace público',
   'share.linkHint': 'Crea un enlace que cualquiera puede usar para ver este viaje sin iniciar sesión. Solo lectura — no se puede editar.',
   'share.createLink': 'Crear enlace',
