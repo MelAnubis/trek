@@ -86,6 +86,8 @@ interface StudioState {
   setPageEdge: (which: 'bleed' | 'safe', value: number, reflow?: boolean) => void
   /** `true`/`false` toggles them (the old call shape); an object patches any folio setting. One undo step either way. */
   setPageNumbers: (patch: boolean | Partial<BookPageNumbers>) => void
+  /** A spread's paper colour; null is plain white. One undo step. */
+  setSpreadBackground: (index: number, color: string | null) => void
 
   undo: () => void
   redo: () => void
@@ -285,6 +287,12 @@ export const useStudioStore = create<StudioState>((set, get) => ({
       const next: BookPageSetup = { ...d.page, [which]: v }
       return reflow && which === 'bleed' ? reflowDocument(d, next) : { ...d, page: next }
     })
+  },
+
+  setSpreadBackground: (index, color) => {
+    const sp = get().doc?.spreads[index]
+    if (!sp || (sp.background ?? null) === color) return
+    get().commit(d => ({ ...d, spreads: d.spreads.map((s, i) => (i === index ? { ...s, background: color } : s)) }))
   },
 
   setPageNumbers: patch => get().commit(doc => {

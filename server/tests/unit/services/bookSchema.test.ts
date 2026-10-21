@@ -59,16 +59,19 @@ function textEl(overrides: Record<string, unknown> = {}) {
 
 describe('bookElementSchema — text kind — self-hosted font library', () => {
   it('BOOKSCHEMA-024: accepts every font id in the self-hosted @fontsource library, not just the original 3 back-compat slots', () => {
-    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas']);
+    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter']);
     for (const font of BOOK_FONTS_IDS) {
       const parsed = bookElementSchema.safeParse(textEl({ font }));
       expect(parsed.success, font).toBe(true);
     }
   });
 
-  it('BOOKSCHEMA-025: rejects a font id that isn\'t in the library', () => {
+  it('BOOKSCHEMA-025: a font id that isn\'t in the library falls back to the default face (the text survives)', () => {
+    // Rejecting it used to make the whole text element unreadable, and the
+    // document salvage pass then dropped it from the book.
     const parsed = bookElementSchema.safeParse(textEl({ font: 'comic-sans' }));
-    expect(parsed.success).toBe(false);
+    expect(parsed.success).toBe(true);
+    expect((parsed as any).data.font).toBe('sans');
   });
 });
 
@@ -276,5 +279,42 @@ describe('bookElementSchema — travel element kinds', () => {
     const ids = doc.spreads[0].elements.map(e => e.id);
     expect(ids).toContain('good');
     expect(ids).not.toContain('bad');
+  });
+});
+
+describe('bookElementSchema — Studio styles', () => {
+  const photo = (o: Record<string, unknown> = {}) => ({ ...base, kind: 'photo', photoId: 1, ...o });
+
+  it('BOOKSCHEMA-STYLE-001: the new photo filters and frames round-trip', () => {
+    for (const filter of ['sepia', 'vintage', 'vivid', 'matte', 'noir', 'golden', 'dramatic']) {
+      const r = bookElementSchema.parse(photo({ filter })) as any;
+      expect(r.filter).toBe(filter);
+    }
+    for (const frameStyle of ['thin', 'double', 'stamp', 'corners', 'vignette', 'tape']) {
+      const r = bookElementSchema.parse(photo({ frameStyle })) as any;
+      expect(r.frameStyle).toBe(frameStyle);
+    }
+  });
+
+  it('BOOKSCHEMA-STYLE-002: an unknown filter, frame or font falls back instead of dropping the element', () => {
+    const p = bookElementSchema.parse(photo({ filter: 'lomo', frameStyle: 'neon' })) as any;
+    expect(p).toMatchObject({ kind: 'photo', filter: 'none', frameStyle: 'none' });
+    const t = bookElementSchema.parse(textEl({ font: 'comic-sans-pro' })) as any;
+    expect(t.font).toBe('sans');
+  });
+
+  it('BOOKSCHEMA-STYLE-003: the new fonts are accepted', () => {
+    for (const font of ['montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter']) {
+      expect(BOOK_FONTS_IDS).toContain(font);
+      expect((bookElementSchema.parse(textEl({ font })) as any).font).toBe(font);
+    }
+  });
+
+  it('BOOKSCHEMA-STYLE-004: text effects default off for old text, and round-trip when set', () => {
+    const old = bookElementSchema.parse(textEl()) as any;
+    expect(old).toMatchObject({ effect: 'none', uppercase: false, highlight: '#fde68a' });
+    const set = bookElementSchema.parse(textEl({ effect: 'highlight', highlight: '#a1b2c3', uppercase: true })) as any;
+    expect(set).toMatchObject({ effect: 'highlight', highlight: '#a1b2c3', uppercase: true });
+    expect((bookElementSchema.parse(textEl({ effect: 'glow' })) as any).effect).toBe('none');
   });
 });

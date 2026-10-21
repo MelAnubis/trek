@@ -58,7 +58,7 @@ export type BookShapeId = (typeof BOOK_SHAPES)[number];
  * bookFonts.ts), self-hosted via @fontsource rather than a Google Fonts
  * CDN request.
  */
-export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas'] as const;
+export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter'] as const;
 export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
 
 export const bookFrameSchema = z.object({
@@ -86,8 +86,10 @@ export const bookPhotoElementSchema = z.object({
   focalX: z.number().min(0).max(1).default(0.5),
   focalY: z.number().min(0).max(1).default(0.5),
   radius: mm.default(0),
-  filter: z.enum(['none', 'bw', 'warm', 'cool', 'fade', 'contrast']).default('none'),
-  frameStyle: z.enum(['none', 'polaroid', 'white', 'shadow', 'film', 'tape']).default('none'),
+  // .catch: a value this server doesn't know (a newer client, a typo) falls
+  // back to plain rather than making the whole element unreadable.
+  filter: z.enum(['none', 'bw', 'warm', 'cool', 'fade', 'contrast', 'sepia', 'vintage', 'vivid', 'matte', 'noir', 'golden', 'dramatic']).catch('none').default('none'),
+  frameStyle: z.enum(['none', 'polaroid', 'white', 'shadow', 'film', 'tape', 'thin', 'double', 'stamp', 'corners', 'vignette']).catch('none').default('none'),
   /** Cut the picture to a shape. Null is the plain rectangle every photo starts as. */
   mask: z.enum(BOOK_SHAPES).nullable().default(null),
 });
@@ -96,7 +98,7 @@ export const bookTextElementSchema = z.object({
   ...elementBase,
   kind: z.literal('text'),
   text: z.string().max(MAX_TEXT_LENGTH).default(''),
-  font: z.enum(BOOK_FONTS_IDS).default('sans'),
+  font: z.enum(BOOK_FONTS_IDS).catch('sans').default('sans'),
   size: z.number().min(4).max(200).default(11),
   weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
   italic: z.boolean().default(false),
@@ -104,6 +106,11 @@ export const bookTextElementSchema = z.object({
   leading: z.number().min(0.7).max(3).default(1.45),
   tracking: z.number().min(-0.2).max(1).default(0),
   color: hex.default('#1a1a1a'),
+  /** Optional decoration — none on every text saved before these existed. */
+  effect: z.enum(['none', 'shadow', 'outline', 'highlight']).catch('none').default('none'),
+  /** Marker colour for `highlight`. */
+  highlight: hex.catch('#fde68a').default('#fde68a'),
+  uppercase: z.boolean().catch(false).default(false),
   binding: z
     .object({
       source: z.enum(['journey.title', 'journey.subtitle', 'entry.title', 'entry.story', 'entry.location', 'entry.date', 'photo.caption']),

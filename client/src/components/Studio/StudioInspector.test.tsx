@@ -1,10 +1,10 @@
-// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-032
+// FE-COMP-STUDIOINSPECTOR-001 to FE-COMP-STUDIOINSPECTOR-039
 import { render, screen, fireEvent } from '@testing-library/react'
 import { StudioInspector } from './StudioInspector'
 import { useStudioStore } from '../../store/studioStore'
 import type {
   BookAccommodationElement, BookBadgeElement, BookDocument, BookIconElement, BookListElement, BookMapElement,
-  BookPackingElement, BookPhotoElement, BookPlacesElement, BookShapeElement, BookSpread, BookStatsElement,
+  BookPackingElement, BookPhotoElement, BookPlacesElement, BookShapeElement, BookSpread, BookStatsElement, BookTextElement,
 } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -351,5 +351,73 @@ describe('StudioInspector — shape gradient and stroke', () => {
     render(<StudioInspector spreadIndex={1} />)
     fireEvent.click(screen.getByText('Stroke').closest('div')!.querySelector('button')!)
     expect(selectedShapeEl().stroke).toBeNull()
+  })
+})
+
+function textEl(overrides: Partial<BookTextElement> = {}): BookTextElement {
+  return {
+    ...base, id: 'text-1', kind: 'text', text: 'Hola', font: 'sans', size: 11, weight: 400, italic: false,
+    align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: false, ...overrides,
+  }
+}
+
+describe('StudioInspector — style pickers', () => {
+  it('FE-COMP-STUDIOINSPECTOR-033: picking a filter tile sets the photo\'s filter', () => {
+    useStudioStore.getState().load(doc([photoEl()]))
+    useStudioStore.getState().select(['photo-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByRole('radio', { name: 'journey.studio.filter.vintage' }))
+    expect((selectedEl() as BookPhotoElement).filter).toBe('vintage')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-034: picking a frame tile sets the photo\'s frame', () => {
+    useStudioStore.getState().load(doc([photoEl()]))
+    useStudioStore.getState().select(['photo-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByRole('radio', { name: 'journey.studio.frame.stamp' }))
+    expect((selectedEl() as BookPhotoElement).frameStyle).toBe('stamp')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-035: a quick style sets font, size and case in one go, keeping the text', () => {
+    useStudioStore.getState().load(doc([textEl()]))
+    useStudioStore.getState().select(['text-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByRole('button', { name: 'journey.studio.preset.label' }))
+    expect(selectedEl()).toMatchObject({ font: 'oswald', uppercase: true, text: 'Hola' })
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-036: the font list shows the new faces and picking one sets it', () => {
+    useStudioStore.getState().load(doc([textEl()]))
+    useStudioStore.getState().select(['text-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getByRole('radio', { name: /Caveat/ }))
+    expect((selectedEl() as BookTextElement).font).toBe('caveat')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-037: choosing the highlight effect reveals its colour swatches', () => {
+    useStudioStore.getState().load(doc([textEl()]))
+    useStudioStore.getState().select(['text-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    expect(screen.queryByText('journey.studio.style.highlightColor')).toBeNull()
+    fireEvent.click(screen.getByRole('radio', { name: 'journey.studio.effect.highlight' }))
+    expect((selectedEl() as BookTextElement).effect).toBe('highlight')
+    expect(screen.getByText('journey.studio.style.highlightColor')).toBeInTheDocument()
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-038: a palette swatch sets the text colour', () => {
+    useStudioStore.getState().load(doc([textEl()]))
+    useStudioStore.getState().select(['text-1'])
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'journey.studio.style.textColor #1f6478' })[0])
+    expect((selectedEl() as BookTextElement).color).toBe('#1f6478')
+  })
+
+  it('FE-COMP-STUDIOINSPECTOR-039: with nothing selected, the page background swatches colour the current spread, and Reset clears it', () => {
+    useStudioStore.getState().load(doc([]))
+    render(<StudioInspector spreadIndex={1} />)
+    fireEvent.click(screen.getAllByRole('button', { name: 'journey.studio.style.pageBackground #fbf6ec' })[0])
+    expect(useStudioStore.getState().doc!.spreads[1].background).toBe('#fbf6ec')
+    fireEvent.click(screen.getByRole('button', { name: 'journey.studio.style.resetBackground' }))
+    expect(useStudioStore.getState().doc!.spreads[1].background).toBeNull()
   })
 })

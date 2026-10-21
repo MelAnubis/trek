@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
+import { filterCss, frameSpec, textEffectCss } from './bookStyles'
 import { BookPhotoImg } from './BookPhotoImg'
 import { folio, folioSettings } from './bookSheets'
 import { folioInk } from './folioColour'
@@ -44,14 +45,6 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
-const FILTERS: Record<string, string | undefined> = {
-  none: undefined,
-  bw: 'grayscale(1) contrast(1.05)',
-  warm: 'saturate(1.1) sepia(0.16)',
-  cool: 'saturate(1.05) hue-rotate(-8deg) brightness(1.02)',
-  fade: 'saturate(0.72) contrast(0.88) brightness(1.08)',
-  contrast: 'contrast(1.22) saturate(1.06)',
-}
 
 /**
  * `rect` and `ellipse` draw as plain boxes — a box genuinely is a better
@@ -115,21 +108,13 @@ function ShapeView({ el }: { el: BookShapeElement }) {
   )
 }
 
-const FRAME_INSET: Record<string, { pad: number; bottom: number }> = {
-  none: { pad: 0, bottom: 0 },
-  polaroid: { pad: 0.055, bottom: 0.17 },
-  white: { pad: 0.035, bottom: 0.035 },
-  shadow: { pad: 0, bottom: 0 },
-  film: { pad: 0.075, bottom: 0.075 },
-  tape: { pad: 0, bottom: 0 },
-}
 
 const round2 = (n: number) => Math.round(n * 100) / 100
 
 function PhotoView({ el, big, print, dropLabel, publicToken }: {
   el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string; publicToken?: string
 }) {
-  const deco = FRAME_INSET[el.frameStyle] ?? FRAME_INSET.none
+  const deco = frameSpec(el.frameStyle)
   const side = Math.min(el.frame.w, el.frame.h)
   const pad = round2(deco.pad * side)
   const bottom = round2(deco.bottom * side)
@@ -197,6 +182,7 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
         overflow: 'hidden',
         borderRadius: el.mask === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
         clipPath: needsClipPath ? `url(#${clipId})` : undefined,
+        ...deco.inner?.(side),
       }}
     >
       {needsClipPath && (
@@ -219,7 +205,7 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
             height: '100%',
             objectFit: el.fit,
             objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
-            filter: FILTERS[el.filter],
+            filter: filterCss(el.filter),
             display: 'block',
           }}
         />
@@ -227,19 +213,54 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
     </div>
   )
 
+  // Over the picture, not clipped by it: tape strips run past the edge.
+  const overlay = deco.overlay === 'tape' ? (
+    <>
+      {[{ left: '-4%', rot: -38 }, { right: '-4%', rot: 38 }].map((t, i) => (
+        <div key={i} style={{
+          position: 'absolute', top: `${-side * 0.035}mm`, ...('left' in t ? { left: t.left } : { right: t.right }),
+          width: `${side * 0.32}mm`, height: `${side * 0.085}mm`,
+          background: 'rgba(250, 240, 200, 0.78)', boxShadow: '0 0.2mm 0.5mm rgba(0,0,0,.12)',
+          transform: `rotate(${t.rot}deg)`, pointerEvents: 'none',
+        }} />
+      ))}
+    </>
+  ) : deco.overlay === 'vignette' ? (
+    <div style={{
+      position: 'absolute', left: `${pad}mm`, top: `${pad}mm`, right: `${pad}mm`, bottom: `${bottom || pad}mm`,
+      borderRadius: el.mask === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined,
+      background: 'radial-gradient(ellipse at center, rgba(0,0,0,0) 52%, rgba(0,0,0,.18) 72%, rgba(0,0,0,.55) 100%)',
+      pointerEvents: 'none',
+    }} />
+  ) : deco.overlay === 'corners' ? (
+    <>
+      {(['tl', 'tr', 'bl', 'br'] as const).map(c => {
+        const sz = side * 0.14
+        const at = { tl: { left: 0, top: 0, rot: 0 }, tr: { right: 0, top: 0, rot: 90 }, br: { right: 0, bottom: 0, rot: 180 }, bl: { left: 0, bottom: 0, rot: 270 } }[c]
+        return (
+          <svg key={c} viewBox="0 0 10 10" style={{
+            position: 'absolute', width: `${sz}mm`, height: `${sz}mm`,
+            left: 'left' in at ? 0 : undefined, right: 'right' in at ? 0 : undefined,
+            top: 'top' in at ? 0 : undefined, bottom: 'bottom' in at ? 0 : undefined,
+            transform: `rotate(${at.rot}deg)`, pointerEvents: 'none',
+          }} aria-hidden>
+            <path d="M0 0 H10 L0 10 Z" fill="#1f1f1f" />
+          </svg>
+        )
+      })}
+    </>
+  ) : null
+
   return (
     <div
+      data-frame={el.frameStyle}
       style={{
         ...frameStyle(el),
-        background: el.frameStyle === 'polaroid' || el.frameStyle === 'white' ? '#ffffff'
-          : el.frameStyle === 'film' ? '#141414'
-          : undefined,
-        boxShadow: el.frameStyle === 'shadow' || el.frameStyle === 'polaroid'
-          ? '0 1.2mm 3mm rgba(0,0,0,.22)'
-          : undefined,
+        ...deco.outer?.(side),
       }}
     >
       {picture}
+      {overlay}
     </div>
   )
 }
@@ -291,12 +312,14 @@ export function ElementView({
         lineHeight: el.leading,
         letterSpacing: `${el.tracking}em`,
         textAlign: el.align,
+        textTransform: el.uppercase ? 'uppercase' : undefined,
         whiteSpace: 'pre-wrap',
         overflow: 'hidden',
         hyphens: 'auto',
       }}
     >
-      {el.text}
+      {/* An inline span, so a highlight follows each wrapped line. */}
+      <span style={textEffectCss(el)}>{el.text}</span>
     </div>
   )
 }

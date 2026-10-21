@@ -4,12 +4,13 @@ import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
 import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
 import { folioSettings } from './bookSheets'
+import { ColorSwatches, EffectPicker, FilterPicker, FontPicker, FramePicker, TextPresets } from './StyleControls'
 import { CURRENCIES } from '../Budget/BudgetPanel.constants'
 import ToggleSwitch from '../Settings/ToggleSwitch'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import {
   BOOK_BADGES, BOOK_METRICS, type BookAccommodationElement, type BookBadgeElement, type BookBadgeVariant,
-  type BookDocument, type BookElement, type BookFontFamily, type BookIconElement, type BookListElement,
+  type BookDocument, type BookElement, type BookIconElement, type BookListElement,
   type BookMapElement, type BookMetric, type BookPackingElement, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
 } from '../../types/book'
 
@@ -43,9 +44,11 @@ const INPUT: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border
  * empty-state message. Simpler than upstream's own Document panel (just the
  * one on/off switch, no position/font/colour pickers for the folios yet).
  */
-function DocumentPanel({ doc }: { doc: BookDocument }) {
+function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: number }) {
   const { t } = useTranslation()
   const setPageNumbers = useStudioStore(s => s.setPageNumbers)
+  const setSpreadBackground = useStudioStore(s => s.setSpreadBackground)
+  const spread = doc.spreads[spreadIndex]
   const cfg = folioSettings(doc.page)
   const seg = (on: boolean): React.CSSProperties => ({
     flex: 1, padding: '6px 4px', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', borderRadius: 6,
@@ -56,6 +59,20 @@ function DocumentPanel({ doc }: { doc: BookDocument }) {
   return (
     <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
       <span style={{ ...LABEL, display: 'block', marginBottom: 14 }}>{t('journey.studio.document')}</span>
+
+      {spread && (
+        <div style={FIELD} data-testid="page-background">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={LABEL}>{t('journey.studio.style.pageBackground')}</span>
+            {spread.background && (
+              <button onClick={() => setSpreadBackground(spreadIndex, null)} style={{ fontSize: 10, border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
+                {t('journey.studio.style.resetBackground')}
+              </button>
+            )}
+          </div>
+          <ColorSwatches value={spread.background ?? '#ffffff'} onPick={c => setSpreadBackground(spreadIndex, c.toLowerCase() === '#ffffff' ? null : c)} label={t('journey.studio.style.pageBackground')} t={t} />
+        </div>
+      )}
 
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.pageNumbers')}</span>
@@ -155,7 +172,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
     ?? spread?.elements.find(e => selection.includes(e.id))
 
   if (!el) {
-    return doc ? <DocumentPanel doc={doc} /> : (
+    return doc ? <DocumentPanel doc={doc} spreadIndex={spreadIndex} /> : (
       <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 40 }}>
           {t('journey.studio.inspectorEmpty')}
@@ -220,16 +237,12 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             </div>
           </div>
           <div style={FIELD}>
-            <span style={LABEL}>Filter</span>
-            <select style={INPUT} value={el.filter} onChange={e => patch({ filter: e.target.value as BookPhotoElement['filter'] })}>
-              {['none', 'bw', 'warm', 'cool', 'fade', 'contrast'].map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
+            <span style={LABEL}>{t('journey.studio.style.filter')}</span>
+            <FilterPicker el={el} onPick={filter => patch({ filter })} t={t} />
           </div>
           <div style={FIELD}>
-            <span style={LABEL}>Frame</span>
-            <select style={INPUT} value={el.frameStyle} onChange={e => patch({ frameStyle: e.target.value as BookPhotoElement['frameStyle'] })}>
-              {['none', 'polaroid', 'white', 'shadow', 'film', 'tape'].map(f => <option key={f} value={f}>{f}</option>)}
-            </select>
+            <span style={LABEL}>{t('journey.studio.style.frame')}</span>
+            <FramePicker value={el.frameStyle} onPick={frameStyle => patch({ frameStyle })} t={t} />
           </div>
           <div style={FIELD}>
             <span style={LABEL}>Mask</span>
@@ -247,10 +260,12 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       {el.kind === 'text' && (
         <>
           <div style={FIELD}>
-            <span style={LABEL}>Font</span>
-            <select style={INPUT} value={el.font} onChange={e => patch({ font: e.target.value as BookFontFamily })}>
-              {BOOK_FONT_ORDER.map(f => <option key={f} value={f}>{BOOK_FONTS[f].name}</option>)}
-            </select>
+            <span style={LABEL}>{t('journey.studio.style.quickStyles')}</span>
+            <TextPresets onApply={p => patch(p)} t={t} />
+          </div>
+          <div style={FIELD}>
+            <span style={LABEL}>{t('journey.studio.style.font')}</span>
+            <FontPicker value={el.font} onPick={font => patch({ font })} t={t} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
             <div style={FIELD}>
@@ -270,9 +285,23 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               {['left', 'center', 'right', 'justify'].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
+          <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={LABEL}>{t('journey.studio.style.uppercase')}</span>
+            <ToggleSwitch on={!!el.uppercase} onToggle={() => patch({ uppercase: !el.uppercase })} />
+          </div>
           <div style={FIELD}>
-            <span style={LABEL}>Color</span>
-            <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.color} onChange={e => patch({ color: e.target.value })} />
+            <span style={LABEL}>{t('journey.studio.style.effect')}</span>
+            <EffectPicker value={el.effect ?? 'none'} onPick={effect => patch({ effect })} t={t} />
+          </div>
+          {el.effect === 'highlight' && (
+            <div style={FIELD}>
+              <span style={LABEL}>{t('journey.studio.style.highlightColor')}</span>
+              <ColorSwatches value={el.highlight ?? '#fde68a'} onPick={highlight => patch({ highlight })} label={t('journey.studio.style.highlightColor')} t={t} />
+            </div>
+          )}
+          <div style={FIELD}>
+            <span style={LABEL}>{t('journey.studio.style.textColor')}</span>
+            <ColorSwatches value={el.color} onPick={color => patch({ color })} label={t('journey.studio.style.textColor')} t={t} />
           </div>
         </>
       )}
@@ -290,8 +319,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             </select>
           </div>
           <div style={FIELD}>
-            <span style={LABEL}>Fill</span>
-            <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.fill ?? '#111827'} onChange={e => patch({ fill: e.target.value })} />
+            <span style={LABEL}>{t('journey.studio.style.fill')}</span>
+            <ColorSwatches value={el.fill ?? '#111827'} onPick={fill => patch({ fill })} label={t('journey.studio.style.fill')} t={t} />
           </div>
           <div style={FIELD}>
             <span style={LABEL}>Gradient</span>

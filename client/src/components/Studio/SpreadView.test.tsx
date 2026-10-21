@@ -1,7 +1,7 @@
-// FE-SPREADVIEW-001 to FE-SPREADVIEW-018
+// FE-SPREADVIEW-001 to FE-SPREADVIEW-024
 import { render } from '@testing-library/react'
 import { ElementView, SpreadView } from './SpreadView'
-import type { BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
+import type { BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread, BookTextElement } from '../../types/book'
 
 const PAGE: BookPageSetup = { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5, pageNumbers: { show: true } }
 
@@ -147,5 +147,57 @@ describe('SpreadView — page numbers', () => {
     expect(auto[0].style.color).toBe('rgb(255, 255, 255)')
     const fixed = folios(render(<SpreadView spread={sp} page={{ ...PAGE, pageNumbers: { show: true, autoColor: false, color: '#112233' } }} spreadIndex={1} />).container)
     expect(fixed[0].style.color).toBe('rgb(17, 34, 51)')
+  })
+})
+
+describe('SpreadView — styles', () => {
+  const textEl = (o: Partial<BookTextElement> = {}): BookTextElement => ({
+    ...elBase, kind: 'text', text: 'Hola', font: 'sans', size: 20, weight: 400, italic: false, align: 'left',
+    leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: false, ...o,
+  })
+  const imgOf = (c: HTMLElement) => c.querySelector('img') as HTMLImageElement
+
+  it('FE-SPREADVIEW-019: new filters apply their CSS filter to the photo', () => {
+    const { container } = render(<ElementView el={photoEl({ filter: 'vintage' })} big print />)
+    expect(imgOf(container).style.filter).toContain('sepia(0.35)')
+    const noir = render(<ElementView el={photoEl({ filter: 'noir' })} big print />)
+    expect(imgOf(noir.container).style.filter).toContain('grayscale(1)')
+  })
+
+  it('FE-SPREADVIEW-020: an unknown filter (an older/newer book) renders the photo unfiltered', () => {
+    const { container } = render(<ElementView el={photoEl({ filter: 'made-up' as any })} big print />)
+    expect(imgOf(container).style.filter).toBe('')
+  })
+
+  it('FE-SPREADVIEW-021: tape draws two strips and corners draws four, over the photo', () => {
+    const tape = render(<ElementView el={photoEl({ frameStyle: 'tape' })} big print />)
+    const frame = tape.container.querySelector('[data-frame="tape"]')!
+    expect(frame.children.length).toBe(3) // picture + 2 strips
+    const corners = render(<ElementView el={photoEl({ frameStyle: 'corners' })} big print />)
+    expect(corners.container.querySelectorAll('[data-frame="corners"] > svg')).toHaveLength(4)
+  })
+
+  it('FE-SPREADVIEW-022: padded frames (stamp, double) inset the picture; the stamp gets a perforation mask', () => {
+    const { container } = render(<ElementView el={photoEl({ frameStyle: 'stamp' })} big print />)
+    const outer = container.querySelector('[data-frame="stamp"]') as HTMLElement
+    expect(outer.style.background).toContain('rgb(255, 255, 255)')
+    const picture = outer.firstElementChild as HTMLElement
+    expect(parseFloat(picture.style.left)).toBeGreaterThan(0)
+  })
+
+  it('FE-SPREADVIEW-023: text effects and uppercase render', () => {
+    const shadow = render(<ElementView el={textEl({ effect: 'shadow' })} big />)
+    expect((shadow.container.querySelector('span') as HTMLElement).style.textShadow).not.toBe('')
+    const hl = render(<ElementView el={textEl({ effect: 'highlight', highlight: '#00ff00' })} big />)
+    expect((hl.container.querySelector('span') as HTMLElement).style.backgroundImage).toContain('rgb(0, 255, 0)')
+    const up = render(<ElementView el={textEl({ uppercase: true })} big />)
+    expect((up.container.firstElementChild as HTMLElement).style.textTransform).toBe('uppercase')
+  })
+
+  it('FE-SPREADVIEW-024: text saved before effects existed renders as before (no decoration)', () => {
+    const { container } = render(<ElementView el={textEl()} big />)
+    const span = container.querySelector('span') as HTMLElement
+    expect(span.style.textShadow).toBe('')
+    expect(span.style.backgroundImage).toBe('')
   })
 })

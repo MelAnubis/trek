@@ -25,7 +25,8 @@ export const BOOK_SHAPES = [
   'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
-export type BookFontFamily = 'sans' | 'serif' | 'display' | 'inter' | 'garamond' | 'playfair' | 'bebas';
+export type BookFontFamily = 'sans' | 'serif' | 'display' | 'inter' | 'garamond' | 'playfair' | 'bebas'
+  | 'montserrat' | 'oswald' | 'merriweather' | 'cormorant' | 'caveat' | 'dancing' | 'typewriter';
 
 export interface BookFrame {
   x: number;
@@ -49,8 +50,8 @@ export interface BookPhotoElement extends BookElementBase {
   focalX: number;
   focalY: number;
   radius: number;
-  filter: 'none' | 'bw' | 'warm' | 'cool' | 'fade' | 'contrast';
-  frameStyle: 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape';
+  filter: 'none' | 'bw' | 'warm' | 'cool' | 'fade' | 'contrast' | 'sepia' | 'vintage' | 'vivid' | 'matte' | 'noir' | 'golden' | 'dramatic';
+  frameStyle: 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape' | 'thin' | 'double' | 'stamp' | 'corners' | 'vignette';
   mask: BookShapeId | null;
 }
 
@@ -73,6 +74,10 @@ export interface BookTextElement extends BookElementBase {
   leading: number;
   tracking: number;
   color: string;
+  /** Optional — absent on text saved before these existed. */
+  effect?: 'none' | 'shadow' | 'outline' | 'highlight';
+  highlight?: string;
+  uppercase?: boolean;
   binding: BookTextBinding | null;
   overridden: boolean;
 }
