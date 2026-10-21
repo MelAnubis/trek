@@ -205,7 +205,7 @@ describe('bookElementSchema — travel element kinds', () => {
     }
   });
 
-  it('BOOKSCHEMA-023: an old book still carrying the removed "countries" element kind degrades gracefully — that one element is dropped, not the whole document', () => {
+  it('BOOKSCHEMA-023: an element of a kind this version does not know degrades gracefully — that one element is dropped, not the whole document; a countries element (supported again) survives', () => {
     const doc = normalizeBookDocument({
       version: 1,
       title: 'Trip',
@@ -214,13 +214,13 @@ describe('bookElementSchema — travel element kinds', () => {
         id: 'sp-1', role: 'inner', background: null, entryId: null, parked: [],
         elements: [
           { ...base, id: 'good', kind: 'icon', name: 'Compass', color: '#111827', lineWidth: 2 },
-          { ...base, id: 'stale-countries', kind: 'countries', codes: ['IS'], names: ['Iceland'], layout: 'list', showFlag: true, showName: true, align: 'center' },
+          { ...base, id: 'unknown-kind', kind: 'hologram', beams: 3 },
+          { ...base, id: 'countries', kind: 'countries', codes: ['IS'], names: ['Iceland'], layout: 'list', showFlag: true, showName: true, align: 'center' },
         ],
       }],
     });
     const ids = doc.spreads[0].elements.map(e => e.id);
-    expect(ids).toContain('good');
-    expect(ids).not.toContain('stale-countries');
+    expect(ids).toEqual(['good', 'countries']);
   });
 
   it('BOOKSCHEMA-026: a packing element accepts a list of items with category/checked/quantity, applying defaults for missing fields', () => {
