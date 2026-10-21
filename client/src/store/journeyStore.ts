@@ -31,6 +31,8 @@ export interface JourneyEntry {
   location_name?: string | null
   location_lat?: number | null
   location_lng?: number | null
+  /** Resolved server-side from the entry's coordinates; null without them. */
+  country_code?: string | null
   mood?: string | null
   weather?: string | null
   tags?: string[]
@@ -110,7 +112,7 @@ export interface JourneyDetail extends Journey {
   gallery: GalleryPhoto[]
   trips: JourneyTrip[]
   contributors: JourneyContributor[]
-  stats: { entries: number; photos: number; places: number; countries?: number; budgetTotal?: number; budgetCurrency?: string }
+  stats: { entries: number; photos: number; places: number; countries?: number; countryCodes?: string[]; budgetTotal?: number; budgetCurrency?: string }
   hide_skeletons?: boolean
 }
 

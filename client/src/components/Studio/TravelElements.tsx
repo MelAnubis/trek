@@ -1,10 +1,12 @@
 import type { CSSProperties } from 'react'
 import * as LucideIcons from 'lucide-react'
 import { Map as MapIcon, Route, CalendarDays, Footprints, Camera, Flag, MapPin, Compass, TrendingUp, TrendingDown, Wallet, Check, Hotel } from 'lucide-react'
-import type { BookAccommodationElement, BookBadgeElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
+import type { BookAccommodationElement, BookBadgeElement, BookCountriesElement, BookIconElement, BookListElement, BookListItem, BookMapElement, BookMetric, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { frameStyle } from './SpreadView'
-import { FlagGlyph, FlagSilhouette } from './flagGlyphs'
+import { FlagSilhouette } from './flagGlyphs'
+import { COUNTRY_SHAPES } from './countryShapes'
+import { FLAG_H, FLAG_W, flagBands, flagDisc, flagSpec } from './flags'
 
 /**
  * The travel-specific element renderers — map, stats, countries, badge,
@@ -173,7 +175,9 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
   const glyph = (chipContrast?: boolean) => {
     if (!isFlag) return null
     if (!el.code) return <FlagSilhouette color={chipContrast ? '#ffffff' : el.accent} size={glyphSize} />
-    return <FlagGlyph code={el.code} primary={chipContrast ? '#ffffff' : el.accent} secondary={chipContrast ? el.accent : el.color} size={glyphSize} />
+    // The real flag where it can be drawn exactly, else the country's own
+    // outline (never an invented pattern — a wrong flag is worse than none).
+    return <FlagMark code={el.code} size={side * (el.style === 'stacked' ? 0.42 : 0.32)} color={chipContrast ? '#ffffff' : el.accent} />
   }
 
   if (el.style === 'chip') {
@@ -213,6 +217,91 @@ export function BadgeView({ el }: { el: BookBadgeElement }) {
       {glyph()}
       <span style={{ fontFamily: font, fontSize: `${textSize}mm`, fontWeight: 600, color: el.color, lineHeight: 1 }}>{el.text}</span>
       {el.sub && <span style={{ fontFamily: font, fontSize: `${subSize}mm`, color: el.color, opacity: 0.6, marginTop: '0.6mm' }}>{el.sub}</span>}
+    </div>
+  )
+}
+
+// ── flags and countries ─────────────────────────────────────────────────────
+
+const r2 = (n: number) => Math.round(n * 100) / 100
+
+/**
+ * A flag, drawn (ported from upstream's FlagMark): exact for the stripe,
+ * cross and disc constructions in flags.ts, the country's silhouette for
+ * anything with an emblem, and the code as a mark when there is neither.
+ * `size` is the height in mm.
+ */
+export function FlagMark({ code, size, color = 'currentColor' }: { code: string; size: number; color?: string }) {
+  const spec = flagSpec(code)
+  if (spec) {
+    const disc = flagDisc(spec)
+    return (
+      <svg data-flag={code.toUpperCase()} width={`${r2((size * FLAG_W) / FLAG_H)}mm`} height={`${r2(size)}mm`} viewBox={`0 0 ${FLAG_W} ${FLAG_H}`}
+        style={{ display: 'block', flex: '0 0 auto', borderRadius: `${r2(size * 0.08)}mm` }} aria-label={code.toUpperCase()}>
+        {flagBands(spec).map((b, i) => <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} fill={b.fill} />)}
+        {disc && <circle cx={disc.cx} cy={disc.cy} r={disc.r} fill={disc.fill} />}
+        {/* A hairline keeps a white-edged flag off a white page. */}
+        <rect x="0" y="0" width={FLAG_W} height={FLAG_H} fill="none" stroke="rgba(0,0,0,.18)" strokeWidth="0.5" />
+      </svg>
+    )
+  }
+  const shape = COUNTRY_SHAPES[code.toUpperCase()]
+  if (!shape) {
+    return <span style={{ fontSize: `${r2(size * 0.62)}mm`, fontWeight: 700, letterSpacing: '0.08em', lineHeight: 1, color }}>{code.toUpperCase()}</span>
+  }
+  return (
+    <svg data-outline={code.toUpperCase()} width={`${r2((size * shape.w) / shape.h)}mm`} height={`${r2(size)}mm`} viewBox={`0 0 ${shape.w} ${shape.h}`}
+      style={{ display: 'block', flex: '0 0 auto' }} aria-label={code.toUpperCase()}>
+      <path d={shape.d} fill={color} />
+    </svg>
+  )
+}
+
+/**
+ * The country page (upstream's CountriesView): each name in caps over its
+ * own silhouette at low opacity — a list of names is a list; the same list
+ * with each country's shape behind it reads as a map of where you went.
+ */
+export function CountriesView({ el }: { el: BookCountriesElement }) {
+  const codes = el.codes
+  const cols = el.layout === 'grid' ? Math.min(3, Math.max(1, Math.round(Math.sqrt(codes.length)))) : 1
+  const rows = Math.ceil(codes.length / cols)
+  const cell = el.frame.h / Math.max(1, rows)
+  // Capped by the longest label too: caps with 0.14em tracking run ~0.82 of
+  // their size per letter, plus a flag's width and the gap when shown — so a
+  // long name ("PAÍSES BAJOS") never spills into the next column.
+  const longest = Math.max(1, ...codes.map((c, i) => (el.showName ? (el.names[i] || c).length : 0)))
+  const perEm = (el.showName ? longest * 0.82 : 0) + (el.showFlag ? 1.35 + 0.4 : 0)
+  const fitWidth = ((el.frame.w / cols) * 0.94) / Math.max(1, perEm)
+  const name = Math.max(1.2, Math.min(cell * 0.44, fitWidth))
+  const justify = el.align === 'left' ? 'flex-start' : el.align === 'right' ? 'flex-end' : 'center'
+  return (
+    <div style={{ ...frameStyle(el), display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, alignContent: 'center', fontFamily: fontStack(el.font), color: el.color }}>
+      {codes.map((code, i) => {
+        const shape = COUNTRY_SHAPES[code.toUpperCase()]
+        const label = el.names[i] || code.toUpperCase()
+        const boxH = cell * 0.86
+        const boxW = shape ? (boxH * shape.w) / shape.h : boxH
+        return (
+          <div key={`${code}-${i}`} data-country={code.toUpperCase()} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: justify, height: `${r2(cell)}mm`, minWidth: 0 }}>
+            {el.showOutline && shape && (
+              <svg width={`${r2(boxW)}mm`} height={`${r2(boxH)}mm`} viewBox={`0 0 ${shape.w} ${shape.h}`} style={{
+                position: 'absolute',
+                left: el.align === 'left' ? 0 : el.align === 'right' ? 'auto' : '50%',
+                right: el.align === 'right' ? 0 : 'auto',
+                transform: el.align === 'center' ? 'translateX(-50%)' : undefined,
+                opacity: 0.2,
+              }}>
+                <path d={shape.d} fill={el.accent} />
+              </svg>
+            )}
+            <span style={{ position: 'relative', fontSize: `${r2(name)}mm`, fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', lineHeight: 1.2, display: 'flex', alignItems: 'center', gap: `${r2(name * 0.4)}mm`, whiteSpace: 'nowrap' }}>
+              {el.showFlag && <FlagMark code={code} size={name * 0.9} color={el.accent} />}
+              {el.showName && label}
+            </span>
+          </div>
+        )
+      })}
     </div>
   )
 }

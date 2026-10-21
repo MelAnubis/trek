@@ -151,6 +151,19 @@ export interface BookPlacesElement extends BookElementBase, BookTypeset {
   align: 'left' | 'center' | 'right';
 }
 
+/** Countries a journey went through, each name over its outline (and optionally its flag) — see the server schema. */
+export interface BookCountriesElement extends BookElementBase, BookTypeset {
+  kind: 'countries';
+  /** ISO-3166-1 alpha-2, in visit order. */
+  codes: string[];
+  names: string[];
+  layout: 'list' | 'grid' | 'column';
+  showOutline: boolean;
+  showFlag: boolean;
+  showName: boolean;
+  align: 'left' | 'center' | 'right';
+}
+
 export const BOOK_BADGES = [
   'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude', 'mood',
 ] as const;
@@ -244,7 +257,7 @@ export interface BookAccommodationElement extends BookElementBase, BookTypeset {
 
 export type BookElement =
   | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
-  | BookStatsElement | BookPlacesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
+  | BookStatsElement | BookPlacesElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
   | BookPackingElement | BookAccommodationElement;
 
 export interface BookSpread {

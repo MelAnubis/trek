@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import {
+import { Globe2,
   Award, BarChart3, Circle, Compass, Copy, Hotel, ImageIcon, ListChecks, Luggage, Map as MapIconLucide, MapPin, Plus, Sparkles,
   Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
@@ -17,6 +17,7 @@ import { SHAPE_GROUPS, SHAPE_PATHS, HOLED_SHAPES } from './shapes'
 import type { BookElement, BookMetric, BookPageSetup, BookShapeId } from '../../types/book'
 import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
 import { folioLabel, folioSettings, foliosOf } from './bookSheets'
+import { countryName } from './countryShapes'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -120,7 +121,7 @@ export function StudioSidebar({
   journeyId: number
   galleryPhotos: { photoId: number; caption: string | null; taken_at?: string | null; created_at?: number | null }[]
   /** Prefills a newly-added stats element's figures, when known — the journey's own totals rather than a blank grid the user has to fill in by hand. distanceKm/elevation are only known once the journey's linked trips have a GPX track. */
-  journeyStats?: { days: number; entries: number; photos: number; places: number; countries?: number; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
+  journeyStats?: { days: number; entries: number; photos: number; places: number; countries?: number; countryCodes?: string[]; distanceKm?: number; elevationGainM?: number; elevationLossM?: number; budgetTotal?: number; budgetCurrency?: string }
   /** Renders a route-map raster image (gpxDrawing's canvas renderer, the same one auto-layout's route spread already uses) for a freshly-added map element — see BookMapElement's own comment on why this fork bakes a snapshot rather than rendering a live map. Omitted where the caller has no track/entry data to draw from (map elements can still be added, just start blank). */
   onGenerateMap?: () => Promise<string | null>
   /** Collects the journey's own places — from its linked trips' real place data, not every place in the app — for a freshly-added places element. Same fetch-then-update pattern as onGenerateMap. Omitted where the caller has no trip data to draw from (places elements can still be added, just start empty). */
@@ -436,6 +437,16 @@ export function StudioSidebar({
             }))
           }} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
           <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
+          <button onClick={() => {
+            const codes = (journeyStats?.countryCodes ?? []).slice(0, 60)
+            const names = codes.map(c => countryName(c, locale))
+            const rows = Math.max(1, codes.length)
+            addCentered(110, Math.min(doc.page.pageHeight * 0.8, Math.max(24, rows * 16)), (id, frame) => ({
+              id, frame, kind: 'countries', rotation: 0, opacity: 1, locked: false,
+              font: 'sans', color: '#1a1a1a', accent: '#111111',
+              codes, names, layout: 'list', showOutline: true, showFlag: false, showName: true, align: 'center',
+            }))
+          }} className="st-sb-add"><Globe2 size={15} /> {t('journey.studio.addCountries')}</button>
           <button onClick={() => addCentered(40, 24, (id, frame) => ({
             id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
             font: 'sans', color: '#1a1a1a', accent: '#111111',

@@ -296,6 +296,22 @@ describe('getJourneyFull', () => {
     expect(result!.stats.entries).toBe(1);
   });
 
+  it('JOURNEY-SVC-016b: stats.countryCodes lists countries in visit order, and each entry carries its own code', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Two countries' });
+    const madrid = createJourneyEntry(testDb, journey.id, user.id, { title: 'Madrid', entry_date: '2026-03-01' });
+    const lisbon = createJourneyEntry(testDb, journey.id, user.id, { title: 'Lisboa', entry_date: '2026-03-02' });
+    const nowhere = createJourneyEntry(testDb, journey.id, user.id, { title: 'Sin coordenadas', entry_date: '2026-03-03' });
+    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(40.4168, -3.7038, madrid.id);
+    testDb.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ? WHERE id = ?').run(38.7223, -9.1393, lisbon.id);
+
+    const result = getJourneyFull(journey.id, user.id)! as any;
+    expect(result.stats.countryCodes).toEqual(['ES', 'PT']);
+    const byTitle = Object.fromEntries(result.entries.map((e: any) => [e.title, e.country_code]));
+    expect(byTitle).toEqual({ Madrid: 'ES', Lisboa: 'PT', 'Sin coordenadas': null });
+    expect(nowhere.id).toBeDefined();
+  });
+
   it('JOURNEY-SVC-094: stats.budgetTotal sums linked trips\' expenses in the earliest trip\'s currency, ignoring mismatched-currency items', () => {
     const { user } = createUser(testDb);
     const journey = createJourney(testDb, user.id, { title: 'Budgeted Trip' });

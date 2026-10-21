@@ -10,7 +10,7 @@ import ToggleSwitch from '../Settings/ToggleSwitch'
 import { FRAME_SHAPES, SHAPE_GROUPS } from './shapes'
 import {
   BOOK_BADGES, BOOK_METRICS, type BookAccommodationElement, type BookBadgeElement, type BookBadgeVariant,
-  type BookDocument, type BookElement, type BookIconElement, type BookListElement,
+  type BookCountriesElement, type BookDocument, type BookElement, type BookIconElement, type BookListElement,
   type BookMapElement, type BookMetric, type BookPackingElement, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
 } from '../../types/book'
 
@@ -366,6 +366,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       {el.kind === 'map' && <MapFields el={el} patch={patch} />}
       {el.kind === 'stats' && <StatsFields el={el} patch={patch} />}
       {el.kind === 'places' && <PlacesFields el={el as BookPlacesElement} patch={patch} />}
+      {el.kind === 'countries' && <CountriesFields el={el as BookCountriesElement} patch={patch} />}
       {el.kind === 'badge' && <BadgeFields el={el} patch={patch} />}
       {el.kind === 'icon' && <IconFields el={el} patch={patch} />}
       {el.kind === 'list' && <ListFields el={el} patch={patch} />}
@@ -522,6 +523,53 @@ function PlacesFields({ el, patch }: { el: BookPlacesElement; patch: Patch }) {
         <select style={INPUT} value={el.align} onChange={e => patch({ align: e.target.value as BookPlacesElement['align'] })}>
           {['left', 'center', 'right'].map(a => <option key={a} value={a}>{a}</option>)}
         </select>
+      </div>
+    </>
+  )
+}
+
+function CountriesFields({ el, patch }: { el: BookCountriesElement; patch: Patch }) {
+  const { t } = useTranslation()
+  const toggle = (key: 'showOutline' | 'showFlag' | 'showName', label: string) => (
+    <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={LABEL}>{label}</span>
+      <ToggleSwitch on={el[key]} onToggle={() => patch({ [key]: !el[key] } as Partial<BookCountriesElement>)} />
+    </div>
+  )
+  return (
+    <>
+      <div style={FIELD}>
+        <span style={LABEL}>{t('journey.studio.countries.list')}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {el.codes.map((code, i) => (
+            <div key={`${code}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-faint)', width: 22 }}>{code}</span>
+              <input style={{ ...INPUT, flex: 1 }} value={el.names[i] ?? ''} onChange={e => patch({ names: el.codes.map((_, j) => (j === i ? e.target.value : el.names[j] ?? '')) })} />
+              <button onClick={() => patch({ codes: el.codes.filter((_, j) => j !== i), names: el.names.filter((_, j) => j !== i) })}
+                aria-label={t('common.delete')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          {el.codes.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.countries.empty')}</span>}
+        </div>
+      </div>
+      {toggle('showOutline', t('journey.studio.countries.outline'))}
+      {toggle('showFlag', t('journey.studio.countries.flag'))}
+      {toggle('showName', t('journey.studio.countries.name'))}
+      <div style={FIELD}>
+        <span style={LABEL}>{t('journey.studio.countries.layout')}</span>
+        <select style={INPUT} value={el.layout} onChange={e => patch({ layout: e.target.value as BookCountriesElement['layout'] })}>
+          {(['list', 'grid', 'column'] as const).map(l => <option key={l} value={l}>{t(`journey.studio.countries.layout.${l}`)}</option>)}
+        </select>
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>{t('journey.studio.style.textColor')}</span>
+        <ColorSwatches value={el.color} onPick={color => patch({ color })} label={t('journey.studio.style.textColor')} t={t} />
+      </div>
+      <div style={FIELD}>
+        <span style={LABEL}>{t('journey.studio.countries.outlineColor')}</span>
+        <ColorSwatches value={el.accent} onPick={accent => patch({ accent })} label={t('journey.studio.countries.outlineColor')} t={t} />
       </div>
     </>
   )

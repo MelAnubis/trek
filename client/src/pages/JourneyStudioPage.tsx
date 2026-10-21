@@ -182,6 +182,7 @@ export default function JourneyStudioPage() {
         date: e.entry_date ?? null,
         lat: e.location_lat ?? null,
         lng: e.location_lng ?? null,
+        country: e.country_code ?? null,
       })),
       photos: galleryPhotos.map(p => ({ photoId: p.photoId, caption: p.caption })),
     }
@@ -246,6 +247,7 @@ export default function JourneyStudioPage() {
         photos: current.stats?.photos ?? allPhotos.length,
         places: current.stats?.places ?? 0,
         countries: current.stats?.countries,
+        countryCodes: current.stats?.countryCodes,
         distanceKm: routeStats?.totalDist,
         elevationGainM: routeStats?.gain,
         elevationLossM: routeStats?.loss,

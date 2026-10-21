@@ -220,6 +220,31 @@ export const bookPlacesElementSchema = z.object({
   align: z.enum(['left', 'center', 'right']).default('center'),
 });
 
+export const MAX_BOOK_COUNTRIES = 60;
+export const MAX_COUNTRY_NAME = 60;
+
+/**
+ * The countries a journey went through, each name set over its own outline
+ * (and optionally beside its flag) — the upstream element, back now that the
+ * outlines and flags are real data (countryShapes.ts / flags.ts) rather than
+ * the generated glyphs the earlier version drew. Lives alongside `places`:
+ * that one lists stops, this one is the "where on earth" page.
+ */
+export const bookCountriesElementSchema = z.object({
+  ...elementBase,
+  ...typeset,
+  kind: z.literal('countries'),
+  /** ISO-3166-1 alpha-2, in visit order. */
+  codes: z.array(z.string().length(2)).max(MAX_BOOK_COUNTRIES).default([]),
+  /** Names as resolved when placed, so the page doesn't depend on a lookup. */
+  names: z.array(z.string().max(MAX_COUNTRY_NAME)).max(MAX_BOOK_COUNTRIES).default([]),
+  layout: z.enum(['list', 'grid', 'column']).default('list'),
+  showOutline: z.boolean().default(true),
+  showFlag: z.boolean().default(false),
+  showName: z.boolean().default(true),
+  align: z.enum(['left', 'center', 'right']).default('center'),
+});
+
 export const BOOK_BADGES = [
   'flag', 'date', 'day', 'coords', 'country', 'distance', 'weather', 'altitude', 'mood',
 ] as const;
@@ -351,6 +376,7 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookImageElementSchema,
   bookStatsElementSchema,
   bookPlacesElementSchema,
+  bookCountriesElementSchema,
   bookBadgeElementSchema,
   bookIconElementSchema,
   bookListElementSchema,

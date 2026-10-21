@@ -1,8 +1,8 @@
-// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-030
+// FE-TRAVELELEMENTS-001 to FE-TRAVELELEMENTS-033
 import { render } from '@testing-library/react'
 import { ElementView } from './SpreadView'
 import { formatMetricValue } from './TravelElements'
-import type { BookAccommodationElement, BookBadgeElement, BookIconElement, BookListElement, BookMapElement, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
+import type { BookAccommodationElement, BookBadgeElement, BookCountriesElement, BookIconElement, BookListElement, BookMapElement, BookPackingElement, BookPlacesElement, BookStatsElement } from '../../types/book'
 
 const base = { id: 'el-1', frame: { x: 0, y: 0, w: 40, h: 40 }, rotation: 0, opacity: 1, locked: false }
 const typeset = { font: 'sans' as const, color: '#1a1a1a', accent: '#111111' }
@@ -238,5 +238,50 @@ describe('AccommodationView (via ElementView)', () => {
   it('FE-TRAVELELEMENTS-027: a stay with no address renders no stray empty line for it', () => {
     const { container } = render(<ElementView el={accommodationEl({ stays: [{ name: 'Cabin' }], showConfirmation: false })} big />)
     expect(container.textContent).toBe('Cabin')
+  })
+})
+
+describe('countries and flags', () => {
+  const countries = (o: Partial<BookCountriesElement> = {}): BookCountriesElement => ({
+    ...base, frame: { x: 0, y: 0, w: 100, h: 60 }, kind: 'countries', font: 'sans', color: '#1a1a1a', accent: '#111111',
+    codes: ['ES', 'PT', 'FR'], names: ['España', 'Portugal', 'Francia'], layout: 'list',
+    showOutline: true, showFlag: false, showName: true, align: 'center', ...o,
+  })
+
+  it('FE-TRAVELELEMENTS-028: one row per country, name over its own silhouette', () => {
+    const { container } = render(<ElementView el={countries()} big />)
+    const rows = container.querySelectorAll('[data-country]')
+    expect(Array.from(rows).map(r => r.getAttribute('data-country'))).toEqual(['ES', 'PT', 'FR'])
+    expect(rows[0].textContent).toContain('España')
+    expect(rows[0].querySelector('svg path')).not.toBeNull()
+  })
+
+  it('FE-TRAVELELEMENTS-029: outline and name can be switched off; flags on draws a real flag where one is exact', () => {
+    const { container } = render(<ElementView el={countries({ showOutline: false, showName: false, showFlag: true, codes: ['FR'], names: ['Francia'] })} big />)
+    const row = container.querySelector('[data-country="FR"]')!
+    expect(row.textContent).not.toContain('Francia')
+    expect(row.querySelector('[data-flag="FR"]')).not.toBeNull()
+    expect(row.querySelectorAll('[data-flag="FR"] rect').length).toBeGreaterThanOrEqual(3) // three vertical bands + hairline
+  })
+
+  it('FE-TRAVELELEMENTS-030: a flag with an emblem (Spain) falls back to the country outline, never an invented pattern', () => {
+    const { container } = render(<ElementView el={countries({ showFlag: true, codes: ['ES'], names: ['España'] })} big />)
+    expect(container.querySelector('[data-flag="ES"]')).toBeNull()
+    expect(container.querySelector('[data-outline="ES"]')).not.toBeNull()
+  })
+
+  it('FE-TRAVELELEMENTS-031: grid layout uses columns', () => {
+    const { container } = render(<ElementView el={countries({ layout: 'grid', codes: ['ES', 'PT', 'FR', 'IT'], names: [] })} big />)
+    expect((container.firstElementChild as HTMLElement).style.gridTemplateColumns).toBe('repeat(2, 1fr)')
+  })
+
+  it('FE-TRAVELELEMENTS-032: a flag badge now draws the real flag (Italy: three bands)', () => {
+    const { container } = render(<ElementView el={badgeEl({ variant: 'flag', code: 'IT', text: 'ITALIA' })} big />)
+    expect(container.querySelector('[data-flag="IT"]')).not.toBeNull()
+  })
+
+  it('FE-TRAVELELEMENTS-033: an unknown code shows as a mark, not a broken image', () => {
+    const { container } = render(<ElementView el={countries({ showFlag: true, codes: ['ZZ'], names: [''] })} big />)
+    expect(container.textContent).toContain('ZZ')
   })
 })

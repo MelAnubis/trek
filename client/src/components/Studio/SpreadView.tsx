@@ -5,7 +5,7 @@ import { filterCss, frameSpec, textEffectCss } from './bookStyles'
 import { BookPhotoImg } from './BookPhotoImg'
 import { folioSettings, isNumbered } from './bookSheets'
 import { folioInk } from './folioColour'
-import { AccommodationView, BadgeView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
+import { AccommodationView, BadgeView, CountriesView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
 
 /**
@@ -294,6 +294,7 @@ export function ElementView({
   if (el.kind === 'map') return <MapView el={el} />
   if (el.kind === 'stats') return <StatsView el={el} />
   if (el.kind === 'places') return <PlacesView el={el} />
+  if (el.kind === 'countries') return <CountriesView el={el} />
   if (el.kind === 'badge') return <BadgeView el={el} />
   if (el.kind === 'icon') return <IconView el={el} />
   if (el.kind === 'list') return <ListView el={el} />

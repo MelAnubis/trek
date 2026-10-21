@@ -185,12 +185,16 @@ export function getJourneyFull(journeyId: number, userId: number) {
   // no geocoding network call, so this stays cheap even for a journey with
   // many entries. An entry with no coordinates just doesn't vote.
   const countrySet = new Set<string>();
+  // Also kept per entry and in visit order (entries are date-sorted), for the
+  // book's country page and its per-entry flag marks.
+  const entryCountry = new Map<number, string>();
   for (const e of entries) {
     if (e.location_lat != null && e.location_lng != null) {
       const code = getCountryFromCoords(e.location_lat, e.location_lng);
-      if (code) countrySet.add(code);
+      if (code) { countrySet.add(code); entryCountry.set(e.id, code); }
     }
   }
+  for (const e of enrichedEntries) (e as typeof e & { country_code: string | null }).country_code = entryCountry.get(e.id) ?? null;
 
   // Budget total, in the earliest-linked trip's own currency — summed across
   // every linked trip's expenses in that same currency (an item's own
@@ -238,7 +242,7 @@ export function getJourneyFull(journeyId: number, userId: number) {
     gallery,
     trips,
     contributors,
-    stats: { entries: entryCount, photos: photoCount, places: places.length, countries: countrySet.size, budgetTotal, budgetCurrency: primaryCurrency },
+    stats: { entries: entryCount, photos: photoCount, places: places.length, countries: countrySet.size, countryCodes: [...countrySet], budgetTotal, budgetCurrency: primaryCurrency },
     hide_skeletons: !!(userPrefs?.hide_skeletons),
     my_role: myRole,
   };

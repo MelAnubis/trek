@@ -101,6 +101,8 @@ export interface AutoEntry {
   /** For a reference template's `coords` badge or a coordinate-format `entry.location` binding — see referenceTemplates.ts. Omitted entries just don't fill those, same as a missing story. */
   lat?: number | null
   lng?: number | null
+  /** ISO code of the entry's country, resolved server-side from its coordinates. */
+  country?: string | null
 }
 
 export interface AutoInput {
@@ -123,6 +125,8 @@ export interface AutoInput {
     budgetCurrency?: string
     /** Distinct countries across every entry's location, resolved from lat/lng — see journeyService.ts's getJourneyFull. */
     countries?: number
+    /** The same countries as ISO codes, in visit order. */
+    countryCodes?: string[]
   }
   /**
    * A day's route map + elevation profile, pre-rendered by
