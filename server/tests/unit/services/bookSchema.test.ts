@@ -318,3 +318,12 @@ describe('bookElementSchema — Studio styles', () => {
     expect((bookElementSchema.parse(textEl({ effect: 'glow' })) as any).effect).toBe('none');
   });
 });
+
+describe('bookSpreadSchema — first and last pages', () => {
+  it('BOOKSCHEMA-ROLE-001: a document with first/last single pages round-trips', () => {
+    const page = { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 };
+    const sp = (id: string, role: string) => ({ id, role, background: null, elements: [], parked: [], entryId: null });
+    const doc = normalizeBookDocument({ version: 1, title: 'T', page, spreads: [sp('c', 'cover'), sp('f', 'first'), sp('i', 'inner'), sp('l', 'last'), sp('b', 'back')] }) as any;
+    expect(doc.spreads.map((s: any) => s.role)).toEqual(['cover', 'first', 'inner', 'last', 'back']);
+  });
+});

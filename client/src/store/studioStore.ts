@@ -303,10 +303,14 @@ export const useStudioStore = create<StudioState>((set, get) => ({
   addSpread: index => {
     const doc = get().doc
     if (!doc) return
-    const cover = doc.spreads.findIndex(sp => sp.role === 'cover')
+    // New spreads go between the opening pages (cover, then the single first
+    // page if the book has one) and the closing ones (the single last page,
+    // then the back cover) — never outside them.
+    const opening = Math.max(doc.spreads.findIndex(sp => sp.role === 'cover'), doc.spreads.findIndex(sp => sp.role === 'first'))
+    const lastPage = doc.spreads.findIndex(sp => sp.role === 'last')
     const back = doc.spreads.findIndex(sp => sp.role === 'back')
-    const first = cover === -1 ? 0 : cover + 1
-    const limit = back === -1 ? doc.spreads.length : back
+    const first = opening === -1 ? 0 : opening + 1
+    const limit = lastPage !== -1 ? lastPage : back !== -1 ? back : doc.spreads.length
     const at = Math.min(Math.max(index + 1, first), limit)
     get().commit(d => ({
       ...d,

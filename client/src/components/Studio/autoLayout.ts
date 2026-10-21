@@ -593,15 +593,32 @@ function summarySpread(input: AutoInput, dateRange: string): BookSpread {
   return seedSpread(elementId('sp'), 'inner', elements)
 }
 
-/** Empty book: one cover, one inner spread, no elements — the non-auto-layout starting state. */
+/**
+ * The page setup for a book that opens on a single first page: that page is
+ * page 1. A book from before the first page existed opened onto a spread and
+ * started at 2; only the count moves with the page, the rest of the setup is
+ * the person's.
+ */
+function withFirstPage(page: BookPageSetup): BookPageSetup {
+  return { ...page, pageNumbers: { show: false, ...page.pageNumbers, startAt: 1 } }
+}
+
+/**
+ * Empty book: the outside and the opening/closing pages of a bound book —
+ * cover, single first page (where a title page or dedication goes), one
+ * inner spread, single last page (a colophon), back cover — all blank.
+ */
 export function emptyBook(page: BookPageSetup, title = ''): BookDocument {
   return {
     version: 1,
     title,
-    page,
+    page: withFirstPage(page),
     spreads: [
       seedSpread(elementId('sp'), 'cover', []),
+      seedSpread(elementId('sp'), 'first', []),
       seedSpread(elementId('sp'), 'inner', []),
+      seedSpread(elementId('sp'), 'last', []),
+      seedSpread(elementId('sp'), 'back', []),
     ],
   }
 }
@@ -679,7 +696,7 @@ export function buildBook(input: AutoInput): BookDocument {
       : `${new Date(`${dates[0]}T00:00:00`).toLocaleDateString(input.locale, { day: 'numeric', month: 'short' })} – ${new Date(`${dates[dates.length - 1]}T00:00:00`).toLocaleDateString(input.locale, { day: 'numeric', month: 'short', year: 'numeric' })}`)
     : ''
 
-  const spreads: BookSpread[] = [coverSpread(input)]
+  const spreads: BookSpread[] = [coverSpread(input), seedSpread(elementId('sp'), 'first', [])]
   const routeImages = input.routeImagesByDate
   // The first entry (in withContent's own order) for each date, so a day's
   // route spread — its map and elevation profile — opens that day, the same
@@ -711,6 +728,11 @@ export function buildBook(input: AutoInput): BookDocument {
   })
   flushBare()
   spreads.push(summarySpread(input, dateRange))
+  // A bound book's closing pages. Laid down empty on purpose, like the first
+  // page after the cover: a colophon or a dedication is the author's call.
+  spreads.push(seedSpread(elementId('sp'), 'last', []), seedSpread(elementId('sp'), 'back', []))
 
-  return { version: 1, title: input.title, page: input.page, spreads: spreads.slice(0, 150) }
+  // Cap inner content, never the closing pages.
+  const capped = spreads.length > 150 ? [...spreads.slice(0, 148), ...spreads.slice(-2)] : spreads
+  return { version: 1, title: input.title, page: withFirstPage(input.page), spreads: capped }
 }

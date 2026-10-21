@@ -249,7 +249,8 @@ export type BookElement =
 
 export interface BookSpread {
   id: string;
-  role: 'cover' | 'back' | 'inner';
+  /** 'inner' is a double spread; 'cover', 'first', 'last' and 'back' are single pages. */
+  role: 'cover' | 'first' | 'inner' | 'last' | 'back';
   background: string | null;
   /** Back to front — elements[0] paints first. */
   elements: BookElement[];

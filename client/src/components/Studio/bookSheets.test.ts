@@ -1,5 +1,5 @@
-// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-021
-import { edgesFor, imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
+// FE-BOOKSHEETS-001 to FE-BOOKSHEETS-027
+import { edgesFor, folioLabel, foliosOf, imposeBooklet, sheetBox, sheetsFor } from './bookSheets'
 import type { BookDocument, BookSpread } from '../../types/book'
 
 const PAGE = { preset: 'square-210' as const, pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 }
@@ -149,5 +149,47 @@ describe('imposeBooklet', () => {
   it('FE-BOOKSHEETS-013: an already-multiple-of-4 count needs no padding', () => {
     expect(imposeBooklet(leaves(12))).toHaveLength(12)
     expect(imposeBooklet(leaves(12)).filter(x => x === null)).toHaveLength(0)
+  })
+})
+
+describe('first and last pages', () => {
+  const bound = () => [spread('cover'), spread('first'), spread('inner'), spread('inner'), spread('last'), spread('back')]
+
+  it('FE-BOOKSHEETS-022: folios count along the book — first page 1, spreads 2–3 and 4–5, last page 6, covers none', () => {
+    const sp = bound()
+    expect(sp.map((_, i) => foliosOf(sp, i, 1))).toEqual([[], [1], [2, 3], [4, 5], [6], []])
+  })
+
+  it('FE-BOOKSHEETS-023: a book from before first pages existed (startAt 2, no first page) keeps its numbers', () => {
+    const sp = [spread('cover'), spread('inner'), spread('inner')]
+    expect(foliosOf(sp, 1, 2)).toEqual([2, 3])
+    expect(foliosOf(sp, 2, 2)).toEqual([4, 5])
+  })
+
+  it('FE-BOOKSHEETS-024: folioLabel reads a spread as a range and a single page as one number', () => {
+    expect(folioLabel([2, 3])).toBe('2 – 3')
+    expect(folioLabel([1])).toBe('1')
+    expect(folioLabel([])).toBe('')
+  })
+
+  it('FE-BOOKSHEETS-025: single pages export as one leaf each, labelled with their own number', () => {
+    const d = { ...doc(bound()), page: { ...PAGE, pageNumbers: { show: true, startAt: 1 } } }
+    const leaves = sheetsFor(d, 'pages')
+    expect(leaves.map(l => l.label)).toEqual(['', '1', '2', '3', '4', '5', '6', ''])
+    expect(leaves.filter(l => l.spread.role === 'first' || l.spread.role === 'last').every(l => l.single && l.width === PAGE.pageWidth)).toBe(true)
+  })
+
+  it('FE-BOOKSHEETS-026: in spreads mode the first page sits on the right half (a right-hand leaf), the last page on the left', () => {
+    const sheets = sheetsFor(doc(bound()), 'spreads')
+    const first = sheets.find(s => s.spread.role === 'first')!
+    const last = sheets.find(s => s.spread.role === 'last')!
+    expect(first.width).toBe(PAGE.pageWidth * 2)
+    expect(first.offset).toBe(-PAGE.pageWidth)
+    expect(last.offset).toBe(0)
+  })
+
+  it('FE-BOOKSHEETS-027: a booklet of a bound book still pads to a multiple of four leaves', () => {
+    const leaves = sheetsFor(doc(bound()), 'pages')
+    expect(imposeBooklet(leaves).length % 4).toBe(0)
   })
 })

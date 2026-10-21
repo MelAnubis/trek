@@ -3,7 +3,7 @@ import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, Bo
 import { fontStack } from './bookFonts'
 import { filterCss, frameSpec, textEffectCss } from './bookStyles'
 import { BookPhotoImg } from './BookPhotoImg'
-import { folio, folioSettings } from './bookSheets'
+import { folioSettings, isNumbered } from './bookSheets'
 import { folioInk } from './folioColour'
 import { AccommodationView, BadgeView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
@@ -334,15 +334,25 @@ export function ElementView({
  * The cover and back cover carry none: a folio on a cover is a mistake in
  * every book ever bound.
  */
-function PageNumbers({ spread, page, spreadIndex }: { spread: BookSpread; page: BookPageSetup; spreadIndex: number }) {
+function PageNumbers({ spread, page, spreadIndex, folios: given }: { spread: BookSpread; page: BookPageSetup; spreadIndex: number; folios?: readonly number[] }) {
   const cfg = folioSettings(page)
-  if (!cfg.show || spread.role !== 'inner') return null
-  const left = folio(spreadIndex, cfg.startAt)
+  if (!cfg.show || !isNumbered(spread.role)) return null
+  // Counted by the caller, which has the whole book (see foliosOf). Without
+  // it, the old arithmetic: a book of inner spreads straight after a cover.
+  const folios = given ?? (spread.role === 'inner' ? [cfg.startAt + (spreadIndex - 1) * 2, cfg.startAt + (spreadIndex - 1) * 2 + 1] : [])
+  if (folios.length === 0) return null
   const W = page.pageWidth
   const y = page.pageHeight - cfg.margin
 
+  // A spread numbers both pages. A single page is one page wide; 'first' is
+  // a right-hand leaf and 'last' a left-hand one, which decides which edge
+  // is the outer one.
+  const sides: Array<['left' | 'right', number]> = spread.role === 'inner'
+    ? [['left', folios[0]], ['right', folios[1]]]
+    : [[spread.role === 'first' ? 'right' : 'left', folios[0]]]
+
   const place = (side: 'left' | 'right') => {
-    const pageX = side === 'left' ? 0 : W
+    const pageX = side === 'left' || spread.role !== 'inner' ? 0 : W
     if (cfg.position === 'centre') return { x: pageX, w: W, align: 'center' as const }
     const atLeftEdge = side === 'left' ? cfg.position === 'outer' : cfg.position !== 'outer'
     return atLeftEdge
@@ -352,7 +362,7 @@ function PageNumbers({ spread, page, spreadIndex }: { spread: BookSpread; page: 
 
   return (
     <>
-      {([['left', left], ['right', left + 1]] as const).map(([side, number]) => {
+      {sides.map(([side, number]) => {
         const at = place(side)
         // Sampled where the digits actually are, not at the box's left edge.
         const ink = cfg.autoColor
@@ -390,6 +400,7 @@ export function SpreadView({
   dropLabel = '',
   spreadIndex,
   publicToken,
+  folios,
 }: {
   spread: BookSpread
   page: BookPageSetup
@@ -398,6 +409,8 @@ export function SpreadView({
   dropLabel?: string
   /** Position in the document, cover included — needed to number the page. Omit where a spread is shown out of book context (e.g. a template swatch) and folios don't apply. */
   spreadIndex?: number
+  /** This spread's page numbers, from foliosOf over the whole book. Omitted: the old inner-spreads-only arithmetic. */
+  folios?: readonly number[]
   /** Set for the public share view: routes photos through the token-gated proxy instead of the authenticated one. */
   publicToken?: string
 }) {
@@ -413,7 +426,7 @@ export function SpreadView({
       {spread.elements.map(el => (
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} publicToken={publicToken} />
       ))}
-      {spreadIndex != null && <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} />}
+      {spreadIndex != null && <PageNumbers spread={spread} page={page} spreadIndex={spreadIndex} folios={folios} />}
     </div>
   )
 }

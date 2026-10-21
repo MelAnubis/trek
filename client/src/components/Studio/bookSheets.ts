@@ -94,13 +94,34 @@ export function folioSettings(page: Pick<BookPageSetup, 'pageNumbers'>): Require
   return { ...FOLIO_DEFAULTS, ...(page.pageNumbers ?? {}) } as Required<BookPageNumbers>
 }
 
-/** The left page's number for an inner spread at this position (cover at index 0) — the right page is one more. Exported for SpreadView's own on-page folios, which need the same arithmetic as the Pages panel's label. */
-export function folio(spreadIndex: number, startAt: number = FOLIO_DEFAULTS.startAt): number {
-  return startAt + (spreadIndex - 1) * 2
+/** Which leaves carry a page number: everything inside the covers. */
+export function isNumbered(role: BookSpread['role']): boolean {
+  return role !== 'cover' && role !== 'back'
 }
-function folioRange(spreadIndex: number, startAt?: number): string {
-  const left = folio(spreadIndex, startAt)
-  return `${left} – ${left + 1}`
+
+/**
+ * The page numbers a spread carries, in reading order — counted along the
+ * book, as upstream does: covers carry none, a single first/last page one,
+ * an inner spread two, and the first numbered page is `startAt`. A book from
+ * before the first page existed has no such page and `startAt` 2, so its
+ * first spread still reads 2 – 3; a book laid out with a first page starts at
+ * 1 on that page. The renderer and the print labels both come through here.
+ */
+export function foliosOf(spreads: readonly BookSpread[], spreadIndex: number, startAt: number = FOLIO_DEFAULTS.startAt): number[] {
+  const spread = spreads[spreadIndex]
+  if (!spread || !isNumbered(spread.role)) return []
+  let next = startAt
+  for (let i = 0; i < spreadIndex; i++) {
+    const role = spreads[i].role
+    if (!isNumbered(role)) continue
+    next += role === 'inner' ? 2 : 1
+  }
+  return spread.role === 'inner' ? [next, next + 1] : [next]
+}
+
+/** "3", or "2 – 3" for a spread; nothing for a cover. */
+export function folioLabel(folios: readonly number[]): string {
+  return folios.length === 2 ? `${folios[0]} – ${folios[1]}` : folios.length === 1 ? String(folios[0]) : ''
 }
 
 /** A book, as leaves. Covers stay whole in both modes — half a cover is not a thing anybody prints. */
@@ -112,6 +133,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
   doc.spreads.forEach((spread, spreadIndex) => {
     const single = spread.role !== 'inner'
     const spreadWidth = single ? pageWidth : pageWidth * 2
+    const folios = foliosOf(doc.spreads, spreadIndex, startAt)
 
     if (single || mode === 'spreads') {
       // In "spreads" mode every sheet shares one physical size, cover
@@ -119,12 +141,15 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
       // gives the two a different aspect ratio (portrait-ish vs.
       // landscape), and some print engines auto-rotate whichever sheet
       // doesn't match the orientation the person picked, no matter which
-      // they pick. The room next to the cover's own content is left
-      // blank, standing in for the inside of the cover.
+      // they pick. The room next to a single page is left blank, standing
+      // in for the inside of the cover — so the first page, a right-hand
+      // leaf, sits on the right half (a negative offset), everything else
+      // on the left.
       const width = mode === 'spreads' ? pageWidth * 2 : spreadWidth
+      const offset = mode === 'spreads' && spread.role === 'first' ? -pageWidth : 0
       out.push({
-        spread, spreadIndex, offset: 0, width, height: pageHeight, spreadWidth, single,
-        label: single ? '' : folioRange(spreadIndex, startAt),
+        spread, spreadIndex, offset, width, height: pageHeight, spreadWidth, single,
+        label: folioLabel(folios),
       })
       return
     }
@@ -132,7 +157,7 @@ export function sheetsFor(doc: BookDocument, mode: SheetMode): Sheet[] {
     for (const half of [0, 1]) {
       out.push({
         spread, spreadIndex, offset: half * pageWidth, width: pageWidth, height: pageHeight, spreadWidth,
-        single: true, label: String(folio(spreadIndex, startAt) + half),
+        single: true, label: String(folios[half]),
       })
     }
   })

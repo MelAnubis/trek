@@ -16,6 +16,7 @@ import { TEMPLATES, COVER_TEMPLATES, applyTemplate, type Template } from './temp
 import { SHAPE_GROUPS, SHAPE_PATHS, HOLED_SHAPES } from './shapes'
 import type { BookElement, BookMetric, BookPageSetup, BookShapeId } from '../../types/book'
 import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
+import { folioLabel, folioSettings, foliosOf } from './bookSheets'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -318,7 +319,7 @@ export function StudioSidebar({
                   background: sp.background || '#fff', border: '1px solid var(--border-primary)',
                 }} />
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>
-                  {sp.role === 'cover' ? 'Cover' : sp.role === 'back' ? 'Back' : `${i}`}
+                  {sp.role === 'cover' ? t('journey.studio.role.cover') : sp.role === 'back' ? t('journey.studio.role.back') : sp.role === 'first' ? t('journey.studio.role.first') : sp.role === 'last' ? t('journey.studio.role.last') : folioLabel(foliosOf(doc.spreads, i, folioSettings(doc.page).startAt)) || `${i}`}
                 </span>
                 {editable && (
                   <div style={{ display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>

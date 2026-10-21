@@ -374,7 +374,13 @@ export type BookAccommodationElement = z.infer<typeof bookAccommodationElementSc
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),
-  role: z.enum(['cover', 'back', 'inner']).default('inner'),
+  /**
+   * 'inner' is a double spread; the rest are single pages. 'first' is the
+   * right-hand page a bound book opens onto and 'last' the left-hand page
+   * before the back cover (the inside of each cover is blank in a bound book).
+   * Both optional, so a book from before they existed reads unchanged.
+   */
+  role: z.enum(['cover', 'first', 'inner', 'last', 'back']).default('inner'),
   background: hex.nullable().default(null),
   elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   parked: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),

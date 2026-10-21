@@ -1,4 +1,4 @@
-// FE-SPREADVIEW-001 to FE-SPREADVIEW-024
+// FE-SPREADVIEW-001 to FE-SPREADVIEW-026
 import { render } from '@testing-library/react'
 import { ElementView, SpreadView } from './SpreadView'
 import type { BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread, BookTextElement } from '../../types/book'
@@ -199,5 +199,23 @@ describe('SpreadView — styles', () => {
     const span = container.querySelector('span') as HTMLElement
     expect(span.style.textShadow).toBe('')
     expect(span.style.backgroundImage).toBe('')
+  })
+})
+
+describe('SpreadView — page numbers on single pages', () => {
+  const folios = (c: HTMLElement) => Array.from(c.querySelectorAll<HTMLElement>('[data-folio]'))
+
+  it('FE-SPREADVIEW-025: the first page carries its one number on the right (outer) edge; the last page on the left', () => {
+    const first = folios(render(<SpreadView spread={spread('first')} page={{ ...PAGE, pageNumbers: { show: true, margin: 10 } }} spreadIndex={1} folios={[1]} />).container)
+    expect(first.map(f => f.textContent)).toEqual(['1'])
+    expect(first[0].style.textAlign).toBe('right')
+    const last = folios(render(<SpreadView spread={spread('last')} page={{ ...PAGE, pageNumbers: { show: true, margin: 10 } }} spreadIndex={5} folios={[6]} />).container)
+    expect(last[0].style.textAlign).toBe('left')
+    expect(last[0].style.left).toBe('10mm')
+  })
+
+  it('FE-SPREADVIEW-026: given folios win over the old arithmetic (a spread behind a first page reads 2 – 3)', () => {
+    const f = folios(render(<SpreadView spread={spread()} page={{ ...PAGE, pageNumbers: { show: true, startAt: 1 } }} spreadIndex={2} folios={[2, 3]} />).container)
+    expect(f.map(x => x.textContent)).toEqual(['2', '3'])
   })
 })

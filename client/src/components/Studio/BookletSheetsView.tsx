@@ -1,6 +1,6 @@
 import type { BookDocument } from '../../types/book'
 import { SpreadView } from './SpreadView'
-import { imposeBooklet, sheetsFor, type Sheet } from './bookSheets'
+import { folioSettings, foliosOf, imposeBooklet, sheetsFor, type Sheet } from './bookSheets'
 
 /**
  * The book laid out for a home duplex printer and a fold, not a press. A
@@ -56,7 +56,7 @@ function BookletSide({ side, pageWidth, pageHeight, doc, last }: {
             // uses — a leaf is a page-wide opening into its parent spread,
             // shifted left by however far into that spread this leaf sits.
             <div style={{ position: 'absolute', left: `${-leaf.offset}mm`, top: 0, width: `${leaf.spreadWidth}mm`, height: `${pageHeight}mm` }}>
-              <SpreadView spread={leaf.spread} page={doc.page} big print spreadIndex={leaf.spreadIndex} />
+              <SpreadView spread={leaf.spread} page={doc.page} big print spreadIndex={leaf.spreadIndex} folios={foliosOf(doc.spreads, leaf.spreadIndex, folioSettings(doc.page).startAt)} />
             </div>
           )}
         </div>

@@ -26,24 +26,31 @@ function input(overrides: Partial<AutoInput> = {}): AutoInput {
   }
 }
 
+/** The summary that closes the content — the last inner spread, before the single last page and the back cover. */
+function closingSpread(doc: ReturnType<typeof buildBook>) {
+  const inner = doc.spreads.filter(s => s.role === 'inner')
+  return inner[inner.length - 1]
+}
+
 describe('emptyBook', () => {
-  it('FE-AUTOLAYOUT-001: one cover and one inner spread, no elements', () => {
+  it('FE-AUTOLAYOUT-001: a bound book\'s pages — cover, first page, one inner spread, last page, back cover — all empty', () => {
     const doc = emptyBook(PAGE, 'My Trip')
     expect(doc.title).toBe('My Trip')
-    expect(doc.spreads).toHaveLength(2)
-    expect(doc.spreads[0].role).toBe('cover')
-    expect(doc.spreads[1].role).toBe('inner')
+    expect(doc.spreads.map(s => s.role)).toEqual(['cover', 'first', 'inner', 'last', 'back'])
     expect(doc.spreads.every(s => s.elements.length === 0)).toBe(true)
+    // The single first page is page 1.
+    expect(doc.page.pageNumbers?.startAt).toBe(1)
   })
 })
 
 describe('buildBook', () => {
   it('FE-AUTOLAYOUT-002: produces a cover, one spread per entry with content, and a closing spread', () => {
     const doc = buildBook(input())
-    expect(doc.spreads[0].role).toBe('cover')
-    expect(doc.spreads).toHaveLength(3) // cover + 1 entry + summary
-    expect(doc.spreads[1].entryId).toBe(1)
-    expect(doc.spreads[doc.spreads.length - 1].role).toBe('inner')
+    // cover, first page, 1 entry, summary, last page, back cover
+    expect(doc.spreads.map(s => s.role)).toEqual(['cover', 'first', 'inner', 'inner', 'last', 'back'])
+    expect(doc.spreads[2].entryId).toBe(1)
+    expect(doc.spreads[1].elements).toEqual([]) // first page left for the author
+    expect(doc.page.pageNumbers?.startAt).toBe(1)
   })
 
   it('FE-AUTOLAYOUT-003: entries with neither photos nor a story are skipped entirely', () => {
@@ -171,8 +178,8 @@ describe('buildBook — route spreads', () => {
     })
     const doc = buildBook(inp)
     const entryIndices = doc.spreads.map((s, i) => s.entryId != null ? i : -1).filter(i => i >= 0)
-    expect(entryIndices).toEqual([2, 3])
-    expect(doc.spreads[1].elements.some(e => e.kind === 'image')).toBe(true)
+    expect(entryIndices).toEqual([3, 4]) // cover, first page, route spread, then the day's entries
+    expect(doc.spreads[2].elements.some(e => e.kind === 'image')).toBe(true)
   })
 
   it('FE-AUTOLAYOUT-015: with no routeImagesByDate at all, behaves exactly as before (backward compatible)', () => {
@@ -243,7 +250,7 @@ describe('buildBook — closing summary spread', () => {
   // day at all, or from just the leftover ones when some did.
   it('FE-AUTOLAYOUT-033: with no overviewRoute, the closing spread keeps its plain two-page poster — no image elements', () => {
     const doc = buildBook(input())
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     expect(closing.elements.some(e => e.kind === 'image')).toBe(false)
     const bg = closing.elements.find(e => e.kind === 'shape')!
     expect(bg.frame.w).toBeGreaterThan(PAGE.pageWidth) // spans both pages as one poster
@@ -253,7 +260,7 @@ describe('buildBook — closing summary spread', () => {
     const doc = buildBook(input({
       overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS },
     }))
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     const map = closing.elements.find(e => e.kind === 'image')
     expect(map).toBeDefined()
     expect(map!.frame.x).toBeLessThan(PAGE.pageWidth)
@@ -263,7 +270,7 @@ describe('buildBook — closing summary spread', () => {
     const doc = buildBook(input({
       overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: FULL_STATS },
     }))
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     for (const el of closing.elements) {
       const crosses = el.frame.x < PAGE.pageWidth && el.frame.x + el.frame.w > PAGE.pageWidth
       expect(crosses, el.kind).toBe(false)
@@ -274,7 +281,7 @@ describe('buildBook — closing summary spread', () => {
     const doc = buildBook(input({
       overviewRoute: { mapSrc: null, elevationSrc: 'data:image/svg+xml;base64,BBBB', stats: EMPTY_STATS },
     }))
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     const ele = closing.elements.find(e => e.kind === 'image')
     expect(ele).toBeDefined()
     expect(ele!.frame.x).toBeGreaterThanOrEqual(PAGE.pageWidth)
@@ -285,7 +292,7 @@ describe('buildBook — closing summary spread', () => {
       journeyStats: { days: 5, entries: 3, photos: 20, places: 4, distanceKm: 26.33, elevationGainM: 843, elevationLossM: 612 },
       overviewRoute: { mapSrc: 'data:image/png;base64,AAAA', elevationSrc: null, stats: EMPTY_STATS },
     }))
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     const totalText = closing.elements.find((e): e is Extract<typeof e, { kind: 'text' }> => e.kind === 'text' && (e as any).text.includes('km'))
     expect(totalText).toBeDefined()
     expect((totalText as any).text).toContain('26.3 km')
@@ -293,7 +300,7 @@ describe('buildBook — closing summary spread', () => {
 
   it('FE-AUTOLAYOUT-038: with no route stats at all (no GPX anywhere in the journey), the closing spread has no distance/elevation line', () => {
     const doc = buildBook(input())
-    const closing = doc.spreads[doc.spreads.length - 1]
+    const closing = closingSpread(doc)
     const totalText = closing.elements.find(e => e.kind === 'text' && (e as any).text.includes('km'))
     expect(totalText).toBeUndefined()
   })

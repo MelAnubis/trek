@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BookDocument } from '../../types/book'
 import { SpreadView } from './SpreadView'
+import { folioSettings, foliosOf } from './bookSheets'
 
 /**
  * The Studio book, read-only, for a visitor holding a public share link.
@@ -25,7 +26,7 @@ export function PublicBookView({ document, publicToken }: { document: BookDocume
         const sheetW = single ? page.pageWidth : page.pageWidth * 2
         return (
           <BookPage key={spread.id} sheetWidth={sheetW} sheetHeight={page.pageHeight}>
-            <SpreadView spread={spread} page={page} big print spreadIndex={i} publicToken={publicToken} />
+            <SpreadView spread={spread} page={page} big print spreadIndex={i} publicToken={publicToken} folios={foliosOf(spreads, i, folioSettings(page).startAt)} />
           </BookPage>
         )
       })}

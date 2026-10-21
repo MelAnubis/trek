@@ -1,4 +1,4 @@
-// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-037
+// FE-STORE-STUDIO-001 to FE-STORE-STUDIO-039
 import { useStudioStore } from './studioStore'
 import type { BookDocument, BookTextElement } from '../types/book'
 
@@ -346,5 +346,32 @@ describe('studioStore — page setup', () => {
     expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true, position: 'centre', startAt: 1 })
     useStudioStore.getState().undo()
     expect(useStudioStore.getState().doc!.page.pageNumbers).toEqual({ show: true })
+  })
+})
+
+describe('studioStore — first and last pages', () => {
+  const sp = (id: string, role: any) => ({ id, role, background: null, elements: [], parked: [], entryId: null })
+  const bound = (): BookDocument => ({
+    version: 1, title: '', page: { preset: 'square-210', pageWidth: 210, pageHeight: 210, bleed: 3, safe: 5 },
+    spreads: [sp('c', 'cover'), sp('f', 'first'), sp('i', 'inner'), sp('l', 'last'), sp('b', 'back')],
+  })
+
+  it('FE-STORE-STUDIO-038: new spreads are inserted between the first and last pages, never outside them', () => {
+    useStudioStore.getState().load(bound())
+    useStudioStore.getState().addSpread(0) // asked for right after the cover
+    expect(useStudioStore.getState().doc!.spreads.map(s => s.role)).toEqual(['cover', 'first', 'inner', 'inner', 'last', 'back'])
+    useStudioStore.getState().addSpread(10) // asked for past the end
+    expect(useStudioStore.getState().doc!.spreads.map(s => s.role)).toEqual(['cover', 'first', 'inner', 'inner', 'inner', 'last', 'back'])
+  })
+
+  it('FE-STORE-STUDIO-039: the first and last pages can\'t be moved, duplicated or deleted, and an inner spread can\'t be moved past them', () => {
+    useStudioStore.getState().load(bound())
+    const st = useStudioStore.getState()
+    expect(st.canEditSpread(1)).toBe(false)
+    expect(st.canEditSpread(3)).toBe(false)
+    st.removeSpread(1)
+    st.moveSpread(2, -1)
+    st.moveSpread(2, 1)
+    expect(useStudioStore.getState().doc!.spreads.map(s => s.id)).toEqual(['c', 'f', 'i', 'l', 'b'])
   })
 })

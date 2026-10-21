@@ -1,6 +1,6 @@
 import type { BookDocument } from '../../types/book'
 import { SpreadView } from './SpreadView'
-import { MARK_LENGTH, MARK_WEIGHT, edgesFor, sheetBox, sheetsFor, type Sheet, type SheetBox, type SheetMode } from './bookSheets'
+import { MARK_LENGTH, MARK_WEIGHT, edgesFor, folioSettings, foliosOf, sheetBox, sheetsFor, type Sheet, type SheetBox, type SheetMode } from './bookSheets'
 
 /**
  * The book laid out for a press. Ported from liketrek/trek's
@@ -78,7 +78,7 @@ function SheetView({ sheet, doc, marks, last }: { sheet: Sheet; doc: BookDocumen
             height: `${sheet.height}mm`,
           }}
         >
-          <SpreadView spread={sheet.spread} page={doc.page} big print spreadIndex={sheet.spreadIndex} />
+          <SpreadView spread={sheet.spread} page={doc.page} big print spreadIndex={sheet.spreadIndex} folios={foliosOf(doc.spreads, sheet.spreadIndex, folioSettings(doc.page).startAt)} />
         </div>
       </div>
 

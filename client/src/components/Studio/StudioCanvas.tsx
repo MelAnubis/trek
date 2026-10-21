@@ -12,6 +12,7 @@ import type { PeerCursor } from './useBookPresence'
 import { estimateTextHeight } from './autoLayout'
 import { encodeImageForPaste, fitImageFrame } from './pastedImage'
 import { useToast } from '../shared/Toast'
+import { folioSettings, foliosOf } from './bookSheets'
 
 /**
  * The sheet plus everything you do to it. Ported from liketrek/trek's
@@ -81,6 +82,8 @@ export function StudioCanvas({
   const select = useStudioStore(s => s.select)
   const removeElements = useStudioStore(s => s.removeElements)
   const spreadCount = useStudioStore(s => s.doc?.spreads.length ?? 0)
+  // Page numbers count along the whole book (see foliosOf), so they need it.
+  const allSpreads = useStudioStore(s => s.doc?.spreads)
   const setActiveSpread = useStudioStore(s => s.setActiveSpread)
   const duplicate = useStudioStore(s => s.duplicate)
   const copyToClipboard = useStudioStore(s => s.copy)
@@ -310,7 +313,7 @@ export function StudioCanvas({
         }}
         onPointerDown={() => select([])}
       >
-        <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} spreadIndex={spreadIndex} />
+        <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} spreadIndex={spreadIndex} folios={allSpreads ? foliosOf(allSpreads, spreadIndex, folioSettings(page).startAt) : undefined} />
 
         {cursors && cursors.length > 0 && (
           <PeerCursors cursors={cursors} spreadIndex={spreadIndex} zoom={zoom} />
