@@ -3162,6 +3162,12 @@ describe('JourneyDetailPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Link Trip')).toBeInTheDocument();
       });
+      // …portalled to <body>, not inside the settings dialog: inside it, the
+      // dialog's backdrop-filter made it the containing block for the nested
+      // fixed overlay, which then centred on the panel and scrolled with it
+      // when its search field got focus.
+      const overlay = screen.getByPlaceholderText('Trip name or destination...').closest('.fixed.inset-0') as HTMLElement;
+      expect(overlay.parentElement).toBe(document.body);
     });
   });
 

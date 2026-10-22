@@ -2646,6 +2646,22 @@ function runMigrations(db: Database.Database): void {
       const hasColor = db.prepare("SELECT 1 FROM pragma_table_info('day_notes') WHERE name = 'color'").get();
       if (!hasColor) db.exec('ALTER TABLE day_notes ADD COLUMN color TEXT');
     },
+    // Journey entries synced from a trip are identified by place AND day, not
+    // place alone: a place visited twice (the start and end of a loop route)
+    // is two entries, one per day — before, the last day of a loop vanished.
+    // Existing rows get the day the old sync used: the place's first day.
+    () => {
+      const has = db.prepare("SELECT 1 FROM pragma_table_info('journey_entries') WHERE name = 'source_day_id'").get();
+      if (!has) db.exec('ALTER TABLE journey_entries ADD COLUMN source_day_id INTEGER');
+      db.exec(`
+        UPDATE journey_entries SET source_day_id = (
+          SELECT da.day_id FROM day_assignments da JOIN days d ON d.id = da.day_id
+          WHERE da.place_id = journey_entries.source_place_id
+          ORDER BY d.day_number ASC, da.order_index ASC LIMIT 1
+        )
+        WHERE source_place_id IS NOT NULL AND source_day_id IS NULL
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

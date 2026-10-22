@@ -1752,3 +1752,100 @@ describe('onPlaceCreated sort_order', () => {
     expect(newEntry!.sort_order).toBe(6);
   });
 });
+
+describe('trip → journey reconciliation', () => {
+  function loopTrip(userId: number) {
+    const trip = createTrip(testDb, userId, { title: 'Circular de Arévalo', start_date: '2026-09-01', end_date: '2026-09-03' });
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+    const arevalo = createPlace(testDb, trip.id, { name: 'Arévalo', lat: 41.06, lng: -4.72 });
+    const madrigal = createPlace(testDb, trip.id, { name: 'Madrigal', lat: 41.09, lng: -5.0 });
+    const fontiveros = createPlace(testDb, trip.id, { name: 'Fontiveros', lat: 40.93, lng: -4.96 });
+    createDayAssignment(testDb, days[0].id, arevalo.id);
+    createDayAssignment(testDb, days[0].id, madrigal.id);
+    createDayAssignment(testDb, days[1].id, fontiveros.id);
+    // The loop closes where it started: Arévalo again on the last day.
+    createDayAssignment(testDb, days[2].id, arevalo.id);
+    return { trip, days, arevalo, madrigal, fontiveros };
+  }
+  const dates = (r: any) => [...new Set((r.entries as any[]).map(e => e.entry_date))].sort();
+  const titlesOn = (r: any, d: string) => (r.entries as any[]).filter(e => e.entry_date === d).map(e => e.title);
+
+  it('JOURNEY-SYNC-001: a loop trip of three days gives a journey of three days — the start town again on the last', () => {
+    const { user } = createUser(testDb);
+    const { trip } = loopTrip(user.id);
+    const journey = createJourney(testDb, user.id, { title: 'Arévalo' });
+    addTripToJourney(journey.id, trip.id, user.id);
+    const r = getJourneyFull(journey.id, user.id)!;
+    expect(dates(r)).toEqual(['2026-09-01', '2026-09-02', '2026-09-03']);
+    expect(titlesOn(r, '2026-09-03')).toEqual(['Arévalo']);
+    expect(titlesOn(r, '2026-09-01')).toEqual(['Arévalo', 'Madrigal']);
+  });
+
+  it('JOURNEY-SYNC-002: changes made in the trip afterwards reach the journey — moved, removed, added, re-dated', () => {
+    const { user } = createUser(testDb);
+    const { trip, days, madrigal, fontiveros } = loopTrip(user.id);
+    const journey = createJourney(testDb, user.id, { title: 'Arévalo' });
+    addTripToJourney(journey.id, trip.id, user.id);
+
+    // Madrigal moved from day 1 to day 2; Fontiveros taken off its day; a new place on day 3.
+    testDb.prepare('UPDATE day_assignments SET day_id = ? WHERE place_id = ?').run(days[1].id, madrigal.id);
+    testDb.prepare('DELETE FROM day_assignments WHERE place_id = ?').run(fontiveros.id);
+    const avila = createPlace(testDb, trip.id, { name: 'Ávila', lat: 40.65, lng: -4.7 });
+    createDayAssignment(testDb, days[2].id, avila.id);
+    let r = getJourneyFull(journey.id, user.id)!;
+    expect(titlesOn(r, '2026-09-01')).toEqual(['Arévalo']);
+    expect(titlesOn(r, '2026-09-02')).toEqual(['Madrigal']);
+    expect(titlesOn(r, '2026-09-03').sort()).toEqual(['Arévalo', 'Ávila']);
+
+    // The whole trip moved a month later.
+    testDb.prepare("UPDATE days SET date = date(date, '+1 month') WHERE trip_id = ?").run(trip.id);
+    r = getJourneyFull(journey.id, user.id)!;
+    expect(dates(r)).toEqual(['2026-10-01', '2026-10-02', '2026-10-03']);
+
+    // A renamed place is renamed in the journey.
+    testDb.prepare("UPDATE places SET name = 'Madrigal de las Altas Torres' WHERE id = ?").run(madrigal.id);
+    expect(titlesOn(getJourneyFull(journey.id, user.id)!, '2026-10-02')).toEqual(['Madrigal de las Altas Torres']);
+  });
+
+  it('JOURNEY-SYNC-003: an entry someone wrote keeps its words and its date; a removed place with text is kept, detached', () => {
+    const { user } = createUser(testDb);
+    const { trip, days, madrigal } = loopTrip(user.id);
+    const journey = createJourney(testDb, user.id, { title: 'Arévalo' });
+    addTripToJourney(journey.id, trip.id, user.id);
+    const entry = (getJourneyFull(journey.id, user.id)!.entries as any[]).find(e => e.title === 'Madrigal');
+    updateEntry(entry.id, user.id, { story: 'Torres y murallas.' });
+
+    testDb.prepare('UPDATE day_assignments SET day_id = ? WHERE place_id = ?').run(days[1].id, madrigal.id);
+    let after = (getJourneyFull(journey.id, user.id)!.entries as any[]).find(e => e.id === entry.id);
+    expect(after.story).toBe('Torres y murallas.');
+    expect(after.entry_date).toBe('2026-09-01');
+
+    testDb.prepare('DELETE FROM day_assignments WHERE place_id = ?').run(madrigal.id);
+    after = (getJourneyFull(journey.id, user.id)!.entries as any[]).find(e => e.id === entry.id);
+    expect(after.story).toBe('Torres y murallas.');
+  });
+
+  it('JOURNEY-SYNC-004: a day with a name but no places still gets its day; a bare empty day does not', () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { start_date: '2026-09-01', end_date: '2026-09-03' });
+    const days = testDb.prepare('SELECT id FROM days WHERE trip_id = ? ORDER BY day_number').all(trip.id) as { id: number }[];
+    testDb.prepare("UPDATE days SET title = 'Descanso en Segovia' WHERE id = ?").run(days[1].id);
+    const journey = createJourney(testDb, user.id, { title: 'x' });
+    addTripToJourney(journey.id, trip.id, user.id);
+    const r = getJourneyFull(journey.id, user.id)!;
+    expect((r.entries as any[]).map(e => [e.entry_date, e.title])).toEqual([['2026-09-02', 'Descanso en Segovia']]);
+  });
+
+  it('JOURNEY-SYNC-005: entries from before entries knew their day are claimed, not duplicated, and opening twice changes nothing', () => {
+    const { user } = createUser(testDb);
+    const { trip } = loopTrip(user.id);
+    const journey = createJourney(testDb, user.id, { title: 'Arévalo' });
+    addTripToJourney(journey.id, trip.id, user.id);
+    // Simulate a pre-migration journey: rows without their day.
+    testDb.prepare('UPDATE journey_entries SET source_day_id = NULL WHERE journey_id = ?').run(journey.id);
+    const once = (getJourneyFull(journey.id, user.id)!.entries as any[]).map(e => `${e.entry_date} ${e.title}`).sort();
+    const twice = (getJourneyFull(journey.id, user.id)!.entries as any[]).map(e => `${e.entry_date} ${e.title}`).sort();
+    expect(once).toEqual(['2026-09-01 Arévalo', '2026-09-01 Madrigal', '2026-09-02 Fontiveros', '2026-09-03 Arévalo']);
+    expect(twice).toEqual(once);
+  });
+});

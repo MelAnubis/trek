@@ -127,6 +127,13 @@ export function getJourneyFull(journeyId: number, userId: number) {
   const journey = canAccessJourney(journeyId, userId);
   if (!journey) return null;
 
+  // Whatever changed in the linked trips since the last look (days, places,
+  // dates — from any screen, import or tool) is brought in before reading.
+  const linkedTripIds = (db.prepare('SELECT trip_id FROM journey_trips WHERE journey_id = ?').all(journeyId) as { trip_id: number }[]).map(r => r.trip_id);
+  for (const tid of linkedTripIds) {
+    try { reconcileTripEntries(journeyId, tid); } catch (err) { console.error('[journey] reconcile failed', journeyId, tid, err); }
+  }
+
   const entries = db.prepare(
     'SELECT * FROM journey_entries WHERE journey_id = ? ORDER BY entry_date ASC, sort_order ASC, id ASC'
   ).all(journeyId) as JourneyEntry[];
@@ -408,46 +415,151 @@ function placeEntryDate(journeyId: number, tripId: number, place: { day_date?: s
 }
 
 export function syncTripPlaces(journeyId: number, tripId: number, authorId: number) {
-  const places = db.prepare(`
-    SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, da.assignment_end_time, d.day_number
-    FROM places p
-    INNER JOIN day_assignments da ON da.place_id = p.id
-    INNER JOIN days d ON da.day_id = d.id
-    WHERE p.trip_id = ?
-    ORDER BY d.day_number ASC, da.order_index ASC
-  `).all(tripId) as any[];
+  reconcileTripEntries(journeyId, tripId, authorId);
+}
+
+interface DesiredEntry {
+  placeId: number | null;
+  dayId: number;
+  title: string | null;
+  date: string;
+  time: string | null;
+  location: string | null;
+  lat: number | null;
+  lng: number | null;
+}
+
+/**
+ * Bring a journey's suggested entries ("skeletons") in line with its linked
+ * trip, as the trip is now. Run when a trip is linked, when a place changes,
+ * and every time the journey is opened — so anything done in the planner
+ * (a place assigned, moved to another day or taken off one, a day added or
+ * deleted, the trip's dates changed) shows in the journey, whichever screen,
+ * import or MCP tool made the change.
+ *
+ * - One entry per place PER DAY: a loop route that starts and ends in the
+ *   same town has that town on its first and last day.
+ * - A day with no places but a name or a recorded track still gets its day.
+ * - Skeletons follow the trip completely (title, day, time, place). An entry
+ *   somebody has written in follows only the place's location — its words
+ *   and its date are theirs.
+ * - A skeleton the trip no longer has is removed; one with photos or text is
+ *   kept and detached rather than lost.
+ */
+export function reconcileTripEntries(journeyId: number, tripId: number, authorId?: number): void {
+  const assignments = db.prepare(`
+    SELECT p.id AS place_id, p.name, p.address, p.lat, p.lng, p.place_time,
+           da.day_id, da.assignment_time, d.date AS day_date, d.day_number
+    FROM day_assignments da
+    JOIN places p ON p.id = da.place_id
+    JOIN days d ON d.id = da.day_id
+    WHERE p.trip_id = ? AND d.trip_id = ?
+    ORDER BY d.day_number ASC, da.order_index ASC, da.id ASC
+  `).all(tripId, tripId) as any[];
+  const days = db.prepare(`
+    SELECT d.id, d.date, d.day_number, d.title,
+           EXISTS (SELECT 1 FROM gpx_tracks g WHERE g.day_id = d.id) AS has_track
+    FROM days d WHERE d.trip_id = ? ORDER BY d.day_number ASC
+  `).all(tripId) as { id: number; date: string | null; day_number: number; title: string | null; has_track: number }[];
+
+  const desired: DesiredEntry[] = [];
+  const seen = new Set<string>();
+  for (const a of assignments) {
+    const key = `${a.place_id}:${a.day_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    desired.push({
+      placeId: a.place_id, dayId: a.day_id, title: a.name,
+      date: placeEntryDate(journeyId, tripId, { day_date: a.day_date, day_number: a.day_number }),
+      time: a.assignment_time || a.place_time || null,
+      location: a.address || a.name, lat: a.lat ?? null, lng: a.lng ?? null,
+    });
+  }
+  const daysWithPlaces = new Set(assignments.map(a => a.day_id));
+  for (const d of days) {
+    if (daysWithPlaces.has(d.id) || (!d.title?.trim() && !d.has_track)) continue;
+    desired.push({
+      placeId: null, dayId: d.id, title: d.title?.trim() || null,
+      date: placeEntryDate(journeyId, tripId, { day_date: d.date, day_number: d.day_number }),
+      time: null, location: null, lat: null, lng: null,
+    });
+  }
+
+  const existing = db.prepare(
+    'SELECT * FROM journey_entries WHERE journey_id = ? AND source_trip_id = ? ORDER BY id ASC'
+  ).all(journeyId, tripId) as JourneyEntry[];
+  const keyOf = (placeId: number | null | undefined, dayId: number | null | undefined) => `${placeId ?? '-'}:${dayId ?? '?'}`;
+  const byKey = new Map<string, JourneyEntry>();
+  const loose: JourneyEntry[] = [];
+  for (const e of existing) {
+    if (e.source_day_id == null && e.source_place_id != null) { loose.push(e); continue; }
+    if (e.source_day_id == null) continue;
+    const k = keyOf(e.source_place_id, e.source_day_id);
+    if (byKey.has(k)) loose.push(e); else byKey.set(k, e);
+  }
 
   const now = ts();
-  const existing = db.prepare(
-    'SELECT source_place_id FROM journey_entries WHERE journey_id = ? AND source_trip_id = ?'
-  ).all(journeyId, tripId) as { source_place_id: number }[];
-  const existingPlaceIds = new Set(existing.map(e => e.source_place_id));
-
-  // Track next sort_order per date so synced skeletons get unique, sequential positions.
-  const dateMaxOrder = new Map<string, number>();
-  const maxRows = db.prepare(
+  const owner = authorId ?? (db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(journeyId) as { user_id: number } | undefined)?.user_id;
+  const maxOrder = new Map<string, number>();
+  for (const r of db.prepare(
     'SELECT entry_date, COALESCE(MAX(sort_order), -1) AS m FROM journey_entries WHERE journey_id = ? GROUP BY entry_date'
-  ).all(journeyId) as { entry_date: string; m: number }[];
-  for (const row of maxRows) dateMaxOrder.set(row.entry_date, row.m);
+  ).all(journeyId) as { entry_date: string; m: number }[]) maxOrder.set(r.entry_date, r.m);
 
-  for (const place of places) {
-    if (existingPlaceIds.has(place.id)) continue;
-    existingPlaceIds.add(place.id);
+  const kept = new Set<number>();
+  const insert = db.prepare(`
+    INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, source_day_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const updateSkeleton = db.prepare(`
+    UPDATE journey_entries SET source_day_id = ?, title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ?
+    WHERE id = ?
+  `);
+  const updateFilled = db.prepare('UPDATE journey_entries SET source_day_id = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ? WHERE id = ?');
 
-    const entryDate = placeEntryDate(journeyId, tripId, place);
-    const entryTime = place.assignment_time || place.place_time || null;
-    const nextOrder = (dateMaxOrder.get(entryDate) ?? -1) + 1;
-    dateMaxOrder.set(entryDate, nextOrder);
+  for (const want of desired) {
+    let row = byKey.get(keyOf(want.placeId, want.dayId));
+    if (!row && want.placeId != null) {
+      // A row from before entries knew their day: claim it for this place.
+      const i = loose.findIndex(e => e.source_place_id === want.placeId);
+      if (i >= 0) row = loose.splice(i, 1)[0];
+    }
+    if (row) {
+      kept.add(row.id);
+      if (row.type === 'skeleton') {
+        const changed = row.title !== want.title || row.entry_date !== want.date || (row.entry_time ?? null) !== want.time
+          || (row.location_name ?? null) !== want.location || (row.location_lat ?? null) !== want.lat || (row.location_lng ?? null) !== want.lng
+          || row.source_day_id !== want.dayId;
+        if (changed) updateSkeleton.run(want.dayId, want.title, want.date, want.time, want.location, want.lat, want.lng, now, row.id);
+      } else if (want.placeId != null) {
+        const changed = (row.location_name ?? null) !== want.location || (row.location_lat ?? null) !== want.lat
+          || (row.location_lng ?? null) !== want.lng || row.source_day_id !== want.dayId;
+        if (changed) updateFilled.run(want.dayId, want.location, want.lat, want.lng, now, row.id);
+      }
+      continue;
+    }
+    if (owner == null) continue;
+    const order = (maxOrder.get(want.date) ?? -1) + 1;
+    maxOrder.set(want.date, order);
+    insert.run(journeyId, tripId, want.placeId, want.dayId, owner, want.title, want.date, want.time, want.location, want.lat, want.lng, order, now, now);
+  }
 
-    db.prepare(`
-      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      journeyId, tripId, place.id, authorId,
-      place.name, entryDate, entryTime,
-      place.address || place.name, place.lat || null, place.lng || null,
-      nextOrder, now, now
-    );
+  // What the trip no longer has.
+  for (const e of existing) {
+    if (kept.has(e.id) || e.type !== 'skeleton') continue;
+    const hasPhotos = db.prepare('SELECT 1 FROM journey_entry_photos WHERE entry_id = ?').get(e.id);
+    if (!hasPhotos && !(e.story || '').trim()) {
+      db.prepare('DELETE FROM journey_entries WHERE id = ?').run(e.id);
+    } else {
+      db.prepare("UPDATE journey_entries SET type = 'entry', source_place_id = NULL, source_day_id = NULL, source_trip_id = NULL, updated_at = ? WHERE id = ?").run(now, e.id);
+    }
+  }
+}
+
+/** Every journey a trip is linked to, reconciled with it. */
+export function reconcileTripJourneys(tripId: number): void {
+  const links = db.prepare('SELECT journey_id FROM journey_trips WHERE trip_id = ?').all(tripId) as { journey_id: number }[];
+  for (const l of links) {
+    try { reconcileTripEntries(l.journey_id, tripId); } catch (err) { console.error('[journey] reconcile failed', l.journey_id, tripId, err); }
   }
 }
 
@@ -471,87 +583,14 @@ function syncTripPhotos(journeyId: number, tripId: number) {
 }
 
 // called when a trip place is created
-export function onPlaceCreated(tripId: number, placeId: number) {
-  const links = db.prepare('SELECT journey_id FROM journey_trips WHERE trip_id = ?').all(tripId) as { journey_id: number }[];
-  if (!links.length) return;
-
-  const place = db.prepare(`
-    SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number
-    FROM places p
-    INNER JOIN day_assignments da ON da.place_id = p.id
-    INNER JOIN days d ON da.day_id = d.id
-    WHERE p.id = ?
-  `).get(placeId) as any;
-  if (!place) return; // not assigned to a day yet — skip
-
-  const now = ts();
-  for (const link of links) {
-    const already = db.prepare(
-      'SELECT 1 FROM journey_entries WHERE journey_id = ? AND source_place_id = ?'
-    ).get(link.journey_id, placeId);
-    if (already) continue;
-
-    const journey = db.prepare('SELECT user_id FROM journeys WHERE id = ?').get(link.journey_id) as { user_id: number };
-    // Was `place.day_date` alone — null on an undated trip, which the NOT NULL
-    // entry_date column rejected, so the place never reached the journey.
-    const entryDate = placeEntryDate(link.journey_id, tripId, place);
-    const maxOrder = db.prepare(
-      'SELECT MAX(sort_order) AS m FROM journey_entries WHERE journey_id = ? AND entry_date = ?'
-    ).get(link.journey_id, entryDate) as { m: number | null };
-    const nextOrder = (maxOrder?.m ?? -1) + 1;
-
-    db.prepare(`
-      INSERT INTO journey_entries (journey_id, source_trip_id, source_place_id, author_id, type, title, entry_date, entry_time, location_name, location_lat, location_lng, sort_order, created_at, updated_at)
-      VALUES (?, ?, ?, ?, 'skeleton', ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      link.journey_id, tripId, placeId, journey.user_id,
-      place.name, entryDate, place.assignment_time || place.place_time || null,
-      place.address || place.name, place.lat || null, place.lng || null,
-      nextOrder, now, now
-    );
-  }
+export function onPlaceCreated(tripId: number, _placeId?: number) {
+  reconcileTripJourneys(tripId);
 }
 
-// called when a trip place is updated
+// called when a trip place is updated (or moved to another day)
 export function onPlaceUpdated(placeId: number) {
-  const entries = db.prepare(
-    'SELECT * FROM journey_entries WHERE source_place_id = ?'
-  ).all(placeId) as JourneyEntry[];
-  if (!entries.length) return;
-
-  const place = db.prepare(`
-    SELECT p.*, da.day_id, d.date as day_date, da.assignment_time, d.day_number
-    FROM places p
-    LEFT JOIN day_assignments da ON da.place_id = p.id
-    LEFT JOIN days d ON da.day_id = d.id
-    WHERE p.id = ?
-  `).get(placeId) as any;
-  if (!place) return;
-
-  const now = ts();
-  for (const entry of entries) {
-    if (entry.type === 'skeleton') {
-      // update everything on skeletons
-      db.prepare(`
-        UPDATE journey_entries SET title = ?, entry_date = ?, entry_time = ?, location_name = ?, location_lat = ?, location_lng = ?, updated_at = ?
-        WHERE id = ?
-      `).run(
-        place.name,
-        // Moved to another day: follow it — undated days included (see placeEntryDate).
-        place.day_id && entry.source_trip_id ? placeEntryDate(entry.journey_id, entry.source_trip_id, place) : (place.day_date || entry.entry_date),
-        place.assignment_time || place.place_time || entry.entry_time,
-        place.address || place.name,
-        place.lat || null, place.lng || null,
-        now, entry.id
-      );
-    } else {
-      // for filled entries, only update location silently
-      db.prepare(`
-        UPDATE journey_entries SET location_name = ?, location_lat = ?, location_lng = ?, updated_at = ?
-        WHERE id = ?
-      `).run(place.address || place.name, place.lat || null, place.lng || null, now, entry.id);
-    }
-  }
+  const row = db.prepare('SELECT trip_id FROM places WHERE id = ?').get(placeId) as { trip_id: number } | undefined;
+  if (row) reconcileTripJourneys(row.trip_id);
 }
 
 // called when a trip place is deleted

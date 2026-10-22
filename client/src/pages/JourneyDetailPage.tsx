@@ -3107,7 +3107,11 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
     }
   }
 
-  return (
+  // Portalled to <body>: opened from inside the settings dialog, whose
+  // backdrop-filter makes it the containing block for `position: fixed` —
+  // the dialog was centred on the settings panel, not the screen, and
+  // focusing its field scrolled that panel ("the screen goes off").
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
@@ -3159,7 +3163,8 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -3204,7 +3209,11 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
     }
   }
 
-  return (
+  // Portalled to <body>: opened from inside the settings dialog, whose
+  // backdrop-filter makes it the containing block for `position: fixed` —
+  // the dialog was centred on the settings panel, not the screen, and
+  // focusing its field scrolled that panel ("the screen goes off").
+  return createPortal(
     <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
@@ -3292,7 +3301,8 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
 
