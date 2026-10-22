@@ -8,7 +8,7 @@
  * el reintento solo pide las teselas que faltan.
  */
 import { db } from '../db/database';
-import { overpassElements, overpassSelectorsFor, nominatimLodgingElements, categoryAllowsUnnamed } from './mapsService';
+import { overpassElements, overpassSelectorsFor, nominatimLodgingElements, categoryAllowsUnnamed, CATEGORY_OSM_FILTERS, type OverpassPoi } from './mapsService';
 
 const TILE_DEG = 0.1;
 /** Súbelo al cambiar los filtros de una categoría: las teselas guardadas con los filtros antiguos dejan de valer. */
@@ -225,4 +225,142 @@ export async function searchTilePoisAlongRoute(category: string, line: [number, 
     throw Object.assign(new Error('Overpass request failed'), { status: 502, detail: res.errors });
   }
   return { pois, source: 'openstreetmap' as const, truncated: false, clamped: false, partial: res.failedBuckets > 0, stale: res.staleTiles > 0, fallback: res.fallbackTiles > 0, errors: res.errors };
+}
+
+// ── Explorar por zona visible (la píldora de categorías del mapa) ────────────
+
+/** Lo que se guarda de cada POI para el popup del mapa; los campos opcionales solo si OSM los tiene. */
+interface BoxPoi extends StoredPoi { p?: string; ad?: string; w?: string; ph?: string; oh?: string; c?: string }
+
+/** Más teselas que esto (≈ 0,5° × 0,5°, el recorte de siempre) no se piden de una vez: la zona se recorta al centro. */
+const BOX_MAX_TILES_SIDE = 5;
+
+export interface BoxSearchResult {
+  pois: OverpassPoi[];
+  source: 'openstreetmap';
+  truncated: boolean;
+  clamped: boolean;
+  /** Parte de la zona no se pudo consultar. */
+  partial: boolean;
+  /** Algo sale de un caché caducado porque Overpass no respondió. */
+  stale: boolean;
+  /** Todo salió del caché (sin consultar Overpass). */
+  cached: boolean;
+}
+
+const httpOrNull = (u: string | undefined) => (u && /^https?:\/\//i.test(u) ? u.slice(0, 300) : undefined);
+
+function toBoxPoi(category: string, el: { type: string; id: number; lat?: number; lon?: number; center?: { lat: number; lon: number }; tags?: Record<string, string> }): BoxPoi | null {
+  const tags = el.tags || {};
+  const lat = el.lat ?? el.center?.lat, lng = el.lon ?? el.center?.lon;
+  if (lat == null || lng == null) return null;
+  const name = String(tags.name || tags['name:en'] || tags.brand || '').slice(0, 80);
+  if (!name && !categoryAllowsUnnamed(category)) return null;
+  if (category === 'water' && tags.drinking_water === 'no') return null;
+  const filters = CATEGORY_OSM_FILTERS[category] || [];
+  const matched = filters.find(f => { const [k, v] = f.split('='); return tags[k] === v; }) || filters[0];
+  const addr = [tags['addr:street'], tags['addr:housenumber'], tags['addr:postcode'], tags['addr:city']].filter(Boolean).join(' ');
+  const out: BoxPoi = { i: `${el.type}:${el.id}`, a: Math.round(lat * 1e5) / 1e5, o: Math.round(lng * 1e5) / 1e5, n: name };
+  if (matched) out.p = matched;
+  if (addr) out.ad = addr.slice(0, 160);
+  const web = httpOrNull(tags.website || tags['contact:website']); if (web) out.w = web;
+  const phone = tags.phone || tags['contact:phone']; if (phone) out.ph = phone.slice(0, 40);
+  if (tags.opening_hours) out.oh = tags.opening_hours.slice(0, 200);
+  if (tags.cuisine) out.c = tags.cuisine.slice(0, 80);
+  return out;
+}
+
+const boxKey = (category: string) => `box:${category}:v1`;
+
+/**
+ * POIs de una categoría en la zona visible, con el mismo caché por teselas que las rutas:
+ * - si todas las teselas de la zona están guardadas y al día, no se consulta nada;
+ * - si falta alguna, una sola consulta a Overpass para la zona alineada a teselas, y cada
+ *   tesela se guarda 30 días con lo necesario para el popup (dirección, web, horario…);
+ * - si Overpass no responde, se sirve lo que haya guardado aunque esté caducado (y para
+ *   hoteles, Nominatim); solo falla si no hay nada que enseñar.
+ * Los servidores públicos de Overpass se saturan a menudo: una zona vista una vez sigue
+ * funcionando aunque estén caídos.
+ */
+export async function searchPoisInBox(category: string, bbox: { south: number; west: number; north: number; east: number }, limit = 60): Promise<BoxSearchResult> {
+  if (!CATEGORY_OSM_FILTERS[category]) throw Object.assign(new Error('Unknown POI category'), { status: 400 });
+  let { south, west, north, east } = bbox;
+  if (south > north) [south, north] = [north, south];
+  if (west > east) [west, east] = [east, west];
+  const span = BOX_MAX_TILES_SIDE * TILE_DEG;
+  let clamped = false;
+  if (north - south > span) { const c = (north + south) / 2; south = c - span / 2; north = c + span / 2; clamped = true; }
+  if (east - west > span) { const c = (east + west) / 2; west = c - span / 2; east = c + span / 2; clamped = true; }
+
+  const [y0, x0] = tileOf(south, west), [y1, x1] = tileOf(north, east);
+  const tiles: string[] = [];
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) tiles.push(keyOf(y, x));
+
+  const ck = boxKey(category);
+  const data = new Map<string, BoxPoi[]>();
+  const stale = new Map<string, BoxPoi[]>();
+  let missing = 0;
+  for (const k of tiles) {
+    const row = db.prepare('SELECT fetched_at, data FROM poi_tiles WHERE category = ? AND tile = ?').get(ck, k) as { fetched_at: number; data: string } | undefined;
+    let list: BoxPoi[] | null = null;
+    if (row) { try { list = JSON.parse(row.data) as BoxPoi[]; } catch { list = null; } }
+    if (list && Date.now() - row!.fetched_at <= TTL_MS) data.set(k, list);
+    else { if (list) stale.set(k, list); missing++; }
+  }
+
+  let partial = false, usedStale = false;
+  const cached = missing === 0;
+  if (!cached) {
+    const r = (n: number) => Math.round(n * 1e6) / 1e6;
+    const box = `(${r(y0 * TILE_DEG)},${r(x0 * TILE_DEG)},${r((y1 + 1) * TILE_DEG)},${r((x1 + 1) * TILE_DEG)})`;
+    const query = `[out:json][timeout:25];\n(\n${overpassSelectorsFor(category, box)}\n);\nout center tags ${ELEMENT_CAP};`;
+    let elements: Awaited<ReturnType<typeof overpassElements>> | null = null;
+    let viaFallback = false;
+    try {
+      elements = await overpassElements(query);
+    } catch (err) {
+      if (category === 'hotel' || category === 'lodging') {
+        try { elements = await nominatimLodgingElements(y0 * TILE_DEG, x0 * TILE_DEG, (y1 + 1) * TILE_DEG, (x1 + 1) * TILE_DEG); viaFallback = true; }
+        catch { elements = null; }
+      }
+      if (!elements) {
+        // Overpass caído: lo caducado mejor que nada.
+        for (const k of tiles) if (!data.has(k)) { const old = stale.get(k); if (old) { data.set(k, old); usedStale = true; } else partial = true; }
+        if (!data.size) throw err;
+      }
+    }
+    if (elements) {
+      const perTile = new Map<string, BoxPoi[]>(tiles.map(k => [k, []]));
+      for (const el of elements) {
+        const p = toBoxPoi(category, el);
+        if (!p) continue;
+        const [ty, tx] = tileOf(p.a, p.o);
+        perTile.get(keyOf(ty, tx))?.push(p);
+      }
+      const complete = !viaFallback && elements.length < ELEMENT_CAP;
+      const up = upsertTile();
+      const now = Date.now();
+      for (const [k, list] of perTile) {
+        data.set(k, list);
+        if (complete) up.run(ck, k, now, JSON.stringify(list));
+      }
+      if (viaFallback) partial = true;
+    }
+  }
+
+  // Lo que cae dentro de la zona pedida, lo más cercano al centro primero.
+  const cy = (south + north) / 2, cx = (west + east) / 2;
+  const seen = new Set<string>();
+  const inside: BoxPoi[] = [];
+  for (const list of data.values()) for (const p of list) {
+    if (seen.has(p.i) || p.a < south || p.a > north || p.o < west || p.o > east) continue;
+    seen.add(p.i); inside.push(p);
+  }
+  inside.sort((a, b) => ((a.a - cy) ** 2 + (a.o - cx) ** 2) - ((b.a - cy) ** 2 + (b.o - cx) ** 2));
+  const pois: OverpassPoi[] = inside.slice(0, limit).map(p => ({
+    osm_id: p.i, name: p.n, lat: p.a, lng: p.o, category, poi_type: p.p || (CATEGORY_OSM_FILTERS[category]?.[0] ?? category),
+    address: p.ad ?? null, website: p.w ?? null, phone: p.ph ?? null, opening_hours: p.oh ?? null, cuisine: p.c ?? null,
+    source: 'openstreetmap' as const,
+  }));
+  return { pois, source: 'openstreetmap', truncated: inside.length > limit, clamped, partial, stale: usedStale, cached };
 }

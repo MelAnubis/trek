@@ -41,7 +41,7 @@ import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
 import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine, nominatimLodgingElements, resetNominatimCache } from '../../src/services/mapsService';
-import { getLodgingNearLine, getTilePois, tilesForLine, searchTilePoisAlongRoute, tileCategoryFor } from '../../src/services/lodgingTileService';
+import { getLodgingNearLine, getTilePois, tilesForLine, searchTilePoisAlongRoute, tileCategoryFor, searchPoisInBox } from '../../src/services/lodgingTileService';
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
 beforeEach(() => {
@@ -387,3 +387,58 @@ describe('panel search through tiles (searchTilePoisAlongRoute)', () => {
     expect(r.pois.map(p => p.name)).toContain('Camping');
   });
 });
+
+describe('map explore pill through tiles (searchPoisInBox)', () => {
+  const BOX = { south: 41.06, west: -4.75, north: 41.18, east: -4.55 };
+  const park = (id: number, lat: number, lng: number, extra: Record<string, string> = {}) =>
+    node(id, lat, lng, { leisure: 'park', name: 'Parque ' + id, website: 'https://park.example', opening_hours: 'Mo-Su 08:00-22:00', 'addr:street': 'Calle Mayor', ...extra });
+
+  it('OV-029 — the first look asks Overpass once for the tile-aligned area; the next one is served from the cache, popup data included', async () => {
+    const f = vi.fn().mockResolvedValue(ok([park(1, 41.10, -4.70), park(2, 41.12, -4.60), park(3, 40.5, -4.6)]));
+    vi.stubGlobal('fetch', f);
+    const first = await searchPoisInBox('nature', BOX);
+    expect(first.cached).toBe(false);
+    expect(first.pois.map(p => p.osm_id).sort()).toEqual(['node:1', 'node:2']); // node 3 is outside the area
+    expect(first.pois[0]).toMatchObject({ website: 'https://park.example', opening_hours: 'Mo-Su 08:00-22:00', poi_type: 'leisure=park' });
+    const box = bodyOf(f.mock.calls[0]).match(/\(([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\)/)!.slice(1).map(Number);
+    expect(box).toEqual([41, -4.8, 41.2, -4.5]);           // aligned to 0,1° tiles
+
+    f.mockClear();
+    const again = await searchPoisInBox('nature', { ...BOX, south: 41.07 });
+    expect(f).not.toHaveBeenCalled();
+    expect(again.cached).toBe(true);
+    expect(again.pois).toHaveLength(2);
+  });
+
+  it('OV-030 — with every Overpass mirror down, an area seen before still answers (from expired tiles) instead of a 502', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([park(1, 41.10, -4.70)])));
+    await searchPoisInBox('nature', BOX);
+    testDb.prepare("UPDATE poi_tiles SET fetched_at = fetched_at - 40 * 86400000 WHERE category LIKE 'box:nature:%'").run();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(http(502)));
+    const r = await searchPoisInBox('nature', BOX);
+    expect(r.pois.map(p => p.osm_id)).toEqual(['node:1']);
+    expect(r.stale).toBe(true);
+  });
+
+  it('OV-031 — an area never seen, with Overpass down, still fails with the reasons', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(http(504)));
+    await expect(searchPoisInBox('nature', BOX)).rejects.toMatchObject({ status: 502 });
+  });
+
+  it('OV-032 — a huge area is cut to the usual size around its centre, and unnamed fountains are kept while undrinkable ones are not', async () => {
+    const f = vi.fn().mockResolvedValue(ok([node(5, 41.1, -4.7, { amenity: 'drinking_water' }), node(6, 41.1, -4.71, { amenity: 'drinking_water', drinking_water: 'no' })]));
+    vi.stubGlobal('fetch', f);
+    const r = await searchPoisInBox('water', { south: 40, west: -6, north: 42.2, east: -3.4 });
+    expect(r.clamped).toBe(true);
+    const [s, w, n, e] = bodyOf(f.mock.calls[0]).match(/\(([-\d.]+),([-\d.]+),([-\d.]+),([-\d.]+)\)/)!.slice(1).map(Number);
+    expect(n - s).toBeLessThanOrEqual(0.61);
+    expect(e - w).toBeLessThanOrEqual(0.61);
+    expect(r.pois.map(p => p.osm_id)).toEqual(['node:5']);
+    expect(r.pois[0].name).toBe('');
+  });
+
+  it('OV-033 — unknown categories are refused', async () => {
+    await expect(searchPoisInBox('nope', BOX)).rejects.toMatchObject({ status: 400 });
+  });
+});
+

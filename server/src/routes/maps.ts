@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
-import { searchTilePoisAlongRoute, tileCategoryFor } from '../services/lodgingTileService'
+import { searchTilePoisAlongRoute, tileCategoryFor, searchPoisInBox } from '../services/lodgingTileService'
 import { findLodgingOptions } from '../services/lodgingOptionsService'
 import {
   searchPlaces,
@@ -187,7 +187,8 @@ router.get('/pois', authenticate, async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'south, west, north, east required' })
   }
   try {
-    const result = await searchOverpassPois(category, bbox)
+    // Tile-cached (see searchPoisInBox): a place seen once keeps working when the public Overpass servers are down.
+    const result = await searchPoisInBox(category, bbox)
     res.json(result)
   } catch (err: unknown) {
     const status = (err as { status?: number }).status || 500

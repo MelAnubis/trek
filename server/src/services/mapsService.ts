@@ -834,7 +834,7 @@ export interface OverpassPoi {
   source: 'openstreetmap';
 }
 
-const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
+export const CATEGORY_OSM_FILTERS: Record<string, string[]> = {
   restaurant: ['amenity=restaurant', 'amenity=fast_food'],
   cafe: ['amenity=cafe'],
   bar: ['amenity=bar', 'amenity=pub', 'amenity=nightclub'],
