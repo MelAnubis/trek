@@ -1,3 +1,4 @@
+import { applyAppearance } from './theme/appearance'
 import React, { useEffect, ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
@@ -183,30 +184,16 @@ export default function App() {
   const isSharedPage = location.pathname.startsWith('/shared/')
 
   useEffect(() => {
-    // Shared page always forces light mode
-    if (isSharedPage) {
-      document.documentElement.classList.remove('dark')
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', '#ffffff')
-      return
-    }
-
-    const mode = settings.dark_mode
-    const applyDark = (isDark: boolean) => {
-      document.documentElement.classList.toggle('dark', isDark)
-      const meta = document.querySelector('meta[name="theme-color"]')
-      if (meta) meta.setAttribute('content', isDark ? '#09090b' : '#ffffff')
-    }
-
-    if (mode === 'auto') {
+    // Dark mode + the rest of the look (scheme, text size…), written to <html>
+    // in one place — see theme/appearance.ts. Shared pages force the light default.
+    const apply = () => applyAppearance({ darkMode: settings.dark_mode, appearance: settings.appearance, isSharedPage })
+    apply()
+    if (!isSharedPage && settings.dark_mode === 'auto') {
       const mq = window.matchMedia('(prefers-color-scheme: dark)')
-      applyDark(mq.matches)
-      const handler = (e: MediaQueryListEvent) => applyDark(e.matches)
-      mq.addEventListener('change', handler)
-      return () => mq.removeEventListener('change', handler)
+      mq.addEventListener('change', apply)
+      return () => mq.removeEventListener('change', apply)
     }
-    applyDark(mode === true || mode === 'dark')
-  }, [settings.dark_mode, isSharedPage])
+  }, [settings.dark_mode, settings.appearance, isSharedPage])
 
   const isAuthPage = location.pathname.startsWith('/login')
     || location.pathname.startsWith('/register')

@@ -40,7 +40,7 @@ import { createTables } from '../../../src/db/schema';
 import { runMigrations } from '../../../src/db/migrations';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser } from '../../helpers/factories';
-import { getUserSettings, upsertSetting, bulkUpsertSettings } from '../../../src/services/settingsService';
+import { normalizeAppearanceSetting, getUserSettings, upsertSetting, bulkUpsertSettings } from '../../../src/services/settingsService';
 
 beforeAll(() => {
   createTables(testDb);
@@ -220,5 +220,22 @@ describe('bulkUpsertSettings', () => {
     expect(() => bulkUpsertSettings(user.id, { k: 'v' })).toThrow('forced DB error');
     expect(intercepted).toBe(true);
     vi.restoreAllMocks();
+  });
+});
+
+describe('appearance setting', () => {
+  it('SET-SVC-APPEAR-001 — only known, valid fields are stored; junk falls back to the defaults', () => {
+    const { user } = createUser(testDb);
+    upsertSetting(user.id, 'appearance', { scheme: 'teal', fontScale: 9, density: 'compact', transparency: false, evil: '<script>', accent: 'red' });
+    expect(getUserSettings(user.id).appearance).toEqual({ scheme: 'teal', accent: null, transparency: false, density: 'compact', fontScale: 1.4, reduceMotion: false });
+
+    upsertSetting(user.id, 'appearance', { scheme: 'custom', accent: '#ABCDEF' });
+    expect((getUserSettings(user.id).appearance as any)).toMatchObject({ scheme: 'custom', accent: '#abcdef' });
+
+    // A custom scheme without a colour is the default look; garbage is the default too.
+    upsertSetting(user.id, 'appearance', { scheme: 'custom' });
+    expect((getUserSettings(user.id).appearance as any).scheme).toBe('default');
+    upsertSetting(user.id, 'appearance', 'not json');
+    expect(getUserSettings(user.id).appearance).toEqual(normalizeAppearanceSetting({}));
   });
 });

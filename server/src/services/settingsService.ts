@@ -105,7 +105,34 @@ export function getUserSettings(userId: number): Record<string, unknown> {
   return { ...adminDefaults, ...userSettings };
 }
 
+/**
+ * The `appearance` blob, cleaned before it's stored: known fields only,
+ * each checked, everything else dropped — the same rules as the client's
+ * normalizeAppearance (client/src/theme/appearance.ts; keep in step). The
+ * client normalizes again on read, so this is about not storing junk.
+ */
+const APPEARANCE_SCHEMES = ['default', 'mono', 'teal', 'green', 'rose', 'amber', 'violet', 'highContrast', 'custom'];
+export function normalizeAppearanceSetting(value: unknown): Record<string, unknown> {
+  let v: Record<string, unknown> = {};
+  if (typeof value === 'string') { try { v = JSON.parse(value); } catch { v = {}; } }
+  else if (value && typeof value === 'object' && !Array.isArray(value)) v = value as Record<string, unknown>;
+  if (!v || typeof v !== 'object' || Array.isArray(v)) v = {};
+  const accent = typeof v.accent === 'string' && /^#[0-9a-f]{6}$/i.test(v.accent) ? v.accent.toLowerCase() : null;
+  let scheme = APPEARANCE_SCHEMES.includes(v.scheme as string) ? v.scheme as string : 'default';
+  if (scheme === 'custom' && !accent) scheme = 'default';
+  const fs = typeof v.fontScale === 'number' && Number.isFinite(v.fontScale) ? v.fontScale : 1;
+  return {
+    scheme,
+    accent,
+    transparency: v.transparency !== false,
+    density: v.density === 'compact' ? 'compact' : 'comfortable',
+    fontScale: Math.round(Math.min(1.4, Math.max(0.85, fs)) * 100) / 100,
+    reduceMotion: v.reduceMotion === true,
+  };
+}
+
 function serializeValue(key: string, value: unknown): string {
+  if (key === 'appearance') value = normalizeAppearanceSetting(value);
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value !== undefined ? value : '');
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;

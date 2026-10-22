@@ -321,7 +321,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             </div>
           ) : (
             <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.background = 'rgba(99,102,241,0.04)' }}
+              onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-light)' }}
               onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none' }}
               onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none'; const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
               style={{ width: '100%', padding: '18px', border: '2px dashed #e5e7eb', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, color: '#9ca3af', fontFamily: 'inherit', transition: 'all 0.15s' }}
@@ -341,7 +341,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 <button key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
                   title={photo.attribution}
                   style={{ flexShrink: 0, width: 84, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid transparent', padding: 0, cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}>
                   <img src={photo.thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>

@@ -597,6 +597,112 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   color-scheme: dark;
 }
 
+/* ── Appearance: colour schemes (data-scheme) ─────────────────────────
+   See src/theme/appearance.ts. The default scheme sets NO attribute, so
+   nothing below applies to it — today's indigo look is untouched. Each
+   scheme sets its accent and a --tint the indigo-tinted neutrals (hover,
+   selection, borders, scrollbars) are re-derived from, light and dark
+   tuned separately. */
+
+:root[data-scheme="mono"]   { --accent: #111827; --accent-hover: #000000; --accent-text: #ffffff; --tint: #64748b; }
+.dark[data-scheme="mono"]   { --accent: #e4e4e7; --accent-hover: #ffffff; --accent-text: #111827; --tint: #a1a1aa; }
+:root[data-scheme="teal"]   { --accent: #0d9488; --accent-hover: #0f766e; --accent-text: #ffffff; --tint: #0d9488; }
+.dark[data-scheme="teal"]   { --accent: #14b8a6; --accent-hover: #0d9488; --accent-text: #04211f; --tint: #14b8a6; }
+:root[data-scheme="green"]  { --accent: #16a34a; --accent-hover: #15803d; --accent-text: #ffffff; --tint: #16a34a; }
+.dark[data-scheme="green"]  { --accent: #22c55e; --accent-hover: #16a34a; --accent-text: #052e16; --tint: #22c55e; }
+:root[data-scheme="rose"]   { --accent: #e11d48; --accent-hover: #be123c; --accent-text: #ffffff; --tint: #e11d48; }
+.dark[data-scheme="rose"]   { --accent: #f43f5e; --accent-hover: #e11d48; --accent-text: #ffffff; --tint: #f43f5e; }
+:root[data-scheme="amber"]  { --accent: #d97706; --accent-hover: #b45309; --accent-text: #ffffff; --tint: #d97706; }
+.dark[data-scheme="amber"]  { --accent: #f59e0b; --accent-hover: #d97706; --accent-text: #1c1917; --tint: #f59e0b; }
+:root[data-scheme="violet"] { --accent: #7c3aed; --accent-hover: #6d28d9; --accent-text: #ffffff; --tint: #7c3aed; }
+.dark[data-scheme="violet"] { --accent: #8b5cf6; --accent-hover: #7c3aed; --accent-text: #ffffff; --tint: #8b5cf6; }
+:root[data-scheme="custom"] {
+  --accent: var(--accent-custom, #6366f1);
+  --accent-hover: color-mix(in srgb, var(--accent-custom, #6366f1) 85%, #000);
+  --accent-text: var(--accent-custom-text, #ffffff);
+  --tint: var(--accent-custom, #6366f1);
+}
+.dark[data-scheme="custom"] {
+  --accent: var(--accent-custom, #818cf8);
+  --accent-hover: color-mix(in srgb, var(--accent-custom, #818cf8) 85%, #fff);
+  --accent-text: var(--accent-custom-text, #ffffff);
+  --tint: var(--accent-custom, #818cf8);
+}
+
+/* High contrast — darker text, firmer borders, solid surfaces (legibility
+   over the map and on bright screens outdoors). */
+:root[data-scheme="highContrast"] {
+  --accent: #1d4ed8; --accent-hover: #1e40af; --accent-text: #ffffff; --tint: #1d4ed8;
+  --text-primary: #000000; --text-secondary: #1f2937; --text-muted: #374151; --text-faint: #4b5563;
+  --bg-elevated: #ffffff; --sidebar-bg: #ffffff; --tooltip-bg: #ffffff; --modal-bg: #ffffff;
+}
+.dark[data-scheme="highContrast"] {
+  --accent: #60a5fa; --accent-hover: #3b82f6; --accent-text: #06182f; --tint: #60a5fa;
+  --text-primary: #ffffff; --text-secondary: #f1f5f9; --text-muted: #e2e8f0; --text-faint: #cbd5e1;
+  --bg-elevated: #131316; --sidebar-bg: #131316; --tooltip-bg: #131316; --modal-bg: #131316;
+}
+
+/* Neutrals re-derived from the scheme's tint (any non-default scheme). */
+html[data-scheme]:not([data-scheme="default"]) {
+  --accent-light: color-mix(in srgb, var(--accent) 12%, transparent);
+  --bg-hover: color-mix(in srgb, var(--tint) 6%, transparent);
+  --bg-selected: color-mix(in srgb, var(--tint) 12%, transparent);
+  --border-primary: color-mix(in srgb, var(--tint) 16%, transparent);
+  --border-secondary: color-mix(in srgb, var(--tint) 8%, transparent);
+  --border-faint: color-mix(in srgb, var(--tint) 5%, transparent);
+  --scrollbar-thumb: color-mix(in srgb, var(--tint) 22%, transparent);
+  --scrollbar-hover: color-mix(in srgb, var(--tint) 38%, transparent);
+  --journal-accent: var(--accent);
+  --journal-border: color-mix(in srgb, var(--tint) 13%, transparent);
+}
+html.dark[data-scheme]:not([data-scheme="default"]) {
+  --accent-light: color-mix(in srgb, var(--accent) 16%, transparent);
+  --bg-hover: color-mix(in srgb, var(--tint) 9%, transparent);
+  --bg-selected: color-mix(in srgb, var(--tint) 16%, transparent);
+  --border-primary: color-mix(in srgb, var(--tint) 17%, transparent);
+  --border-secondary: color-mix(in srgb, var(--tint) 8%, transparent);
+  --border-faint: rgba(255,255,255,0.04);
+  --scrollbar-thumb: color-mix(in srgb, var(--tint) 22%, transparent);
+  --scrollbar-hover: color-mix(in srgb, var(--tint) 38%, transparent);
+}
+html[data-scheme="highContrast"] { --border-primary: #475569; --border-secondary: #94a3b8; --border-faint: rgba(0,0,0,0.3); --bg-hover: #e2e8f0; --bg-selected: #cbd5e1; }
+html.dark[data-scheme="highContrast"] { --border-primary: #64748b; --border-secondary: #475569; --border-faint: rgba(255,255,255,0.3); --bg-hover: #2a2a30; --bg-selected: #3a3a42; }
+
+/* Indigo hard-coded as Tailwind classes follows the scheme too. */
+html[data-scheme]:not([data-scheme="default"]) :is(.bg-indigo-500, .bg-indigo-600, .bg-indigo-700) { background-color: var(--accent) !important; color: var(--accent-text) !important; }
+html[data-scheme]:not([data-scheme="default"]) :is(.hover\:bg-indigo-700:hover, .hover\:bg-indigo-600:hover) { background-color: var(--accent-hover) !important; }
+html[data-scheme]:not([data-scheme="default"]) :is(.text-indigo-300, .text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700, .text-indigo-800) { color: var(--accent) !important; }
+html[data-scheme]:not([data-scheme="default"]) :is(.hover\:text-indigo-300:hover, .hover\:text-indigo-700:hover) { color: var(--accent-hover) !important; }
+html[data-scheme]:not([data-scheme="default"]) :is(.border-indigo-500, .border-indigo-600, .ring-indigo-500) { border-color: var(--accent) !important; --tw-ring-color: var(--accent) !important; }
+
+/* ── Transparency off ──────────────────────────────────────────────────
+   Solid surfaces and no backdrop blur anywhere — easier to read over the
+   map and lighter on slow phones. Modal backdrops stay dimmed on purpose. */
+html[data-no-transparency] {
+  --bg-elevated: #fafafa; --sidebar-bg: #ffffff; --tooltip-bg: #ffffff; --modal-bg: #ffffff;
+  --glass-bg: #ffffff; --glass-bg-strong: #ffffff; --glass-bg-subtle: #f8fafc;
+}
+html.dark[data-no-transparency] {
+  --bg-elevated: #131316; --sidebar-bg: #111120; --tooltip-bg: #131316; --modal-bg: #141422;
+  --glass-bg: #111120; --glass-bg-strong: #15152a; --glass-bg-subtle: #10101e;
+}
+html[data-no-transparency] *, html[data-no-transparency] *::before, html[data-no-transparency] *::after {
+  backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+}
+html[data-no-transparency] .map-tooltip, html[data-no-transparency] .leaflet-tooltip.map-tooltip { background: var(--bg-card) !important; }
+html[data-no-transparency] .trek-map-popup .mapboxgl-popup-content,
+html[data-no-transparency] .trek-map-popup .maplibregl-popup-content { background: var(--bg-card) !important; }
+
+/* ── Compact density ───────────────────────────────────────────────────
+   Tighter spacing scale; reach grows as components adopt the --sp-* tokens. */
+html[data-density="compact"] { --sp-1: 3px; --sp-2: 6px; --sp-3: 9px; --sp-4: 12px; --sp-6: 18px; }
+
+/* ── Reduce motion (user override, on top of the OS setting) ─────────── */
+html[data-reduce-motion] *, html[data-reduce-motion] *::before, html[data-reduce-motion] *::after {
+  animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important; scroll-behavior: auto !important;
+}
+
 body {
   font-family: var(--font-system);
   background-color: var(--bg-primary);

@@ -1,3 +1,4 @@
+import { clearAppearanceSnapshot } from '../theme/appearance'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authApi } from '../api/client'
@@ -170,6 +171,8 @@ export const useAuthStore = create<AuthState>()(
     }
     // Purge all cached trip data from IndexedDB
     clearAll().catch(console.error)
+    // The next person on this browser shouldn't first paint in this one's theme.
+    clearAppearanceSnapshot()
     set({
       user: null,
       isAuthenticated: false,

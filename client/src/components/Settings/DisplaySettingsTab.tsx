@@ -4,6 +4,7 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
+import AppearanceControls from './AppearanceControls'
 
 export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
@@ -69,6 +70,9 @@ export default function DisplaySettingsTab(): React.ReactElement {
           })}
         </div>
       </div>
+
+      {/* Look: scheme, accent, text size, density, transparency, motion */}
+      <AppearanceControls t={t} />
 
       {/* Language */}
       <div>

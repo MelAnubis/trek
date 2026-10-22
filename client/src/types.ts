@@ -258,6 +258,8 @@ export interface Settings {
   mapbox_3d_enabled?: boolean
   mapbox_quality_mode?: boolean
   map_poi_pill_enabled?: boolean
+  /** Look & feel blob — see theme/appearance.ts (normalized before use). */
+  appearance?: unknown
 }
 
 export interface AssignmentsMap {
