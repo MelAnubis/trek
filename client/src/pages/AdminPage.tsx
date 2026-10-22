@@ -235,6 +235,10 @@ export default function AdminPage(): React.ReactElement {
   const [placesDetailsEnabled, setPlacesDetailsEnabledState] = useState<boolean>(true)
   useEffect(() => { adminApi.getPlacesDetails().then(d => setPlacesDetailsEnabledState(d.enabled)).catch(() => {}) }, [])
 
+  // Places "about" (Wikipedia / Wikidata / Commons)
+  const [placesEnrichEnabled, setPlacesEnrichEnabledState] = useState<boolean>(true)
+  useEffect(() => { adminApi.getPlacesEnrich().then(d => setPlacesEnrichEnabledState(d.enabled)).catch(() => {}) }, [])
+
   // Collab features
   const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, polls: true, whatsnext: true })
   useEffect(() => { adminApi.getCollabFeatures().then(d => setCollabFeatures(d)).catch(() => {}) }, [])
@@ -1165,6 +1169,27 @@ export default function AdminPage(): React.ReactElement {
                       style={{ background: placesDetailsEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
                     >
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesDetailsEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
+                    </button>
+                  </div>
+
+                  {/* Place "about" Toggle */}
+                  <div className="flex items-center justify-between gap-4 py-3 border-t border-slate-100">
+                    <div>
+                      <p className="text-sm font-medium text-slate-700">{t('admin.placesEnrich.title')}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{t('admin.placesEnrich.subtitle')}</p>
+                    </div>
+                    <button
+                      aria-label={t('admin.placesEnrich.title')}
+                      aria-pressed={placesEnrichEnabled}
+                      onClick={async () => {
+                        const next = !placesEnrichEnabled
+                        setPlacesEnrichEnabledState(next)
+                        try { await adminApi.updatePlacesEnrich(next) } catch { setPlacesEnrichEnabledState(!next) }
+                      }}
+                      className="relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors"
+                      style={{ background: placesEnrichEnabled ? 'var(--text-primary)' : 'var(--border-primary)' }}
+                    >
+                      <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200" style={{ transform: placesEnrichEnabled ? 'translateX(20px)' : 'translateX(0)' }} />
                     </button>
                   </div>
 

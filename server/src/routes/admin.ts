@@ -307,6 +307,25 @@ router.put('/places-details', (req: Request, res: Response) => {
   res.json(result);
 });
 
+// ── Places "about" (Wikipedia / Wikidata / Commons) ────────────────────────
+
+router.get('/places-enrich', (_req: Request, res: Response) => {
+  res.json(svc.getPlacesEnrich());
+});
+
+router.put('/places-enrich', (req: Request, res: Response) => {
+  if (typeof req.body.enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' });
+  const result = svc.updatePlacesEnrich(req.body.enabled);
+  const authReq = req as AuthRequest;
+  writeAudit({
+    userId: authReq.user.id,
+    action: 'admin.places_enrich',
+    ip: getClientIp(req),
+    details: { enabled: result.enabled },
+  });
+  res.json(result);
+});
+
 // ── Collab Features ───────────────────────────────────────────────────────
 
 router.get('/collab-features', (_req: Request, res: Response) => {

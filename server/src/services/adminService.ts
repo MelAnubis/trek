@@ -498,6 +498,18 @@ export function updatePlacesDetails(enabled: boolean) {
   return { enabled: !!enabled };
 }
 
+// ── Places "about" (Wikipedia / Wikidata / Commons) ────────────────────────
+
+export function getPlacesEnrich() {
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'").get() as { value: string } | undefined;
+  return { enabled: row?.value !== 'false' };
+}
+
+export function updatePlacesEnrich(enabled: boolean) {
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('places_enrich_enabled', ?)").run(enabled ? 'true' : 'false');
+  return { enabled: !!enabled };
+}
+
 // ── Collab Features ───────────────────────────────────────────────────────
 
 const COLLAB_FEATURE_KEYS = ['collab_chat_enabled', 'collab_notes_enabled', 'collab_polls_enabled', 'collab_whatsnext_enabled'] as const;

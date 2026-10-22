@@ -5,6 +5,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import { X, Clock, MapPin, ExternalLink, Phone, Euro, Edit2, Trash2, Plus, Minus, ChevronDown, ChevronUp, FileText, Upload, File, FileImage, Star, Navigation, Users, Mountain, TrendingUp } from 'lucide-react'
 import PlaceAvatar from '../shared/PlaceAvatar'
+import PlaceAbout from './PlaceAbout'
 import { mapsApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getCategoryIcon } from '../shared/categoryIcons'
@@ -358,6 +359,15 @@ export default function PlaceInspector({
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.notes}</Markdown>
             </div>
           )}
+
+          {/* About this place — Wikipedia / Wikidata / Commons */}
+          <PlaceAbout
+            place={place}
+            categoryName={categories.find(c => c.id === place.category_id)?.name ?? null}
+            language={language}
+            locale={locale}
+            t={t}
+          />
 
           {/* Reservation + Participants — side by side */}
           {(() => {

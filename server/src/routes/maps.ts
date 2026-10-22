@@ -17,6 +17,7 @@ import {
 } from '../services/mapsService';
 import { db } from '../db/database';
 import { serveFilePath } from '../services/placePhotoCache';
+import { enrichPlace } from '../services/placeAbout';
 
 const router = express.Router();
 
@@ -99,6 +100,31 @@ router.get('/details/:placeId', authenticate, async (req: Request, res: Response
     const message = err instanceof Error ? err.message : 'Error fetching place details';
     console.error('Maps details error:', err);
     res.status(status).json({ error: message });
+  }
+});
+
+// GET /enrich — "about this place": Wikivoyage/Wikipedia text, Wikidata
+// facts and Commons photos (see services/placeAbout.ts). Fail-open
+// admin switch: only an explicit places_enrich_enabled = 'false' turns it off.
+router.get('/enrich', authenticate, async (req: Request, res: Response) => {
+  const off = db.prepare("SELECT value FROM app_settings WHERE key = 'places_enrich_enabled'").get() as { value: string } | undefined;
+  if (off?.value === 'false') return res.json({ description: null, facts: [], photos: [], disabled: true });
+
+  const q = req.query as Record<string, string | undefined>;
+  const name = (q.name || '').trim().slice(0, 200);
+  const lat = q.lat != null && q.lat !== '' ? Number(q.lat) : null;
+  const lng = q.lng != null && q.lng !== '' ? Number(q.lng) : null;
+  const osmId = q.osm_id && /^(node|way|relation):\d{1,15}$/.test(q.osm_id) ? q.osm_id : null;
+  if ((lat != null && (!Number.isFinite(lat) || Math.abs(lat) > 90)) || (lng != null && (!Number.isFinite(lng) || Math.abs(lng) > 180))) {
+    return res.status(400).json({ error: 'invalid coordinates' });
+  }
+  if (!osmId && (lat == null || lng == null || !name)) return res.status(400).json({ error: 'name and coordinates, or osm_id, required' });
+  try {
+    const result = await enrichPlace({ name, lat, lng, osmId, lang: q.lang || null, kind: (q.kind || '').slice(0, 80) || null });
+    res.json(result);
+  } catch (err: unknown) {
+    console.error('[Maps] enrich error:', err);
+    res.status(500).json({ error: 'Error enriching place' });
   }
 });
 

@@ -378,6 +378,8 @@ export const adminApi = {
   updatePlacesAutocomplete: (enabled: boolean) => apiClient.put('/admin/places-autocomplete', { enabled }).then(r => r.data),
   getPlacesDetails: () => apiClient.get('/admin/places-details').then(r => r.data),
   updatePlacesDetails: (enabled: boolean) => apiClient.put('/admin/places-details', { enabled }).then(r => r.data),
+  getPlacesEnrich: () => apiClient.get('/admin/places-enrich').then(r => r.data),
+  updatePlacesEnrich: (enabled: boolean) => apiClient.put('/admin/places-enrich', { enabled }).then(r => r.data),
   getCollabFeatures: () => apiClient.get('/admin/collab-features').then(r => r.data),
   updateCollabFeatures: (features: Record<string, boolean>) => apiClient.put('/admin/collab-features', features).then(r => r.data),
   packingTemplates: () => apiClient.get('/admin/packing-templates').then(r => r.data),
@@ -539,6 +541,9 @@ export const mapsApi = {
   details: (placeId: string, lang?: string) => apiClient.get(`/maps/details/${encodeURIComponent(placeId)}`, { params: { lang } }).then(r => r.data),
   placePhoto: (placeId: string, lat?: number, lng?: number, name?: string) => apiClient.get(`/maps/place-photo/${encodeURIComponent(placeId)}`, { params: { lat, lng, name } }).then(r => r.data),
   reverse: (lat: number, lng: number, lang?: string) => apiClient.get('/maps/reverse', { params: { lat, lng, lang } }).then(r => r.data),
+  /** "About this place": Wikivoyage/Wikipedia text, Wikidata facts, Commons photos. */
+  enrich: (params: { name: string; lat: number | null; lng: number | null; osm_id?: string; lang?: string; kind?: string }) =>
+    apiClient.get('/maps/enrich', { params, timeout: 30000 }).then(r => r.data),
   resolveUrl: (url: string) => apiClient.post('/maps/resolve-url', { url }).then(r => r.data),
   // Alojamientos de una localidad (OpenStreetMap + Google si hay clave). Sin precio ni disponibilidad.
   lodgingNear: (lat: number, lng: number, radius = 2500) =>
