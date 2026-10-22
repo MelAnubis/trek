@@ -1197,6 +1197,28 @@ describe('JourneyDetailPage', () => {
     });
   });
 
+  // ── FE-PAGE-JOURNEYDETAIL-170 ──────────────────────────────────────────
+  describe('FE-PAGE-JOURNEYDETAIL-170: planner day notes in the timeline and into the story', () => {
+    it('shows the notes on their day — even a day with no entries — and the editor copies them into the story once', async () => {
+      const today = new Date().toISOString().split('T')[0];
+      setupDefaultHandlers({ planner_notes: {
+        '2026-03-15': [{ id: 1, trip_id: 5, day_number: 2, day_title: null, text: 'Comprar entradas Vaticano', description: null, icon: null, color: '#dc2626' }],
+        [today]: [{ id: 2, trip_id: 5, day_number: 3, day_title: null, text: 'Agua en la fuente', description: 'Junto a la **plaza**', icon: null, color: null }],
+      } });
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      await renderAndWait();
+      expect(screen.getByText('Comprar entradas Vaticano')).toBeInTheDocument();
+      // The notes-only day still gets its own day in the timeline.
+      expect(screen.getByText('Agua en la fuente')).toBeInTheDocument();
+
+      await openEntryEditor(user);
+      const insert = screen.getByTestId('insert-planner-notes');
+      await user.click(insert);
+      await user.click(insert);
+      expect(screen.getByPlaceholderText('Write your story...')).toHaveValue('- **Agua en la fuente** — Junto a la **plaza**');
+    });
+  });
+
   // ── FE-PAGE-JOURNEYDETAIL-062 ──────────────────────────────────────────
   describe('FE-PAGE-JOURNEYDETAIL-062: Type in story textarea updates value', () => {
     it('updates the story textarea value when user types', async () => {

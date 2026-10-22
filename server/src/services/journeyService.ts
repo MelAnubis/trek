@@ -1,4 +1,4 @@
-import { db } from '../db/database';
+import { db, canAccessTrip } from '../db/database';
 import { broadcastToUser } from '../websocket';
 import type { Journey, JourneyEntry, JourneyPhoto, JourneyContributor } from '../types';
 import { getOrCreateTrekPhoto, getOrCreateLocalTrekPhoto, setTrekPhotoProvider, deleteTrekPhotoIfOrphan } from './memories/photoResolverService';
@@ -223,6 +223,13 @@ export function getJourneyFull(journeyId: number, userId: number) {
     'SELECT hide_skeletons FROM journey_contributors WHERE journey_id = ? AND user_id = ?'
   ).get(journeyId, userId) as { hide_skeletons: number } | undefined;
 
+  // Only trips this viewer can open themselves: a journey contributor who is
+  // not on the trip must not read its notes (they hold booking codes, etc.).
+  const plannerNotes = plannerNotesByDate(
+    journeyId,
+    (trips as { trip_id: number }[]).map(t => t.trip_id).filter(id => !!canAccessTrip(id, userId)),
+  );
+
   // Determine the viewer's role on this journey so the UI can gate edit/settings
   // actions. 'owner' = creator, 'editor' | 'viewer' = from journey_contributors.
   const journeyRow = journey as unknown as { user_id?: number };
@@ -245,7 +252,46 @@ export function getJourneyFull(journeyId: number, userId: number) {
     stats: { entries: entryCount, photos: photoCount, places: places.length, countries: countrySet.size, countryCodes: [...countrySet], budgetTotal, budgetCurrency: primaryCurrency },
     hide_skeletons: !!(userPrefs?.hide_skeletons),
     my_role: myRole,
+    planner_notes: plannerNotes,
   };
+}
+
+export interface PlannerNote {
+  id: number;
+  trip_id: number;
+  day_number: number;
+  day_title: string | null;
+  text: string;
+  /** The note's description (the planner stores it in `time`). */
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+}
+
+/**
+ * The linked trips' day notes ("notas del día"), keyed by the journey date
+ * each day lands on — placeEntryDate, the same rule the trip's places use,
+ * so a note sits on the same day as that day's stops, dated trip or not.
+ * Read live, not copied: editing a note in the planner shows here at once.
+ */
+export function plannerNotesByDate(journeyId: number, tripIds: number[]): Record<string, PlannerNote[]> {
+  const out: Record<string, PlannerNote[]> = {};
+  for (const tripId of tripIds) {
+    const rows = db.prepare(`
+      SELECT n.id, n.text, n.time, n.icon, n.color, d.day_number, d.date, d.title
+      FROM day_notes n JOIN days d ON d.id = n.day_id
+      WHERE n.trip_id = ?
+      ORDER BY d.day_number ASC, n.sort_order ASC, n.id ASC
+    `).all(tripId) as { id: number; text: string; time: string | null; icon: string | null; color: string | null; day_number: number; date: string | null; title: string | null }[];
+    for (const r of rows) {
+      const date = placeEntryDate(journeyId, tripId, { day_date: r.date, day_number: r.day_number });
+      (out[date] ||= []).push({
+        id: r.id, trip_id: tripId, day_number: r.day_number, day_title: r.title || null,
+        text: r.text, description: r.time || null, icon: r.icon || null, color: r.color || null,
+      });
+    }
+  }
+  return out;
 }
 
 export function updateJourney(journeyId: number, userId: number, data: Partial<{

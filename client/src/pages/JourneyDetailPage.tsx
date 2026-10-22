@@ -29,7 +29,9 @@ import {
   Laugh, Smile, Meh, Annoyed, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronUp, ChevronDown, Eye, EyeOff,
   Archive, ArchiveRestore, Settings as SettingsIcon, Sparkles, ChevronLeft,
+  StickyNote,
 } from 'lucide-react'
+import { PlannerNotesCard, appendToStory, notesToStory, type PlannerNote } from '../components/Journey/PlannerNotes'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
@@ -502,7 +504,9 @@ export default function JourneyDetailPage() {
 
   const timelineEntries = current.entries.filter(e => (!hideSkeletons || e.type !== 'skeleton'))
   const dayGroups = groupByDate(timelineEntries)
-  const sortedDates = [...dayGroups.keys()].sort()
+  // A planner day with notes but no places still gets its day in the timeline.
+  const plannerNotes = current?.planner_notes || {}
+  const sortedDates = [...new Set([...dayGroups.keys(), ...Object.keys(plannerNotes).filter(d => plannerNotes[d]?.length)])].sort()
   const { byDate: tracksByDate } = groupTracksByDate(gpxTracks, sortedDates)
 
   const tripDateMin = current.trips.length
@@ -547,6 +551,7 @@ export default function JourneyDetailPage() {
           onClose={() => setViewingEntry(null)}
           onEdit={() => { setViewingEntry(null); setEditingEntry(viewingEntry); }}
           onDelete={() => { setViewingEntry(null); setDeleteTarget(viewingEntry); }}
+          plannerNotes={current.planner_notes?.[viewingEntry.entry_date] || []}
           onPhotoClick={(photos, idx) => setLightbox({ photos: photos.map(p => ({ id: p.id, src: photoUrl(p, 'original'), caption: p.caption, provider: p.provider, asset_id: p.asset_id, owner_id: p.owner_id })), index: idx })}
         />
       )}
@@ -846,7 +851,7 @@ export default function JourneyDetailPage() {
                   )}
 
                   {sortedDates.map((date, dayIdx) => {
-                    const entries = dayGroups.get(date)!
+                    const entries = dayGroups.get(date) || []
                     const fd = formatDate(date, locale)
                     const locations = [...new Set(entries.map(e => e.location_name).filter(Boolean))]
 
@@ -869,6 +874,8 @@ export default function JourneyDetailPage() {
                         {tracksByDate.has(date) && (
                           <DayRouteCard tracks={tracksByDate.get(date)!} tileUrl={mapTileUrl} />
                         )}
+
+                        {plannerNotes[date]?.length ? <PlannerNotesCard notes={plannerNotes[date]} t={t} /> : null}
 
                         {entries.map((entry, idx) => {
                           // Skeletons are just "suggested" places pulled
@@ -983,6 +990,7 @@ export default function JourneyDetailPage() {
           entry={editingEntry}
           journeyId={current.id}
           tripDates={tripDates}
+          plannerNotes={current.planner_notes || {}}
           galleryPhotos={current.gallery || []}
           onClose={() => setEditingEntry(null)}
           onSave={async (data) => {
@@ -2479,10 +2487,11 @@ function DatePicker({ value, onChange, tripDates }: {
   )
 }
 
-function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSave, onUploadPhotos, onDone }: {
+function EntryEditor({ entry, journeyId, tripDates, plannerNotes = {}, galleryPhotos, onClose, onSave, onUploadPhotos, onDone }: {
   entry: JourneyEntry
   journeyId: number
   tripDates: Set<string>
+  plannerNotes?: Record<string, PlannerNote[]>
   galleryPhotos: GalleryPhoto[]
   onClose: () => void
   onSave: (data: Record<string, unknown>) => Promise<number>
@@ -2806,7 +2815,18 @@ function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, onClose, onSa
           </div>
 
           <div>
-            <div className="flex items-center justify-end mb-1.5">
+            <div className="flex items-center justify-end gap-3 mb-1.5">
+              {(plannerNotes[entryDate]?.length ?? 0) > 0 && (
+                <button
+                  type="button"
+                  data-testid="insert-planner-notes"
+                  onClick={() => setStory(s => appendToStory(s, notesToStory(plannerNotes[entryDate])))}
+                  className="flex items-center gap-1 text-[10px] font-medium text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white"
+                >
+                  <StickyNote size={11} />
+                  {t('journey.plannerNotes.insert', { count: plannerNotes[entryDate].length })}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={draftStory}

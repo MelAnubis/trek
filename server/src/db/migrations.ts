@@ -2638,6 +2638,14 @@ function runMigrations(db: Database.Database): void {
         )
       `);
     },
+    // Day note colours (as upstream liketrek/TREK #1629): a note is a label as
+    // much as a reminder — "watch out", "booked" — and a wall of identical grey
+    // cards hides that. NULL keeps the neutral card every existing note has.
+    // Appended LAST: the array is index-addressed against schema_version.
+    () => {
+      const hasColor = db.prepare("SELECT 1 FROM pragma_table_info('day_notes') WHERE name = 'color'").get();
+      if (!hasColor) db.exec('ALTER TABLE day_notes ADD COLUMN color TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

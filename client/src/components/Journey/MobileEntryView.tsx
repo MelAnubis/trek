@@ -6,6 +6,8 @@ import {
   ThumbsUp, ThumbsDown, ChevronDown,
 } from 'lucide-react'
 import JournalBody from './JournalBody'
+import { PlannerNotesCard, type PlannerNote } from './PlannerNotes'
+import { useTranslation } from '../../i18n'
 import { formatLocationName } from '../../utils/formatters'
 import type { JourneyEntry, JourneyPhoto } from '../../store/journeyStore'
 
@@ -38,9 +40,12 @@ interface Props {
   onEdit: () => void
   onDelete: () => void
   onPhotoClick: (photos: JourneyPhoto[], index: number) => void
+  /** The planner's notes for this entry's day (journey.planner_notes[entry_date]). */
+  plannerNotes?: PlannerNote[]
 }
 
-export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClose, onEdit, onDelete, onPhotoClick }: Props) {
+export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClose, onEdit, onDelete, onPhotoClick, plannerNotes = [] }: Props) {
+  const { t } = useTranslation()
   const photos = entry.photos || []
   const mood = entry.mood ? MOOD_CONFIG[entry.mood] : null
   const weather = entry.weather ? WEATHER_CONFIG[entry.weather] : null
@@ -169,6 +174,8 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
               <JournalBody text={entry.story} />
             </div>
           )}
+
+          {plannerNotes.length > 0 && <div className="mb-5"><PlannerNotesCard notes={plannerNotes} t={t} /></div>}
 
           {/* Tags */}
           {entry.tags && entry.tags.length > 0 && (

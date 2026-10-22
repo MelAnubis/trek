@@ -91,6 +91,8 @@ export interface DayNote {
   text: string
   time: string | null
   icon: string | null
+  /** One of NOTE_COLORS (components/Planner/noteColors.ts), or null for the neutral card. */
+  color?: string | null
   sort_order?: number
   created_at: string
 }

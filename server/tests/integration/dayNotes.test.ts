@@ -233,3 +233,45 @@ describe('Delete day note', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('Day note colour and long description', () => {
+  it('NOTE-007 — a palette colour is stored, returned, changed and cleared; other values are refused', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const base = `/api/trips/${trip.id}/days/${day.id}/notes`;
+
+    const created = await request(app).post(base).set('Cookie', authCookie(user.id)).send({ text: 'Ojo: cierra a las 18:00', color: '#DC2626' });
+    expect(created.status).toBe(201);
+    expect(created.body.note.color).toBe('#dc2626');
+    const id = created.body.note.id;
+
+    // A PUT that does not mention the colour keeps it.
+    const kept = await request(app).put(`${base}/${id}`).set('Cookie', authCookie(user.id)).send({ text: 'Ojo: cierra a las 19:00' });
+    expect(kept.body.note.color).toBe('#dc2626');
+
+    const changed = await request(app).put(`${base}/${id}`).set('Cookie', authCookie(user.id)).send({ color: '#16a34a' });
+    expect(changed.body.note.color).toBe('#16a34a');
+
+    const cleared = await request(app).put(`${base}/${id}`).set('Cookie', authCookie(user.id)).send({ color: null });
+    expect(cleared.body.note.color).toBeNull();
+
+    for (const bad of ['#123456', 'red', 'url(javascript:alert(1))', 42]) {
+      const r = await request(app).put(`${base}/${id}`).set('Cookie', authCookie(user.id)).send({ color: bad });
+      expect(r.status).toBe(400);
+    }
+    const badCreate = await request(app).post(base).set('Cookie', authCookie(user.id)).send({ text: 'x', color: 'blue' });
+    expect(badCreate.status).toBe(400);
+  });
+
+  it('NOTE-008 — the description takes up to 1000 characters, not more', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const base = `/api/trips/${trip.id}/days/${day.id}/notes`;
+    const ok = await request(app).post(base).set('Cookie', authCookie(user.id)).send({ text: 'Ruta', time: 'a'.repeat(1000) });
+    expect(ok.status).toBe(201);
+    const tooLong = await request(app).post(base).set('Cookie', authCookie(user.id)).send({ text: 'Ruta', time: 'a'.repeat(1001) });
+    expect(tooLong.status).toBe(400);
+  });
+});

@@ -279,8 +279,10 @@ export async function downloadTripPDF({ trip, days, places, assignments, categor
 
           if (item.type === 'note') {
             const note = item.data
+            // Only a palette colour reaches the style attribute (see noteColors.ts).
+            const noteColor = /^#[0-9a-f]{6}$/i.test(note.color || '') ? note.color : ''
             return `
-              <div class="note-card">
+              <div class="note-card"${noteColor ? ` style="border-left: 3px solid ${noteColor};"` : ''}>
                 <div class="note-line"></div>
                 <span class="note-icon">${noteIconSvg(note.icon)}</span>
                 <div class="note-body">

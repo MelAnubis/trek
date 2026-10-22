@@ -17,7 +17,8 @@ const { testDb, dbMock } = vi.hoisted(() => {
     closeDb: () => {},
     reinitialize: () => {},
     getPlaceWithTags: () => null,
-    canAccessTrip: () => null,
+    canAccessTrip: (tripId: any, userId: number) =>
+      db.prepare(`SELECT t.id, t.user_id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.id = ? AND (t.user_id = ? OR m.user_id IS NOT NULL)`).get(userId, tripId, userId),
     isOwner: () => false,
   };
   return { testDb: db, dbMock: mock };
@@ -310,6 +311,52 @@ describe('getJourneyFull', () => {
     const byTitle = Object.fromEntries(result.entries.map((e: any) => [e.title, e.country_code]));
     expect(byTitle).toEqual({ Madrid: 'ES', Lisboa: 'PT', 'Sin coordenadas': null });
     expect(nowhere.id).toBeDefined();
+  });
+
+  it('JOURNEY-SVC-016c: the linked trips\' day notes come back keyed by the journey date of their day — dated or not — in planner order, live', () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id, { title: 'Con notas' });
+    const dated = createTrip(testDb, user.id, { title: 'Fechado', start_date: '2026-05-01', end_date: '2026-05-02' });
+    addTripToJourney(journey.id, dated.id, user.id);
+    const days = testDb.prepare('SELECT id, day_number FROM days WHERE trip_id = ? ORDER BY day_number').all(dated.id) as { id: number }[];
+    const ins = testDb.prepare('INSERT INTO day_notes (day_id, trip_id, text, time, icon, sort_order, color) VALUES (?, ?, ?, ?, ?, ?, ?)');
+    ins.run(days[0].id, dated.id, 'Segunda', null, 'Info', 2, null);
+    ins.run(days[0].id, dated.id, 'Primera', 'Reserva **confirmada**', 'Check', 1, '#16a34a');
+    ins.run(days[1].id, dated.id, 'Día dos', null, null, 0, null);
+
+    // An undated trip: its day 2 lands on start (journey creation day) + 1, as its places do.
+    const undated = createTrip(testDb, user.id, { title: 'Sin fechas' });
+    const d1 = createDay(testDb, undated.id, { day_number: 1 });
+    const d2 = createDay(testDb, undated.id, { day_number: 2 });
+    addTripToJourney(journey.id, undated.id, user.id);
+    ins.run(d2.id, undated.id, 'Sin fecha', null, null, 0, null);
+    void d1;
+
+    const r = getJourneyFull(journey.id, user.id)! as any;
+    expect(r.planner_notes['2026-05-01'].map((n: any) => n.text)).toEqual(['Primera', 'Segunda']);
+    expect(r.planner_notes['2026-05-01'][0]).toMatchObject({ trip_id: dated.id, day_number: 1, description: 'Reserva **confirmada**', icon: 'Check', color: '#16a34a' });
+    expect(r.planner_notes['2026-05-02'].map((n: any) => n.text)).toEqual(['Día dos']);
+    const created = testDb.prepare('SELECT created_at FROM journeys WHERE id = ?').get(journey.id) as { created_at: number };
+    const anchor = new Date(created.created_at); anchor.setUTCDate(anchor.getUTCDate() + 1);
+    expect(r.planner_notes[anchor.toISOString().slice(0, 10)].map((n: any) => n.text)).toEqual(['Sin fecha']);
+
+    // Live: an edit in the planner shows up on the next read.
+    testDb.prepare("UPDATE day_notes SET text = 'Editada' WHERE text = 'Día dos'").run();
+    expect((getJourneyFull(journey.id, user.id) as any).planner_notes['2026-05-02'][0].text).toBe('Editada');
+  });
+
+  it('JOURNEY-SVC-016d: a journey contributor who is not on the trip does not see its planner notes', () => {
+    const { user: owner } = createUser(testDb);
+    const { user: friend } = createUser(testDb);
+    const journey = createJourney(testDb, owner.id, { title: 'Compartida' });
+    const trip = createTrip(testDb, owner.id, { title: 'Privado', start_date: '2026-06-01', end_date: '2026-06-01' });
+    addTripToJourney(journey.id, trip.id, owner.id);
+    const day = testDb.prepare('SELECT id FROM days WHERE trip_id = ?').get(trip.id) as { id: number };
+    testDb.prepare('INSERT INTO day_notes (day_id, trip_id, text, time) VALUES (?, ?, ?, ?)').run(day.id, trip.id, 'Código reserva', 'ABC123');
+    testDb.prepare("INSERT INTO journey_contributors (journey_id, user_id, role, added_at) VALUES (?, ?, 'viewer', ?)").run(journey.id, friend.id, Date.now());
+
+    expect((getJourneyFull(journey.id, owner.id) as any).planner_notes['2026-06-01']).toHaveLength(1);
+    expect((getJourneyFull(journey.id, friend.id) as any).planner_notes).toEqual({});
   });
 
   it('JOURNEY-SVC-094: stats.budgetTotal sums linked trips\' expenses in the earliest trip\'s currency, ignoring mismatched-currency items', () => {

@@ -15,7 +15,7 @@ router.get('/', authenticate, (req: Request, res: Response) => {
   res.json({ notes: dayNoteService.listNotes(dayId, tripId) });
 });
 
-router.post('/', authenticate, validateStringLengths({ text: 500, time: 150 }), (req: Request, res: Response) => {
+router.post('/', authenticate, validateStringLengths({ text: 500, time: 1000 }), (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, dayId } = req.params;
   const access = dayNoteService.verifyTripAccess(tripId, authReq.user.id);
@@ -26,13 +26,15 @@ router.post('/', authenticate, validateStringLengths({ text: 500, time: 150 }), 
 
   const { text, time, icon, sort_order } = req.body;
   if (!text?.trim()) return res.status(400).json({ error: 'Text required' });
+  const color = dayNoteService.parseNoteColor(req.body.color);
+  if (color === false) return res.status(400).json({ error: 'Invalid note color' });
 
-  const note = dayNoteService.createNote(dayId, tripId, text, time, icon, sort_order);
+  const note = dayNoteService.createNote(dayId, tripId, text, time, icon, sort_order, color ?? null);
   res.status(201).json({ note });
   broadcast(tripId, 'dayNote:created', { dayId: Number(dayId), note }, req.headers['x-socket-id'] as string);
 });
 
-router.put('/:id', authenticate, validateStringLengths({ text: 500, time: 150 }), (req: Request, res: Response) => {
+router.put('/:id', authenticate, validateStringLengths({ text: 500, time: 1000 }), (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
   const { tripId, dayId, id } = req.params;
   const access = dayNoteService.verifyTripAccess(tripId, authReq.user.id);
@@ -44,7 +46,9 @@ router.put('/:id', authenticate, validateStringLengths({ text: 500, time: 150 })
   if (!current) return res.status(404).json({ error: 'Note not found' });
 
   const { text, time, icon, sort_order } = req.body;
-  const updated = dayNoteService.updateNote(id, current, { text, time, icon, sort_order });
+  const color = dayNoteService.parseNoteColor(req.body.color);
+  if (color === false) return res.status(400).json({ error: 'Invalid note color' });
+  const updated = dayNoteService.updateNote(id, current, { text, time, icon, sort_order, color });
   res.json({ note: updated });
   broadcast(tripId, 'dayNote:updated', { dayId: Number(dayId), note: updated }, req.headers['x-socket-id'] as string);
 });

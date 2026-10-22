@@ -437,6 +437,23 @@ describe('useDayNotes', () => {
 
     expect(expandDay).toHaveBeenCalledWith(DAY_ID);
   });
+
+  it('FE-HOOK-DAYNOTES-030: the chosen colour is sent on save, and editing a note starts from its own colour', async () => {
+    let body: Record<string, unknown> | null = null;
+    server.use(
+      http.post('/api/trips/:id/days/:dayId/notes', async ({ request }) => {
+        body = await request.json() as Record<string, unknown>;
+        return HttpResponse.json({ note: buildDayNote({ day_id: DAY_ID, text: 'Ojo', color: '#dc2626' } as any) });
+      })
+    );
+    const { result } = renderHook(() => useDayNotes(TRIP_ID), { wrapper });
+    act(() => { result.current.setNoteUi({ [DAY_ID]: { mode: 'add', text: 'Ojo', time: '', icon: 'FileText', color: '#dc2626', sortOrder: 0 } }); });
+    await act(async () => { await result.current.saveNote(DAY_ID); });
+    expect(body).toMatchObject({ text: 'Ojo', color: '#dc2626' });
+
+    act(() => { result.current.openEditNote(DAY_ID, buildDayNote({ id: 5, text: 'x', color: '#16a34a' } as any)); });
+    expect(result.current.noteUi[DAY_ID].color).toBe('#16a34a');
+  });
 });
 
 // Type augment for window.__addToast

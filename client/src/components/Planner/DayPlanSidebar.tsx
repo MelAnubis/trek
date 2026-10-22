@@ -5,7 +5,8 @@ declare global { interface Window { __dragData: DragDataPayload | null } }
 import { exportTripGpx } from '../../utils/tripGpx'
 import React, { useState, useEffect, useLayoutEffect, useRef, useMemo } from 'react'
 import ReactDOM from 'react-dom'
-import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, ArrowUpDown, X, Route as RouteIcon, Sailboat, Bike, CarTaxiFront } from 'lucide-react'
+import { ChevronDown, ChevronRight, ChevronUp, ChevronsDownUp, ChevronsUpDown, Navigation, RotateCcw, ExternalLink, Clock, Pencil, GripVertical, Ticket, Plus, FileText, Check, Trash2, Info, MapPin, Star, Heart, Camera, Lightbulb, Flag, Bookmark, Train, Bus, Plane, Car, Ship, Coffee, ShoppingBag, AlertTriangle, FileDown, Lock, Hotel, Utensils, Users, Undo2, ArrowUpDown, X, Route as RouteIcon, Sailboat, Bike, CarTaxiFront, Ban } from 'lucide-react'
+import { NOTE_COLORS, NOTE_COLOR_NAMES, noteSurface } from './noteColors'
 import { DayReorderPopup } from './DayReorderPopup'
 
 const RES_ICONS = { flight: Plane, hotel: Hotel, restaurant: Utensils, train: Train, car: Car, cruise: Ship, bus: Bus, ferry: Sailboat, bicycle: Bike, taxi: CarTaxiFront, transport_other: RouteIcon, event: Ticket, tour: Users, other: FileText }
@@ -1836,6 +1837,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                       // Notizkarte
                       const note = item.data
                       const NoteIcon = getNoteIcon(note.icon)
+                      const noteSkin = noteSurface(note.color)
                       const noteIdx = idx
                       return (
                         <React.Fragment key={`note-${note.id}`}>
@@ -1902,9 +1904,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             padding: '7px 8px 7px 2px',
                             margin: '1px 8px',
                             borderRadius: 6,
-                            border: '1px solid var(--border-faint)',
+                            border: `1px solid ${noteSkin.border}`,
                             borderTop: showDropLine ? '2px solid var(--text-primary)' : undefined,
-                            background: 'var(--bg-hover)',
+                            background: noteSkin.background,
                             opacity: draggingId === `note-${note.id}` ? 0.4 : 1,
                             transition: 'background 0.1s', cursor: 'grab', userSelect: 'none',
                           }}
@@ -1912,8 +1914,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                           {canEditDays && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
                             <GripVertical size={13} strokeWidth={1.8} />
                           </div>}
-                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: 'var(--bg-hover)', overflow: 'hidden' }}>
-                            <NoteIcon size={13} strokeWidth={1.8} color="var(--text-muted)" />
+                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: noteSkin.iconBackground, overflow: 'hidden' }}>
+                            <NoteIcon size={13} strokeWidth={1.8} color={noteSkin.iconColor} />
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
@@ -2054,6 +2056,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                 </button>
               ))}
             </div>
+            {/* Colour — a note is a label as much as a reminder */}
+            <div role="radiogroup" aria-label={t('dayplan.noteColor')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7 }}>
+              <button type="button" role="radio" aria-checked={!ui.color} aria-label={t('dayplan.noteColor.none')} title={t('dayplan.noteColor.none')}
+                onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: null } }))}
+                style={{ width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-hover)',
+                  border: !ui.color ? '2px solid var(--text-primary)' : '2px dashed var(--border-primary)' }}>
+                <Ban size={11} color="var(--text-faint)" />
+              </button>
+              {NOTE_COLORS.map(c => (
+                <button key={c} type="button" role="radio" aria-checked={ui.color === c} aria-label={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)} title={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)}
+                  onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: c } }))}
+                  style={{ width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, background: c,
+                    border: 'none', outline: ui.color === c ? '2px solid var(--text-primary)' : 'none', outlineOffset: 2 }} />
+              ))}
+            </div>
             <input
               ref={noteInputRef}
               type="text"
@@ -2066,14 +2083,17 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
             />
             <textarea
               value={ui.time}
-              maxLength={150}
-              rows={3}
+              maxLength={1000}
+              rows={5}
               onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time: e.target.value } }))}
               onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteSubtitle')}
               style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--text-primary)', resize: 'none', lineHeight: 1.4 }}
             />
-            <div style={{ textAlign: 'right', fontSize: 11, color: (ui.time?.length || 0) >= 140 ? '#d97706' : 'var(--text-faint)', marginTop: -2 }}>{ui.time?.length || 0}/150</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--text-faint)', marginTop: -2 }}>
+              <span>{t('dayplan.noteFormatHint')}</span>
+              <span style={{ color: (ui.time?.length || 0) >= 950 ? '#d97706' : undefined }}>{ui.time?.length || 0}/1000</span>
+            </div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
               <button onClick={() => cancelNote(Number(dayId))} style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
               <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} style={{ fontSize: 12, background: !ui.text?.trim() ? 'var(--border-primary)' : 'var(--accent)', color: !ui.text?.trim() ? 'var(--text-faint)' : 'var(--accent-text)', border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>

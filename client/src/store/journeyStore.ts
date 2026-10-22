@@ -114,6 +114,8 @@ export interface JourneyDetail extends Journey {
   contributors: JourneyContributor[]
   stats: { entries: number; photos: number; places: number; countries?: number; countryCodes?: string[]; budgetTotal?: number; budgetCurrency?: string }
   hide_skeletons?: boolean
+  /** The linked trips' day notes, keyed by journey date (see PlannerNotes.tsx). */
+  planner_notes?: Record<string, import('../components/Journey/PlannerNotes').PlannerNote[]>
 }
 
 interface JourneyState {
