@@ -40,7 +40,7 @@ vi.mock('../../src/config', () => ({
 import { createTables } from '../../src/db/schema';
 import { runMigrations } from '../../src/db/migrations';
 import { resetTestDb } from '../helpers/test-db';
-import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine, nominatimLodgingElements, resetNominatimCache } from '../../src/services/mapsService';
+import { searchOverpassPoisAlongRoute, overpassElements, overpassSelectorsFor, splitLine, nominatimLodgingElements, resetNominatimCache, nominatimCategoryElements, resetNominatimCategoryCache } from '../../src/services/mapsService';
 import { getLodgingNearLine, getTilePois, tilesForLine, searchTilePoisAlongRoute, tileCategoryFor, searchPoisInBox } from '../../src/services/lodgingTileService';
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
@@ -49,6 +49,7 @@ beforeEach(() => {
   process.env.OVERPASS_RETRY_BACKOFF_MS = '1';
   process.env.NOMINATIM_FALLBACK_PAUSE_MS = '0';
   resetNominatimCache();
+  resetNominatimCategoryCache();
   vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); delete process.env.OVERPASS_URLS; delete process.env.OVERPASS_RETRY_BACKOFF_MS; delete process.env.NOMINATIM_FALLBACK_PAUSE_MS; });
@@ -435,6 +436,42 @@ describe('map explore pill through tiles (searchPoisInBox)', () => {
     expect(e - w).toBeLessThanOrEqual(0.61);
     expect(r.pois.map(p => p.osm_id)).toEqual(['node:5']);
     expect(r.pois[0].name).toBe('');
+  });
+
+  it('OV-034 — an area never seen, with Overpass down, answers from Nominatim (partial, not stored as final)', async () => {
+    const nom = (id: number, lat: number, lon: number, cls: string, type: string, name = 'P' + id) => ({ osm_type: 'way', osm_id: id, lat: String(lat), lon: String(lon), category: cls, type, name });
+    const f = vi.fn(async (url: string) => {
+      if (!String(url).includes('nominatim.openstreetmap.org')) return http(502);
+      const q = new URL(String(url)).searchParams;
+      expect(q.get('bounded')).toBe('1');
+      if (q.get('q') === '[park]') return { ok: true, status: 200, json: async () => [nom(7, 41.1, -4.7, 'leisure', 'park'), nom(8, 41.1, -4.7, 'amenity', 'parking')] };
+      if (q.get('q') === '[peak]') return { ok: true, status: 200, json: async () => [nom(9, 41.15, -4.6, 'natural', 'peak', 'Pico'), nom(10, 45, 2, 'natural', 'peak')] };
+      return { ok: true, status: 200, json: async () => [] };
+    });
+    vi.stubGlobal('fetch', f);
+    const r = await searchPoisInBox('nature', BOX);
+    expect(r.pois.map(p => p.osm_id).sort()).toEqual(['way:7', 'way:9']); // parking and out-of-box dropped
+    expect(r.partial).toBe(true);
+    // asked for the requested box, not the tile-aligned one
+    const vb = new URL(String(f.mock.calls.find(c => String(c[0]).includes('nominatim'))![0])).searchParams.get('viewbox');
+    expect(vb).toBe('-4.75,41.18,-4.55,41.06');
+    expect(testDb.prepare("SELECT COUNT(*) AS n FROM poi_tiles WHERE category LIKE 'box:nature:%'").get()).toMatchObject({ n: 0 });
+  });
+
+  it('OV-035 — the Nominatim fallback keeps fresh cached tiles and adds to them, never replacing them', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(ok([park(1, 41.07, -4.70)])));
+    await searchPoisInBox('nature', { south: 41.06, west: -4.75, north: 41.09, east: -4.65 }); // only some tiles
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => String(url).includes('nominatim')
+      ? { ok: true, status: 200, json: async () => [{ osm_type: 'node', osm_id: 20, lat: '41.15', lon: '-4.6', category: 'leisure', type: 'park', name: 'Nuevo' }] }
+      : http(504)));
+    const r = await searchPoisInBox('nature', BOX);
+    expect(r.pois.map(p => p.osm_id).sort()).toEqual(['node:1', 'node:20']);
+  });
+
+  it('OV-036 — nominatimCategoryElements fails with 502 only when every phrase failed', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(http(503)));
+    await expect(nominatimCategoryElements('cafe', 41, -4.8, 41.2, -4.5)).rejects.toMatchObject({ status: 502 });
+    await expect(nominatimCategoryElements('nope', 41, -4.8, 41.2, -4.5)).rejects.toMatchObject({ status: 400 });
   });
 
   it('OV-033 — unknown categories are refused', async () => {

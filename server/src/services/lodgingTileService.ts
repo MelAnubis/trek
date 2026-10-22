@@ -8,7 +8,7 @@
  * el reintento solo pide las teselas que faltan.
  */
 import { db } from '../db/database';
-import { overpassElements, overpassSelectorsFor, nominatimLodgingElements, categoryAllowsUnnamed, CATEGORY_OSM_FILTERS, type OverpassPoi } from './mapsService';
+import { overpassElements, overpassSelectorsFor, nominatimLodgingElements, nominatimCategoryElements, categoryAllowsUnnamed, CATEGORY_OSM_FILTERS, type OverpassPoi } from './mapsService';
 
 const TILE_DEG = 0.1;
 /** Súbelo al cambiar los filtros de una categoría: las teselas guardadas con los filtros antiguos dejan de valer. */
@@ -317,10 +317,14 @@ export async function searchPoisInBox(category: string, bbox: { south: number; w
     let elements: Awaited<ReturnType<typeof overpassElements>> | null = null;
     let viaFallback = false;
     try {
-      elements = await overpassElements(query);
+      // Una sola ronda: quien espera es una persona mirando el mapa, y detrás hay alternativa.
+      elements = await overpassElements(query, { rounds: 1 });
     } catch (err) {
-      if (category === 'hotel' || category === 'lodging') {
-        try { elements = await nominatimLodgingElements(y0 * TILE_DEG, x0 * TILE_DEG, (y1 + 1) * TILE_DEG, (x1 + 1) * TILE_DEG); viaFallback = true; }
+      // Overpass caído. Si hay teselas caducadas se usan; si falta alguna, se pregunta a Nominatim
+      // por la zona pedida (no la alineada: cuanto más pequeña la caja, más completa la respuesta).
+      const allStale = tiles.every(k => data.has(k) || stale.has(k));
+      if (!allStale) {
+        try { elements = await nominatimCategoryElements(category, south, west, north, east); viaFallback = true; }
         catch { elements = null; }
       }
       if (!elements) {
@@ -341,8 +345,16 @@ export async function searchPoisInBox(category: string, bbox: { south: number; w
       const up = upsertTile();
       const now = Date.now();
       for (const [k, list] of perTile) {
-        data.set(k, list);
-        if (complete) up.run(ck, k, now, JSON.stringify(list));
+        if (viaFallback) {
+          // Lo de Nominatim es incompleto: se suma a lo que ya hubiera (fresco o caducado), nunca lo sustituye.
+          const prev = data.get(k) ?? stale.get(k);
+          if (prev && !data.has(k)) usedStale = true;
+          const ids = new Set((prev ?? []).map(p => p.i));
+          data.set(k, [...(prev ?? []), ...list.filter(p => !ids.has(p.i))]);
+        } else {
+          data.set(k, list);
+          if (complete) up.run(ck, k, now, JSON.stringify(list));
+        }
       }
       if (viaFallback) partial = true;
     }
