@@ -32,7 +32,7 @@ import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen,
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 import { MapCompassPill } from '../components/Map/MapCompassPill'
-import type { Poi } from '../components/Map/poiCategories'
+import { poiDisplayName, type Poi } from '../components/Map/poiCategories'
 import { useTranslation } from '../i18n'
 import { addonsApi, accommodationsApi, authApi, tripsApi, assignmentsApi, mapsApi } from '../api/client'
 import { accommodationRepo } from '../repo/accommodationRepo'
@@ -419,7 +419,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
     setPrefillCoords({
       lat: poiItem.lat,
       lng: poiItem.lng,
-      name: poiItem.name,
+      name: poiDisplayName(poiItem, t),
       address: poiItem.address || undefined,
     })
     setEditingPlace(null)
@@ -434,7 +434,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         }
       } catch { /* best effort */ }
     }
-  }, [can, trip, language])
+  }, [can, trip, language, t])
 
   const [mapCategoryFilter, setMapCategoryFilter] = useState<Set<string>>(new Set())
   const [mapPlacesFilter, setMapPlacesFilter] = useState<string>('all')

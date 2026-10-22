@@ -9,7 +9,8 @@ import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import { getCategoryIcon, CATEGORY_ICON_MAP } from '../shared/categoryIcons'
 import ReservationOverlay from './ReservationOverlay'
 import type { Reservation } from '../../types'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { POI_CATEGORY_BY_KEY, poiDisplayName, type Poi } from './poiCategories'
+import { useTranslation } from '../../i18n'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -468,6 +469,7 @@ export const MapView = memo(function MapView({
   onAssignTrackDay,
   selectedDayId = null,
 }: any) {
+  const { t } = useTranslation()
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
       key={`poi-${poi.osm_id}`}
@@ -476,9 +478,9 @@ export const MapView = memo(function MapView({
       zIndexOffset={500}
       eventHandlers={{ click: () => onPoiClick?.(poi) }}
     >
-      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poi.name}</Tooltip>
+      <Tooltip direction="top" offset={[0, -10]} opacity={1} className="map-tooltip">{poiDisplayName(poi, t)}</Tooltip>
     </Marker>
-  )), [pois, onPoiClick])
+  )), [pois, onPoiClick, t])
   const visibleReservations = useMemo(() => {
     if (!visibleConnectionIds || visibleConnectionIds.length === 0) return []
     const set = new Set(visibleConnectionIds)

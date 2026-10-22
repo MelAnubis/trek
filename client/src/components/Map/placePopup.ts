@@ -58,11 +58,12 @@ export function buildPlacePopupHtml(place: PlaceWithCategory, photoUrl: string |
 }
 
 /** Hover-popup card for an OSM "explore" POI: category-coloured icon, name, address. */
-export function buildPoiPopupHtml(poi: Poi): string {
+/** `name` overrides poi.name — the caller passes poiDisplayName() so an unnamed fountain still reads as one. */
+export function buildPoiPopupHtml(poi: Poi, name: string = poi.name): string {
   const cat = POI_CATEGORY_BY_KEY[poi.category]
   const color = cat?.color || '#6b7280'
   const icon = cat ? renderToStaticMarkup(createElement(cat.Icon, { size: 12, color, strokeWidth: 2 })) : ''
-  const head = `<div style="display:flex;align-items:center;gap:5px;"><span style="flex-shrink:0;display:inline-flex;line-height:0;">${icon}</span><span style="${NAME_STYLE}">${esc(poi.name)}</span></div>`
+  const head = `<div style="display:flex;align-items:center;gap:5px;"><span style="flex-shrink:0;display:inline-flex;line-height:0;">${icon}</span><span style="${NAME_STYLE}">${esc(name)}</span></div>`
   const address = poi.address ? `<div style="${ADDR_STYLE}">${esc(poi.address)}</div>` : ''
   return `${CARD_OPEN}${head}${address}</div>`
 }

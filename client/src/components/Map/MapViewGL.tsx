@@ -14,7 +14,8 @@ import { ReservationMapboxOverlay } from './reservationsMapbox'
 import LocationButton from './LocationButton'
 import { useGeolocation } from '../../hooks/useGeolocation'
 import type { Place, Reservation } from '../../types'
-import { POI_CATEGORY_BY_KEY, type Poi } from './poiCategories'
+import { POI_CATEGORY_BY_KEY, poiDisplayName, type Poi } from './poiCategories'
+import { useTranslation } from '../../i18n'
 import { buildPlacePopupHtml, buildPoiPopupHtml } from './placePopup'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
@@ -181,6 +182,7 @@ export function MapViewGL({
 }: Props) {
   // Mapbox (with the user's token) or MapLibre + OpenFreeMap (no key) — see glEngine.ts.
   const engineInfo = useGLEngine()
+  const { t } = useTranslation()
   const engine = engineInfo?.engine ?? 'mapbox'
   const isMapbox = engine === 'mapbox'
   const mapboxStyle = engineInfo?.style ?? ''
@@ -583,14 +585,14 @@ export function MapViewGL({
     for (const poi of (pois as Poi[])) {
       const el = createPoiMarkerElement(poi.category)
       el.addEventListener('mouseenter', () => {
-        popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi)).addTo(map)
+        popupRef.current?.setLngLat([poi.lng, poi.lat]).setHTML(buildPoiPopupHtml(poi, poiDisplayName(poi, t))).addTo(map)
       })
       el.addEventListener('mouseleave', () => { popupRef.current?.remove() })
       el.addEventListener('click', (ev) => { ev.stopPropagation(); onPoiClickRef.current?.(poi) })
       const m = new gl.Marker({ element: el, anchor: 'center' }).setLngLat([poi.lng, poi.lat]).addTo(map)
       poiMarkersRef.current.push(m)
     }
-  }, [pois, mapReady])
+  }, [pois, mapReady, t])
 
   // Update route geojson. Waits for mapReady: a route that arrived before the
   // style loaded used to be dropped (no source yet) and never redrawn.

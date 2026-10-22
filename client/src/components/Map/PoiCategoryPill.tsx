@@ -16,7 +16,7 @@ interface Props {
 
 // Frosted, icon-only segmented control that floats over the map. Active segments
 // fill with the category colour (matching their markers); the label shows in a
-// custom tooltip on hover so the pill stays compact and never needs to scroll.
+// custom tooltip on hover so the pill stays compact (it scrolls only on a narrow phone).
 export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKeys, moved, onSearchArea }: Props) {
   const { t } = useTranslation()
   const anyError = !!errorKeys && Array.from(active).some(k => errorKeys.has(k))
@@ -30,7 +30,8 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', ...frosted }}>
+      {/* Twelve categories don't fit a phone's width: the pill scrolls sideways instead of overflowing. */}
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', maxWidth: 'calc(100vw - 32px)', overflowX: 'auto', scrollbarWidth: 'none', ...frosted }}>
         {POI_CATEGORIES.map(cat => {
           const on = active.has(cat.key)
           const loading = loadingKeys?.has(cat.key)
@@ -45,7 +46,7 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
                 style={{
                   position: 'relative',
                   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
+                  width: 34, height: 34, flexShrink: 0, borderRadius: 999, border: 'none', cursor: 'pointer',
                   background: on ? cat.color : 'transparent',
                   color: on ? '#fff' : undefined,
                   transition: 'background 0.14s, color 0.14s',
