@@ -11,7 +11,6 @@ import {
   reverseGeocode,
   resolveGoogleMapsUrl,
   autocompletePlaces,
-  searchOverpassPois,
   searchOverpassPoisAlongRoute,
   POI_CATEGORY_KEYS,
 } from '../services/mapsService';
