@@ -133,6 +133,12 @@ export function normalizeAppearanceSetting(value: unknown): Record<string, unkno
 
 function serializeValue(key: string, value: unknown): string {
   if (key === 'appearance') value = normalizeAppearanceSetting(value);
+  // The phone bar's destination ids (client: components/Layout/mobileNav.ts):
+  // short strings only, unique, a handful at most.
+  if (key === 'mobile_nav') {
+    const arr = Array.isArray(value) ? value : [];
+    value = [...new Set(arr.filter((x): x is string => typeof x === 'string' && /^[a-z_]{1,24}$/.test(x)))].slice(0, 8);
+  }
   const raw = typeof value === 'object' ? JSON.stringify(value) : String(value !== undefined ? value : '');
   if (ENCRYPTED_SETTING_KEYS.has(key)) return maybe_encrypt_api_key(raw) ?? raw;
   return raw;

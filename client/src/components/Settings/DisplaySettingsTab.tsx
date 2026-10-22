@@ -5,6 +5,7 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import Section from './Section'
 import AppearanceControls from './AppearanceControls'
+import MobileNavEditor from './MobileNavEditor'
 
 export default function DisplaySettingsTab(): React.ReactElement {
   const { settings, updateSetting } = useSettingsStore()
@@ -73,6 +74,9 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Look: scheme, accent, text size, density, transparency, motion */}
       <AppearanceControls t={t} />
+
+      {/* Phone bottom bar */}
+      <MobileNavEditor t={t} />
 
       {/* Language */}
       <div>

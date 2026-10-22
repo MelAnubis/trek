@@ -260,6 +260,8 @@ export interface Settings {
   map_poi_pill_enabled?: boolean
   /** Look & feel blob — see theme/appearance.ts (normalized before use). */
   appearance?: unknown
+  /** Ordered ids for the phone's bottom bar — see components/Layout/mobileNav.ts. */
+  mobile_nav?: string[]
 }
 
 export interface AssignmentsMap {

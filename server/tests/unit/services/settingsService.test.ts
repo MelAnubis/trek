@@ -239,3 +239,13 @@ describe('appearance setting', () => {
     expect(getUserSettings(user.id).appearance).toEqual(normalizeAppearanceSetting({}));
   });
 });
+
+describe('mobile_nav setting', () => {
+  it('SET-SVC-MOBNAV-001 — only short id strings, unique, at most eight; anything else becomes an empty list', () => {
+    const { user } = createUser(testDb);
+    upsertSetting(user.id, 'mobile_nav', ['trips', 'planner', 'trips', '<b>', 42, 'a'.repeat(40)]);
+    expect(getUserSettings(user.id).mobile_nav).toEqual(['trips', 'planner']);
+    upsertSetting(user.id, 'mobile_nav', 'trips');
+    expect(getUserSettings(user.id).mobile_nav).toEqual([]);
+  });
+});

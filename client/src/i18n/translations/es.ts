@@ -69,6 +69,9 @@ const es: Record<string, string> = {
   'nav.administrator': 'Administrador',
   'nav.versionTitle': 'Versión de la app',
   'nav.myTrips': 'Mis viajes',
+  'nav.mobile.planner': 'Rutas',
+  'nav.mobile.navigate': 'Navegar',
+  'nav.mobile.notifications': 'Avisos',
 
   // Dashboard
   'dashboard.title': 'Mis viajes',
@@ -221,6 +224,13 @@ const es: Record<string, string> = {
   'settings.saveKeys': 'Guardar claves',
   'settings.display': 'Visualización',
   'settings.colorMode': 'Modo de color',
+  'settings.mobileNav.title': 'Barra inferior del móvil',
+  'settings.mobileNav.hint': 'Elige hasta {max} accesos y su orden. «Perfil» siempre va al final.',
+  'settings.mobileNav.up': 'Subir',
+  'settings.mobileNav.down': 'Bajar',
+  'settings.mobileNav.remove': 'Quitar',
+  'settings.mobileNav.full': 'Ya hay {max}: quita uno para añadir otro',
+  'settings.mobileNav.reset': 'Barra por defecto',
   'settings.appearance.scheme': 'Color de la app',
   'settings.appearance.scheme.default': 'Índigo',
   'settings.appearance.scheme.mono': 'Monocromo',

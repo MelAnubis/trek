@@ -4,31 +4,20 @@ import { useAddonStore } from '../../store/addonStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { Plane, CalendarDays, Globe, Compass, User, Settings, Shield, LogOut, X, Navigation } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
-
-const ADDON_NAV: Record<string, { icon: LucideIcon; labelKey: string }> = {
-  vacay:   { icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name' },
-  atlas:   { icon: Globe,        labelKey: 'admin.addons.catalog.atlas.name' },
-  journey: { icon: Compass,      labelKey: 'admin.addons.catalog.journey.name' },
-}
+import { User, Settings, Shield, LogOut } from 'lucide-react'
+import { resolveMobileNav } from './mobileNav'
 
 export default function BottomNav() {
   const { t } = useTranslation()
   const darkMode = useSettingsStore(s => s.settings.dark_mode)
   const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
   const addons = useAddonStore(s => s.addons)
-  const globalAddons = addons.filter(a => a.type === 'global' && a.enabled)
+  const savedNav = useSettingsStore(s => s.settings.mobile_nav)
+  const enabledAddons = addons.filter(a => a.type === 'global' && a.enabled).map(a => a.id)
   const [showProfile, setShowProfile] = useState(false)
 
-  const items: { to: string; label: string; icon: LucideIcon }[] = [
-    { to: '/trips', label: t('nav.myTrips'), icon: Plane },
-    ...globalAddons.flatMap(addon => {
-      const nav = ADDON_NAV[addon.id]
-      return nav ? [{ to: `/${addon.id}`, label: t(nav.labelKey), icon: nav.icon }] : []
-    }),
-    { to: '/navigate', label: 'Navegar', icon: Navigation },
-  ]
+  // Configurable in Settings → Display (see mobileNav.ts); the default is the old fixed bar.
+  const items = resolveMobileNav(savedNav, enabledAddons).map(i => ({ to: i.to, label: t(i.labelKey), icon: i.icon }))
 
   return (
     <>

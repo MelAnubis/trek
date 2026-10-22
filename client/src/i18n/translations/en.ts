@@ -239,6 +239,13 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'settings.saveKeys': 'Save Keys',
   'settings.display': 'Display',
   'settings.colorMode': 'Color Mode',
+  'settings.mobileNav.title': 'Phone bottom bar',
+  'settings.mobileNav.hint': 'Choose up to {max} shortcuts and their order. "Profile" always comes last.',
+  'settings.mobileNav.up': 'Move up',
+  'settings.mobileNav.down': 'Move down',
+  'settings.mobileNav.remove': 'Remove',
+  'settings.mobileNav.full': 'Already {max}: remove one to add another',
+  'settings.mobileNav.reset': 'Default bar',
   'settings.appearance.scheme': 'App colour',
   'settings.appearance.scheme.default': 'Indigo',
   'settings.appearance.scheme.mono': 'Monochrome',
@@ -1058,6 +1065,9 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'vacay.fuseInfo4': 'Settings like public holidays and company holidays are shared.',
   'vacay.fuseInfo5': 'The fusion can be dissolved at any time by either party. Your entries will be preserved.',
   'nav.myTrips': 'My Trips',
+  'nav.mobile.planner': 'Routes',
+  'nav.mobile.navigate': 'Navigate',
+  'nav.mobile.notifications': 'Alerts',
 
   // Atlas addon
   'atlas.subtitle': 'Your travel footprint around the world',
