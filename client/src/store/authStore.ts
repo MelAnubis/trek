@@ -1,4 +1,5 @@
 import { clearAppearanceSnapshot } from '../theme/appearance'
+import { clearSettingsSnapshot } from './settingsStore'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authApi } from '../api/client'
@@ -173,6 +174,7 @@ export const useAuthStore = create<AuthState>()(
     clearAll().catch(console.error)
     // The next person on this browser shouldn't first paint in this one's theme.
     clearAppearanceSnapshot()
+    clearSettingsSnapshot()
     set({
       user: null,
       isAuthenticated: false,

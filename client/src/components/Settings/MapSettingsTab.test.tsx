@@ -1,5 +1,6 @@
 // FE-COMP-MAP-001 to FE-COMP-MAP-017
 import { render, screen, waitFor } from '../../../tests/helpers/render';
+import { fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -27,6 +28,7 @@ beforeEach(() => {
       default_zoom: 10,
     }),
     updateSettings: vi.fn().mockResolvedValue(undefined),
+    isLoaded: true,
   });
 });
 
@@ -183,5 +185,20 @@ describe('MapSettingsTab', () => {
     await waitFor(() => {
       expect(screen.getByDisplayValue('40')).toBeInTheDocument();
     });
+  });
+
+  it('FE-COMP-MAP-018: a URL being typed survives an unrelated settings change (dark mode, language…)', async () => {
+    const { rerender } = render(<MapSettingsTab />);
+    const input = screen.getByPlaceholderText(/basemaps\.cartocdn\.com/);
+    fireEvent.change(input, { target: { value: 'https://tiles.example/{z}/{x}/{y}.png?key=abc' } });
+    seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, dark_mode: true } });
+    rerender(<MapSettingsTab />);
+    expect(screen.getByDisplayValue('https://tiles.example/{z}/{x}/{y}.png?key=abc')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MAP-019: Save is disabled until the real settings have loaded, so defaults never overwrite the stored key', () => {
+    seedStore(useSettingsStore, { isLoaded: false });
+    render(<MapSettingsTab />);
+    expect(screen.getByText('Save Map').closest('button')).toBeDisabled();
   });
 });

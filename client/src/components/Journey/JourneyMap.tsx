@@ -220,8 +220,13 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
       updateWhenIdle: false,
       keepBuffer: 4,
     } as any)
+    // Fall back only if the configured source never loaded a single tile
+    // (see MapView): later errors are the connection, not a blocked source.
     let tileErrorCount = 0
+    let tileLoaded = false
+    tileLayer.on('tileload', () => { tileLoaded = true })
     tileLayer.on('tileerror', () => {
+      if (tileLoaded) return
       tileErrorCount++
       if (tileErrorCount >= 3 && (tileLayer as any)._url !== fallbackTile) {
         tileLayer.setUrl(fallbackTile)

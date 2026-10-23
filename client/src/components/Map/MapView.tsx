@@ -689,13 +689,21 @@ export const MapView = memo(function MapView({
 
   // Track the active tile URL separately so we can fall back to CartoDB when
   // the configured source is blocked (e.g. OSM 403 policy errors).
+  // Only when the source has NEVER loaded a tile: once one has, later errors
+  // are a flaky connection or the edge of the tileset, not a blocked source —
+  // swapping then silently dropped the user's own map (e.g. CartoDB with
+  // their key) for the rest of the session, which looked like a lost key.
   const [activeTileUrl, setActiveTileUrl] = useState(tileUrl)
   const tileErrorCountRef = useRef(0)
+  const tileLoadedRef = useRef(false)
   useEffect(() => {
     setActiveTileUrl(tileUrl)
     tileErrorCountRef.current = 0
+    tileLoadedRef.current = false
   }, [tileUrl])
+  const onTileLoad = useCallback(() => { tileLoadedRef.current = true }, [])
   const onTileError = useCallback(() => {
+    if (tileLoadedRef.current) return
     tileErrorCountRef.current++
     if (tileErrorCountRef.current >= 3 && activeTileUrl !== FALLBACK_TILE_URL) {
       setActiveTileUrl(FALLBACK_TILE_URL)
@@ -721,7 +729,7 @@ export const MapView = memo(function MapView({
         updateWhenZooming={false}
         updateWhenIdle={true}
         referrerPolicy="strict-origin-when-cross-origin"
-        eventHandlers={{ tileerror: onTileError }}
+        eventHandlers={{ tileerror: onTileError, tileload: onTileLoad }}
       />
 
       <MapController center={center} zoom={zoom} />

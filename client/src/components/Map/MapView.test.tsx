@@ -19,7 +19,12 @@ const mapMock = vi.hoisted(() => ({
 
 vi.mock('react-leaflet', () => ({
   MapContainer: ({ children }: any) => <div data-testid="map-container">{children}</div>,
-  TileLayer: () => <div data-testid="tile-layer" />,
+  TileLayer: ({ url, eventHandlers }: any) => (
+    <div data-testid="tile-layer" data-url={url}>
+      <button data-testid="tile-error" onClick={() => eventHandlers?.tileerror?.()} />
+      <button data-testid="tile-load" onClick={() => eventHandlers?.tileload?.()} />
+    </div>
+  ),
   Marker: ({ children, eventHandlers, position }: any) => (
     <div
       data-testid="marker"
@@ -247,5 +252,23 @@ describe('MapView', () => {
 
     rerender(<MapView places={places} fitKey={2} />)
     expect(mapMock.fitBounds.mock.calls.length).toBeGreaterThan(afterFirst)
+  })
+})
+
+describe('MapView tile source fallback', () => {
+  const KEYED = 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=K'
+  const errors = (n: number) => { for (let i = 0; i < n; i++) fireEvent.click(screen.getByTestId('tile-error')) }
+
+  it('FE-COMP-MAPVIEW-090: a source that never loaded a tile falls back to OSM after three errors', () => {
+    render(<MapView tileUrl={KEYED} />)
+    errors(3)
+    expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toContain('tile.openstreetmap.org')
+  })
+
+  it('FE-COMP-MAPVIEW-091: once the user\'s source has loaded, later errors (flaky signal) never swap it away', () => {
+    render(<MapView tileUrl={KEYED} />)
+    fireEvent.click(screen.getByTestId('tile-load'))
+    errors(10)
+    expect(screen.getByTestId('tile-layer').getAttribute('data-url')).toBe(KEYED)
   })
 })

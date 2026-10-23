@@ -141,7 +141,7 @@ function StyleDropdown({ value, onChange }: { value: string; onChange: (v: strin
 type Provider = 'leaflet' | 'maplibre' | 'mapbox-gl'
 
 export default function MapSettingsTab(): React.ReactElement {
-  const { settings, updateSettings } = useSettingsStore()
+  const { settings, updateSettings, isLoaded } = useSettingsStore()
   const { t } = useTranslation()
   const toast = useToast()
   const [saving, setSaving] = useState(false)
@@ -156,18 +156,19 @@ export default function MapSettingsTab(): React.ReactElement {
   const [defaultLng, setDefaultLng] = useState<number | string>(settings.default_lng || 2.3522)
   const [defaultZoom, setDefaultZoom] = useState<number | string>(settings.default_zoom || 10)
 
-  useEffect(() => {
-    setProvider((settings.map_provider as Provider) || 'leaflet')
-    setMapTileUrl(settings.map_tile_url || '')
-    setMapboxToken(settings.mapbox_access_token || '')
-    setMapboxStyle(settings.mapbox_style || 'mapbox://styles/mapbox/standard')
-    setMaplibreStyle(maplibreStyleUrl(settings.maplibre_style))
-    setMapbox3d(settings.mapbox_3d_enabled !== false)
-    setMapboxQuality(settings.mapbox_quality_mode === true)
-    setDefaultLat(settings.default_lat || 48.8566)
-    setDefaultLng(settings.default_lng || 2.3522)
-    setDefaultZoom(settings.default_zoom || 10)
-  }, [settings])
+  // Each field follows ITS OWN stored value. Watching the whole settings
+  // object reset every field whenever anything else changed (dark mode,
+  // language, a background reload) — wiping a key pasted but not yet saved.
+  useEffect(() => { setProvider((settings.map_provider as Provider) || 'leaflet') }, [settings.map_provider])
+  useEffect(() => { setMapTileUrl(settings.map_tile_url || '') }, [settings.map_tile_url])
+  useEffect(() => { setMapboxToken(settings.mapbox_access_token || '') }, [settings.mapbox_access_token])
+  useEffect(() => { setMapboxStyle(settings.mapbox_style || 'mapbox://styles/mapbox/standard') }, [settings.mapbox_style])
+  useEffect(() => { setMaplibreStyle(maplibreStyleUrl(settings.maplibre_style)) }, [settings.maplibre_style])
+  useEffect(() => { setMapbox3d(settings.mapbox_3d_enabled !== false) }, [settings.mapbox_3d_enabled])
+  useEffect(() => { setMapboxQuality(settings.mapbox_quality_mode === true) }, [settings.mapbox_quality_mode])
+  useEffect(() => { setDefaultLat(settings.default_lat || 48.8566) }, [settings.default_lat])
+  useEffect(() => { setDefaultLng(settings.default_lng || 2.3522) }, [settings.default_lng])
+  useEffect(() => { setDefaultZoom(settings.default_zoom || 10) }, [settings.default_zoom])
 
   const handleMapClick = useCallback((mapInfo) => {
     setDefaultLat(mapInfo.latlng.lat)
@@ -508,7 +509,9 @@ export default function MapSettingsTab(): React.ReactElement {
 
       <button
         onClick={saveMapSettings}
-        disabled={saving}
+        // Until the real settings have arrived the form holds defaults: saving
+        // then would overwrite the stored map source (and its key) with them.
+        disabled={saving || !isLoaded}
         className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm hover:bg-slate-700 disabled:bg-slate-400"
       >
         {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}

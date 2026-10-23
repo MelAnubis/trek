@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
-import { useSettingsStore } from '../../../src/store/settingsStore';
+import { useSettingsStore, SETTINGS_SNAPSHOT_KEY, clearSettingsSnapshot } from '../../../src/store/settingsStore';
 import { resetAllStores } from '../../helpers/store';
 import { buildSettings } from '../../helpers/factories';
 
@@ -215,5 +215,26 @@ describe('settingsStore', () => {
 
       expect(useSettingsStore.getState().settings.default_zoom).toBe(15);
     });
+  });
+});
+
+describe('FE-SETTINGS-020: settings snapshot for starts without a connection', () => {
+  it('keeps the last loaded settings (map source included) but never the secrets', async () => {
+    localStorage.removeItem(SETTINGS_SNAPSHOT_KEY);
+    const settings = buildSettings({ map_tile_url: 'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}{r}.png?key=K', mapbox_access_token: 'pk.secret' });
+    server.use(http.get('/api/settings', () => HttpResponse.json({ settings })));
+    await useSettingsStore.getState().loadSettings();
+    const snap = JSON.parse(localStorage.getItem(SETTINGS_SNAPSHOT_KEY) || '{}');
+    expect(snap.map_tile_url).toContain('key=K');
+    expect(snap.mapbox_access_token).toBeUndefined();
+    clearSettingsSnapshot();
+    expect(localStorage.getItem(SETTINGS_SNAPSHOT_KEY)).toBeNull();
+  });
+
+  it('a failed load leaves the settings already in memory untouched', async () => {
+    useSettingsStore.setState({ settings: { ...useSettingsStore.getState().settings, map_tile_url: 'https://x/{z}/{x}/{y}.png?key=K' } });
+    server.use(http.get('/api/settings', () => HttpResponse.error()));
+    await useSettingsStore.getState().loadSettings();
+    expect(useSettingsStore.getState().settings.map_tile_url).toBe('https://x/{z}/{x}/{y}.png?key=K');
   });
 });

@@ -20,6 +20,32 @@ interface SettingsState {
 export const hasStoredLanguage = (): boolean =>
   typeof localStorage !== 'undefined' && !!localStorage.getItem('app_language')
 
+// The last settings loaded from the server, so a start without a connection
+// (the APK on a flaky network, the server restarting) keeps the user's map
+// source and the rest instead of silently falling back to the defaults.
+// Secrets stay out of it.
+export const SETTINGS_SNAPSHOT_KEY = 'trek_settings'
+const SECRET_SETTING_KEYS = new Set(['mapbox_access_token', 'webhook_url', 'ntfy_token'])
+
+function readSettingsSnapshot(): Partial<Settings> {
+  try {
+    const v = JSON.parse(localStorage.getItem(SETTINGS_SNAPSHOT_KEY) || 'null')
+    return v && typeof v === 'object' && !Array.isArray(v) ? v : {}
+  } catch { return {} }
+}
+
+function writeSettingsSnapshot(settings: Settings): void {
+  try {
+    const safe = Object.fromEntries(Object.entries(settings).filter(([k]) => !SECRET_SETTING_KEYS.has(k)))
+    localStorage.setItem(SETTINGS_SNAPSHOT_KEY, JSON.stringify(safe))
+  } catch { /* private mode / quota: only the offline start is affected */ }
+}
+
+/** On logout, so the next person on a shared device doesn't inherit these. */
+export function clearSettingsSnapshot(): void {
+  try { localStorage.removeItem(SETTINGS_SNAPSHOT_KEY) } catch { /* non-fatal */ }
+}
+
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: {
     map_tile_url: '',
@@ -38,6 +64,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     mapbox_style: 'mapbox://styles/mapbox/standard',
     mapbox_3d_enabled: true,
     mapbox_quality_mode: false,
+    ...readSettingsSnapshot(),
+    language: localStorage.getItem('app_language') || readSettingsSnapshot().language || 'en',
   },
   isLoaded: false,
 
@@ -48,6 +76,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
         settings: { ...state.settings, ...data.settings },
         isLoaded: true,
       }))
+      writeSettingsSnapshot(get().settings)
     } catch (err: unknown) {
       set({ isLoaded: true })
       console.error('Failed to load settings:', err)
@@ -59,6 +88,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       settings: { ...state.settings, [key]: value },
     }))
     if (key === 'language') localStorage.setItem('app_language', value as string)
+    if (get().isLoaded) writeSettingsSnapshot(get().settings)
     try {
       await settingsApi.set(key, value)
     } catch (err: unknown) {
@@ -84,6 +114,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set((state) => ({
       settings: { ...state.settings, ...settingsObj },
     }))
+    if (get().isLoaded) writeSettingsSnapshot(get().settings)
     try {
       await settingsApi.setBulk(settingsObj)
     } catch (err: unknown) {
