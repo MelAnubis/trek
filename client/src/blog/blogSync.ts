@@ -141,6 +141,7 @@ export async function resolveRefs(blocks: BlogBlock[]): Promise<{ blocks: BlogBl
   for (const b of blocks) {
     if (b.type === 'photo') out.push({ ...b, photo: await fix(b.photo) })
     else if (b.type === 'gallery') out.push({ ...b, photos: await Promise.all(b.photos.map(fix)) })
+    else if (b.type === 'sketch' && b.image) out.push({ ...b, image: await fix(b.image) })
     else out.push(b)
   }
   return { blocks: out, missing, failed }
@@ -155,6 +156,8 @@ function dropFailed(blocks: BlogBlock[], failedIds: Set<string>): BlogBlock[] {
       const photos = b.photos.filter(r => !bad(r))
       return photos.length ? [{ ...b, photos }] : []
     }
+    // El dibujo se queda; solo pierde su imagen (se rehará al volver a guardarlo).
+    if (b.type === 'sketch' && b.image && bad(b.image)) return [{ ...b, image: undefined, imageKey: undefined }]
     return [b]
   })
 }

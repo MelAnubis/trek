@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { markdownToPlainText } from '../components/Journey/stripMarkdown'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
@@ -180,7 +181,7 @@ export default function JourneyStudioPage() {
       entries: entries.map(e => ({
         id: e.id,
         title: e.title ?? null,
-        story: e.story ?? null,
+        story: markdownToPlainText(e.story),
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
         lat: e.location_lat ?? null,
@@ -234,7 +235,7 @@ export default function JourneyStudioPage() {
       entries: entries.map(e => ({
         id: e.id,
         title: e.title ?? null,
-        story: e.story ?? null,
+        story: markdownToPlainText(e.story),
         location: e.location_name ?? null,
         date: e.entry_date ?? null,
         photos: (e.photos || []).map(p => ({ photoId: p.photo_id, width: p.width ?? null, height: p.height ?? null })),

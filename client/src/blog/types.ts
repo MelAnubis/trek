@@ -34,7 +34,9 @@ export type BlogBlock =
   | { id: string; type: 'photo'; photo: PhotoRef; caption?: string; layout: 'inline' | 'wide' | 'full'; entryId?: number | null }
   | { id: string; type: 'gallery'; photos: PhotoRef[]; caption?: string; layout: 'grid' | 'mosaic' | 'carousel' }
   | { id: string; type: 'map'; source: 'post' | 'day' | 'journey'; date?: string | null; showTrack: boolean; showPhotos: boolean; caption?: string }
-  | { id: string; type: 'sketch'; aspect: number; background: 'paper' | 'grid' | 'lines' | 'transparent'; strokes: SketchStroke[]; caption?: string }
+  | { id: string; type: 'sketch'; aspect: number; background: 'paper' | 'grid' | 'lines' | 'transparent'; strokes: SketchStroke[]; caption?: string
+      /** El dibujo pasado a imagen, para la entrada de la travesía (PDF, Studio). */
+      image?: PhotoRef; imageKey?: string }
   | { id: string; type: 'divider' }
   | { id: string; type: 'entry'; entryId: number }
 

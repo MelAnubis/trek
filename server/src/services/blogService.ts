@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { db } from '../db/database';
-import { canAccessJourney, canEdit, createEntry, deleteEntry, linkPhotoToEntry, broadcastJourneyEvent } from './journeyService';
+import { canAccessJourney, canEdit, createEntry, deleteEntry, deleteGalleryPhoto, linkPhotoToEntry, broadcastJourneyEvent } from './journeyService';
+import fs from 'node:fs';
+import path from 'node:path';
 
 /**
  * Blog de la travesía (4.2).
@@ -57,6 +59,9 @@ const blockSchema = z.discriminatedUnion('type', [
       p: z.array(z.number().finite()).max(30000),
     })).max(4000),
     caption: z.string().max(500).optional(),
+    // El dibujo hecho imagen (lo sube el cliente): va a la entrada de la travesía.
+    image: photoRef.optional(),
+    imageKey: z.string().max(64).optional(),
   }),
   z.object({ id: ID, type: z.literal('divider') }),
   z.object({ id: ID, type: z.literal('entry'), entryId: z.number().int().positive() }),
@@ -132,14 +137,18 @@ function excerptOf(blocks: BlogBlock[]): string | null {
   return plain.length > 220 ? `${plain.slice(0, 217).replace(/\s+\S*$/, '')}…` : plain;
 }
 
-function photoRefsOf(blocks: BlogBlock[]): { galleryId: number; photoId: number; entryId?: number | null }[] {
-  const out: { galleryId: number; photoId: number; entryId?: number | null }[] = [];
+/** Las fotos del post en orden; con `sketches`, también los dibujos hechos imagen. */
+function photoRefsOf(blocks: BlogBlock[], sketches = false): { galleryId: number; photoId: number; entryId?: number | null; sketch?: boolean }[] {
+  const out: { galleryId: number; photoId: number; entryId?: number | null; sketch?: boolean }[] = [];
   for (const b of blocks) {
     if (b.type === 'photo') out.push({ ...b.photo, entryId: b.entryId ?? null });
     else if (b.type === 'gallery') out.push(...b.photos);
+    else if (sketches && b.type === 'sketch' && b.image) out.push({ ...b.image, sketch: true });
   }
   return out;
 }
+
+const sketchImagesOf = (blocks: BlogBlock[]) => new Set(blocks.flatMap(b => (b.type === 'sketch' && b.image ? [b.image.galleryId] : [])));
 
 function ownEntryId(postId: string): number | null {
   const r = db.prepare('SELECT id FROM journey_entries WHERE source_post_id = ?').get(postId) as { id: number } | undefined;
@@ -289,13 +298,16 @@ export function savePost(journeyId: number, postId: string, userId: number, inpu
   // Photos must be this journey's: the server is the one that knows which
   // trek photo each gallery row points at.
   const gallery = new Map((db.prepare('SELECT id, photo_id FROM journey_photos WHERE journey_id = ?').all(journeyId) as { id: number; photo_id: number }[]).map(r => [r.id, r.photo_id]));
-  const badPhoto = photoRefsOf(input.blocks).find(p => gallery.get(p.galleryId) == null);
+  const badPhoto = photoRefsOf(input.blocks, true).find(p => gallery.get(p.galleryId) == null);
   if (badPhoto) return { ok: false, status: 400, error: `Photo ${badPhoto.galleryId} is not in this journey` };
   const blocks = input.blocks.map(b => {
     if (b.type === 'photo') return { ...b, photo: { galleryId: b.photo.galleryId, photoId: gallery.get(b.photo.galleryId)! } };
     if (b.type === 'gallery') return { ...b, photos: b.photos.map(p => ({ galleryId: p.galleryId, photoId: gallery.get(p.galleryId)! })) };
+    if (b.type === 'sketch' && b.image) return { ...b, image: { galleryId: b.image.galleryId, photoId: gallery.get(b.image.galleryId)! } };
     return b;
   }) as BlogBlock[];
+  let oldBlocks: BlogBlock[] = [];
+  if (existing) { try { oldBlocks = JSON.parse(existing.blocks); } catch { oldBlocks = []; } }
 
   const journeyEntries = new Set((db.prepare('SELECT id FROM journey_entries WHERE journey_id = ?').all(journeyId) as { id: number }[]).map(r => r.id));
   const entryIds = [...new Set(input.entry_ids)].filter(id => journeyEntries.has(id));
@@ -304,6 +316,7 @@ export function savePost(journeyId: number, postId: string, userId: number, inpu
   const status = STATUSES.includes(input.status) ? input.status : 'draft';
   const t = now();
 
+  const staleImages: number[] = [];
   const result = db.transaction(() => {
     const title = input.title.trim();
     // A published post keeps its address: links already shared must not break.
@@ -333,6 +346,20 @@ export function savePost(journeyId: number, postId: string, userId: number, inpu
       } else {
         db.prepare('UPDATE journey_entries SET title = ?, story = ?, entry_date = ?, updated_at = ? WHERE id = ?').run(title || null, story, date, t, own);
       }
+      // Where it happened, for the journey map and the PDF's day maps: the
+      // first geotagged photo of the post, or else the first linked entry
+      // that has a place.
+      if (own != null) {
+        const ids = refs.map(r => r.photoId);
+        const geo = ids.length
+          ? db.prepare(`SELECT lat, lng FROM trek_photos WHERE id IN (${ids.map(() => '?').join(',')}) AND lat IS NOT NULL AND lng IS NOT NULL`).all(...ids) as { lat: number; lng: number }[]
+          : [];
+        const fromEntry = entryIds.length
+          ? db.prepare(`SELECT location_lat AS lat, location_lng AS lng, location_name AS name FROM journey_entries WHERE id IN (${entryIds.map(() => '?').join(',')}) AND location_lat IS NOT NULL ORDER BY entry_date, sort_order LIMIT 1`).get(...entryIds) as { lat: number; lng: number; name: string | null } | undefined
+          : undefined;
+        const loc = geo[0] ? { ...geo[0], name: fromEntry?.name ?? null } : fromEntry;
+        if (loc) db.prepare('UPDATE journey_entries SET location_lat = ?, location_lng = ?, location_name = COALESCE(?, location_name) WHERE id = ?').run(loc.lat, loc.lng, loc.name ?? null, own);
+      }
     } else if (own != null) {
       // Switched off: the entry stays in the journey (it is the user's
       // writing), it just stops following the post.
@@ -349,11 +376,37 @@ export function savePost(journeyId: number, postId: string, userId: number, inpu
     // entry, and every photo of a post into the entry it created itself.
     for (const p of refs) {
       if (p.entryId && journeyEntries.has(p.entryId)) linkPhotoToEntry(p.entryId, p.galleryId, userId);
-      if (own != null) linkPhotoToEntry(own, p.galleryId, userId);
+    }
+    // The post's own entry carries exactly the post's pictures — photos and
+    // drawings — in the post's order (it mirrors the post, like its text).
+    if (own != null) {
+      const all = [...new Map(photoRefsOf(blocks, true).map(r => [r.galleryId, r])).values()];
+      const keep = new Set(all.map(r => r.galleryId));
+      for (const r of db.prepare('SELECT journey_photo_id AS g FROM journey_entry_photos WHERE entry_id = ?').all(own) as { g: number }[]) {
+        if (!keep.has(r.g)) db.prepare('DELETE FROM journey_entry_photos WHERE entry_id = ? AND journey_photo_id = ?').run(own, r.g);
+      }
+      all.forEach((r, i) => {
+        linkPhotoToEntry(own!, r.galleryId, userId);
+        db.prepare('UPDATE journey_entry_photos SET sort_order = ? WHERE entry_id = ? AND journey_photo_id = ?').run(i, own, r.galleryId);
+      });
+    }
+    // A drawing redrawn leaves its old image behind: gone from the gallery
+    // too, unless something else still uses it.
+    const nowUsed = sketchImagesOf(blocks);
+    for (const g of sketchImagesOf(oldBlocks)) {
+      if (nowUsed.has(g)) continue;
+      const otherEntry = db.prepare('SELECT 1 FROM journey_entry_photos WHERE journey_photo_id = ? AND entry_id != ?').get(g, own ?? -1);
+      const otherPost = (db.prepare('SELECT blocks FROM blog_posts WHERE journey_id = ? AND id != ?').all(journeyId, postId) as { blocks: string }[])
+        .some(r => r.blocks.includes(`"galleryId":${g}`));
+      if (!otherEntry && !otherPost) staleImages.push(g);
     }
     return db.prepare('SELECT * FROM blog_posts WHERE id = ?').get(postId) as PostRow;
   })();
 
+  for (const g of staleImages) {
+    const gone = deleteGalleryPhoto(g, userId);
+    if (gone?.file_path) { try { fs.unlinkSync(path.join(__dirname, '../../uploads', gone.file_path)); } catch { /* ya no está */ } }
+  }
   const post = fullPost(result);
   broadcastJourneyEvent(journeyId, 'journey:blog:updated', { postId, version: post.version }, sid);
   return { ok: true, post, created: !existing };

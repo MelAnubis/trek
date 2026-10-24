@@ -13,6 +13,7 @@ import {
   emptyPost, saveLocal, deleteLocal, resolveConflict, addPhotos, refreshPost, getLocalPost, newId, flush,
 } from '../blog/blogSync'
 import { blocksFromEntry, hasContent, insertAfter, photosOf } from '../blog/blockOps'
+import { ensureSketchImages } from '../blog/sketchImage'
 import type { BlogBlock, BlockType, LocalPost, PhotoRef } from '../blog/types'
 import BlockEditor, { InsertMenu, useBlockInserter, type PhotoRequest } from '../components/Blog/BlockEditor'
 import BlogPostView, { READING_FONT } from '../components/Blog/BlogPostView'
@@ -261,6 +262,12 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
     const base = latest ?? p
     const merged = { ...base } as LocalPost
     for (const k of CONTENT_KEYS) (merged as unknown as Record<string, unknown>)[k] = p[k]
+    // Dibujos cambiados → imagen, para que lleguen a la entrada de la travesía.
+    const sk = await ensureSketchImages(journeyId, p.id, merged.blocks)
+    merged.blocks = sk.blocks
+    if (sk.changed.size) {
+      setDraft(d => d && ({ ...d, blocks: d.blocks.map(b => (b.type === 'sketch' && sk.changed.has(b.id) ? { ...b, ...sk.changed.get(b.id) } : b)) }))
+    }
     await saveLocal(merged)
     if (isNew && !latest) navigate(`/journey/${journeyId}/blog/${p.id}`, { replace: true })
   }, [isNew, journeyId, navigate])

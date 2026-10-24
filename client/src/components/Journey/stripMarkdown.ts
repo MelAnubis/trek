@@ -22,3 +22,28 @@ export function stripMarkdown(md: string): string {
     .replace(/\n/g, ' ')                    // remaining newlines → spaces
     .trim()
 }
+
+/**
+ * Markdown → texto plano conservando párrafos y saltos de línea: para el
+ * Studio, cuyos cuadros de texto no interpretan markdown y mostraban los
+ * asteriscos tal cual ("**nuevo**").
+ */
+export function markdownToPlainText(md: string | null | undefined): string | null {
+  if (md == null) return null
+  return md
+    .replace(/(`{3}[\s\S]*?`{3})/g, '')
+    .replace(/!\[.*?\]\(.*?\)/g, '')
+    .replace(/\[([^\]]*)\]\(.*?\)/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    .replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g, '$1$2')
+    .replace(/(^|[^_\w])_(?!\s)(.+?)_(?!\w)/g, '$1$2')
+    .replace(/~~(.+?)~~/g, '$1')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^>\s?/gm, '')
+    .replace(/^[-*+]\s+/gm, '• ')
+    .replace(/^---+$/gm, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}

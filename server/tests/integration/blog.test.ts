@@ -373,3 +373,44 @@ describe('Deleting a post', () => {
     expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(ph.galleryId)).toBeTruthy();
   });
 });
+
+describe('The post\'s own journey entry carries its drawings, photos and place', () => {
+  it('BLOG-017 — a drawing (as image) and the photos land in the entry in post order; a redrawn image replaces the old one, which leaves the gallery', async () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    const ph = galleryPhoto(j.id, user.id, { lat: 41.07, lng: -4.71 });
+    const img1 = galleryPhoto(j.id, user.id);
+    const img2 = galleryPhoto(j.id, user.id);
+    const sketch = (image: object) => ({ id: 's', type: 'sketch', aspect: 0.75, background: 'paper', strokes: [{ c: '#000000', w: 4, tool: 'pen', p: [0, 0, 0.5, 9, 9, 0.5] }], image, imageKey: 'k' });
+    const put = (b: object) => request(app).put(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id)).send(b);
+    const a = await put({ title: 'Con dibujo', add_to_journey: true, blocks: [sketch(img1), para('p', 'x'), { id: 'f', type: 'photo', photo: ph }] });
+    const own = a.body.post.own_entry_id;
+    const order = () => (testDb.prepare('SELECT journey_photo_id AS g FROM journey_entry_photos WHERE entry_id = ? ORDER BY sort_order').all(own) as { g: number }[]).map(r => r.g);
+    expect(order()).toEqual([img1.galleryId, ph.galleryId]);
+    // the cover is a real photo, not the drawing
+    expect(a.body.post.cover_photo_id).toBe(ph.photoId);
+    // place from the geotagged photo
+    expect(testDb.prepare('SELECT location_lat AS lat, location_lng AS lng FROM journey_entries WHERE id = ?').get(own)).toEqual({ lat: 41.07, lng: -4.71 });
+
+    await put({ title: 'Con dibujo', add_to_journey: true, base_version: 1, blocks: [sketch(img2), para('p', 'x'), { id: 'f', type: 'photo', photo: ph }] });
+    expect(order()).toEqual([img2.galleryId, ph.galleryId]);
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(img1.galleryId)).toBeUndefined();
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(ph.galleryId)).toBeTruthy();
+  });
+
+  it('BLOG-018 — a photo removed from the post leaves its entry (but stays in the gallery); without geotagged photos the place comes from a linked entry', async () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    const a1 = galleryPhoto(j.id, user.id);
+    const a2 = galleryPhoto(j.id, user.id);
+    const linked = createJourneyEntry(testDb, j.id, user.id, { title: 'Castillo', location_name: 'Arévalo' });
+    testDb.prepare('UPDATE journey_entries SET location_lat = 41.06, location_lng = -4.72 WHERE id = ?').run(linked.id);
+    const put = (b: object) => request(app).put(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id)).send(b);
+    const r = await put({ title: 'T', add_to_journey: true, entry_ids: [linked.id], blocks: [{ id: 'g', type: 'gallery', photos: [a1, a2] }] });
+    const own = r.body.post.own_entry_id;
+    await put({ title: 'T', add_to_journey: true, entry_ids: [linked.id], blocks: [{ id: 'g', type: 'gallery', photos: [a2] }] });
+    expect((testDb.prepare('SELECT journey_photo_id AS g FROM journey_entry_photos WHERE entry_id = ?').all(own) as { g: number }[]).map(x => x.g)).toEqual([a2.galleryId]);
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(a1.galleryId)).toBeTruthy();
+    expect(testDb.prepare('SELECT location_name, location_lat FROM journey_entries WHERE id = ?').get(own)).toEqual({ location_name: 'Arévalo', location_lat: 41.06 });
+  });
+});
