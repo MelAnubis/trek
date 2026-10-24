@@ -44,6 +44,7 @@ import shareRoutes from './routes/share';
 import liveLocationRoutes from './routes/liveLocation';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
+import blogRoutes from './routes/blog';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
 import plannerRoutes from './routes/planner';
@@ -190,6 +191,8 @@ export function createApp(): express.Application {
   // would never actually apply: the earlier 100kb parser would already
   // have rejected the request before this one ever ran.
   app.use('/api/journeys/:id/book', express.json({ limit: '20mb' }));
+  // Blog posts carry hand-drawn sketches as stroke data — same ordering constraint.
+  app.use('/api/journeys/:id/blog', express.json({ limit: '12mb' }));
   // Planner routes carry a whole GPX track as JSON — same ordering constraint as above.
   app.use('/api/planner', express.json({ limit: '15mb' }));
   app.use(express.json({ limit: '100kb' }));
@@ -401,6 +404,10 @@ export function createApp(): express.Application {
   // Addon routes
   app.use('/api/addons/vacay', vacayRoutes);
   app.use('/api/addons/atlas', atlasRoutes);
+  app.use('/api/journeys/:id/blog', (req, res, next) => {
+    if (!isAddonEnabled(ADDON_IDS.JOURNEY)) return res.status(404).json({ error: 'Journey addon is not enabled' });
+    next();
+  }, blogRoutes);
   app.use('/api/journeys', (req, res, next) => {
     if (!isAddonEnabled(ADDON_IDS.JOURNEY)) return res.status(404).json({ error: 'Journey addon is not enabled' });
     next();

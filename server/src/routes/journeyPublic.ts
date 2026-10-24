@@ -1,5 +1,6 @@
 import express, { Request, Response } from 'express';
 import { getPublicJourney, getPublicBook, validateShareTokenForAsset, validateShareTokenForPhoto } from '../services/journeyShareService';
+import { getPublicBlog, getPublicPost } from '../services/blogService';
 import { streamPhoto } from '../services/memories/photoResolverService';
 import { streamImmichAsset } from '../services/memories/immichService';
 import path from 'node:path';
@@ -20,6 +21,20 @@ router.get('/:token/book', (req: Request, res: Response) => {
   const book = getPublicBook(req.params.token);
   if (!book) return res.status(404).json({ error: 'Not found' });
   res.json({ book });
+});
+
+// The journey's blog: only published posts, and only when the share link
+// shares the blog — otherwise 404, like the book.
+router.get('/:token/blog', (req: Request, res: Response) => {
+  const data = getPublicBlog(req.params.token);
+  if (!data) return res.status(404).json({ error: 'Not found' });
+  res.json(data);
+});
+
+router.get('/:token/blog/:slug', (req: Request, res: Response) => {
+  const data = getPublicPost(req.params.token, req.params.slug);
+  if (!data) return res.status(404).json({ error: 'Not found' });
+  res.json(data);
 });
 
 // Unified public photo proxy — uses trek_photo_id

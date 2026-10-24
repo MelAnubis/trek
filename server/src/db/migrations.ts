@@ -2662,6 +2662,54 @@ function runMigrations(db: Database.Database): void {
         WHERE source_place_id IS NOT NULL AND source_day_id IS NULL
       `);
     },
+    // Blog de la travesía (4.2). Un post tiene id de cliente (UUID) para que
+    // el móvil pueda crearlo sin red y reenviarlo sin duplicar; el contenido
+    // va en bloques JSON. blog_post_entries enlaza 0..n entradas de la
+    // travesía; journey_entries.source_post_id marca la entrada que un post
+    // creó él mismo («añadir también a la travesía»). blog_uploads hace la
+    // subida de fotos idempotente por id de cliente.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS blog_posts (
+          id           TEXT PRIMARY KEY,
+          journey_id   INTEGER NOT NULL REFERENCES journeys(id) ON DELETE CASCADE,
+          author_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          title        TEXT NOT NULL DEFAULT '',
+          slug         TEXT NOT NULL,
+          excerpt      TEXT,
+          blocks       TEXT NOT NULL DEFAULT '[]',
+          cover_photo_id INTEGER,
+          status       TEXT NOT NULL DEFAULT 'draft',
+          post_date    TEXT,
+          published_at INTEGER,
+          version      INTEGER NOT NULL DEFAULT 1,
+          created_at   INTEGER NOT NULL,
+          updated_at   INTEGER NOT NULL,
+          UNIQUE(journey_id, slug)
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_blog_posts_journey ON blog_posts(journey_id, status)');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS blog_post_entries (
+          post_id    TEXT NOT NULL REFERENCES blog_posts(id) ON DELETE CASCADE,
+          entry_id   INTEGER NOT NULL REFERENCES journey_entries(id) ON DELETE CASCADE,
+          sort_order INTEGER NOT NULL DEFAULT 0,
+          PRIMARY KEY (post_id, entry_id)
+        )
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS blog_uploads (
+          client_id        TEXT PRIMARY KEY,
+          journey_id       INTEGER NOT NULL REFERENCES journeys(id) ON DELETE CASCADE,
+          journey_photo_id INTEGER NOT NULL,
+          photo_id         INTEGER NOT NULL,
+          created_at       INTEGER NOT NULL
+        )
+      `);
+      const col = (t: string, c: string) => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c);
+      if (!col('journey_entries', 'source_post_id')) db.exec('ALTER TABLE journey_entries ADD COLUMN source_post_id TEXT');
+      if (!col('journey_share_tokens', 'share_blog')) db.exec('ALTER TABLE journey_share_tokens ADD COLUMN share_blog INTEGER NOT NULL DEFAULT 0');
+    },
   ];
 
   if (currentVersion < migrations.length) {
