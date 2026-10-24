@@ -3152,6 +3152,22 @@ const es: Record<string, string> = {
   'blog.conflict.text': 'Este post se cambió en otro dispositivo mientras lo editabas aquí.',
   'blog.conflict.mine': 'Quedarme con esta versión',
   'blog.conflict.theirs': 'Usar la otra',
+  'blog.tabs.posts': 'Posts',
+  'blog.tabs.entries': 'Entradas de la travesía',
+  'blog.entries.linked': 'Enlazada',
+  'blog.entries.noText': 'Sin texto todavía',
+  'blog.entries.less': 'Ver menos',
+  'blog.entries.more': 'Ver más',
+  'blog.entries.insertPhoto': 'Insertar esta foto en el post',
+  'blog.entries.use': 'Usar texto y fotos',
+  'blog.entries.asCard': 'Como tarjeta',
+  'blog.entries.link': 'Enlazar',
+  'blog.entries.unlink': 'Quitar enlace',
+  'blog.entries.writePost': 'Escribir un post con esta entrada',
+  'blog.entries.onlyLinked': 'Solo enlazadas',
+  'blog.entries.panelHint': 'Se inserta donde tengas el cursor. Toca una foto para añadirla sola.',
+  'blog.entries.day': 'Día {n}',
+  'blog.entries.noMatch': 'Ninguna entrada coincide.',
 }
 
 export default es

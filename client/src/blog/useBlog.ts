@@ -19,14 +19,14 @@ export function useBlogPosts(journeyId: number | null) {
   useEffect(() => {
     if (journeyId == null) return
     let alive = true
-    const unsub = subscribeBlog(() => { if (alive) reload() })
+    const unsub = subscribeBlog(() => { if (alive) reload().catch(() => {}) })
     reload().then(async () => {
       const listing = await refreshJourney(journeyId)
       if (!alive) return
       if (listing) setAccess(listing.access)
       setLoading(false)
       flush().catch(() => {})
-    })
+    }).catch(() => { if (alive) setLoading(false) })      // base local cerrada (cierre de sesión)
     const on = () => setOnline(true), off = () => setOnline(false)
     window.addEventListener('online', on)
     window.addEventListener('offline', off)
@@ -41,7 +41,7 @@ export function useLocalPost(postId: string | null) {
   useEffect(() => {
     if (!postId) { setPost(null); return }
     let alive = true
-    const load = () => getLocalPost(postId).then(p => { if (alive) setPost(p ?? null) })
+    const load = () => getLocalPost(postId).then(p => { if (alive) setPost(p ?? null) }).catch(() => {})
     load()
     const unsub = subscribeBlog(load)
     return () => { alive = false; unsub() }
@@ -54,7 +54,7 @@ export function usePendingBlog(journeyId: number | null) {
   useEffect(() => {
     if (journeyId == null) return
     let alive = true
-    const load = () => pendingCount(journeyId).then(s => { if (alive) setState(s) })
+    const load = () => pendingCount(journeyId).then(s => { if (alive) setState(s) }).catch(() => {})
     load()
     const unsub = subscribeBlog(load)
     return () => { alive = false; unsub() }
@@ -73,7 +73,7 @@ export function usePhotoSrc(ref: PhotoRef | null | undefined, size: 'thumbnail' 
   useEffect(() => {
     let alive = true
     if (localId) {
-      getUpload(localId).then(u => {
+      getUpload(localId).catch(() => undefined).then(u => {
         if (!alive || !u) return
         const url = URL.createObjectURL(new Blob([u.data], { type: u.mime }))
         urlRef.current = url

@@ -3460,6 +3460,22 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'blog.conflict.text': 'This post was changed on another device while you were editing it here.',
   'blog.conflict.mine': 'Keep this version',
   'blog.conflict.theirs': 'Use the other one',
+  'blog.tabs.posts': 'Posts',
+  'blog.tabs.entries': 'Journey entries',
+  'blog.entries.linked': 'Linked',
+  'blog.entries.noText': 'No text yet',
+  'blog.entries.less': 'Show less',
+  'blog.entries.more': 'Show more',
+  'blog.entries.insertPhoto': 'Insert this photo into the post',
+  'blog.entries.use': 'Use text and photos',
+  'blog.entries.asCard': 'As a card',
+  'blog.entries.link': 'Link',
+  'blog.entries.unlink': 'Unlink',
+  'blog.entries.writePost': 'Write a post from this entry',
+  'blog.entries.onlyLinked': 'Linked only',
+  'blog.entries.panelHint': 'Inserted where your cursor is. Tap a photo to add just that one.',
+  'blog.entries.day': 'Day {n}',
+  'blog.entries.noMatch': 'No entry matches.',
 }
 
 export default en

@@ -8,6 +8,8 @@ import { http, HttpResponse } from 'msw'
 import { SketchCanvas } from './SketchCanvas'
 import BlockEditor from './BlockEditor'
 import BlogPostView from './BlogPostView'
+import EntriesPanel from './EntriesPanel'
+import type { JourneyMeta } from '../../blog/journeyMeta'
 import JourneyBlogPage from '../../pages/JourneyBlogPage'
 import { offlineDb, clearAll } from '../../db/offlineDb'
 import { emptyPost, _resetBlogSync } from '../../blog/blogSync'
@@ -171,5 +173,74 @@ describe('JourneyBlogPage', () => {
     await waitFor(() => expect(screen.getByText('Arévalo')).toBeInTheDocument())
     expect(screen.getByText('New post')).toBeInTheDocument()
     expect(await offlineDb.blogPosts.get('post-ui-00001')).toBeTruthy()     // cached for offline reading
+  })
+})
+
+const META: JourneyMeta = {
+  id: 3, title: 'Castilla', subtitle: null, cover_image: null, my_role: 'owner', gallery: [],
+  entries: [
+    { id: 11, title: 'Salida desde Arévalo', entry_date: '2026-05-01', location_name: 'Arévalo', type: 'entry', story: 'Salimos **temprano**.\n\nHacía frío.', photo_id: 70, photo_ids: [{ galleryId: 7, photoId: 70 }, { galleryId: 8, photoId: 80 }] },
+    { id: 12, title: 'Madrigal', entry_date: '2026-05-02', location_name: null, type: 'entry', story: null, photo_id: null, photo_ids: [] },
+  ],
+}
+
+describe('EntriesPanel', () => {
+  it('FE-BLOG-UI-011: shows the journey entries by day with their text, and brings text and photos into the post', () => {
+    const onInsert = vi.fn(), onToggleLink = vi.fn()
+    render(<EntriesPanel meta={META} mode="editor" linkedIds={[11]} onInsert={onInsert} onToggleLink={onToggleLink} />)
+    expect(screen.getByText('Day 1', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('Day 2', { exact: false })).toBeInTheDocument()
+    expect(screen.getByText('temprano').tagName).toBe('STRONG')
+    fireEvent.click(screen.getAllByText('Use text and photos')[0])
+    expect((onInsert.mock.calls[0][0] as BlogBlock[]).map(b => b.type)).toEqual(['heading', 'paragraph', 'paragraph', 'gallery'])
+    fireEvent.click(screen.getAllByRole('button', { name: 'Insert this photo into the post' })[1])
+    expect(onInsert.mock.calls[1][0][0]).toMatchObject({ type: 'photo', photo: { galleryId: 8, photoId: 80 } })
+    fireEvent.click(screen.getAllByText('As a card')[1])
+    expect(onInsert.mock.calls[2][0][0]).toMatchObject({ type: 'entry', entryId: 12 })
+    fireEvent.click(screen.getAllByRole('button', { name: /^Link$/ })[0])
+    expect(onToggleLink).toHaveBeenCalledWith(12)
+  })
+
+  it('FE-BLOG-UI-012: search narrows the list; "linked only" keeps the linked ones', () => {
+    render(<EntriesPanel meta={META} mode="editor" linkedIds={[11]} onInsert={() => {}} onToggleLink={() => {}} />)
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search entries…' }), { target: { value: 'madrigal' } })
+    expect(screen.queryByText('Salida desde Arévalo')).toBeNull()
+    fireEvent.change(screen.getByRole('textbox', { name: 'Search entries…' }), { target: { value: '' } })
+    fireEvent.click(screen.getByText('Linked only'))
+    expect(screen.queryByText('Madrigal')).toBeNull()
+    expect(screen.getByText('Salida desde Arévalo')).toBeInTheDocument()
+  })
+})
+
+describe('Blog from an entry', () => {
+  beforeEach(async () => {
+    _resetBlogSync()
+    await clearAll()
+    localStorage.clear()
+    Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true })
+    server.use(
+      http.get('/api/journeys/3', () => HttpResponse.json({ ...META, entries: META.entries.map(e => ({ ...e, photos: e.photo_ids.map(p => ({ id: p.galleryId, photo_id: p.photoId })) })), gallery: [] })),
+      http.get('/api/journeys/3/blog', () => HttpResponse.json({ access: 'edit', posts: [] })),
+      http.put('/api/journeys/3/blog/posts/:id', () => HttpResponse.json({ error: 'offline in test' }, { status: 503 })),
+    )
+  })
+
+  it('FE-BLOG-UI-013: the list has a tab with the journey entries, and "write a post" starts one with its title, date, text and link', async () => {
+    render(
+      <Routes>
+        <Route path="/journey/:id/blog" element={<JourneyBlogPage />} />
+        <Route path="/journey/:id/blog/:postId" element={<JourneyBlogPage />} />
+      </Routes>,
+      { initialEntries: ['/journey/3/blog'] },
+    )
+    fireEvent.click(await screen.findByRole('button', { name: /Journey entries/ }))
+    fireEvent.click((await screen.findAllByText('Write a post from this entry'))[0])
+    await waitFor(() => expect((screen.getByRole('textbox', { name: 'Title' }) as HTMLTextAreaElement).value).toBe('Salida desde Arévalo'))
+    const texts = (screen.getAllByRole('textbox', { name: 'Text' }) as HTMLTextAreaElement[]).map(t => t.value)
+    expect(texts).toEqual(['Salimos **temprano**.', 'Hacía frío.'])
+    await waitFor(async () => {
+      const [saved] = await offlineDb.blogPosts.toArray()
+      expect(saved).toMatchObject({ title: 'Salida desde Arévalo', post_date: '2026-05-01', entry_ids: [11] })
+    })
   })
 })

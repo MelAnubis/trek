@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Eye, PencilLine, SlidersHorizontal, CloudOff, UploadCloud, Check, AlertTriangle, X,
-  Pilcrow, Image as ImageIcon, PenLine, Map as MapIcon, MoreHorizontal, Images, Newspaper, Globe, Lock,
+  Pilcrow, Image as ImageIcon, PenLine, Map as MapIcon, MoreHorizontal, Images, Newspaper, Globe, Lock, BookMarked,
 } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
@@ -18,6 +18,7 @@ import BlockEditor, { InsertMenu, useBlockInserter, type PhotoRequest } from '..
 import BlogPostView, { READING_FONT } from '../components/Blog/BlogPostView'
 import PostSettings from '../components/Blog/PostSettings'
 import PhotoPicker from '../components/Blog/PhotoPicker'
+import EntriesPanel from '../components/Blog/EntriesPanel'
 
 /** Interfaz táctil: pantalla estrecha o puntero «grueso» (iPad en horizontal incluido). */
 export function useTouchUI(): boolean {
@@ -107,6 +108,7 @@ export default function JourneyBlogPage() {
   // null = aún no se sabe (ni el servidor ni la copia local lo han dicho).
   const canEdit: boolean | null = access ? access === 'edit' : meta ? meta.my_role === 'owner' || meta.my_role === 'editor' : null
   const [filter, setFilter] = useState<'all' | 'draft' | 'published'>('all')
+  const [tab, setTab] = useState<'posts' | 'entries'>(() => (search.get('tab') === 'entries' ? 'entries' : 'posts'))
 
   const sorted = useMemo(() => [...posts].sort((a, b) => (b.post_date || '').localeCompare(a.post_date || '') || b.localUpdatedAt - a.localUpdatedAt), [posts])
   const shown = sorted.filter(p => filter === 'all' || (filter === 'draft' ? p.status !== 'published' : p.status === 'published'))
@@ -114,7 +116,8 @@ export default function JourneyBlogPage() {
   const newPost = () => navigate(`/journey/${journeyId}/blog/${newId()}?new=1`)
 
   if (postId) {
-    return <PostScreen key={postId} journeyId={journeyId} postId={postId} isNew={search.get('new') === '1'} canEditKnown={canEdit} online={online} posts={sorted} />
+    const from = Number(search.get('from')) || null
+    return <PostScreen key={postId} journeyId={journeyId} postId={postId} isNew={search.get('new') === '1'} fromEntry={from} canEditKnown={canEdit} online={online} posts={sorted} />
   }
 
   return (
@@ -135,6 +138,23 @@ export default function JourneyBlogPage() {
               </button>
             )}
           </div>
+          {/* Posts del blog, o las entradas de la travesía como referencia */}
+          <div className="flex gap-5 border-b border-zinc-200 dark:border-zinc-800 mt-1">
+            {(['posts', 'entries'] as const).map(k => (
+              <button key={k} type="button" onClick={() => setTab(k)} aria-pressed={tab === k}
+                className={`-mb-px py-2.5 text-[14px] font-medium border-b-2 inline-flex items-center gap-1.5 ${tab === k ? 'border-zinc-900 dark:border-white text-zinc-900 dark:text-white' : 'border-transparent text-zinc-500'}`}>
+                {k === 'posts' ? <Newspaper size={15} /> : <BookMarked size={15} />}
+                {k === 'posts' ? t('blog.tabs.posts') : t('blog.tabs.entries')}
+                {k === 'entries' && meta ? <span className="text-[11px] text-zinc-400">{meta.entries.length}</span> : null}
+              </button>
+            ))}
+          </div>
+          {tab === 'entries' ? (
+            <div className="max-w-[760px] py-5">
+              <EntriesPanel meta={meta} mode={canEdit ? 'list' : 'read'}
+                onWrite={canEdit ? entryId => navigate(`/journey/${journeyId}/blog/${newId()}?new=1&from=${entryId}`) : undefined} />
+            </div>
+          ) : (<>
           <div className="flex items-center justify-between gap-3 py-3">
             {canEdit ? (
               <div className="flex gap-1 p-1 rounded-xl bg-zinc-100 dark:bg-zinc-900">
@@ -161,6 +181,7 @@ export default function JourneyBlogPage() {
               )}
             </div>
           )}
+          </>)}
         </div>
       </div>
     </div>
@@ -171,7 +192,7 @@ export default function JourneyBlogPage() {
 
 const CONTENT_KEYS = ['title', 'blocks', 'status', 'post_date', 'entry_ids', 'cover_photo_id', 'add_to_journey'] as const
 
-function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: { journeyId: number; postId: string; isNew: boolean; canEditKnown: boolean | null; online: boolean; posts: LocalPost[] }) {
+function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online, posts }: { journeyId: number; postId: string; isNew: boolean; fromEntry: number | null; canEditKnown: boolean | null; online: boolean; posts: LocalPost[] }) {
   const canEdit = !!canEditKnown
   const navigate = useNavigate()
   const { t, locale } = useTranslation()
@@ -188,6 +209,8 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
   const [picker, setPicker] = useState<{ multiple: boolean; done: (r: PhotoRef[]) => void } | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const [openSketch, setOpenSketch] = useState<string | null>(null)
+  const [sideTab, setSideTab] = useState<'posts' | 'entries'>(fromEntry ? 'entries' : 'posts')
+  const [entriesOpen, setEntriesOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pending = useRef<LocalPost | null>(null)
 
@@ -200,9 +223,27 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
   useEffect(() => {
     if (stored === undefined || draft) return
     if (stored) { setDraft(stored); return }
-    if (isNew) { setDraft(emptyPost(journeyId, { id: postId })); return }
-    refreshPost(journeyId, postId).then(() => getLocalPost(postId)).then(p => { if (!p) setDraft(null) })
-  }, [stored, draft, isNew, journeyId, postId])
+    if (isNew) {
+      // «Escribir post» desde una entrada: arranca con su título, fecha, texto y fotos, ya enlazada.
+      if (fromEntry) {
+        if (!meta) return                                       // espera a tener las entradas
+        const e = meta.entries.find(x => x.id === fromEntry)
+        if (e) {
+          const init = emptyPost(journeyId, { id: postId, title: e.title || '', post_date: e.entry_date, entry_ids: [e.id] })
+          const body = blocksFromEntry({ ...e, title: null })
+          const next = { ...init, blocks: body.length ? body : init.blocks }
+          setDraft(next)
+          pending.current = next
+          persist()
+          return
+        }
+      }
+      setDraft(emptyPost(journeyId, { id: postId }))
+      return
+    }
+    refreshPost(journeyId, postId).then(() => getLocalPost(postId)).then(p => { if (!p) setDraft(null) }).catch(() => setDraft(null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stored, draft, isNew, journeyId, postId, fromEntry, meta])
 
   // Lo que llega de la sincronización (versión, mapas, conflicto) sin pisar lo que se escribe.
   const server = stored?.server ?? null
@@ -229,18 +270,18 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
       const next = { ...d, ...patch }
       pending.current = next
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      saveTimer.current = setTimeout(() => { persist() }, 500)
+      saveTimer.current = setTimeout(() => { persist().catch(() => {}) }, 500)
       return next
     })
   }
 
   // Al salir de la app o de la página, lo pendiente se guarda ya.
   useEffect(() => {
-    const now = () => { persist() }
-    const vis = () => { if (document.hidden) persist() }
+    const now = () => { persist().catch(() => {}) }
+    const vis = () => { if (document.hidden) now() }
     window.addEventListener('pagehide', now)
     document.addEventListener('visibilitychange', vis)
-    return () => { window.removeEventListener('pagehide', now); document.removeEventListener('visibilitychange', vis); persist() }
+    return () => { window.removeEventListener('pagehide', now); document.removeEventListener('visibilitychange', vis); now() }
   }, [persist])
 
   const requestPhotos: PhotoRequest = (multiple, done) => setPicker({ multiple, done })
@@ -254,6 +295,17 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
   const entryBlocks = (entryId: number) => {
     const e = meta?.entries.find(x => x.id === entryId)
     return e ? blocksFromEntry(e) : []
+  }
+  // Desde el panel de entradas: detrás del bloque seleccionado (o al final), y queda seleccionado lo último.
+  const insertFromEntries = (bs: BlogBlock[]) => {
+    if (!draft || !bs.length) return
+    update({ blocks: insertAfter(draft.blocks, selected, bs) })
+    setSelected(bs[bs.length - 1].id)
+    setEntriesOpen(false)
+  }
+  const toggleEntryLink = (entryId: number) => {
+    if (!draft) return
+    update({ entry_ids: draft.entry_ids.includes(entryId) ? draft.entry_ids.filter(x => x !== entryId) : [...draft.entry_ids, entryId] })
   }
 
   if (draft === undefined || (draft === null && stored === undefined)) {
@@ -306,6 +358,12 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
                 className="h-9 px-3 rounded-lg text-[13px] font-medium flex items-center gap-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900">
                 {reading ? <><PencilLine size={15} /><span className="hidden sm:inline">{t('blog.post.edit')}</span></> : <><Eye size={15} /><span className="hidden sm:inline">{t('blog.post.preview')}</span></>}
               </button>
+              {(!wide || touch) && !reading && (
+                <button type="button" onClick={() => setEntriesOpen(true)} aria-label={t('blog.tabs.entries')} title={t('blog.tabs.entries')}
+                  className="h-9 px-2.5 rounded-lg text-[13px] font-medium flex items-center gap-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-900">
+                  <BookMarked size={16} /><span className="hidden md:inline">{t('blog.tabs.entries')}</span>
+                </button>
+              )}
               {!wide || touch ? (
                 <button type="button" onClick={() => setSettingsOpen(true)} aria-label={t('blog.settings.title')} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-900"><SlidersHorizontal size={16} /></button>
               ) : null}
@@ -336,7 +394,20 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
       <div className="flex">
         {/* Escritorio: los posts a mano para saltar de uno a otro */}
         {showSidebar && canEdit && (
-          <aside className="w-[250px] shrink-0 border-r border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-3" style={{ top: 'calc(var(--nav-h, 56px) + 56px)' }}>
+          <aside className={`${sideTab === 'entries' && !reading ? 'w-[340px]' : 'w-[250px]'} shrink-0 border-r border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-3 bg-white dark:bg-zinc-950`} style={{ top: 'calc(var(--nav-h, 56px) + 56px)' }}>
+            {!reading && (
+              <div className="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl bg-zinc-100 dark:bg-zinc-900">
+                {(['posts', 'entries'] as const).map(k => (
+                  <button key={k} type="button" onClick={() => setSideTab(k)} aria-pressed={sideTab === k}
+                    className={`h-8 rounded-lg text-[12px] font-medium ${sideTab === k ? 'bg-white dark:bg-zinc-800 shadow-sm' : 'text-zinc-500'}`}>
+                    {k === 'posts' ? t('blog.tabs.posts') : t('blog.tabs.entries')}
+                  </button>
+                ))}
+              </div>
+            )}
+            {sideTab === 'entries' && !reading ? (
+              <EntriesPanel meta={meta} mode="editor" linkedIds={draft.entry_ids} onInsert={insertFromEntries} onToggleLink={toggleEntryLink} />
+            ) : (<>
             <button type="button" onClick={() => navigate(`/journey/${journeyId}/blog/${newId()}?new=1`)} className="w-full h-9 mb-3 rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 text-[13px] text-zinc-500 flex items-center justify-center gap-1.5 hover:text-zinc-800 dark:hover:text-zinc-200"><Plus size={14} />{t('blog.post.new')}</button>
             {posts.map(p => {
               const Icon = STATUS_ICON[p.status]
@@ -348,6 +419,7 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
                 </button>
               )
             })}
+            </>)}
           </aside>
         )}
 
@@ -405,6 +477,23 @@ function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: {
                 <MoreHorizontal size={19} /><span className="text-[10px]">{t('blog.editor.more')}</span>
               </button>
               {moreOpen && <div className="absolute bottom-14 right-0 [&>div:last-child]:bottom-0 [&>div:last-child]:right-0 [&>div:last-child]:left-auto"><InsertMenu onPick={insertFromBar} onClose={() => setMoreOpen(false)} /></div>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Táctil / pantallas medianas: las entradas de la travesía en una hoja lateral */}
+      {entriesOpen && (
+        <div className="fixed inset-0 z-[70] bg-black/40" onClick={() => setEntriesOpen(false)}>
+          <div className="absolute left-0 top-0 bottom-0 w-full sm:w-[440px] bg-white dark:bg-zinc-950 shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}
+            role="dialog" aria-modal="true" aria-label={t('blog.tabs.entries')}
+            style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+            <div className="flex items-center justify-between px-4 pb-3">
+              <h2 className="text-[16px] font-semibold">{t('blog.tabs.entries')}</h2>
+              <button type="button" onClick={() => setEntriesOpen(false)} aria-label={t('common.cancel')} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-900"><X size={18} /></button>
+            </div>
+            <div className="px-4">
+              <EntriesPanel meta={meta} mode="editor" linkedIds={draft.entry_ids} onInsert={insertFromEntries} onToggleLink={toggleEntryLink} />
             </div>
           </div>
         </div>
