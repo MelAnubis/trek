@@ -127,7 +127,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         {globalAddons.length > 0 && !tripTitle && (
           <>
             <span style={{ color: 'var(--text-faint)' }}>|</span>
-            <Link to="/dashboard"
+            <Link to="/dashboard" title={t('nav.myTrips')}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
               style={{
                 color: location.pathname === '/dashboard' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -136,14 +136,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => { if (location.pathname !== '/dashboard') e.currentTarget.style.background = 'transparent' }}>
               <Briefcase className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{t('nav.myTrips')}</span>
+              <span className="hidden lg:inline">{t('nav.myTrips')}</span>
             </Link>
             {globalAddons.map(addon => {
               const Icon = ADDON_ICONS[addon.icon] || CalendarDays
               const path = `/${addon.id}`
               const isActive = location.pathname === path
               return (
-                <Link key={addon.id} to={path}
+                <Link key={addon.id} to={path} title={getAddonName(addon)}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
                   style={{
                     color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -152,11 +152,11 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
                   onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
                   <Icon className="w-3.5 h-3.5" />
-                  <span className="hidden md:inline">{getAddonName(addon)}</span>
+                  <span className="hidden lg:inline">{getAddonName(addon)}</span>
                 </Link>
               )
             })}
-            <Link to="/planner"
+            <Link to="/planner" title={t('planner.nav')}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
               style={{
                 color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -165,7 +165,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
               <RouteIcon className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{t('planner.nav')}</span>
+              <span className="hidden lg:inline">{t('planner.nav')}</span>
             </Link>
           </>
         )}
@@ -173,7 +173,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
         {globalAddons.length === 0 && !tripTitle && (
           <>
             <span style={{ color: 'var(--text-faint)' }}>|</span>
-            <Link to="/planner"
+            <Link to="/planner" title={t('planner.nav')}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
               style={{
                 color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
@@ -182,7 +182,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
               onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
               <RouteIcon className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">{t('planner.nav')}</span>
+              <span className="hidden lg:inline">{t('planner.nav')}</span>
             </Link>
           </>
         )}
@@ -241,7 +241,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           </span>
         ) : (
           <span
-            className="hidden sm:flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
+            className="hidden lg:flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
             style={{ background: 'var(--bg-tertiary)', color: 'var(--text-faint)' }}
             title={t('nav.versionTitle')}
           >

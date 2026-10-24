@@ -171,6 +171,7 @@ export function getPublicJourney(token: string) {
       share_gallery: !!row.share_gallery,
       share_map: !!row.share_map,
       share_book: !!row.share_book,
+      share_blog: !!row.share_blog,
     },
   };
 }

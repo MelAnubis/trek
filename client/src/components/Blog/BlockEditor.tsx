@@ -292,7 +292,7 @@ export default function BlockEditor({ blocks, onChange, meta, maps, postDate, se
         return (
           <>
             {sel && toolbar(b, i, <button type="button" className={chip(true)} onClick={() => setSketching(b.id)}><PenLine size={13} className="inline -mt-0.5" /> {t('blog.sketch.edit')}</button>)}
-            <figure className="max-w-[640px] mx-auto">
+            <figure className="w-full max-w-[640px] mx-auto">
               <button type="button" onClick={() => { onSelect(b.id); setSketching(b.id) }} className="block w-full rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 relative" aria-label={t('blog.sketch.edit')}>
                 <SketchView strokes={b.strokes} aspect={b.aspect} background={b.background} />
                 {!b.strokes.length && <span className="absolute inset-0 flex items-center justify-center gap-2 text-zinc-400 text-sm font-sans"><PenLine size={18} />{t('blog.sketch.tapToDraw')}</span>}

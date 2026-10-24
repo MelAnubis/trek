@@ -90,7 +90,7 @@ function Caption({ text }: { text?: string }) {
 
 /** Ancho de cada maquetación: la columna de texto, más ancho, o a sangre. */
 const WIDTH = {
-  inline: 'max-w-[460px] mx-auto',
+  inline: 'w-full max-w-[460px] mx-auto',
   wide: '',
   full: 'w-screen max-w-[1200px] relative left-1/2 -translate-x-1/2',
 }
@@ -198,7 +198,7 @@ export function BlockView({ block, ctx, openLightbox, isPublic }: { block: BlogB
       )
     case 'sketch':
       return (
-        <figure className="max-w-[640px] mx-auto">
+        <figure className="w-full max-w-[640px] mx-auto">
           <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
             <SketchView strokes={block.strokes} aspect={block.aspect} background={block.background} label={block.caption} />
           </div>

@@ -324,5 +324,7 @@ describe('Public blog', () => {
 
     const share = await request(app).get(`/api/journeys/${j.id}/share-link`).set('Cookie', authCookie(user.id));
     expect(share.body.link.share_blog).toBe(true);
+    // the public journey page learns it can link to the blog
+    expect((await request(app).get(`/api/public/journey/${token}`)).body.permissions.share_blog).toBe(true);
   });
 });

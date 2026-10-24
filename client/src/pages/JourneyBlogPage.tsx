@@ -104,7 +104,8 @@ export default function JourneyBlogPage() {
   const [search] = useSearchParams()
   const { posts, access, loading, online } = useBlogPosts(journeyId)
   const { meta } = useJourneyMeta(journeyId)
-  const canEdit = access ? access === 'edit' : meta?.my_role === 'owner' || meta?.my_role === 'editor'
+  // null = aún no se sabe (ni el servidor ni la copia local lo han dicho).
+  const canEdit: boolean | null = access ? access === 'edit' : meta ? meta.my_role === 'owner' || meta.my_role === 'editor' : null
   const [filter, setFilter] = useState<'all' | 'draft' | 'published'>('all')
 
   const sorted = useMemo(() => [...posts].sort((a, b) => (b.post_date || '').localeCompare(a.post_date || '') || b.localUpdatedAt - a.localUpdatedAt), [posts])
@@ -113,7 +114,7 @@ export default function JourneyBlogPage() {
   const newPost = () => navigate(`/journey/${journeyId}/blog/${newId()}?new=1`)
 
   if (postId) {
-    return <PostScreen key={postId} journeyId={journeyId} postId={postId} isNew={search.get('new') === '1'} canEdit={!!canEdit} online={online} posts={sorted} />
+    return <PostScreen key={postId} journeyId={journeyId} postId={postId} isNew={search.get('new') === '1'} canEditKnown={canEdit} online={online} posts={sorted} />
   }
 
   return (
@@ -170,7 +171,8 @@ export default function JourneyBlogPage() {
 
 const CONTENT_KEYS = ['title', 'blocks', 'status', 'post_date', 'entry_ids', 'cover_photo_id', 'add_to_journey'] as const
 
-function PostScreen({ journeyId, postId, isNew, canEdit, online, posts }: { journeyId: number; postId: string; isNew: boolean; canEdit: boolean; online: boolean; posts: LocalPost[] }) {
+function PostScreen({ journeyId, postId, isNew, canEditKnown, online, posts }: { journeyId: number; postId: string; isNew: boolean; canEditKnown: boolean | null; online: boolean; posts: LocalPost[] }) {
+  const canEdit = !!canEditKnown
   const navigate = useNavigate()
   const { t, locale } = useTranslation()
   const stored = useLocalPost(postId)
@@ -178,7 +180,8 @@ function PostScreen({ journeyId, postId, isNew, canEdit, online, posts }: { jour
   const touch = useTouchUI()
   const wide = useWide(1280)
   const [draft, setDraft] = useState<LocalPost | null>(null)
-  const [mode, setMode] = useState<'edit' | 'read'>(canEdit ? 'edit' : 'read')
+  // El modo se decide cuando se sabe si se puede editar (no antes: abriría en lectura).
+  const [mode, setMode] = useState<'edit' | 'read' | null>(canEditKnown == null ? null : canEditKnown ? 'edit' : 'read')
   const [selected, setSelected] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -188,7 +191,10 @@ function PostScreen({ journeyId, postId, isNew, canEdit, online, posts }: { jour
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pending = useRef<LocalPost | null>(null)
 
-  useEffect(() => { if (!canEdit) setMode('read') }, [canEdit])
+  useEffect(() => {
+    if (canEditKnown === false) setMode('read')
+    else if (canEditKnown === true) setMode(m => m ?? 'edit')
+  }, [canEditKnown])
 
   // Carga: lo del dispositivo; si no está, el servidor; si es nuevo, en blanco.
   useEffect(() => {
@@ -273,8 +279,10 @@ function PostScreen({ journeyId, postId, isNew, canEdit, online, posts }: { jour
       onDelete={() => setConfirmDelete(true)} entryBlocks={entryBlocks}
     />
   )
-  const reading = mode === 'read'
-  const cover = draft.cover_photo_id ? { photoId: draft.cover_photo_id } : photosOf(draft.blocks)[0]
+  const reading = mode !== 'edit'
+  // Portada arriba solo si esa foto no está ya en el texto (si no, sale dos veces).
+  const coverId = draft.cover_photo_id ?? photosOf(draft.blocks)[0]?.photoId
+  const cover = coverId && !draft.blocks.some(b => b.type === 'photo' && b.photo.photoId === coverId) ? { photoId: coverId } : null
   const dateText = draft.post_date ? new Date(`${draft.post_date}T12:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''
   const showSidebar = !touch && wide
 
@@ -336,7 +344,7 @@ function PostScreen({ journeyId, postId, isNew, canEdit, online, posts }: { jour
                 <button key={p.id} type="button" onClick={async () => { await persist(); navigate(`/journey/${journeyId}/blog/${p.id}`) }}
                   className={`w-full text-left px-3 py-2 rounded-lg mb-0.5 ${p.id === draft.id ? 'bg-zinc-100 dark:bg-zinc-900' : 'hover:bg-zinc-50 dark:hover:bg-zinc-900/60'}`}>
                   <div className="text-[13px] font-medium truncate">{(p.id === draft.id ? draft.title : p.title) || t('blog.post.untitled')}</div>
-                  <div className="text-[11px] text-zinc-500 flex items-center gap-1"><Icon size={10} />{p.post_date || ''}</div>
+                  <div className="text-[11px] text-zinc-500 flex items-center gap-1"><Icon size={10} />{p.post_date ? new Date(`${p.post_date}T12:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) : ''}</div>
                 </button>
               )
             })}

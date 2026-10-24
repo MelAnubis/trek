@@ -8,6 +8,7 @@ import {
   Laugh, Smile, Meh, Frown,
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake,
   ThumbsUp, ThumbsDown,
+  Newspaper,
 } from 'lucide-react'
 import JourneyMap from '../components/Journey/JourneyMap'
 import type { JourneyMapHandle } from '../components/Journey/JourneyMap'
@@ -463,8 +464,14 @@ export default function JourneyPublicPage() {
   )
 
   // Shared view tab bar
-  const renderTabs = (views: typeof availableViews) => views.length > 1 && (
+  // The blog is its own page; with it shared, it is one more tab (a link).
+  const renderTabs = (views: typeof availableViews) => (views.length > 1 || (perms.share_blog && views.length > 0)) && (
     <div className="flex bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden mb-6 w-fit">
+      {perms.share_blog && (
+        <a href={`/public/journey/${token}/blog`} className="order-last flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300">
+          <Newspaper size={13} />{t('blog.title')}
+        </a>
+      )}
       {views.map(v => (
         <button
           key={v.id}
