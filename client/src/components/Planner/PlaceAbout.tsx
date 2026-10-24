@@ -78,7 +78,9 @@ export default function PlaceAbout({ place, categoryName, language, locale, t }:
     setLoading(true)
     // A short delay: arrowing through places shouldn't fire a lookup for each.
     const timer = setTimeout(() => {
-      mapsApi.enrich({ name: place.name, lat: place.lat, lng: place.lng, osm_id: place.osm_id || undefined, lang: language, kind: categoryName || undefined })
+      // Inside a promise chain so even a synchronous throw ends in .catch.
+      Promise.resolve()
+        .then(() => mapsApi.enrich({ name: place.name, lat: place.lat, lng: place.lng, osm_id: place.osm_id || undefined, lang: language, kind: categoryName || undefined }))
         .then((d: PlaceAboutData) => { memo.set(key, d); if (!cancelled) setData(d) })
         .catch(() => { /* the section just doesn't appear */ })
         .finally(() => { if (!cancelled) setLoading(false) })
