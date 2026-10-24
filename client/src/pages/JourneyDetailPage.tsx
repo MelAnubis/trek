@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
+import { isStaleChunkError, reloadForUpdate } from '../utils/appUpdate'
 import { formatLocationName } from '../utils/formatters'
 import { normalizeImageFiles } from '../utils/convertHeic'
 import { type ResilientResult, type UploadProgress } from '../utils/uploadQueue'
@@ -729,6 +730,12 @@ export default function JourneyDetailPage() {
                             const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
                             await downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
                           } catch (err) {
+                            // A new version was deployed while this page was open: the
+                            // PDF module of the old one is gone. Reload onto the new one.
+                            if (isStaleChunkError(err) && reloadForUpdate()) {
+                              toast.info(t('app.update.reloading'))
+                              return
+                            }
                             // It used to fail silently: the button just did nothing.
                             console.error('[journey PDF]', err)
                             toast.error(`${t('journey.pdf.failed')}: ${err instanceof Error ? err.message : String(err)}`)

@@ -414,3 +414,33 @@ describe('The post\'s own journey entry carries its drawings, photos and place',
     expect(testDb.prepare('SELECT location_name, location_lat FROM journey_entries WHERE id = ?').get(own)).toEqual({ location_name: 'Arévalo', location_lat: 41.06 });
   });
 });
+
+describe('Map images and build files', () => {
+  it('BLOG-019 — a map block\'s image goes to the post\'s entry like a drawing, and is replaced when the map changes', async () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    const m1 = galleryPhoto(j.id, user.id);
+    const m2 = galleryPhoto(j.id, user.id);
+    const map = (image: object) => ({ id: 'm', type: 'map', source: 'journey', showTrack: true, showPhotos: false, image, imageKey: 'k' });
+    const put = (b: object) => request(app).put(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id)).send(b);
+    const a = await put({ title: 'Mapa', add_to_journey: true, blocks: [para('p', 'x'), map(m1)] });
+    const own = a.body.post.own_entry_id;
+    expect(a.body.post.cover_photo_id).toBeNull();               // a rendered map is not a cover
+    const photos = () => (testDb.prepare('SELECT journey_photo_id AS g FROM journey_entry_photos WHERE entry_id = ?').all(own) as { g: number }[]).map(r => r.g);
+    expect(photos()).toEqual([m1.galleryId]);
+    await put({ title: 'Mapa', add_to_journey: true, base_version: 1, blocks: [para('p', 'x'), map(m2)] });
+    expect(photos()).toEqual([m2.galleryId]);
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(m1.galleryId)).toBeUndefined();
+  });
+
+  it('BLOG-020 — a build file that no longer exists is a 404, not the app page (so an old open tab can tell)', async () => {
+    const prev = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    try {
+      const prodApp = createApp();
+      const r = await request(prodApp).get('/assets/JourneyBookPDF-OLDHASH.js');
+      expect(r.status).toBe(404);
+      expect(r.headers['content-type']).not.toMatch(/html/);
+    } finally { process.env.NODE_ENV = prev; }
+  });
+});

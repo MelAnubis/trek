@@ -3172,6 +3172,9 @@ const es: Record<string, string> = {
   'blog.notInJourney.add': 'Añadir a la travesía',
   'blog.fromPost': 'Escrita desde el blog: ábrela allí',
   'journey.pdf.failed': 'No se pudo generar el PDF',
+  'app.update.available': 'Hay una versión nueva de Trek.',
+  'app.update.reload': 'Recargar',
+  'app.update.reloading': 'Hay una versión nueva: recargando… Vuelve a pulsar cuando termine.',
 }
 
 export default es

@@ -53,3 +53,33 @@ describe('markdownToPlainText (Studio)', () => {
     expect(markdownToPlainText(null)).toBeNull()
   })
 })
+
+describe('map → image', () => {
+  const ctx = { entries: [{ id: 1, title: 'A', lat: 41, lng: -4.7, date: '2026-05-01' }], tracks: [{ id: 9, name: 'Etapa', points: [[41, -4.7], [41.1, -4.8]] as [number, number][] }], photos: [] }
+  const mapBlock = (): Extract<BlogBlock, { type: 'map' }> => ({ id: 'm1', type: 'map', source: 'journey', showTrack: true, showPhotos: true })
+  const png = async () => new Blob([new Uint8Array([137, 80])], { type: 'image/png' })
+
+  it('FE-BLOG-SKIMG-005: waits for the server context, then becomes an image once; a changed map is redone; an empty one has none', async () => {
+    const none = await ensureSketchImages(7, 'p1', [mapBlock()], undefined, null, 'T', png)
+    expect((none.blocks[0] as any).image).toBeUndefined()
+    const first = await ensureSketchImages(7, 'p1', [mapBlock()], undefined, { m1: ctx }, 'T', png)
+    const b = first.blocks[0] as any
+    expect(b.image?.localId).toBeTruthy()
+    expect((await offlineDb.blogUploads.get(b.image.localId))?.name).toBe('mapa.png')
+    expect((await ensureSketchImages(7, 'p1', first.blocks, undefined, { m1: ctx }, 'T', png)).changed.size).toBe(0)
+    expect((await ensureSketchImages(7, 'p1', first.blocks, undefined, { m1: { ...ctx, tracks: [] } }, 'T', png)).changed.size).toBe(1)
+    expect((await ensureSketchImages(7, 'p1', first.blocks, undefined, { m1: ctx }, 'OTHER-TILES', png)).changed.size).toBe(1)
+    const empty = await ensureSketchImages(7, 'p1', first.blocks, undefined, { m1: { entries: [], tracks: [], photos: [] } }, 'T', png)
+    expect((empty.blocks[0] as any).image).toBeUndefined()
+  })
+})
+
+describe('dataUrlToBlob', () => {
+  it('FE-BLOG-SKIMG-006: decodes a base64 PNG data URL without fetch (blocked by the app CSP)', async () => {
+    const { dataUrlToBlob } = await import('../../../src/blog/sketchImage')
+    const blob = dataUrlToBlob('data:image/png;base64,iVBORw==')!
+    expect(blob.type).toBe('image/png')
+    expect(blob.size).toBe(4)
+    expect(dataUrlToBlob('nope')).toBeNull()
+  })
+})

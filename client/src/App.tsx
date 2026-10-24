@@ -27,6 +27,7 @@ import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
 import PlannerPage from './pages/PlannerPage'
 import { ToastContainer } from './components/shared/Toast'
+import UpdateBanner from './components/Layout/UpdateBanner'
 import BottomNav from './components/Layout/BottomNav'
 import { TranslationProvider, useTranslation } from './i18n'
 import { authApi } from './api/client'
@@ -207,6 +208,7 @@ export default function App() {
       {!isAuthPage && <SystemNoticeHost />}
       <ToastContainer />
       <OfflineBanner />
+      <UpdateBanner />
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />

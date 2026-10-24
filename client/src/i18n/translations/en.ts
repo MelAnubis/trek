@@ -3480,6 +3480,9 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'blog.notInJourney.add': 'Add to the journey',
   'blog.fromPost': 'Written from the blog: open it there',
   'journey.pdf.failed': 'The PDF could not be generated',
+  'app.update.available': 'A new version of Trek is available.',
+  'app.update.reload': 'Reload',
+  'app.update.reloading': 'A new version is available: reloading… Press again once it is done.',
 }
 
 export default en

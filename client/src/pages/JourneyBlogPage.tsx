@@ -13,7 +13,9 @@ import {
   emptyPost, saveLocal, deleteLocal, resolveConflict, addPhotos, refreshPost, getLocalPost, newId, flush,
 } from '../blog/blogSync'
 import { blocksFromEntry, hasContent, insertAfter, photosOf } from '../blog/blockOps'
-import { ensureSketchImages } from '../blog/sketchImage'
+import { ensureSketchImages, mapKey } from '../blog/sketchImage'
+import { useSettingsStore } from '../store/settingsStore'
+import { DEFAULT_TILE_URL } from '../components/PDF/gpxDrawing'
 import type { BlogBlock, BlockType, LocalPost, PhotoRef } from '../blog/types'
 import BlockEditor, { InsertMenu, useBlockInserter, type PhotoRequest } from '../components/Blog/BlockEditor'
 import BlogPostView, { READING_FONT } from '../components/Blog/BlogPostView'
@@ -214,6 +216,10 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
   const [entriesOpen, setEntriesOpen] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pending = useRef<LocalPost | null>(null)
+  // Las teselas del usuario, para la imagen de los mapas (la misma que el PDF).
+  const tileUrl = useSettingsStore(st => st.settings.map_tile_url) || DEFAULT_TILE_URL
+  const tileUrlRef = useRef(tileUrl)
+  tileUrlRef.current = tileUrl
 
   useEffect(() => {
     if (canEditKnown === false) setMode('read')
@@ -249,6 +255,21 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
 
   // Lo que llega de la sincronización (versión, mapas, conflicto) sin pisar lo que se escribe.
   const server = stored?.server ?? null
+  // Cuando el servidor calcula (o recalcula) un mapa, su imagen para la
+  // travesía se rehace: se guarda otra vez y el guardado la genera.
+  const mapsJson = JSON.stringify(server?.maps ?? null)
+  useEffect(() => {
+    if (!canEdit || !draft || !server?.maps) return
+    const stale = draft.blocks.some(b => {
+      if (b.type !== 'map') return false
+      const ctx = server.maps[b.id]
+      if (!ctx) return false
+      const empty = !ctx.entries.length && !ctx.tracks.length
+      return empty ? !!b.image : (!b.image || b.imageKey !== mapKey(b, ctx, tileUrl))
+    })
+    if (stale) update({})
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mapsJson, canEdit, !!draft, tileUrl])
   const conflict = stored?.conflict ?? null
   const syncError = stored?.syncError ?? null
 
@@ -263,7 +284,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
     const merged = { ...base } as LocalPost
     for (const k of CONTENT_KEYS) (merged as unknown as Record<string, unknown>)[k] = p[k]
     // Dibujos cambiados → imagen, para que lleguen a la entrada de la travesía.
-    const sk = await ensureSketchImages(journeyId, p.id, merged.blocks)
+    const sk = await ensureSketchImages(journeyId, p.id, merged.blocks, undefined, latest?.server?.maps, tileUrlRef.current)
     merged.blocks = sk.blocks
     if (sk.changed.size) {
       setDraft(d => d && ({ ...d, blocks: d.blocks.map(b => (b.type === 'sketch' && sk.changed.has(b.id) ? { ...b, ...sk.changed.get(b.id) } : b)) }))

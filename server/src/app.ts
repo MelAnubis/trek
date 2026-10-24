@@ -554,6 +554,14 @@ export function createApp(): express.Application {
         }
       },
     }));
+    // A missing build file (/assets/X-hash.js of a version that is no
+    // longer deployed) is a real 404, not the app's index.html: served as
+    // HTML, the browser rejects it with a MIME error that hides the cause,
+    // and the client can't tell "old version" from "broken script".
+    app.get('/assets/*', (_req: Request, res: Response) => {
+      res.setHeader('Cache-Control', 'no-store');
+      res.status(404).type('text/plain').send('Not found');
+    });
     app.get('*', (_req: Request, res: Response) => {
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.sendFile(path.join(publicPath, 'index.html'));

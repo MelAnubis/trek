@@ -46,6 +46,9 @@ const blockSchema = z.discriminatedUnion('type', [
     id: ID, type: z.literal('map'), source: z.enum(['post', 'day', 'journey']).default('post'),
     date: DATE.nullable().optional(), showTrack: z.boolean().default(true), showPhotos: z.boolean().default(true),
     caption: z.string().max(500).optional(),
+    // El mapa hecho imagen (lo genera el cliente): va a la entrada de la travesía.
+    image: photoRef.optional(),
+    imageKey: z.string().max(64).optional(),
   }),
   z.object({
     id: ID, type: z.literal('sketch'),
@@ -143,12 +146,13 @@ function photoRefsOf(blocks: BlogBlock[], sketches = false): { galleryId: number
   for (const b of blocks) {
     if (b.type === 'photo') out.push({ ...b.photo, entryId: b.entryId ?? null });
     else if (b.type === 'gallery') out.push(...b.photos);
-    else if (sketches && b.type === 'sketch' && b.image) out.push({ ...b.image, sketch: true });
+    else if (sketches && (b.type === 'sketch' || b.type === 'map') && b.image) out.push({ ...b.image, sketch: true });
   }
   return out;
 }
 
-const sketchImagesOf = (blocks: BlogBlock[]) => new Set(blocks.flatMap(b => (b.type === 'sketch' && b.image ? [b.image.galleryId] : [])));
+/** Imágenes generadas por el cliente (dibujos y mapas): se rehacen y la vieja sobra. */
+const sketchImagesOf = (blocks: BlogBlock[]) => new Set(blocks.flatMap(b => ((b.type === 'sketch' || b.type === 'map') && b.image ? [b.image.galleryId] : [])));
 
 function ownEntryId(postId: string): number | null {
   const r = db.prepare('SELECT id FROM journey_entries WHERE source_post_id = ?').get(postId) as { id: number } | undefined;
@@ -303,7 +307,7 @@ export function savePost(journeyId: number, postId: string, userId: number, inpu
   const blocks = input.blocks.map(b => {
     if (b.type === 'photo') return { ...b, photo: { galleryId: b.photo.galleryId, photoId: gallery.get(b.photo.galleryId)! } };
     if (b.type === 'gallery') return { ...b, photos: b.photos.map(p => ({ galleryId: p.galleryId, photoId: gallery.get(p.galleryId)! })) };
-    if (b.type === 'sketch' && b.image) return { ...b, image: { galleryId: b.image.galleryId, photoId: gallery.get(b.image.galleryId)! } };
+    if ((b.type === 'sketch' || b.type === 'map') && b.image) return { ...b, image: { galleryId: b.image.galleryId, photoId: gallery.get(b.image.galleryId)! } };
     return b;
   }) as BlogBlock[];
   let oldBlocks: BlogBlock[] = [];
