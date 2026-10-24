@@ -356,3 +356,20 @@ describe('Blog posts in the journey', () => {
     expect(res.body.entries.find((x: any) => x.title === 'Del blog')).toMatchObject({ source_post_id: POST, story: 'Texto' });
   });
 });
+
+describe('Deleting a post', () => {
+  it('BLOG-016 — removes the entry the post made in the journey (its photos stay in the gallery); entries it only linked are kept', async () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    const ph = galleryPhoto(j.id, user.id);
+    const linked = createJourneyEntry(testDb, j.id, user.id, { title: 'Enlazada' });
+    const r = await request(app).put(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id))
+      .send({ title: 'Del blog', add_to_journey: true, entry_ids: [linked.id], blocks: [para('p', 'x'), { id: 'f', type: 'photo', photo: ph }] });
+    const own = r.body.post.own_entry_id;
+    expect(own).toBeTruthy();
+    await request(app).delete(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id)).expect(200);
+    expect(testDb.prepare('SELECT 1 FROM journey_entries WHERE id = ?').get(own)).toBeUndefined();
+    expect(testDb.prepare('SELECT 1 FROM journey_entries WHERE id = ?').get(linked.id)).toBeTruthy();
+    expect(testDb.prepare('SELECT 1 FROM journey_photos WHERE id = ?').get(ph.galleryId)).toBeTruthy();
+  });
+});

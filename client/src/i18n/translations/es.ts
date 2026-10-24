@@ -3089,7 +3089,7 @@ const es: Record<string, string> = {
   'blog.post.publish': 'Publicar',
   'blog.post.delete': 'Eliminar post',
   'blog.post.deleteTitle': '¿Eliminar este post?',
-  'blog.post.deleteMessage': 'Las fotos se quedan en la galería de la travesía y las entradas no se tocan.',
+  'blog.post.deleteMessage': 'También se borra la entrada que creó en la travesía. Las fotos se quedan en la galería y las entradas que solo enlazaba no se tocan.',
   'blog.post.notFound': 'Este post no existe o ya no está disponible.',
   'blog.post.notOffline': 'Este post no está guardado en el dispositivo. Ábrelo con conexión una vez.',
   'blog.public.allPosts': 'Todos los posts',

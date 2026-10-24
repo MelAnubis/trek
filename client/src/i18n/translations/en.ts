@@ -3397,7 +3397,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'blog.post.publish': 'Publish',
   'blog.post.delete': 'Delete post',
   'blog.post.deleteTitle': 'Delete this post?',
-  'blog.post.deleteMessage': 'Photos stay in the journey gallery and entries are left untouched.',
+  'blog.post.deleteMessage': 'The entry it created in the journey is deleted too. Photos stay in the gallery and entries it only linked are left untouched.',
   'blog.post.notFound': 'This post does not exist or is no longer available.',
   'blog.post.notOffline': 'This post is not saved on this device. Open it once while online.',
   'blog.public.allPosts': 'All posts',

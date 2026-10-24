@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { db } from '../db/database';
-import { canAccessJourney, canEdit, createEntry, linkPhotoToEntry, broadcastJourneyEvent } from './journeyService';
+import { canAccessJourney, canEdit, createEntry, deleteEntry, linkPhotoToEntry, broadcastJourneyEvent } from './journeyService';
 
 /**
  * Blog de la travesía (4.2).
@@ -363,8 +363,11 @@ export function deletePost(journeyId: number, postId: string, userId: number, si
   if (!canEdit(journeyId, userId)) return null;
   const row = db.prepare('SELECT id FROM blog_posts WHERE id = ? AND journey_id = ?').get(postId, journeyId);
   if (!row) return false;
+  // La entrada que el post creó en la travesía se va con él (las fotos siguen
+  // en la galería). Las entradas que solo enlazaba no se tocan.
+  const own = (db.prepare('SELECT id FROM journey_entries WHERE source_post_id = ?').all(postId) as { id: number }[]).map(r => r.id);
   db.transaction(() => {
-    db.prepare('UPDATE journey_entries SET source_post_id = NULL WHERE source_post_id = ?').run(postId);
+    for (const id of own) deleteEntry(id, userId, sid);
     db.prepare('DELETE FROM blog_posts WHERE id = ?').run(postId);
   })();
   broadcastJourneyEvent(journeyId, 'journey:blog:deleted', { postId }, sid);
