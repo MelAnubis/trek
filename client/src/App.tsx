@@ -18,6 +18,8 @@ import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
 import JourneyStudioPage from './pages/JourneyStudioPage'
 import JourneyPublicPage from './pages/JourneyPublicPage'
+import JourneyBlogPage from './pages/JourneyBlogPage'
+import BlogPublicPage from './pages/BlogPublicPage'
 import SharedTripPage from './pages/SharedTripPage'
 import LiveLocationPage from './pages/LiveLocationPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
@@ -211,6 +213,8 @@ export default function App() {
         <Route path="/shared/:token" element={<SharedTripPage />} />
         <Route path="/live/:token" element={<LiveLocationPage />} />
         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />
+        <Route path="/public/journey/:token/blog" element={<BlogPublicPage />} />
+        <Route path="/public/journey/:token/blog/:slug" element={<BlogPublicPage />} />
         <Route path="/register" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
@@ -285,6 +289,22 @@ export default function App() {
           element={
             <ProtectedRoute addonId="journey">
               <JourneyDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/journey/:id/blog"
+          element={
+            <ProtectedRoute addonId="journey">
+              <JourneyBlogPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/journey/:id/blog/:postId"
+          element={
+            <ProtectedRoute addonId="journey">
+              <JourneyBlogPage />
             </ProtectedRoute>
           }
         />

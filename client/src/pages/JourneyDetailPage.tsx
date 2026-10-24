@@ -30,6 +30,7 @@ import {
   Sun, CloudSun, Cloud, CloudRain, CloudLightning, Snowflake, ChevronUp, ChevronDown, Eye, EyeOff,
   Archive, ArchiveRestore, Settings as SettingsIcon, Sparkles, ChevronLeft,
   StickyNote,
+  Newspaper,
 } from 'lucide-react'
 import { PlannerNotesCard, appendToStory, notesToStory, type PlannerNote } from '../components/Journey/PlannerNotes'
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
@@ -611,6 +612,13 @@ export default function JourneyDetailPage() {
                 <Grid size={13} />
                 {t('journey.share.gallery')}
               </button>
+              <button
+                onClick={() => navigate(`/journey/${current.id}/blog`)}
+                className="flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              >
+                <Newspaper size={13} />
+                {t('blog.title')}
+              </button>
             </div>
           </div>
 
@@ -821,6 +829,14 @@ export default function JourneyDetailPage() {
                       {v.label}
                     </button>
                   ))}
+                  {/* The blog is its own page (/journey/:id/blog), reached from here. */}
+                  <button
+                    onClick={() => navigate(`/journey/${current.id}/blog`)}
+                    className="flex items-center gap-1.5 px-3 py-[7px] text-[12px] font-medium text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+                  >
+                    <Newspaper size={13} />
+                    {t('blog.title')}
+                  </button>
                 </div>
                 {canEditEntries && (!isMobile ? view === 'timeline' : view !== 'gallery') && (
                   <button
@@ -3312,7 +3328,7 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
 
 function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const { t } = useTranslation()
-  const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean; share_book: boolean } | null>(null)
+  const [link, setLink] = useState<{ token: string; share_timeline: boolean; share_gallery: boolean; share_map: boolean; share_book: boolean; share_blog?: boolean } | null>(null)
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
   const toast = useToast()
@@ -3324,17 +3340,18 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
   const createLink = async () => {
     try {
       const res = await journeyApi.createShareLink(journeyId, { share_timeline: true, share_gallery: true, share_map: true })
-      setLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true, share_book: false })
+      setLink({ token: res.token, share_timeline: true, share_gallery: true, share_map: true, share_book: false, share_blog: false })
       toast.success(t('journey.share.linkCreated'))
     } catch { toast.error(t('journey.share.createFailed')) }
   }
 
-  const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map' | 'share_book') => {
+  const togglePerm = async (key: 'share_timeline' | 'share_gallery' | 'share_map' | 'share_book' | 'share_blog') => {
     if (!link) return
     const updated = { ...link, [key]: !link[key] }
     setLink(updated)
     try {
-      await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map, share_book: updated.share_book })
+      // Every flag goes back each time: one left out would be switched off.
+      await journeyApi.createShareLink(journeyId, { share_timeline: updated.share_timeline, share_gallery: updated.share_gallery, share_map: updated.share_map, share_book: updated.share_book, share_blog: !!updated.share_blog })
     } catch { setLink(link); toast.error(t('journey.share.updateFailed')) }
   }
 
@@ -3388,6 +3405,7 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
               { key: 'share_gallery' as const, label: t('journey.share.gallery'), icon: Grid },
               { key: 'share_map' as const, label: t('journey.share.map'), icon: MapPin },
               { key: 'share_book' as const, label: t('journey.share.book'), icon: BookOpen },
+              { key: 'share_blog' as const, label: t('journey.share.blog'), icon: Newspaper },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
