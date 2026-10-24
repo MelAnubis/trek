@@ -2,6 +2,7 @@ import Dexie, { type Table } from 'dexie';
 import type { Trip, Day, Place, PackingItem, TodoItem, BudgetItem, Reservation, TripFile, Accommodation, TripMember, Tag, Category } from '../types';
 import type { JourneyEntry } from '../store/journeyStore';
 import type { BookDocument } from '../types/book';
+import type { LocalPost, BlogUpload } from '../blog/types';
 
 /** TripMember enriched with tripId so we can index by trip. */
 export interface CachedTripMember extends TripMember {
@@ -91,6 +92,8 @@ class TrekOfflineDb extends Dexie {
   blobCache!: Table<BlobCacheEntry, string>;
   journeyEntries!: Table<JourneyEntry, number>;
   journeyBookDrafts!: Table<PendingBookEdit, number>;
+  blogPosts!: Table<LocalPost, string>;
+  blogUploads!: Table<BlogUpload, string>;
 
   constructor() {
     super('trek-offline');
@@ -120,6 +123,13 @@ class TrekOfflineDb extends Dexie {
       mutationQueue:     'id, tripId, journeyId, status, createdAt',
       journeyEntries:    'id, journey_id',
       journeyBookDrafts: 'journeyId',
+    });
+
+    // Blog (4.2): los posts y las fotos pendientes viven aquí hasta que se
+    // suben — se escribe sin red y la sincronización los envía después.
+    this.version(4).stores({
+      blogPosts:   'id, journeyId, dirty, deleted',
+      blogUploads: 'id, journeyId, postId, status, createdAt',
     });
   }
 }

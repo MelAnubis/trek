@@ -15,6 +15,7 @@
 import { mutationQueue } from './mutationQueue'
 import { tripSyncManager } from './tripSyncManager'
 import { setPreReconnectHook } from '../api/websocket'
+import { flush as flushBlog } from '../blog/blogSync'
 
 const PERIODIC_MS = 30_000
 
@@ -24,6 +25,7 @@ let _registered = false
 /** Network came back — flush mutations AND re-seed Dexie for all cacheable trips. */
 function onOnline() {
   mutationQueue.flush().catch(console.error)
+  flushBlog().catch(console.error)
   tripSyncManager.syncAll().catch(console.error)
 }
 
@@ -31,6 +33,7 @@ function onOnline() {
 function onVisibility() {
   if (!document.hidden && navigator.onLine) {
     mutationQueue.flush().catch(console.error)
+    flushBlog().catch(console.error)
   }
 }
 
@@ -38,6 +41,7 @@ function onVisibility() {
 function onPeriodic() {
   if (navigator.onLine) {
     mutationQueue.flush().catch(console.error)
+    flushBlog().catch(console.error)
   }
 }
 

@@ -47,6 +47,7 @@
     "mapbox-gl": "^3.22.0",
     "maplibre-gl": "5.24.0",
     "marked": "^18.0.0",
+    "perfect-freehand": "^1.2.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.4.1",
