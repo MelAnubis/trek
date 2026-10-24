@@ -48,7 +48,8 @@ export function localFromServer(p: ServerPost): LocalPost {
 export function emptyPost(journeyId: number, init: Partial<LocalPost> = {}): LocalPost {
   return {
     id: newId(), journeyId, title: '', blocks: [{ id: newId(), type: 'paragraph', text: '' }], status: 'draft',
-    post_date: new Date().toISOString().slice(0, 10), entry_ids: [], cover_photo_id: null, add_to_journey: false,
+    // Un post nuevo también es una entrada de la travesía (si no, no se ve allí).
+    post_date: new Date().toISOString().slice(0, 10), entry_ids: [], cover_photo_id: null, add_to_journey: true,
     baseVersion: null, server: null, dirty: 1, deleted: 0, localUpdatedAt: Date.now(), syncError: null, conflict: null,
     ...init,
   }

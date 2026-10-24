@@ -3168,6 +3168,10 @@ const es: Record<string, string> = {
   'blog.entries.panelHint': 'Se inserta donde tengas el cursor. Toca una foto para añadirla sola.',
   'blog.entries.day': 'Día {n}',
   'blog.entries.noMatch': 'Ninguna entrada coincide.',
+  'blog.notInJourney.text': 'Este post no aparece en la travesía (ni en su PDF ni en el libro).',
+  'blog.notInJourney.add': 'Añadir a la travesía',
+  'blog.fromPost': 'Escrita desde el blog: ábrela allí',
+  'journey.pdf.failed': 'No se pudo generar el PDF',
 }
 
 export default es

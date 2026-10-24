@@ -727,7 +727,11 @@ export default function JourneyDetailPage() {
                               } catch { /* ignore per-trip errors */ }
                             }
                             const expenses = [...expenseByCurrency.entries()].map(([currency, amount]) => ({ currency, amount }))
-                            downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
+                            await downloadJourneyBookPDF(current, gpxTracks, mapTileUrl, expenses)
+                          } catch (err) {
+                            // It used to fail silently: the button just did nothing.
+                            console.error('[journey PDF]', err)
+                            toast.error(`${t('journey.pdf.failed')}: ${err instanceof Error ? err.message : String(err)}`)
                           } finally {
                             el.disabled = false
                           }
@@ -1677,6 +1681,15 @@ function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
   const prosArr = entry.pros_cons?.pros ?? []
   const consArr = entry.pros_cons?.cons ?? []
   const hasProscons = prosArr.length > 0 || consArr.length > 0
+  // An entry a blog post keeps in step with itself: say so, and open the post.
+  const navigate = useNavigate()
+  const fromPost = (entry as JourneyEntry & { source_post_id?: string | null }).source_post_id
+  const blogBadge = (dark: boolean) => fromPost ? (
+    <button type="button" onClick={e => { e.stopPropagation(); navigate(`/journey/${entry.journey_id}/blog/${fromPost}`) }} title={t('blog.fromPost')}
+      className={`pointer-events-auto inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide shrink-0 ${dark ? 'bg-black/40 backdrop-blur-sm text-white hover:bg-black/55' : 'bg-indigo-50 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100'}`}>
+      <Newspaper size={10} />{t('blog.title')}
+    </button>
+  ) : null
 
   return (
     <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl overflow-hidden transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-zinc-400 dark:hover:border-zinc-500 hover:shadow-sm">
@@ -1702,6 +1715,7 @@ function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 {entry.entry_time}
               </span>
             )}
+            {blogBadge(true)}
           </div>
 
           {/* Menu top-right */}
@@ -1744,6 +1758,7 @@ function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
                 <Clock size={10} /> {entry.entry_time}
               </span>
             )}
+            {blogBadge(false)}
           </div>
           {!readOnly && (
             <div className="relative">

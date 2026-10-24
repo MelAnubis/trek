@@ -240,7 +240,36 @@ describe('Blog from an entry', () => {
     expect(texts).toEqual(['Salimos **temprano**.', 'Hacía frío.'])
     await waitFor(async () => {
       const [saved] = await offlineDb.blogPosts.toArray()
-      expect(saved).toMatchObject({ title: 'Salida desde Arévalo', post_date: '2026-05-01', entry_ids: [11] })
+      // it already is that entry: no second one in the journey
+      expect(saved).toMatchObject({ title: 'Salida desde Arévalo', post_date: '2026-05-01', entry_ids: [11], add_to_journey: false })
     })
+  })
+})
+
+describe('Blog posts and the journey', () => {
+  beforeEach(async () => {
+    _resetBlogSync()
+    await clearAll()
+    localStorage.clear()
+  })
+
+  it('FE-BLOG-UI-014: a new post goes into the journey by default', () => {
+    expect(emptyPost(3).add_to_journey).toBe(true)
+  })
+
+  it('FE-BLOG-UI-015: a post that is neither in the journey nor linked says so, and one tap adds it', async () => {
+    server.use(
+      http.get('/api/journeys/3', () => HttpResponse.json({ ...META, gallery: [] })),
+      http.get('/api/journeys/3/blog', () => HttpResponse.json({ access: 'edit', posts: [] })),
+      http.put('/api/journeys/3/blog/posts/:id', () => HttpResponse.json({ error: 'x' }, { status: 503 })),
+    )
+    await offlineDb.blogPosts.put({ ...emptyPost(3, { id: 'post-loose-0001', title: 'Suelto', add_to_journey: false }), dirty: 0, baseVersion: 1 })
+    render(
+      <Routes><Route path="/journey/:id/blog/:postId" element={<JourneyBlogPage />} /></Routes>,
+      { initialEntries: ['/journey/3/blog/post-loose-0001'] },
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Add to the journey' }))
+    await waitFor(async () => expect((await offlineDb.blogPosts.get('post-loose-0001'))?.add_to_journey).toBe(true))
+    expect(screen.queryByRole('button', { name: 'Add to the journey' })).toBeNull()
   })
 })

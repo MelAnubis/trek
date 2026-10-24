@@ -3476,6 +3476,10 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'blog.entries.panelHint': 'Inserted where your cursor is. Tap a photo to add just that one.',
   'blog.entries.day': 'Day {n}',
   'blog.entries.noMatch': 'No entry matches.',
+  'blog.notInJourney.text': 'This post does not appear in the journey (nor in its PDF or book).',
+  'blog.notInJourney.add': 'Add to the journey',
+  'blog.fromPost': 'Written from the blog: open it there',
+  'journey.pdf.failed': 'The PDF could not be generated',
 }
 
 export default en

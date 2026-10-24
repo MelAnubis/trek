@@ -74,6 +74,7 @@ import {
   createDay,
 } from '../helpers/factories';
 import fs from 'node:fs';
+import { backfillBlogPostEntries } from '../../src/services/blogBackfill';
 import path from 'node:path';
 import { authCookie } from '../helpers/auth';
 import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
@@ -326,5 +327,32 @@ describe('Public blog', () => {
     expect(share.body.link.share_blog).toBe(true);
     // the public journey page learns it can link to the blog
     expect((await request(app).get(`/api/public/journey/${token}`)).body.permissions.share_blog).toBe(true);
+  });
+});
+
+describe('Blog posts in the journey', () => {
+  it('BLOG-014 — posts that were only in the blog get their journey entry, with text and photos; linked or empty ones are left alone', () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    const ph = galleryPhoto(j.id, user.id);
+    const e = createJourneyEntry(testDb, j.id, user.id, { title: 'Existente' });
+    const ins = testDb.prepare(`INSERT INTO blog_posts (id, journey_id, author_id, title, slug, blocks, status, post_date, version, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'draft', ?, 1, 1, 1)`);
+    ins.run('solo-blog-0001', j.id, user.id, 'Solo en el blog', 'solo', JSON.stringify([{ id: 'p', type: 'paragraph', text: 'Hola' }, { id: 'f', type: 'photo', photo: ph, layout: 'wide' }]), '2026-05-04');
+    ins.run('enlazado-00001', j.id, user.id, 'Enlazado', 'enl', '[]', '2026-05-04');
+    testDb.prepare('INSERT INTO blog_post_entries (post_id, entry_id) VALUES (?, ?)').run('enlazado-00001', e.id);
+    ins.run('vacio-0000001', j.id, user.id, '', 'vacio', '[]', null);
+    expect(backfillBlogPostEntries(testDb)).toBe(1);
+    const made = testDb.prepare("SELECT * FROM journey_entries WHERE source_post_id = 'solo-blog-0001'").get() as any;
+    expect(made).toMatchObject({ title: 'Solo en el blog', story: 'Hola', entry_date: '2026-05-04', type: 'entry' });
+    expect(testDb.prepare('SELECT COUNT(*) AS n FROM journey_entry_photos WHERE entry_id = ?').get(made.id)).toMatchObject({ n: 1 });
+    expect(backfillBlogPostEntries(testDb)).toBe(0);             // idempotent
+  });
+
+  it('BLOG-015 — the journey lists the entry a post made, with source_post_id so it can link back to the post', async () => {
+    const { user } = createUser(testDb);
+    const j = createJourney(testDb, user.id);
+    await request(app).put(url(j.id, `/posts/${POST}`)).set('Cookie', authCookie(user.id)).send({ title: 'Del blog', post_date: '2026-05-01', add_to_journey: true, blocks: [para('p', 'Texto')] });
+    const res = await request(app).get(`/api/journeys/${j.id}`).set('Cookie', authCookie(user.id));
+    expect(res.body.entries.find((x: any) => x.title === 'Del blog')).toMatchObject({ source_post_id: POST, story: 'Texto' });
   });
 });

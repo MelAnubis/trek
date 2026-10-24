@@ -1,3 +1,4 @@
+import { backfillBlogPostEntries } from '../services/blogBackfill';
 import Database from 'better-sqlite3';
 import { encrypt_api_key } from '../services/apiKeyCrypto';
 import { makePreview } from '../services/plannerPreview';
@@ -2710,6 +2711,10 @@ function runMigrations(db: Database.Database): void {
       if (!col('journey_entries', 'source_post_id')) db.exec('ALTER TABLE journey_entries ADD COLUMN source_post_id TEXT');
       if (!col('journey_share_tokens', 'share_blog')) db.exec('ALTER TABLE journey_share_tokens ADD COLUMN share_blog INTEGER NOT NULL DEFAULT 0');
     },
+    // Un post del blog que no enlaza ninguna entrada no aparecía en la
+    // travesía («Añadir también a la travesía» venía apagado): se le crea su
+    // entrada, con su texto y fotos, como hace ahora por defecto al guardar.
+    () => { backfillBlogPostEntries(db); },
   ];
 
   if (currentVersion < migrations.length) {

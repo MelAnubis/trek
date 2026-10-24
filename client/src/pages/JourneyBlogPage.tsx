@@ -229,7 +229,8 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
         if (!meta) return                                       // espera a tener las entradas
         const e = meta.entries.find(x => x.id === fromEntry)
         if (e) {
-          const init = emptyPost(journeyId, { id: postId, title: e.title || '', post_date: e.entry_date, entry_ids: [e.id] })
+          // Ya está en la travesía (es esa entrada): no se crea otra.
+          const init = emptyPost(journeyId, { id: postId, title: e.title || '', post_date: e.entry_date, entry_ids: [e.id], add_to_journey: false })
           const body = blocksFromEntry({ ...e, title: null })
           const next = { ...init, blocks: body.length ? body : init.blocks }
           setDraft(next)
@@ -382,6 +383,13 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
           <span className="flex-1 min-w-[200px]">{t('blog.conflict.text')}</span>
           <button type="button" className="h-8 px-3 rounded-lg bg-white dark:bg-zinc-900 border border-amber-300 dark:border-amber-500/30 font-medium" onClick={() => resolveConflict(draft.id, 'mine')}>{t('blog.conflict.mine')}</button>
           <button type="button" className="h-8 px-3 rounded-lg bg-amber-600 text-white font-medium" onClick={async () => { await resolveConflict(draft.id, 'theirs'); const p = await getLocalPost(draft.id); if (p) setDraft(p) }}>{t('blog.conflict.theirs')}</button>
+        </div>
+      )}
+      {canEdit && mode === 'edit' && !draft.add_to_journey && draft.entry_ids.length === 0 && (
+        <div className="bg-indigo-50 dark:bg-indigo-500/10 border-b border-indigo-100 dark:border-indigo-500/20 px-4 py-2.5 text-[13px] flex flex-wrap items-center gap-3">
+          <BookMarked size={15} className="text-indigo-500 shrink-0" />
+          <span className="flex-1 min-w-[200px]">{t('blog.notInJourney.text')}</span>
+          <button type="button" className="h-8 px-3 rounded-lg bg-indigo-600 text-white font-medium" onClick={() => update({ add_to_journey: true })}>{t('blog.notInJourney.add')}</button>
         </div>
       )}
       {syncError && !conflict && (
