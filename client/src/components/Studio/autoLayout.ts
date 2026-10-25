@@ -310,7 +310,7 @@ function toReferenceEntry(entry: AutoEntry): ReferenceEntry {
  * (see this file's own header), then this file's programmatic templates
  * when none of the six fit.
  */
-function entrySpread(entry: AutoEntry, input: AutoInput, seed: number, design?: EditorialDesign): BookSpread {
+export function entrySpread(entry: AutoEntry, input: AutoInput, seed: number, design?: EditorialDesign): BookSpread {
   const { page, locale } = input
   if (design || input.style === 'editorial') return editorialEntrySpread(entry, input, seed, design)
   const pros = (entry.prosCons?.pros ?? []).map(s => s.trim()).filter(Boolean)

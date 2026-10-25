@@ -2724,6 +2724,13 @@ function runMigrations(db: Database.Database): void {
       if (!col('journeys', 'site_journal')) db.exec('ALTER TABLE journeys ADD COLUMN site_journal INTEGER NOT NULL DEFAULT 0');
       db.exec('CREATE INDEX IF NOT EXISTS idx_trips_public ON trips(is_public)');
     },
+    // 4.5 — revista: una travesía de tipo 'magazine' guarda la revista en el
+    // Studio (su libro) y las fotos que usa.
+    () => {
+      const col = (t: string, c: string) => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c);
+      if (!col('journeys', 'kind')) db.exec("ALTER TABLE journeys ADD COLUMN kind TEXT NOT NULL DEFAULT 'journey'");
+      if (!col('journeys', 'magazine_meta')) db.exec('ALTER TABLE journeys ADD COLUMN magazine_meta TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

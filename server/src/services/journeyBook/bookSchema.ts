@@ -58,7 +58,7 @@ export type BookShapeId = (typeof BOOK_SHAPES)[number];
  * bookFonts.ts), self-hosted via @fontsource rather than a Google Fonts
  * CDN request.
  */
-export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter'] as const;
+export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost'] as const;
 export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
 
 export const bookFrameSchema = z.object({
@@ -100,7 +100,7 @@ export const bookTextElementSchema = z.object({
   text: z.string().max(MAX_TEXT_LENGTH).default(''),
   font: z.enum(BOOK_FONTS_IDS).catch('sans').default('sans'),
   size: z.number().min(4).max(200).default(11),
-  weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
+  weight: z.union([z.literal(300), z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
   italic: z.boolean().default(false),
   align: z.enum(['left', 'center', 'right', 'justify']).default('left'),
   leading: z.number().min(0.7).max(3).default(1.45),

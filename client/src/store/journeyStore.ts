@@ -14,6 +14,8 @@ export interface Journey {
   status: 'draft' | 'active' | 'completed' | 'archived'
   created_at: number
   updated_at: number
+  /** 'magazine': a #ESTODOBAJADA magazine — its Studio book is the issue (see MagazineDialog). */
+  kind?: 'journey' | 'magazine'
 }
 
 export interface JourneyEntry {

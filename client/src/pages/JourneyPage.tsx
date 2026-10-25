@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useJourneyStore } from '../store/journeyStore'
 import { journeyApi, immichApi, type ImmichAlbum } from '../api/client'
 import Navbar from '../components/Layout/Navbar'
+import MagazineDialog from '../components/Magazine/MagazineDialog'
 import { useToast } from '../components/shared/Toast'
 import { useTranslation } from '../i18n'
 import {
@@ -39,7 +40,11 @@ export default function JourneyPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t } = useTranslation()
-  const { journeys, loading, loadJourneys, createJourney } = useJourneyStore()
+  const { journeys: allJourneys, loading, loadJourneys, createJourney } = useJourneyStore()
+  // Magazines are journeys too (their Studio book is the issue) but get their own shelf.
+  const journeys = useMemo(() => allJourneys.filter(j => j.kind !== 'magazine'), [allJourneys])
+  const magazines = useMemo(() => allJourneys.filter(j => j.kind === 'magazine'), [allJourneys])
+  const [showMagazine, setShowMagazine] = useState(false)
 
   const [showCreate, setShowCreate] = useState(false)
   const [newTitle, setNewTitle] = useState('')
@@ -433,9 +438,39 @@ export default function JourneyPage() {
                 </button>
               </div>
             )}
+
+            {/* Revistas #ESTODOBAJADA */}
+            {!searchQuery.trim() && (
+              <section className="mt-12" data-testid="magazines">
+                <div className="mb-4 flex items-center justify-between">
+                  <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-zinc-500">{t('magazine.shelf')}</span>
+                  <span className="text-[11px] text-zinc-400">{magazines.length}</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {magazines.map(m => (
+                    <button key={m.id} type="button" onClick={() => navigate(`/journey/${m.id}/studio`)}
+                      className="group text-left" data-testid="magazine-card">
+                      <div className="aspect-[120/170] rounded-md bg-[#111111] relative overflow-hidden shadow-md group-hover:-translate-y-1 transition-transform duration-300 p-3 flex flex-col">
+                        <span className="self-start bg-white text-[#111111] leading-none whitespace-nowrap" style={{ fontFamily: "Jost, Futura, sans-serif", fontWeight: 300, letterSpacing: '0.1em', fontSize: 10, padding: '5px 6px' }}>#ESTODOBAJADA</span>
+                        <span className="mt-auto text-white text-[13px] font-bold leading-tight line-clamp-3">{m.title}</span>
+                        {m.subtitle && <span className="text-white/60 text-[10px] tracking-[0.14em] uppercase mt-1">{m.subtitle}</span>}
+                      </div>
+                    </button>
+                  ))}
+                  <button type="button" onClick={() => setShowMagazine(true)} data-testid="magazine-new"
+                    className="aspect-[120/170] rounded-md border-[1.5px] border-dashed border-zinc-300 dark:border-zinc-700 flex flex-col items-center justify-center gap-2 text-zinc-500 hover:border-zinc-500 transition-colors p-3 text-center">
+                    <Plus size={20} />
+                    <span className="text-[13px] font-semibold text-zinc-700 dark:text-zinc-300">{t('magazine.new')}</span>
+                    <span className="text-[11px] leading-snug">{t('magazine.newSub')}</span>
+                  </button>
+                </div>
+              </section>
+            )}
           </div>
         </div>
       </div>
+
+      {showMagazine && <MagazineDialog onClose={() => setShowMagazine(false)} />}
 
       {/* Create Modal */}
       {showCreate && (

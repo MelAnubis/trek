@@ -72,6 +72,9 @@ import '@fontsource/dancing-script/400.css'
 import '@fontsource/dancing-script/600.css'
 import '@fontsource/dancing-script/700.css'
 import '@fontsource/special-elite/400.css'
+import '@fontsource/jost/300.css'
+import '@fontsource/jost/400.css'
+import '@fontsource/jost/600.css'
 
 import type { BookFontFamily } from '../../types/book'
 
@@ -90,13 +93,15 @@ export const BOOK_FONTS: Record<BookFontFamily, { name: string; stack: string }>
   caveat: { name: 'Caveat', stack: '"Caveat", "Comic Sans MS", cursive' },
   dancing: { name: 'Dancing Script', stack: '"Dancing Script", "Caveat", cursive' },
   typewriter: { name: 'Special Elite', stack: '"Special Elite", "Courier New", monospace' },
+  // The #ESTODOBAJADA sticker's face — the magazine masthead uses it.
+  jost: { name: 'Jost', stack: '"Jost", Futura, "Century Gothic", sans-serif' },
 }
 
 /** How the picker groups the faces. */
 export const BOOK_FONT_GROUPS: { id: 'sans' | 'serif' | 'display' | 'hand'; fonts: BookFontFamily[] }[] = [
   { id: 'sans', fonts: ['sans', 'inter', 'montserrat'] },
   { id: 'serif', fonts: ['serif', 'garamond', 'merriweather', 'cormorant', 'playfair'] },
-  { id: 'display', fonts: ['display', 'bebas', 'oswald', 'typewriter'] },
+  { id: 'display', fonts: ['display', 'jost', 'bebas', 'oswald', 'typewriter'] },
   { id: 'hand', fonts: ['caveat', 'dancing'] },
 ]
 

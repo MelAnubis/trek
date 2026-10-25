@@ -45,6 +45,7 @@ import liveLocationRoutes from './routes/liveLocation';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import siteRoutes from './routes/site';
+import magazineRoutes from './routes/magazines';
 import blogRoutes from './routes/blog';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
@@ -415,6 +416,7 @@ export function createApp(): express.Application {
   }, journeyRoutes);
   app.use('/api/public/journey', journeyPublicRoutes);
   app.use('/api/site', siteRoutes);
+  app.use('/api/magazines', magazineRoutes);
   app.use('/api/integrations/memories', memoriesRoutes);
   app.use('/api/integrations/airtrail', airtrailRoutes);
   app.use('/api/trips/:tripId/reservations/import/airtrail', airtrailImportRoutes);

@@ -26,7 +26,7 @@ export const BOOK_SHAPES = [
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 export type BookFontFamily = 'sans' | 'serif' | 'display' | 'inter' | 'garamond' | 'playfair' | 'bebas'
-  | 'montserrat' | 'oswald' | 'merriweather' | 'cormorant' | 'caveat' | 'dancing' | 'typewriter';
+  | 'montserrat' | 'oswald' | 'merriweather' | 'cormorant' | 'caveat' | 'dancing' | 'typewriter' | 'jost';
 
 export interface BookFrame {
   x: number;
@@ -68,7 +68,7 @@ export interface BookTextElement extends BookElementBase {
   text: string;
   font: BookFontFamily;
   size: number;
-  weight: 400 | 500 | 600 | 700;
+  weight: 300 | 400 | 500 | 600 | 700;
   italic: boolean;
   align: 'left' | 'center' | 'right' | 'justify';
   leading: number;

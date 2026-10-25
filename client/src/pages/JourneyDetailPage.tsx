@@ -190,6 +190,10 @@ export default function JourneyDetailPage() {
   const toast = useToast()
   const { t, locale } = useTranslation()
   const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, deleteJourney, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
+  // A magazine has no journal to show: its page is the Studio.
+  useEffect(() => {
+    if ((current as { kind?: string } | null)?.kind === 'magazine' && String(current!.id) === String(id)) navigate(`/journey/${current!.id}/studio`, { replace: true })
+  }, [current, id, navigate])
   const mapTileUrl = useSettingsStore(s => s.settings.map_tile_url) || undefined
   const mapRef = useRef<JourneyMapHandle>(null)
   const fullMapRef = useRef<JourneyMapHandle>(null)

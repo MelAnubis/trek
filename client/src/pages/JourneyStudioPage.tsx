@@ -159,7 +159,7 @@ export default function JourneyStudioPage() {
 
   const backToJourney = () => {
     void saveNow()
-    navigate(`/journey/${journeyId}`)
+    navigate(isMagazine ? '/journey' : `/journey/${journeyId}`)
   }
 
   const createBook = () => loadDoc(emptyBook(pageSetupFor(pagePreset, customPage), current?.title || ''))
@@ -220,8 +220,13 @@ export default function JourneyStudioPage() {
     return fetchJourneyAccommodations(current.trips).catch(() => [])
   }
 
+  // A magazine (kind 'magazine') was laid out from other journeys and stories
+  // (MagazineDialog): it has no journal of its own to auto-layout from, so
+  // Auto layout stays off rather than rebuilding it into an empty book.
+  const isMagazine = (current as { kind?: string } | null)?.kind === 'magazine'
+
   const autoInput: AutoInput | null = useMemo(() => {
-    if (!current || !doc) return null
+    if (!current || !doc || isMagazine) return null
     const entries = (current.entries || []).filter(e => e.type !== 'skeleton')
     const allPhotos = entries.flatMap(e => e.photos || [])
     const withContent = entries.filter(e => (e.photos?.length || 0) > 0 || !!e.story?.trim())
@@ -263,7 +268,7 @@ export default function JourneyStudioPage() {
       },
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current, doc?.page, locale, gpxTracks, t, autoStyle])
+  }, [current, doc?.page, locale, gpxTracks, t, autoStyle, isMagazine])
 
   const spread = doc?.spreads[activeSpread] ?? null
 
