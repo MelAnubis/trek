@@ -64,8 +64,15 @@ describe('FE-CLIENT-INTERCEPTOR: 401 AUTH_REQUIRED redirect allowlist', () => {
       expect(isAuthPublicPath('/trips/123')).toBe(false)
     })
 
-    it('FE-CLIENT-INTERCEPTOR-014: / (root)', () => {
-      expect(isAuthPublicPath('/')).toBe(false)
+  })
+
+  describe('the public site (#ESTODOBAJADA) — must not redirect', () => {
+    it('FE-CLIENT-INTERCEPTOR-014: / (root), /explora, /rutas/…, /relatos/…', () => {
+      expect(isAuthPublicPath('/')).toBe(true)
+      expect(isAuthPublicPath('/explora')).toBe(true)
+      expect(isAuthPublicPath('/rutas/7')).toBe(true)
+      expect(isAuthPublicPath('/relatos/todo-bajada')).toBe(true)
+      expect(isAuthPublicPath('/rutas')).toBe(false)
     })
   })
 })

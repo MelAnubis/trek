@@ -12,6 +12,7 @@ import App from './App'
 
 // ── Mock page components ───────────────────────────────────────────────────────
 vi.mock('./pages/LoginPage', () => ({ default: () => <div>Login</div> }))
+vi.mock('./site/SitePages', () => ({ SiteHomePage: () => <div>SiteHome</div>, SiteRoutePage: () => <div>SiteRoute</div>, SiteStoryPage: () => <div>SiteStory</div> }))
 vi.mock('./pages/DashboardPage', () => ({ default: () => <div>Dashboard</div> }))
 vi.mock('./pages/TripPlannerPage', () => ({ default: () => <div>TripPlanner</div> }))
 vi.mock('./pages/FilesPage', () => ({ default: () => <div>Files</div> }))
@@ -61,10 +62,10 @@ beforeEach(() => {
 // ── RootRedirect ───────────────────────────────────────────────────────────────
 
 describe('RootRedirect', () => {
-  it('FE-COMP-APP-001: / redirects to /login when not authenticated', async () => {
+  it('FE-COMP-APP-001: / shows the public site (#ESTODOBAJADA) when not authenticated', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/')
-    await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('SiteHome')).toBeInTheDocument())
   })
 
   it('FE-COMP-APP-002: / redirects to /dashboard when authenticated', async () => {
@@ -181,10 +182,10 @@ describe('Public routes', () => {
     expect(screen.getByText('SharedTrip')).toBeInTheDocument()
   })
 
-  it('FE-COMP-APP-014: unknown routes redirect to / which then redirects to /login', async () => {
+  it('FE-COMP-APP-014: unknown routes redirect to /, which is the public site for visitors', async () => {
     seedAuth({ isAuthenticated: false })
     renderApp('/does-not-exist')
-    await waitFor(() => expect(screen.getByText('Login')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('SiteHome')).toBeInTheDocument())
   })
 })
 
