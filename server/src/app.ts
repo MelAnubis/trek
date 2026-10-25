@@ -160,6 +160,7 @@ export function createApp(): express.Application {
           // Tours (v5): routing and heights on the public Valhalla, topo/cycle tiles for the planner.
           "https://valhalla1.openstreetmap.de",
           "https://*.tile.opentopomap.org", "https://*.tile-cyclosm.openstreetmap.fr",
+          "https://tile.waymarkedtrails.org", "https://server.arcgisonline.com",
           // Bikepack integration (iframe + API calls)
           "https://trekwanderer.info:448"
         ],

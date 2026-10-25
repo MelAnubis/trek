@@ -24,6 +24,7 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
+import { isNavAppId, navAppName, navUrl, type NavPlace } from '../../utils/navApps'
 import { useTranslation } from '../../i18n'
 import { isDayInAccommodationRange } from '../../utils/dayOrder'
 import {
@@ -34,6 +35,8 @@ import {
 import { formatDate, formatTime, dayTotalCost, currencyDecimals, splitReservationDateTime } from '../../utils/formatters'
 import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
+import ConfirmDialog from '../shared/ConfirmDialog'
+import { Eraser, Footprints, MapPinOff } from 'lucide-react'
 import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult } from '../../types'
 
 const NOTE_ICONS = [
@@ -241,6 +244,25 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const { t, language, locale } = useTranslation()
   const ctxMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
+  const dayDateFirst = useSettingsStore(s => s.settings.day_date_first) === true
+  const dayRouteProfile = useSettingsStore(s => s.settings.day_route_profile) ?? 'default'
+  const [clearDayTarget, setClearDayTarget] = useState<{ id: number; label: string } | null>(null)
+
+  // Clear day (TREK v5): every place comes off the day at once, with undo.
+  const handleClearDay = async (dayId: number) => {
+    try {
+      const removed = await useTripStore.getState().clearDay(tripId, dayId)
+      pushUndo?.(t('undo.clearDay'), async () => { await useTripStore.getState().restoreDay(tripId, dayId, removed) })
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+    }
+  }
+
+  // Leave out of route (TREK v5): the stop stays on the day and the map; the route skips it.
+  const handleRouteExcluded = (dayId: number, assignmentId: number, excluded: boolean) => {
+    useTripStore.getState().setRouteExcluded(tripId, dayId, assignmentId, excluded)
+      .catch((err: unknown) => toast.error(err instanceof Error ? err.message : t('common.unknownError')))
+  }
   const tripActions = useRef(useTripStore.getState()).current
   const can = useCanDo()
   const canEditDays = can('day_edit', trip)
@@ -804,8 +826,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const handleGoogleMaps = () => {
     if (!selectedDayId) return
     const da = getDayAssignments(selectedDayId)
-    const url = generateGoogleMapsUrl(da.map(a => a.place).filter(p => p?.lat && p?.lng))
-    if (url) window.open(url, '_blank')
+    const url = generateGoogleMapsUrl(da.filter(a => !a.route_excluded).map(a => a.place).filter(p => p?.lat && p?.lng))
+    if (url) window.open(dayRouteProfile === 'cycling' && url.includes('/dir/') ? `${url}/data=!4m2!4m1!3e1` : url, '_blank')
     else toast.error(t('dayplan.toast.noGeoPlaces'))
   }
 
@@ -1109,6 +1131,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
               <div
                 onClick={() => { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }}
+                onContextMenu={canEditDays && da.length > 0 ? e => ctxMenu.open(e, [
+                  { label: t('dayplan.clearDay'), icon: Eraser, danger: true, onClick: () => setClearDayTarget({ id: day.id, label: day.title || t('dayplan.dayN', { n: index + 1 }) }) },
+                ]) : undefined}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayId(null) }}
                 onDrop={e => handleDropOnDay(e, day.id)}
@@ -1157,7 +1182,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   ) : (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
-                        {day.title || t('dayplan.dayN', { n: index + 1 })}
+                        {dayDateFirst && formattedDate ? formattedDate : (day.title || t('dayplan.dayN', { n: index + 1 }))}
                       </span>
                       {canEditDays && <button
                         onClick={e => startEditTitle(day, e)}
@@ -1231,7 +1256,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     </div>
                   )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
-                    {formattedDate && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{formattedDate}</span>}
+                    {dayDateFirst && formattedDate
+                      ? <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{day.title || t('dayplan.dayN', { n: index + 1 })}</span>
+                      : formattedDate && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{formattedDate}</span>}
                     {cost && <span style={{ fontSize: 11, color: '#059669' }}>{cost}</span>}
                     {day.date && anyGeoPlace && <span style={{ width: 1, height: 10, background: 'var(--text-faint)', opacity: 0.3, flexShrink: 0 }} />}
                     {day.date && anyGeoPlace && (() => {
@@ -1443,8 +1470,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             onContextMenu={e => ctxMenu.open(e, [
                               canEditDays && onEditPlace && { label: t('common.edit'), icon: Pencil, onClick: () => onEditPlace(place, assignment.id) },
                               canEditDays && onRemoveAssignment && { label: t('planner.removeFromDay'), icon: Trash2, onClick: () => onRemoveAssignment(day.id, assignment.id) },
+                              canEditDays && (place.lat && place.lng) && (assignment.route_excluded
+                                ? { label: t('dayplan.includeInRoute'), icon: RouteIcon, onClick: () => handleRouteExcluded(day.id, assignment.id, false) }
+                                : { label: t('dayplan.excludeFromRoute'), icon: MapPinOff, onClick: () => handleRouteExcluded(day.id, assignment.id, true) }),
                               place.website && { label: t('inspector.website'), icon: ExternalLink, onClick: () => window.open(place.website, '_blank') },
-                              (place.lat && place.lng) && { label: 'Google Maps', icon: Navigation, onClick: () => window.open(`https://www.google.com/maps/search/?api=1&query=${place.google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + place.google_place_id : place.lat + ',' + place.lng}`, '_blank') },
+                              (place.lat && place.lng) && { label: navAppName(useSettingsStore.getState().settings.preferred_nav_app) ?? 'Google Maps', icon: Navigation, onClick: () => { const pref = useSettingsStore.getState().settings.preferred_nav_app; const url = navUrl(isNavAppId(pref) ? pref : 'google', place as NavPlace); if (url) window.open(url, '_blank') } },
                               { divider: true },
                               canEditDays && onDeletePlace && { label: t('common.delete'), icon: Trash2, danger: true, onClick: () => onDeletePlace(place.id) },
                             ])}
@@ -1522,6 +1552,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                                   {place.name}
                                 </span>
+                                {assignment.route_excluded && (
+                                  <span title={t('dayplan.offRouteHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 9.5, fontWeight: 600, color: 'var(--text-muted)', border: '1px dashed var(--border-primary)', borderRadius: 999, padding: '0 6px', marginLeft: 6, lineHeight: '15px' }}>
+                                    <MapPinOff size={9} strokeWidth={2.2} />{t('dayplan.offRoute')}
+                                  </span>
+                                )}
                                 {place.place_time && (
                                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
                                     <Clock size={9} strokeWidth={2} />
@@ -1989,6 +2024,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         </div>
                       )}
 
+                      <div role="group" aria-label={t('dayplan.routeProfile')} style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 9, background: 'var(--bg-hover)' }}>
+                        {([['default', Footprints, t('dayplan.routeProfile.default')], ['cycling', Bike, t('dayplan.routeProfile.cycling')]] as const).map(([id, Icon, label]) => (
+                          <button key={id} onClick={() => useSettingsStore.getState().updateSetting('day_route_profile', id)} aria-pressed={dayRouteProfile === id}
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px 0', fontSize: 11, fontWeight: dayRouteProfile === id ? 600 : 500, borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                              background: dayRouteProfile === id ? 'var(--bg-card)' : 'transparent', color: dayRouteProfile === id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                            <Icon size={12} strokeWidth={2} />{label}
+                          </button>
+                        ))}
+                      </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={handleOptimize} style={{
                           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
@@ -2325,6 +2369,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
         </div>
       )}
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />
+      <ConfirmDialog
+        isOpen={!!clearDayTarget}
+        onClose={() => setClearDayTarget(null)}
+        onConfirm={() => { if (clearDayTarget) void handleClearDay(clearDayTarget.id); setClearDayTarget(null) }}
+        title={t('dayplan.clearDayTitle', { day: clearDayTarget?.label ?? '' })}
+        message={t('dayplan.clearDayBody')}
+        confirmLabel={t('dayplan.clearDay')}
+        danger
+      />
     </div>
   )
 })

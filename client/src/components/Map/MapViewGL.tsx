@@ -3,6 +3,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { useSettingsStore } from '../../store/settingsStore'
+import { routeLabelInner } from './routeLabel'
+import { compactMarkerHtml, useCompactUnplanned } from './compactMarker'
 import { useAuthStore } from '../../store/authStore'
 import { getCached, isLoading, fetchPhoto, onThumbReady, getAllThumbs } from '../../services/photoService'
 import { CATEGORY_ICON_MAP } from '../shared/categoryIcons'
@@ -31,6 +33,7 @@ interface RouteSegment {
   to: [number, number]
   walkingText?: string
   drivingText?: string
+  cyclingText?: string
 }
 
 interface Props {
@@ -191,6 +194,8 @@ export function MapViewGL({
   const mapbox3d = useSettingsStore(s => s.settings.mapbox_3d_enabled !== false)
   const mapboxQuality = useSettingsStore(s => s.settings.mapbox_quality_mode === true)
   const showEndpointLabels = useSettingsStore(s => s.settings.map_booking_labels) !== false
+  const dayRouteProfile = useSettingsStore(s => s.settings.day_route_profile)
+  const compactIds = useCompactUnplanned()
   const placesPhotosEnabled = useAuthStore(s => s.placesPhotosEnabled)
   const [photoUrls, setPhotoUrls] = useState<Record<string, string>>(getAllThumbs)
   const [mapReady, setMapReady] = useState(false)
@@ -547,7 +552,9 @@ export function MapViewGL({
       const pck = place.google_place_id || place.osm_id || `${place.lat},${place.lng}`
       const photoUrl = (pck && photoUrls[pck]) || place.image_url || null
       const selected = place.id === selectedPlaceId
-      const el = createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
+      const el = compactIds?.has(place.id) && !selected
+        ? Object.assign(document.createElement('div'), { innerHTML: compactMarkerHtml((place as Place & { category_color?: string }).category_color) })
+        : createMarkerElement(place as Place & { category_color?: string; category_icon?: string }, photoUrl, orderNumbers, selected)
       el.addEventListener('click', (ev) => {
         ev.stopPropagation()
         onClickRefs.current.marker?.(place.id)
@@ -572,7 +579,7 @@ export function MapViewGL({
         .addTo(map)
       markersRef.current.set(place.id, m)
     })
-  }, [places, selectedPlaceId, dayOrderMap, photoUrls])
+  }, [places, selectedPlaceId, dayOrderMap, photoUrls, compactIds])
 
   // Reconcile OSM "explore" POI markers (imperative, kept separate from the
   // planned-place markers so they don't cluster or get confused with them).
@@ -622,11 +629,7 @@ export function MapViewGL({
       if (!seg.mid || (!seg.walkingText && !seg.drivingText)) continue
       const el = document.createElement('div')
       el.style.pointerEvents = 'none'
-      el.innerHTML = `<div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);color:#fff;border-radius:99px;padding:3px 9px;font-size:9px;font-weight:600;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
-        <span style="display:flex;align-items:center;gap:2px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M7 21l3-7"/><path d="M10 14l5-5"/><path d="M15 9l-4 7"/><path d="M18 18l-3-7"/></svg>${seg.walkingText ?? ''}</span>
-        <span style="opacity:0.3">|</span>
-        <span style="display:flex;align-items:center;gap:2px"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2-4H7L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>${seg.drivingText ?? ''}</span>
-      </div>`
+      el.innerHTML = `<div style="display:flex;align-items:center;gap:5px;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);color:#fff;border-radius:99px;padding:3px 9px;font-size:9px;font-weight:600;white-space:nowrap;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,0.3);">${routeLabelInner(seg, dayRouteProfile)}</div>`
       const m = new gl.Marker({ element: el, anchor: 'center' })
         .setLngLat([seg.mid[1], seg.mid[0]])
         .addTo(map)
@@ -636,7 +639,7 @@ export function MapViewGL({
       routeLabelMarkersRef.current.forEach(m => m.remove())
       routeLabelMarkersRef.current = []
     }
-  }, [routeSegments, mapReady])
+  }, [routeSegments, mapReady, dayRouteProfile])
 
   // Update GPX geometries
   useEffect(() => {

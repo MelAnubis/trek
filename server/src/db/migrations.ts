@@ -2807,6 +2807,11 @@ function runMigrations(db: Database.Database): void {
       const col = (t: string, c: string) => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c);
       if (!col('day_assignments', 'tour_stage_key')) db.exec('ALTER TABLE day_assignments ADD COLUMN tour_stage_key TEXT');
     },
+    // Plan (TREK v5): «Quitar de la ruta» — the stop stays on the day and the map, the day's route skips it.
+    () => {
+      const has = !!db.prepare("SELECT 1 FROM pragma_table_info('day_assignments') WHERE name = 'route_excluded'").get();
+      if (!has) db.exec('ALTER TABLE day_assignments ADD COLUMN route_excluded INTEGER NOT NULL DEFAULT 0');
+    },
   ];
 
   if (currentVersion < migrations.length) {

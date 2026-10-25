@@ -1,4 +1,4 @@
-import { assignmentsApi } from '../../api/client'
+import { assignmentsApi, type ClearedAssignment } from '../../api/client'
 import type { StoreApi } from 'zustand'
 import type { TripStoreState } from '../tripStore'
 import type { Assignment, AssignmentsMap } from '../../types'
@@ -13,6 +13,9 @@ export interface AssignmentsSlice {
   reorderAssignments: (tripId: number | string, dayId: number | string, orderedIds: number[]) => Promise<void>
   moveAssignment: (tripId: number | string, assignmentId: number, fromDayId: number | string, toDayId: number | string, toOrderIndex?: number | null) => Promise<void>
   setAssignments: (assignments: AssignmentsMap) => void
+  setRouteExcluded: (tripId: number | string, dayId: number | string, assignmentId: number, excluded: boolean) => Promise<void>
+  clearDay: (tripId: number | string, dayId: number | string) => Promise<ClearedAssignment[]>
+  restoreDay: (tripId: number | string, dayId: number | string, removed: ClearedAssignment[]) => Promise<void>
 }
 
 export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
@@ -164,5 +167,41 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
 
   setAssignments: (assignments) => {
     set({ assignments })
+  },
+
+  setRouteExcluded: async (tripId, dayId, assignmentId, excluded) => {
+    const key = String(dayId)
+    const flip = (value: boolean) => set(state => ({
+      assignments: { ...state.assignments, [key]: (state.assignments[key] || []).map(a => a.id === assignmentId ? { ...a, route_excluded: value } : a) },
+    }))
+    flip(excluded)
+    try {
+      await assignmentsApi.setRouteExcluded(tripId, assignmentId, excluded)
+    } catch (err: unknown) {
+      flip(!excluded)
+      throw new Error(getApiErrorMessage(err, 'Error'))
+    }
+  },
+
+  clearDay: async (tripId, dayId) => {
+    const key = String(dayId)
+    const before = get().assignments[key] || []
+    set(state => ({ assignments: { ...state.assignments, [key]: [] } }))
+    try {
+      const data = await assignmentsApi.clearDay(tripId, dayId)
+      return data.removed
+    } catch (err: unknown) {
+      set(state => ({ assignments: { ...state.assignments, [key]: before } }))
+      throw new Error(getApiErrorMessage(err, 'Error'))
+    }
+  },
+
+  restoreDay: async (tripId, dayId, removed) => {
+    const data = await assignmentsApi.restoreDay(tripId, dayId, removed) as { assignments: Assignment[] }
+    const key = String(dayId)
+    set(state => {
+      const kept = (state.assignments[key] || []).filter(a => !data.assignments.some(n => n.id === a.id))
+      return { assignments: { ...state.assignments, [key]: [...kept, ...data.assignments].sort((a, b) => a.order_index - b.order_index) } }
+    })
   },
 })

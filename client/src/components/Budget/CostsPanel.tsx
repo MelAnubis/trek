@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2, Wallet, Paperclip, ScanLine, Loader2, X, FileText } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, Check, RotateCcw, History, Pencil, Trash2, Wallet, Paperclip, ScanLine, Loader2, X, FileText, List, Table2 } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -62,6 +62,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   const curOf = useCallback((e: BudgetItem) => (e.currency || tripCurrency), [tripCurrency])
   const [settlement, setSettlement] = useState<SettlementData | null>(null)
   const [filter, setFilter] = useState<'all' | 'mine' | 'owed'>('all')
+  // Costs › Vista: Lista (by day) or Tabla (TREK v5), remembered on this device.
+  const [view, setView] = useState<'list' | 'table'>(() => { try { return localStorage.getItem('trek-costs-view') === 'table' ? 'table' : 'list' } catch { return 'list' } })
+  const chooseView = (v: 'list' | 'table') => { setView(v); try { localStorage.setItem('trek-costs-view', v) } catch { /* private mode */ } }
+  const [tableSort, setTableSort] = useState<{ col: 'date' | 'name' | 'category' | 'total' | 'net'; dir: 1 | -1 }>({ col: 'date', dir: -1 })
   const [search, setSearch] = useState('')
   const [histOpen, setHistOpen] = useState(false)
   const [modalOpen, setModalOpen] = useState(false)
@@ -258,7 +262,16 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <h3 className="text-content" style={{ fontSize: 24, fontWeight: 600, letterSpacing: '-0.025em', margin: 0 }}>
               {t('costs.expenses')}
             </h3>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div role="group" aria-label={t('costs.view.label')} className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 9, padding: 3 }}>
+                {(['list', 'table'] as const).map(v => (
+                  <button key={v} data-testid={`costs-view-${v}`} aria-pressed={view === v} onClick={() => chooseView(v)}
+                    className={view === v ? 'bg-surface-card text-content' : 'text-content-muted'}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 11px', fontSize: 12, borderRadius: 7, fontWeight: 500, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {v === 'list' ? <List size={13} /> : <Table2 size={13} />}{t('costs.view.' + v)}
+                  </button>
+                ))}
+              </div>
               <div className="bg-surface-input border border-edge" style={{ display: 'flex', alignItems: 'center', gap: 6, borderRadius: 10, padding: '0 10px', height: 34 }}>
                 <Search size={15} className="text-content-faint" />
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')}
@@ -280,7 +293,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>
               {search ? t('costs.noMatch') : t('costs.emptyText')}
             </div>
-          ) : dayGroups.map(g => {
+          ) : view === 'table' ? <ExpenseTable /> : dayGroups.map(g => {
             const dtot = g.items.reduce((a, e) => a + baseTotal(e), 0)
             return (
               <div key={g.day} style={{ marginBottom: 22 }}>
@@ -485,6 +498,69 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   }
 
   // ── inline subcomponents (close over helpers) ────────────────────────────
+  function ExpenseTable() {
+    const valueOf = (e: BudgetItem): string | number => {
+      switch (tableSort.col) {
+        case 'date': return e.expense_date || ''
+        case 'name': return e.name.toLowerCase()
+        case 'category': return t(catMeta(e.category).labelKey).toLowerCase()
+        case 'total': return baseTotal(e)
+        case 'net': return round2(myPaidOf(e) - myShareOf(e))
+      }
+    }
+    const rows = filtered.slice().sort((a, b) => { const x = valueOf(a), y = valueOf(b); return (x < y ? -1 : x > y ? 1 : 0) * tableSort.dir })
+    const sum = rows.reduce((a, e) => a + baseTotal(e), 0)
+    const head = (col: typeof tableSort.col, label: string, right = false) => (
+      <th key={col} onClick={() => setTableSort(s => ({ col, dir: s.col === col ? (s.dir === 1 ? -1 : 1) : 1 }))}
+        className="text-content-muted" style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: right ? 'right' : 'left', cursor: 'pointer', whiteSpace: 'nowrap', userSelect: 'none', borderBottom: '1px solid var(--border-primary)' }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>{label}{tableSort.col === col && (tableSort.dir === 1 ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}</span>
+      </th>
+    )
+    const td: React.CSSProperties = { padding: '10px 12px', fontSize: 13, borderBottom: '1px solid var(--border-faint)', verticalAlign: 'middle' }
+    return (
+      <div data-testid="costs-table" className="bg-surface-card border border-edge" style={{ borderRadius: 14, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <thead><tr>
+            {head('date', t('budget.table.date'))}
+            {head('name', t('budget.table.name'))}
+            {head('category', t('costs.view.category'))}
+            <th className="text-content-muted" style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', textAlign: 'left', borderBottom: '1px solid var(--border-primary)' }}>{t('costs.view.paidBy')}</th>
+            {head('total', t('budget.table.total'), true)}
+            {head('net', t('costs.view.yourBalance'), true)}
+            {canEdit && <th style={{ borderBottom: '1px solid var(--border-primary)' }} />}
+          </tr></thead>
+          <tbody>
+            {rows.map(e => {
+              const c = catMeta(e.category)
+              const net = round2(myPaidOf(e) - myShareOf(e))
+              return (
+                <tr key={e.id}>
+                  <td className="text-content-muted" style={{ ...td, whiteSpace: 'nowrap' }}>{e.expense_date ? new Date(e.expense_date + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '—'}</td>
+                  <td className="text-content" style={{ ...td, fontWeight: 600 }}>{e.name}</td>
+                  <td className="text-content-muted" style={td}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 8, height: 8, borderRadius: 2, background: c.color }} />{t(c.labelKey)}</span></td>
+                  <td style={td}><span style={{ display: 'inline-flex', gap: 3 }}>{(e.payers || []).filter(p => p.amount > 0).map(p => <span key={p.user_id} title={personName(p.user_id)}><Avatar id={p.user_id} size={20} /></span>)}</span></td>
+                  <td className="text-content" style={{ ...td, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{fmt(baseTotal(e))}</td>
+                  <td style={{ ...td, textAlign: 'right', whiteSpace: 'nowrap', color: net > 0.01 ? '#16a34a' : net < -0.01 ? '#dc2626' : 'var(--text-faint)' }}>{net > 0.01 ? '+' + fmt(net) : net < -0.01 ? '−' + fmt(-net) : '—'}</td>
+                  {canEdit && (
+                    <td style={{ ...td, whiteSpace: 'nowrap', textAlign: 'right' }}>
+                      <button title={t('common.edit')} onClick={() => { setEditing(e); setModalOpen(true) }} className="text-content-muted" style={{ border: 0, background: 'none', cursor: 'pointer', padding: 4 }}><Pencil size={13} /></button>
+                      <button title={t('common.delete')} onClick={() => handleDelete(e.id)} style={{ border: 0, background: 'none', cursor: 'pointer', padding: 4, color: '#dc2626' }}><Trash2 size={13} /></button>
+                    </td>
+                  )}
+                </tr>
+              )
+            })}
+          </tbody>
+          <tfoot><tr>
+            <td colSpan={4} className="text-content-muted" style={{ ...td, borderBottom: 0, fontWeight: 600 }}>{t('budget.table.total')}</td>
+            <td className="text-content" style={{ ...td, borderBottom: 0, textAlign: 'right', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(sum)}</td>
+            <td colSpan={canEdit ? 2 : 1} style={{ ...td, borderBottom: 0 }} />
+          </tr></tfoot>
+        </table>
+      </div>
+    )
+  }
+
   function ExpenseRow({ e }: { e: BudgetItem }) {
     const c = catMeta(e.category)
     const Icon = c.Icon

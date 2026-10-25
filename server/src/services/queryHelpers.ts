@@ -61,6 +61,7 @@ function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[], parti
     notes: a.notes,
     assignment_time: a.assignment_time ?? null,
     assignment_end_time: a.assignment_end_time ?? null,
+    route_excluded: !!(a as { route_excluded?: number }).route_excluded,
     participants: participants || [],
     created_at: a.created_at,
     place: {
@@ -82,6 +83,7 @@ function formatAssignmentWithPlace(a: AssignmentRow, tags: Partial<Tag>[], parti
       google_place_id: a.google_place_id,
       website: a.website,
       phone: a.phone,
+      tour_type: (a as { tour_type?: string | null }).tour_type ?? null,
       category: a.category_id ? {
         id: a.category_id,
         name: a.category_name,

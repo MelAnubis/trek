@@ -74,7 +74,7 @@ export function useRouteCalculation(
     // then derive segments by resetting whenever a transport appears — mirrors getMergedItems order.
     type Entry = { kind: 'place'; lat: number; lng: number } | { kind: 'transport' }
     const entries: (Entry & { pos: number })[] = [
-      ...da.filter(a => a.place?.lat && a.place?.lng).map(a => ({
+      ...da.filter(a => a.place?.lat && a.place?.lng && !a.route_excluded).map(a => ({
         kind: 'place' as const, lat: a.place.lat!, lng: a.place.lng!, pos: a.order_index,
       })),
       ...dayTransports.map(r => ({
@@ -95,7 +95,8 @@ export function useRouteCalculation(
     }
     if (currentSeg.length >= 2) segments.push(currentSeg)
 
-    const geocodedWaypoints = da.map(a => a.place).filter(p => p?.lat && p?.lng) as { lat: number; lng: number }[]
+    // «Quitar de la ruta»: the stop stays on the day, the route goes straight past it.
+    const geocodedWaypoints = da.filter(a => !a.route_excluded).map(a => a.place).filter(p => p?.lat && p?.lng) as { lat: number; lng: number }[]
 
     if (segments.length === 0 && geocodedWaypoints.length < 2) {
       setRoute(null); setRouteSegments([]); return

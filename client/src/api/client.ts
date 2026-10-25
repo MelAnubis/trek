@@ -296,6 +296,12 @@ export const placesApi = {
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids }).then(r => r.data),
 }
 
+/** What «Vaciar día» took off a day, kept to put it back on undo. */
+export interface ClearedAssignment {
+  place_id: number; order_index: number; notes: string | null; assignment_time: string | null
+  assignment_end_time: string | null; route_excluded: boolean; tour_stage_key: string | null; participant_ids: number[]
+}
+
 export const assignmentsApi = {
   list: (tripId: number | string, dayId: number | string) => apiClient.get(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data),
   create: (tripId: number | string, dayId: number | string, data: { place_id: number | string }) => apiClient.post(`/trips/${tripId}/days/${dayId}/assignments`, data).then(r => r.data),
@@ -303,6 +309,9 @@ export const assignmentsApi = {
   reorder: (tripId: number | string, dayId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/reorder`, { orderedIds }).then(r => r.data),
   move: (tripId: number | string, assignmentId: number, newDayId: number | string, orderIndex: number | null) => apiClient.put(`/trips/${tripId}/assignments/${assignmentId}/move`, { new_day_id: newDayId, order_index: orderIndex }).then(r => r.data),
   update: (tripId: number | string, dayId: number | string, id: number, data: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/days/${dayId}/assignments/${id}`, data).then(r => r.data),
+  setRouteExcluded: (tripId: number | string, id: number, excluded: boolean) => apiClient.put(`/trips/${tripId}/assignments/${id}/route`, { excluded }).then(r => r.data),
+  clearDay: (tripId: number | string, dayId: number | string) => apiClient.delete(`/trips/${tripId}/days/${dayId}/assignments`).then(r => r.data as { removed: ClearedAssignment[] }),
+  restoreDay: (tripId: number | string, dayId: number | string, assignments: ClearedAssignment[]) => apiClient.post(`/trips/${tripId}/days/${dayId}/assignments/restore`, { assignments }).then(r => r.data),
   getParticipants: (tripId: number | string, id: number) => apiClient.get(`/trips/${tripId}/assignments/${id}/participants`).then(r => r.data),
   setParticipants: (tripId: number | string, id: number, userIds: number[]) => apiClient.put(`/trips/${tripId}/assignments/${id}/participants`, { user_ids: userIds }).then(r => r.data),
   updateTime: (tripId: number | string, id: number, times: Record<string, unknown>) => apiClient.put(`/trips/${tripId}/assignments/${id}/time`, times).then(r => r.data),

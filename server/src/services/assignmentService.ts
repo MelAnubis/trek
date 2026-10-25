@@ -10,7 +10,8 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
       p.image_url, p.transport_mode, p.google_place_id, p.website, p.phone,
-      c.name as category_name, c.color as category_color, c.icon as category_icon
+      c.name as category_name, c.color as category_color, c.icon as category_icon,
+      (SELECT tr.tour_type FROM tours tr WHERE tr.place_id = p.id) as tour_type
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
@@ -40,6 +41,7 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
     notes: a.notes,
     assignment_time: a.assignment_time ?? null,
     assignment_end_time: a.assignment_end_time ?? null,
+    route_excluded: !!(a as { route_excluded?: number }).route_excluded,
     participants,
     created_at: a.created_at,
     place: {
@@ -61,6 +63,7 @@ export function getAssignmentWithPlace(assignmentId: number | bigint) {
       google_place_id: a.google_place_id,
       website: a.website,
       phone: a.phone,
+      tour_type: (a as { tour_type?: string | null }).tour_type ?? null,
       category: a.category_id ? {
         id: a.category_id,
         name: a.category_name,
@@ -80,7 +83,8 @@ export function listDayAssignments(dayId: string | number) {
       COALESCE(da.assignment_end_time, p.end_time) as end_time,
       p.duration_minutes, p.notes as place_notes,
       p.image_url, p.transport_mode, p.google_place_id, p.website, p.phone,
-      c.name as category_name, c.color as category_color, c.icon as category_icon
+      c.name as category_name, c.color as category_color, c.icon as category_icon,
+      (SELECT tr.tour_type FROM tours tr WHERE tr.place_id = p.id) as tour_type
     FROM day_assignments da
     JOIN places p ON da.place_id = p.id
     LEFT JOIN categories c ON p.category_id = c.id
@@ -212,4 +216,47 @@ export function setParticipants(assignmentId: string | number, userIds: number[]
     JOIN users u ON ap.user_id = u.id
     WHERE ap.assignment_id = ?
   `).all(assignmentId);
+}
+
+// ── Plan (TREK v5): leave out of the route, clear a day and take it back ─────
+
+export function setRouteExcluded(id: string | number, excluded: boolean) {
+  db.prepare('UPDATE day_assignments SET route_excluded = ? WHERE id = ?').run(excluded ? 1 : 0, id);
+  return getAssignmentWithPlace(Number(id));
+}
+
+export interface ClearedAssignment {
+  place_id: number; order_index: number; notes: string | null; assignment_time: string | null;
+  assignment_end_time: string | null; route_excluded: boolean; tour_stage_key: string | null; participant_ids: number[];
+}
+
+/** Takes every place off a day; returns what it took, so the day can be put back as it was. */
+export function clearDay(dayId: string | number): { ids: number[]; removed: ClearedAssignment[] } {
+  const rows = db.prepare('SELECT * FROM day_assignments WHERE day_id = ? ORDER BY order_index').all(dayId) as Array<Record<string, unknown> & { id: number }>;
+  const parts = db.prepare('SELECT user_id FROM assignment_participants WHERE assignment_id = ?');
+  const removed = rows.map(r => ({
+    place_id: Number(r.place_id), order_index: Number(r.order_index), notes: (r.notes as string) ?? null,
+    assignment_time: (r.assignment_time as string) ?? null, assignment_end_time: (r.assignment_end_time as string) ?? null,
+    route_excluded: !!r.route_excluded, tour_stage_key: (r.tour_stage_key as string) ?? null,
+    participant_ids: (parts.all(r.id) as { user_id: number }[]).map(p => p.user_id),
+  }));
+  db.prepare('DELETE FROM day_assignments WHERE day_id = ?').run(dayId);
+  return { ids: rows.map(r => r.id), removed };
+}
+
+/** Puts back what clearDay took, for places still in the trip. */
+export function restoreDay(dayId: string | number, tripId: string | number, items: ClearedAssignment[]) {
+  const ins = db.prepare(`INSERT INTO day_assignments (day_id, place_id, order_index, notes, assignment_time, assignment_end_time, route_excluded, tour_stage_key)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
+  const part = db.prepare('INSERT OR IGNORE INTO assignment_participants (assignment_id, user_id) VALUES (?, ?)');
+  const created: number[] = [];
+  db.transaction(() => {
+    for (const it of items) {
+      if (!placeExists(it.place_id, tripId)) continue;
+      const id = Number(ins.run(dayId, it.place_id, it.order_index, it.notes, it.assignment_time, it.assignment_end_time, it.route_excluded ? 1 : 0, it.tour_stage_key).lastInsertRowid);
+      for (const u of it.participant_ids ?? []) part.run(id, u);
+      created.push(id);
+    }
+  })();
+  return created.map(id => getAssignmentWithPlace(id));
 }

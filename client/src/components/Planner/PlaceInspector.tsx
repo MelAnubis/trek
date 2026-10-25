@@ -12,6 +12,8 @@ import { getCategoryIcon } from '../shared/categoryIcons'
 import { useTranslation } from '../../i18n'
 import type { Place, Category, Day, Assignment, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { splitReservationDateTime } from '../../utils/formatters'
+import { NAV_APPS, isNavAppId, navAppName, navUrl } from '../../utils/navApps'
+import { useContextMenu, ContextMenu } from '../shared/ContextMenu'
 
 const detailsCache = new Map()
 
@@ -137,6 +139,8 @@ export default function PlaceInspector({
   leftWidth = 0, rightWidth = 0,
 }: PlaceInspectorProps) {
   const { t, locale, language } = useTranslation()
+  const preferredNav = useSettingsStore(s => s.settings.preferred_nav_app)
+  const navMenu = useContextMenu()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const [hoursExpanded, setHoursExpanded] = useState(false)
   const [filesExpanded, setFilesExpanded] = useState(false)
@@ -641,8 +645,14 @@ export default function PlaceInspector({
               label={<span className="hidden sm:inline">{t('inspector.google')}</span>} />
           )}
           {!googleDetails?.google_maps_url && place.lat && place.lng && (
-            <ActionButton onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${place.google_place_id ? encodeURIComponent(place.name) + '&query_place_id=' + place.google_place_id : place.lat + ',' + place.lng}`, '_blank')} variant="ghost" icon={<Navigation size={13} />}
-              label={<span className="hidden sm:inline">Google Maps</span>} />
+            <ActionButton
+              onClick={(e: React.MouseEvent) => {
+                // A preferred map app opens straight away; without one, every app is offered (TREK v5).
+                if (isNavAppId(preferredNav)) { const url = navUrl(preferredNav, place); if (url) window.open(url, '_blank'); return }
+                navMenu.open(e, NAV_APPS.map(app => ({ label: app.name, icon: Navigation, onClick: () => { const url = navUrl(app.id, place); if (url) window.open(url, '_blank') } })))
+              }}
+              variant="ghost" icon={<Navigation size={13} />}
+              label={<span className="hidden sm:inline">{navAppName(preferredNav) ?? t('inspector.openWith')}</span>} />
           )}
           {(place.website || googleDetails?.website) && (
             <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}
@@ -652,6 +662,7 @@ export default function PlaceInspector({
           <ActionButton onClick={onEdit} variant="ghost" icon={<Edit2 size={13} />} label={<span className="hidden sm:inline">{t('common.edit')}</span>} />
           <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
         </div>
+        <ContextMenu menu={navMenu.menu} onClose={navMenu.close} />
       </div>
     </div>
   )
@@ -688,7 +699,7 @@ function Row({ icon, children }: RowProps) {
 }
 
 interface ActionButtonProps {
-  onClick: () => void
+  onClick: (e: React.MouseEvent) => void
   variant: 'primary' | 'ghost' | 'danger'
   icon: React.ReactNode
   label: React.ReactNode

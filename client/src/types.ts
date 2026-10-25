@@ -85,6 +85,8 @@ export interface Assignment {
   order_index: number
   notes: string | null
   place: Place
+  /** Leave out of route (TREK v5): on the day and the map, skipped by the day's route. */
+  route_excluded?: boolean
 }
 
 export interface DayNote {
@@ -264,6 +266,13 @@ export interface Settings {
   appearance?: unknown
   /** Ordered ids for the phone's bottom bar — see components/Layout/mobileNav.ts. */
   mobile_nav?: string[]
+  /** TREK v5 — the day's route: walking and driving times (default), or by bike. */
+  day_route_profile?: 'default' | 'cycling'
+  /** TREK v5 — Settings › Travel & map. */
+  day_date_first?: boolean
+  compact_unplanned?: boolean
+  /** TREK v5 — the map app the navigate buttons open; empty asks every time. */
+  preferred_nav_app?: string
 }
 
 export interface AssignmentsMap {
@@ -280,6 +289,8 @@ export interface RouteSegment {
   to: [number, number]
   walkingText: string
   drivingText: string
+  /** At an easy touring pace (15 km/h), for a day routed by bike. */
+  cyclingText?: string
 }
 
 export interface RouteResult {

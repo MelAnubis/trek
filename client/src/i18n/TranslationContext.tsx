@@ -17,6 +17,7 @@ import cs from './translations/cs'
 import pl from './translations/pl'
 import toursEn from '../tours/i18n/en'
 import toursEs from '../tours/i18n/es'
+import { plan5En, plan5Es } from './translations/plan5'
 import { SUPPORTED_LANGUAGES, SupportedLanguageCode } from './supportedLanguages'
 
 export { SUPPORTED_LANGUAGES }
@@ -25,7 +26,7 @@ type TranslationStrings = Record<string, string | { name: string; category: stri
 
 // Keyed by SupportedLanguageCode so TypeScript enforces all languages have a translation.
 const translations: Record<SupportedLanguageCode, TranslationStrings> = {
-  de, en: { ...toursEn, ...en }, es: { ...toursEs, ...es }, fr, hu, it, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
+  de, en: { ...toursEn, ...plan5En, ...en }, es: { ...toursEs, ...plan5Es, ...es }, fr, hu, it, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
 }
 
 // Derived from SUPPORTED_LANGUAGES — add new languages there, not here.

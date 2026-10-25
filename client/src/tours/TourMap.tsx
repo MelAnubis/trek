@@ -5,16 +5,18 @@ import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMap, useMap
 import L from 'leaflet'
 import { Map as MapIcon, Mountain, Footprints, Bike, Satellite, Search, X, Crosshair } from 'lucide-react'
 import { useTranslation } from '../i18n'
+import { useSettingsStore } from '../store/settingsStore'
 import type { DraftPoint } from './useTourPlanner'
 import type { TourRoutePart } from './routing/tourRouting'
 
 export type BaseLayer = 'map' | 'topo' | 'hiking' | 'cycling' | 'satellite'
 
 const LAYERS: Record<BaseLayer, { url: string; attribution: string; maxZoom: number; overlay?: { url: string; attribution: string } }> = {
-  map: { url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 19 },
+  // CARTO refuses anonymous requests now, so the plain map is OSM (or the user's own tiles, see below).
+  map: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap', maxZoom: 19 },
   topo: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap, SRTM | &copy; OpenTopoMap (CC-BY-SA)', maxZoom: 17 },
   hiking: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom: 18,
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap', maxZoom: 18,
     overlay: { url: 'https://tile.waymarkedtrails.org/hiking/{z}/{x}/{y}.png', attribution: '&copy; waymarkedtrails.org' },
   },
   cycling: { url: 'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap | CyclOSM', maxZoom: 19 },
@@ -132,7 +134,8 @@ export default function TourMap(props: Props) {
   const { t } = useTranslation()
   const { points, parts, color, others, addMode, editing, baseLayer, selectedPointId } = props
   const [fly, setFly] = useState<{ lat: number; lng: number; key: number } | null>(null)
-  const layer = LAYERS[baseLayer]
+  const userTiles = useSettingsStore(s => s.settings.map_tile_url)
+  const layer = baseLayer === 'map' && userTiles ? { ...LAYERS.map, url: userTiles } : LAYERS[baseLayer]
 
   const bounds = useMemo(() => {
     const b = L.latLngBounds([])
@@ -197,7 +200,7 @@ export default function TourMap(props: Props) {
 
       <MapSearch onPick={(lat, lng) => setFly({ lat, lng, key: Date.now() })} />
 
-      <div style={{ position: 'absolute', bottom: 16, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 2, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: 4, boxShadow: 'var(--shadow-card)', maxWidth: 'calc(100% - 24px)', overflowX: 'auto' }}>
+      <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 2, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: 4, boxShadow: 'var(--shadow-card)', maxWidth: 'calc(100% - 24px)', overflowX: 'auto' }}>
         {layerButtons.map(b => {
           const active = baseLayer === b.id
           return (

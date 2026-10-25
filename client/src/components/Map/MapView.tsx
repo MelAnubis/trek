@@ -11,6 +11,9 @@ import ReservationOverlay from './ReservationOverlay'
 import type { Reservation } from '../../types'
 import { POI_CATEGORY_BY_KEY, poiDisplayName, type Poi } from './poiCategories'
 import { useTranslation } from '../../i18n'
+import { routeLabelInner } from './routeLabel'
+import { compactMarkerHtml, useCompactUnplanned } from './compactMarker'
+import { useSettingsStore } from '../../store/settingsStore'
 
 function categoryIconSvg(iconName: string | null | undefined, size: number): string {
   const IconComponent = (iconName && CATEGORY_ICON_MAP[iconName]) || CATEGORY_ICON_MAP['MapPin']
@@ -292,9 +295,11 @@ interface RouteLabelProps {
   midpoint: [number, number]
   walkingText: string
   drivingText: string
+  cyclingText?: string
+  profile?: 'default' | 'cycling'
 }
 
-function RouteLabel({ midpoint, walkingText, drivingText }: RouteLabelProps) {
+function RouteLabel({ midpoint, walkingText, drivingText, cyclingText, profile }: RouteLabelProps) {
   if (!midpoint) return null
 
   const icon = L.divIcon({
@@ -309,15 +314,7 @@ function RouteLabel({ midpoint, walkingText, drivingText }: RouteLabelProps) {
       pointer-events:none;
       position:relative;left:-50%;top:-50%;
     ">
-      <span style="display:flex;align-items:center;gap:2px">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="13" cy="4" r="2"/><path d="M7 21l3-7"/><path d="M10 14l5-5"/><path d="M15 9l-4 7"/><path d="M18 18l-3-7"/></svg>
-        ${walkingText}
-      </span>
-      <span style="opacity:0.3">|</span>
-      <span style="display:flex;align-items:center;gap:2px">
-        <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9L18 10l-2-4H7L5 10l-2.5 1.1C1.7 11.3 1 12.1 1 13v3c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
-        ${drivingText}
-      </span>
+      ${routeLabelInner({ walkingText, drivingText, cyclingText }, profile)}
     </div>`,
     iconSize: [0, 0],
     iconAnchor: [0, 0],
@@ -414,9 +411,11 @@ interface MemoMarkerProps {
 }
 
 const MemoMarker = memo(function MemoMarker({
-  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut,
-}: MemoMarkerProps) {
-  const icon = createPlaceIcon({ ...place, image_url: photoUrl }, orderNumbers, isSelected)
+  place, isSelected, orderNumbers, photoUrl, onClickPlace, onHover, onHoverOut, compact,
+}: MemoMarkerProps & { compact?: boolean }) {
+  const icon = compact && !isSelected
+    ? L.divIcon({ className: '', html: compactMarkerHtml(place.category_color), iconSize: L.point(14, 14), iconAnchor: L.point(7, 7) })
+    : createPlaceIcon({ ...place, image_url: photoUrl }, orderNumbers, isSelected)
   return (
     <Marker
       position={[place.lat, place.lng]}
@@ -470,6 +469,8 @@ export const MapView = memo(function MapView({
   selectedDayId = null,
 }: any) {
   const { t } = useTranslation()
+  const dayRouteProfile = useSettingsStore(s => s.settings.day_route_profile)
+  const compactIds = useCompactUnplanned()
   const poiMarkers = useMemo(() => (pois as Poi[]).map((poi: Poi) => (
     <Marker
       key={`poi-${poi.osm_id}`}
@@ -601,9 +602,10 @@ export const MapView = memo(function MapView({
         onClickPlace={handleMarkerClick}
         onHover={handleMarkerHover}
         onHoverOut={handleMarkerHoverOut}
+        compact={!!compactIds?.has(place.id)}
       />
     )
-  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut])
+  }), [places, selectedPlaceId, dayOrderMap, photoUrls, handleMarkerClick, handleMarkerHover, handleMarkerHoverOut, compactIds])
 
   const gpxPolylines = useMemo(() => places.flatMap(place => {
     if (!place.route_geometry) return []
@@ -768,7 +770,7 @@ export const MapView = memo(function MapView({
             />
           ))}
           {routeSegments.map((seg, i) => (
-            <RouteLabel key={i} midpoint={seg.mid} from={seg.from} to={seg.to} walkingText={seg.walkingText} drivingText={seg.drivingText} />
+            <RouteLabel key={i} midpoint={seg.mid} walkingText={seg.walkingText} drivingText={seg.drivingText} cyclingText={seg.cyclingText} profile={dayRouteProfile} />
           ))}
         </>
       )}

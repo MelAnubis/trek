@@ -1,3 +1,4 @@
+import { NAV_APPS } from '../../utils/navApps'
 import React, { useState, useEffect, useRef } from 'react'
 import { Palette, Sun, Moon, Monitor, ChevronDown, Check } from 'lucide-react'
 import { SUPPORTED_LANGUAGES, useTranslation } from '../../i18n'
@@ -345,6 +346,53 @@ export default function DisplaySettingsTab(): React.ReactElement {
           ))}
         </div>
       </div>
+
+      {/* Travel & map (TREK v5) */}
+      <div>
+        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.preferredNavApp')}</label>
+        <select
+          data-testid="preferred-nav-app"
+          value={settings.preferred_nav_app || ''}
+          onChange={async e => {
+            try { await updateSetting('preferred_nav_app', e.target.value) }
+            catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
+          }}
+          style={{ padding: '10px 14px', borderRadius: 10, border: '2px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 14, minWidth: 220 }}
+        >
+          <option value="">{t('settings.preferredNavAppAsk')}</option>
+          {NAV_APPS.map(app => <option key={app.id} value={app.id}>{app.name}</option>)}
+        </select>
+        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.preferredNavAppHint')}</p>
+      </div>
+      {([['day_date_first', 'settings.dayDateFirst', 'settings.dayDateFirstHint'], ['compact_unplanned', 'settings.compactUnplanned', 'settings.compactUnplannedHint']] as const).map(([key, label, hint]) => (
+        <div key={key}>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t(label)}</label>
+          <div className="flex gap-3">
+            {[{ value: true, label: t('settings.on') || 'On' }, { value: false, label: t('settings.off') || 'Off' }].map(opt => (
+              <button
+                key={String(opt.value)}
+                data-testid={`${key}-${opt.value ? 'on' : 'off'}`}
+                onClick={async () => {
+                  try { await updateSetting(key, opt.value) }
+                  catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
+                  fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
+                  border: (!!settings[key]) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
+                  background: (!!settings[key]) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
+                  color: 'var(--text-primary)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t(hint)}</p>
+        </div>
+      ))}
     </Section>
   )
 }

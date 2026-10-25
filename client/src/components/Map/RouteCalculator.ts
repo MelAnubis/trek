@@ -114,10 +114,12 @@ export async function calculateSegments(
     const to: [number, number] = [waypoints[i + 1].lat, waypoints[i + 1].lng]
     const mid: [number, number] = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2]
     const walkingDuration = leg.distance / (5000 / 3600)
+    const cyclingDuration = leg.distance / (15000 / 3600)
     return {
       mid, from, to,
       walkingText: formatDuration(walkingDuration),
       drivingText: formatDuration(leg.duration),
+      cyclingText: formatDuration(cyclingDuration),
     }
   })
 }

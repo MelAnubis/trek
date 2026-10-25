@@ -154,3 +154,27 @@ describe('CostsPanel — receipt attachments', () => {
     expect((formDataArg as FormData).get('budget_item_id')).toBe('77');
   });
 });
+
+describe('CostsPanel — table view (TREK v5)', () => {
+  it('FE-COMP-COSTSPANEL-V5-001: Table lists every expense in one table, sorts by a column and adds them up', async () => {
+    const user = userEvent.setup();
+    seedStore(useTripStore, {
+      trip: buildTrip({ id: 1, currency: 'EUR' }),
+      budgetItems: [
+        { id: 1, trip_id: 1, name: 'Hotel', total_price: 120, currency: 'EUR', category: 'accommodation', sort_order: 0, expense_date: '2026-05-02', members: [], payers: [{ user_id: 1, amount: 120 }] },
+        { id: 2, trip_id: 1, name: 'Bocadillo', total_price: 8, currency: 'EUR', category: 'food', sort_order: 1, expense_date: '2026-05-01', members: [], payers: [{ user_id: 1, amount: 8 }] },
+      ] as never,
+    });
+    server.use(http.get('/api/trips/1/budget', () => HttpResponse.json({ items: useTripStore.getState().budgetItems })));
+    render(<CostsPanel tripId={1} tripMembers={members} />);
+    await user.click(await screen.findByTestId('costs-view-table'));
+    await screen.findByTestId('costs-table');
+    const names = () => Array.from(screen.getByTestId('costs-table').querySelectorAll('tbody tr td:nth-child(2)')).map(td => td.textContent);
+    expect(names()).toEqual(['Hotel', 'Bocadillo']);
+    await user.click(screen.getByText('Name', { selector: 'th span' }));
+    expect(names()).toEqual(['Bocadillo', 'Hotel']);
+    expect(screen.getByTestId('costs-table').querySelector('tfoot')?.textContent).toMatch(/128/);
+    expect(localStorage.getItem('trek-costs-view')).toBe('table');
+    localStorage.removeItem('trek-costs-view');
+  });
+});

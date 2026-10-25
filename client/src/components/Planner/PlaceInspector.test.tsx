@@ -609,13 +609,21 @@ describe('PlaceInspector', () => {
 
   // ── Google Maps URL action ─────────────────────────────────────────────────
 
-  it('FE-PLANNER-INSPECTOR-043: Google Maps lat/lng button visible when no google_maps_url', () => {
+  it('FE-PLANNER-INSPECTOR-043: without a preferred map app the navigate button offers every app; with one it names and opens it', async () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null);
+    const { unmount } = render(<PlaceInspector {...defaultProps} />);
+    const ask = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Open with'));
+    expect(ask).toBeTruthy();
+    fireEvent.click(ask!);
+    expect(await screen.findByText('Waze')).toBeInTheDocument();
+    expect(screen.getByText('Google Maps')).toBeInTheDocument();
+    unmount();
+    seedStore(useSettingsStore, { settings: { time_format: '24h', preferred_nav_app: 'google' } });
     render(<PlaceInspector {...defaultProps} />);
-    // place has lat/lng so Google Maps button should appear with Navigation icon
-    const allButtons = screen.getAllByRole('button');
-    // Find button containing "Google Maps" text
-    const mapsBtn = allButtons.find(btn => btn.textContent?.includes('Google Maps'));
-    expect(mapsBtn).toBeTruthy();
+    const mapsBtn = screen.getAllByRole('button').find(btn => btn.textContent?.includes('Google Maps'));
+    fireEvent.click(mapsBtn!);
+    expect(open.mock.calls[0][0]).toContain('google.com/maps');
+    open.mockRestore();
   });
 
   // ── No files section when no upload handler and no files ──────────────────
