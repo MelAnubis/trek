@@ -20,6 +20,7 @@ import JourneyStudioPage from './pages/JourneyStudioPage'
 import JourneyPublicPage from './pages/JourneyPublicPage'
 import JourneyBlogPage from './pages/JourneyBlogPage'
 import BlogPublicPage from './pages/BlogPublicPage'
+import { SiteHomePage, SiteRoutePage, SiteStoryPage } from './site/SitePages'
 import SharedTripPage from './pages/SharedTripPage'
 import LiveLocationPage from './pages/LiveLocationPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
@@ -111,7 +112,8 @@ function RootRedirect() {
     )
   }
 
-  return <Navigate to={isAuthenticated ? '/dashboard' : '/login'} replace />
+  // Sin sesión, la portada es la zona pública; con sesión, la app.
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <SiteHomePage />
 }
 
 export default function App() {
@@ -212,6 +214,9 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/explora" element={<SiteHomePage />} />
+        <Route path="/rutas/:id" element={<SiteRoutePage />} />
+        <Route path="/relatos/:slug" element={<SiteStoryPage />} />
         <Route path="/shared/:token" element={<SharedTripPage />} />
         <Route path="/live/:token" element={<LiveLocationPage />} />
         <Route path="/public/journey/:token" element={<JourneyPublicPage />} />

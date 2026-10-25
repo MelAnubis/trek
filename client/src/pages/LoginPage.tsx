@@ -68,6 +68,8 @@ export default function LoginPage(): React.ReactElement {
     const params = new URLSearchParams(window.location.search)
 
     const invite = params.get('invite')
+    // Desde la zona pública: «Únete» abre directamente el registro.
+    if (params.get('mode') === 'register') setMode('register')
     const oidcCode = params.get('oidc_code')
     const oidcError = params.get('oidc_error')
 

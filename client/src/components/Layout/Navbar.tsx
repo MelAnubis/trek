@@ -5,7 +5,7 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
-import { Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
+import { Mountain, Plane, LogOut, Settings, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 
@@ -167,6 +167,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               <RouteIcon className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">{t('planner.nav')}</span>
             </Link>
+            <Link to="/explora" title={t('site.tab')}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+              <Mountain className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">{t('site.tab')}</span>
+            </Link>
           </>
         )}
         {/* Sin addons globales activos el bloque anterior no se pinta: el planificador sigue accesible. */}
@@ -183,6 +191,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
               <RouteIcon className="w-3.5 h-3.5" />
               <span className="hidden lg:inline">{t('planner.nav')}</span>
+            </Link>
+            <Link to="/explora" title={t('site.tab')}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+              style={{ color: 'var(--text-muted)' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
+              <Mountain className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">{t('site.tab')}</span>
             </Link>
           </>
         )}

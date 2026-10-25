@@ -66,8 +66,9 @@ apiClient.interceptors.request.use(
 )
 
 export function isAuthPublicPath(pathname: string): boolean {
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password']
-  const publicPrefixes = ['/shared/', '/public/']
+  // '/', '/explora', /rutas/… and /relatos/… are the public site (#ESTODOBAJADA).
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/', '/explora']
+  const publicPrefixes = ['/shared/', '/public/', '/rutas/', '/relatos/']
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
 }
 
@@ -826,3 +827,9 @@ export const airtrailApi = {
 }
 
 export default apiClient
+
+/** Zona pública #ESTODOBAJADA (server/src/routes/site.ts). */
+export const siteApi = {
+  setJournal: (journeyId: number, on: boolean) => apiClient.put(`/site/journals/${journeyId}`, { on }).then(r => r.data),
+}
+

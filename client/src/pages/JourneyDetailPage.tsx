@@ -10,7 +10,7 @@ import { journeyPhotoRepo } from '../repo/journeyPhotoRepo'
 import { useAuthStore } from '../store/authStore'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTranslation } from '../i18n'
-import { journeyApi, authApi, addonsApi, mapsApi, weatherApi } from '../api/client'
+import { journeyApi, authApi, addonsApi, mapsApi, weatherApi, siteApi } from '../api/client'
 import { addListener, removeListener } from '../api/websocket'
 import Navbar from '../components/Layout/Navbar'
 import JourneyMap from '../components/Journey/JourneyMapAuto'
@@ -3458,6 +3458,33 @@ function JourneyShareSection({ journeyId }: { journeyId: number }) {
   )
 }
 
+// Admin: los posts publicados del blog de esta travesía salen en «Relatos» de la zona pública.
+function SiteJournalToggle({ journey }: { journey: JourneyDetail }) {
+  const { t } = useTranslation()
+  const toast = useToast()
+  const [on, setOn] = useState(!!(journey as unknown as { site_journal?: number }).site_journal)
+  const [busy, setBusy] = useState(false)
+  const flip = async () => {
+    setBusy(true)
+    try { await siteApi.setJournal(journey.id, !on); setOn(!on) } catch { toast.error(t('common.error')) } finally { setBusy(false) }
+  }
+  return (
+    <>
+      <div className="h-px bg-zinc-200 dark:bg-zinc-700" />
+      <div className="flex flex-col gap-2">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-zinc-500">{t('site.journal.title')}</div>
+        <button type="button" onClick={flip} disabled={busy} data-testid="site-journal-toggle" aria-pressed={on}
+          className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border text-[12px] font-medium text-left transition-all ${on ? 'border-zinc-900 dark:border-white bg-zinc-900 dark:bg-white text-white dark:text-zinc-900' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-400'}`}>
+          <Newspaper size={13} />
+          <span className="flex-1">{t('site.journal.toggle')}</span>
+          {on && <Check size={12} />}
+        </button>
+        <p className="text-[11px] text-zinc-500 leading-snug">{t('site.journal.hint')}</p>
+      </div>
+    </>
+  )
+}
+
 function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefresh, onDeleteJourney }: {
   journey: JourneyDetail
   onClose: () => void
@@ -3703,6 +3730,8 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
 
           {/* Public Share */}
           <JourneyShareSection journeyId={journey.id} />
+
+          {useAuthStore.getState().user?.role === 'admin' && <SiteJournalToggle journey={journey} />}
 
         </div>
 

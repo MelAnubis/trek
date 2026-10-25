@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs';
+import { clearSiteCache } from './siteService';
 import { db, canAccessTrip, isOwner } from '../db/database';
 import { Trip, User } from '../types';
 import { listDays, listAccommodations } from './dayService';
@@ -247,6 +248,15 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
     WHERE id=?
   `).run(newTitle, newDesc, newStart || null, newEnd || null, newCurrency, newArchived, newCover, newReminder, newTripType, tripId);
 
+  // Zona pública: el viaje se ve sin login (solo lo cambia el dueño o un admin, ver routes/trips.ts).
+  const isPublic = (data as any).is_public
+  if (isPublic !== undefined) {
+    const on = isPublic === true || isPublic === 1 || isPublic === '1' || isPublic === 'true'
+    db.prepare('UPDATE trips SET is_public = ?, published_at = CASE WHEN ? = 1 THEN COALESCE(published_at, ?) ELSE published_at END WHERE id = ?')
+      .run(on ? 1 : 0, on ? 1 : 0, Date.now(), tripId)
+    clearSiteCache()
+  }
+
   if (trip.start_date && trip.end_date && newStart && newStart !== trip.start_date)
     shiftOwnerEntriesForTripWindow(trip.user_id, trip.start_date, trip.end_date, newStart);
 
@@ -260,6 +270,7 @@ export function updateTrip(tripId: string | number, userId: number, data: Update
   if (newEnd !== trip.end_date) changes.end_date = newEnd;
   if (newReminder !== oldReminder) changes.reminder_days = newReminder === 0 ? 'none' : `${newReminder} days`;
   if (is_archived !== undefined && newArchived !== trip.is_archived) changes.archived = !!newArchived;
+  if (isPublic !== undefined && (isPublic ? 1 : 0) !== ((trip as any).is_public ? 1 : 0)) changes.public = !!isPublic;
 
   const isAdminEdit = userRole === 'admin' && trip.user_id !== userId;
   let ownerEmail: string | undefined;

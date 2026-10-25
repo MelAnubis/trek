@@ -2715,6 +2715,15 @@ function runMigrations(db: Database.Database): void {
     // travesía («Añadir también a la travesía» venía apagado): se le crea su
     // entrada, con su texto y fotos, como hace ahora por defecto al guardar.
     () => { backfillBlogPostEntries(db); },
+    // 4.4 — zona pública: viajes que el dueño marca como públicos y travesías
+    // que un admin convierte en la fuente de «Relatos».
+    () => {
+      const col = (t: string, c: string) => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c);
+      if (!col('trips', 'is_public')) db.exec('ALTER TABLE trips ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0');
+      if (!col('trips', 'published_at')) db.exec('ALTER TABLE trips ADD COLUMN published_at INTEGER');
+      if (!col('journeys', 'site_journal')) db.exec('ALTER TABLE journeys ADD COLUMN site_journal INTEGER NOT NULL DEFAULT 0');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_trips_public ON trips(is_public)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

@@ -15,6 +15,8 @@ import { DAY_COLORS } from '../Journey/dayColors'
 export interface BlogViewContext {
   /** Token del enlace público: las fotos se piden por la ruta pública. */
   publicToken?: string | null
+  /** Otra ruta pública para las fotos (la zona pública: /api/site/photos). */
+  photoBase?: string | null
   maps?: Record<string, MapContext>
   entries?: EntryCard[]
   dark?: boolean
@@ -46,7 +48,7 @@ export function Markdown({ text }: { text: string }) {
 }
 
 function Photo({ refp, ctx, className, onOpen, size = 'original', alt }: { refp: PhotoRef; ctx: BlogViewContext; className?: string; onOpen?: () => void; size?: 'thumbnail' | 'original'; alt?: string }) {
-  const src = usePhotoSrc(refp, size, ctx.publicToken)
+  const src = usePhotoSrc(refp, size, ctx.publicToken, ctx.photoBase)
   if (!src) return <div className={`bg-zinc-100 dark:bg-zinc-800 animate-pulse ${className || ''}`} />
   return <img src={src} alt={alt || ''} loading="lazy" decoding="async" className={`${className || ''} ${onOpen ? 'cursor-zoom-in' : ''}`} onClick={onOpen} draggable={false} />
 }

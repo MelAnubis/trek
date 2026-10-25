@@ -30,6 +30,8 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   const can = useCanDo()
   const canUploadCover = !isEditing || can('trip_cover_upload', trip)
   const canEditTrip = !isEditing || can('trip_edit', trip)
+  // Solo el dueño pone un viaje en la zona pública (el servidor lo comprueba igual).
+  const canMakePublic = !isEditing || !!(trip as { is_owner?: number | boolean } | null)?.is_owner
 
   const [formData, setFormData] = useState({
     title: '',
@@ -39,6 +41,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     reminder_days: 0 as number,
     trip_type: 'general' as string,
     day_count: 7,
+    is_public: false,
   })
   const [customReminder, setCustomReminder] = useState(false)
   const [error, setError] = useState('')
@@ -65,11 +68,12 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         reminder_days: rd,
         trip_type: trip.trip_type || 'general',
         day_count: trip.day_count || 7,
+        is_public: !!(trip as { is_public?: number | boolean }).is_public,
       })
       setCustomReminder(![0, 1, 3, 9].includes(rd))
       setCoverPreview(trip.cover_image || null)
     } else {
-      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7, trip_type: 'general' })
+      setFormData({ title: '', description: '', start_date: '', end_date: '', reminder_days: tripRemindersEnabled ? 3 : 0, day_count: 7, trip_type: 'general', is_public: false })
       setCustomReminder(false)
       setCoverPreview(null)
     }
@@ -111,6 +115,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         end_date: formData.end_date || null,
         reminder_days: formData.reminder_days,
         trip_type: formData.trip_type,
+        ...(canMakePublic ? { is_public: formData.is_public ? 1 : 0 } : {}),
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
       })
       // Add selected members for newly created trips
@@ -393,6 +398,16 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             ))}
           </div>
         </div>
+
+        {canMakePublic && (
+          <label className="flex items-start gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer" data-testid="trip-public-toggle">
+            <input type="checkbox" checked={formData.is_public} onChange={e => update('is_public', e.target.checked)} className="mt-1 w-4 h-4 accent-black" />
+            <span>
+              <span className="block text-sm font-medium text-slate-800">{t('trip.public.label')}</span>
+              <span className="block text-xs text-slate-500 mt-0.5">{t('trip.public.hint')}</span>
+            </span>
+          </label>
+        )}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

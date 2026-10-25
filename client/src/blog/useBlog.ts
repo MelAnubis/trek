@@ -66,7 +66,7 @@ export function usePendingBlog(journeyId: number | null) {
  * URL de una foto de un bloque: la del servidor (o la pública), o la copia
  * que guarda el dispositivo si aún no se ha subido o no hay red.
  */
-export function usePhotoSrc(ref: PhotoRef | null | undefined, size: 'thumbnail' | 'original', publicToken?: string | null): string | null {
+export function usePhotoSrc(ref: PhotoRef | null | undefined, size: 'thumbnail' | 'original', publicToken?: string | null, photoBase?: string | null): string | null {
   const [blobUrl, setBlobUrl] = useState<string | null>(null)
   const urlRef = useRef<string | null>(null)
   const localId = ref?.localId
@@ -87,5 +87,6 @@ export function usePhotoSrc(ref: PhotoRef | null | undefined, size: 'thumbnail' 
   }, [localId])
   if (localId) return blobUrl
   if (!ref?.photoId) return null
+  if (photoBase) return `${photoBase}/${ref.photoId}/${size}`
   return publicToken ? `/api/public/journey/${publicToken}/photos/${ref.photoId}/${size}` : `/api/photos/${ref.photoId}/${size}`
 }

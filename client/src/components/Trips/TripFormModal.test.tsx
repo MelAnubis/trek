@@ -288,4 +288,28 @@ describe('TripFormModal', () => {
     await user.click(submitBtn.closest('button')!);
     await waitFor(() => expect(screen.getByText('Saving...')).toBeInTheDocument());
   });
+
+  it('FE-COMP-TRIPFORM-029: the owner can put the trip on the public site; it is sent with the save', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 1 }) });
+    const trip = { ...buildTrip({ id: 1, title: 'Tierras de Castilla' }), is_owner: 1, is_public: 0 };
+    render(<TripFormModal {...defaultProps} trip={trip as never} onSave={onSave} />);
+    const toggle = screen.getByTestId('trip-public-toggle').querySelector('input')!;
+    expect(toggle).not.toBeChecked();
+    await user.click(toggle);
+    const form = toggle.closest('form')!;
+    fireEvent.submit(form);
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ is_public: 1 })));
+  });
+
+  it('FE-COMP-TRIPFORM-030: a member who is not the owner does not see the public switch, and nothing is sent', async () => {
+    const onSave = vi.fn().mockResolvedValue({ trip: buildTrip({ id: 1 }) });
+    const trip = { ...buildTrip({ id: 1, title: 'Compartido' }), is_owner: 0, is_public: 1 };
+    render(<TripFormModal {...defaultProps} trip={trip as never} onSave={onSave} />);
+    expect(screen.queryByTestId('trip-public-toggle')).toBeNull();
+    fireEvent.submit(screen.getByDisplayValue('Compartido').closest('form')!);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).not.toHaveProperty('is_public');
+  });
 });
+

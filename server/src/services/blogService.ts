@@ -485,3 +485,30 @@ export function getPublicPost(token: string, slugOrId: string) {
     next: i >= 0 && i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].title } : null,
   };
 }
+
+// ── Zona pública: relatos de los diarios del sitio (services/siteService.ts) ──
+
+export function getSitePostsFor(journeyIds: number[]) {
+  if (!journeyIds.length) return [];
+  const rows = db.prepare(`SELECT * FROM blog_posts WHERE status = 'published' AND journey_id IN (${journeyIds.map(() => '?').join(',')})
+    ORDER BY COALESCE(post_date, '') DESC, published_at DESC`).all(...journeyIds) as PostRow[];
+  return rows.map(r => publicShape(summary(r)));
+}
+
+export function getSitePost(journeyIds: number[], slugOrId: string) {
+  if (!journeyIds.length) return null;
+  const inList = journeyIds.map(() => '?').join(',');
+  const row = db.prepare(`SELECT * FROM blog_posts WHERE status = 'published' AND journey_id IN (${inList}) AND (slug = ? OR id = ?)
+    ORDER BY published_at DESC LIMIT 1`).get(...journeyIds, slugOrId, slugOrId) as PostRow | undefined;
+  if (!row) return null;
+  const all = db.prepare(`SELECT id, slug, title FROM blog_posts WHERE status = 'published' AND journey_id IN (${inList})
+    ORDER BY COALESCE(post_date, '') ASC, published_at ASC`).all(...journeyIds) as { id: string; slug: string; title: string }[];
+  const i = all.findIndex(p => p.id === row.id);
+  const { own_entry_id: _own, add_to_journey: _add, ...post } = fullPost(row);
+  return {
+    post: publicShape(post),
+    prev: i > 0 ? { slug: all[i - 1].slug, title: all[i - 1].title } : null,
+    next: i >= 0 && i < all.length - 1 ? { slug: all[i + 1].slug, title: all[i + 1].title } : null,
+  };
+}
+
