@@ -295,6 +295,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   ), [assignments])
 
   const filtered = useMemo(() => places.filter(p => {
+    // Tours live in their own tab; in the pool they only show among the tracks.
+    if (p.tour_type && filter !== 'tracks') return false
     if (filter === 'unplanned' && plannedIds.has(p.id)) return false
     if (filter === 'tracks' && !p.route_geometry) return false
     if (categoryFilters.size > 0) {
@@ -423,8 +425,8 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
             return true
           })
           const counts = {
-            all: baseFiltered.length,
-            unplanned: baseFiltered.filter(p => !plannedIds.has(p.id)).length,
+            all: baseFiltered.filter(p => !p.tour_type).length,
+            unplanned: baseFiltered.filter(p => !p.tour_type && !plannedIds.has(p.id)).length,
             tracks: baseFiltered.filter(p => p.route_geometry).length,
           }
           const tabs = ([

@@ -85,10 +85,11 @@ interface PlaceWithTags extends Place {
 
 function getPlaceWithTags(placeId: number | string): PlaceWithTags | null {
   const place = db.prepare(`
-    SELECT p.*, c.name as category_name, c.color as category_color, c.icon as category_icon, tr.tour_type AS tour_type
+    SELECT p.*, c.name as category_name, COALESCE(c.color, tt.color) as category_color, c.icon as category_icon, tr.tour_type AS tour_type
     FROM places p
     LEFT JOIN categories c ON p.category_id = c.id
     LEFT JOIN tours tr ON tr.place_id = p.id
+    LEFT JOIN tour_types tt ON tt.key = tr.tour_type
     WHERE p.id = ?
   `).get(placeId) as PlaceWithCategory | undefined;
 

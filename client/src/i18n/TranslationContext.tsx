@@ -15,6 +15,8 @@ import ar from './translations/ar'
 import br from './translations/br'
 import cs from './translations/cs'
 import pl from './translations/pl'
+import toursEn from '../tours/i18n/en'
+import toursEs from '../tours/i18n/es'
 import { SUPPORTED_LANGUAGES, SupportedLanguageCode } from './supportedLanguages'
 
 export { SUPPORTED_LANGUAGES }
@@ -23,7 +25,7 @@ type TranslationStrings = Record<string, string | { name: string; category: stri
 
 // Keyed by SupportedLanguageCode so TypeScript enforces all languages have a translation.
 const translations: Record<SupportedLanguageCode, TranslationStrings> = {
-  de, en, es, fr, hu, it, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
+  de, en: { ...toursEn, ...en }, es: { ...toursEs, ...es }, fr, hu, it, ru, zh, 'zh-TW': zhTw, nl, id, ar, br, cs, pl,
 }
 
 // Derived from SUPPORTED_LANGUAGES — add new languages there, not here.
@@ -99,6 +101,15 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
 
     function t(key: string, params?: Record<string, string | number>): string {
       let val: string = (strings[key] ?? fallback[key] ?? key) as string
+      // Plural groups (from TREK v5): `key.one`, `key.few`… chosen by Intl.PluralRules.
+      const count = params?.count
+      if (typeof count === 'number') {
+        try {
+          const cat = new Intl.PluralRules(getLocaleForLanguage(language)).select(count)
+          const plural = strings[`${key}.${cat}`] ?? fallback[`${key}.${cat}`]
+          if (typeof plural === 'string') val = plural
+        } catch { /* keep the general form */ }
+      }
       if (params) {
         Object.entries(params).forEach(([k, v]) => {
           val = val.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))

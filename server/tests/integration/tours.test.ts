@@ -202,4 +202,16 @@ describe('Tours', () => {
     expect(testDb.prepare('SELECT COUNT(*) AS n FROM tour_waypoints WHERE place_id = ?').get(id)).toMatchObject({ n: 0 });
     expect((await request(app).get(url(trip.id)).set('Cookie', authCookie(user.id))).body.tours.map((t: any) => t.name)).toEqual(['Copia']);
   });
+
+  it("TOUR-007 — the list says which days a tour is on, and the trip's places carry the tour type and its colour", async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const id = (await request(app).post(url(trip.id)).set('Cookie', authCookie(user.id)).send(body({ tour_type: 'bike' }))).body.tour.place_id;
+    const day = testDb.prepare('INSERT INTO days (trip_id, day_number, date) VALUES (?, 2, ?)').run(trip.id, '2026-07-02').lastInsertRowid;
+    testDb.prepare('INSERT INTO day_assignments (day_id, place_id, order_index) VALUES (?, ?, 0)').run(day, id);
+    const list = await request(app).get(url(trip.id)).set('Cookie', authCookie(user.id));
+    expect(list.body.tours[0]).toMatchObject({ planned: true, day_numbers: [2] });
+    const places = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(user.id));
+    expect(places.body.places.find((p: any) => p.id === id)).toMatchObject({ tour_type: 'bike', category_color: '#2563eb' });
+  });
 });

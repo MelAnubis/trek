@@ -74,6 +74,8 @@ export interface Place {
   website: string | null
   phone: string | null
   created_at: string
+  /** Set when the place is a tour (Tours, TREK v5): hike, bike or run. */
+  tour_type?: string | null
 }
 
 export interface Assignment {

@@ -136,7 +136,7 @@ function waypointOut(w: WaypointRow) {
   };
 }
 
-function listItem(row: TourRow & { name: string; description: string | null; website: string | null; planned: number }) {
+function listItem(row: TourRow & { name: string; description: string | null; website: string | null; planned: number; day_numbers?: string | null }) {
   const points = waypointsOf(row.place_id)
   const stops = tourStageStopsOf(points.map(p => ({ role: p.role, shaping: !!p.shaping, stage_end: !!p.stage_end, key: p.station_key ?? undefined, lat: p.lat, lng: p.lng })));
   const stageCount = tourStageCountOf(points.map(p => ({ stage_end: !!p.stage_end })));
@@ -148,7 +148,9 @@ function listItem(row: TourRow & { name: string; description: string | null; web
     derived_from_place_id: row.derived_from_place_id, bike_profile: row.bike_profile, run_profile: row.run_profile,
     run_pace_seconds_per_km: row.run_pace_seconds_per_km,
     name: row.name, description: row.description, website: row.website,
-    planned: !!row.planned, caution: row.match_confidence != null && row.match_confidence < 0.5,
+    planned: !!row.planned,
+    day_numbers: [...new Set(String(row.day_numbers ?? '').split(',').filter(Boolean).map(Number))].sort((a, b) => a - b),
+    caution: row.match_confidence != null && row.match_confidence < 0.5,
     has_waypoints: points.length > 0, has_recorded_track: !!row.recorded_route_geometry,
     origin: row.origin, origin_file_name: row.origin_file_name, revision: row.revision,
     track_started_at: row.track_started_at, track_ended_at: row.track_ended_at,
@@ -161,7 +163,8 @@ export type TourListItem = ReturnType<typeof listItem>;
 
 const LIST_SQL = `
   SELECT t.*, p.name, p.description, p.website,
-    EXISTS(SELECT 1 FROM day_assignments da WHERE da.place_id = p.id) AS planned
+    EXISTS(SELECT 1 FROM day_assignments da WHERE da.place_id = p.id) AS planned,
+    (SELECT group_concat(d.day_number) FROM day_assignments da JOIN days d ON d.id = da.day_id WHERE da.place_id = p.id) AS day_numbers
   FROM tours t JOIN places p ON p.id = t.place_id`;
 
 export function listTours(tripId: number | string) {

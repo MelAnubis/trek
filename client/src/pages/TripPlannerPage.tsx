@@ -1,3 +1,4 @@
+import TourWorkspace from '../tours/TourWorkspace'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -272,6 +273,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
   const TRIP_TABS = [
     { id: 'plan', label: t('trip.tabs.plan'), icon: Map },
+    { id: 'tours', label: t('trip.tabs.tourPlanner'), icon: Mountain },
     { id: 'transports', label: t('trip.tabs.transports'), icon: Train },
     { id: 'buchungen', label: t('trip.tabs.reservations'), shortLabel: t('trip.tabs.reservationsShort'), icon: Ticket },
     ...(enabledAddons.packing ? [{ id: 'listen', label: t('trip.tabs.lists'), shortLabel: t('trip.tabs.listsShort'), icon: PackageCheck }] : []),
@@ -1452,6 +1454,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
               allowedFileTypes={allowedFileTypes}
             />
           </div>
+        )}
+
+        {activeTab === 'tours' && (
+          <TourWorkspace tripId={Number(tripId)} canEdit={can('place_edit', trip)} />
         )}
 
         {activeTab === 'collab' && (
