@@ -115,8 +115,11 @@ describe('JourneyPage', () => {
     await waitFor(() => {
       // Grid renders with only the create card (the dashed-border button)
       // The "0 journeys" counter is shown
-      expect(screen.getByText(/0/)).toBeInTheDocument();
+      // (the magazines shelf below has its own 0 counter, hence getAll)
+      expect(screen.getAllByText(/^0/).length).toBeGreaterThanOrEqual(1);
     });
+    // The magazines shelf is there too, with its "new magazine" card.
+    expect(screen.getByTestId('magazine-new')).toBeInTheDocument();
   });
 
   // FE-PAGE-JOURNEY-004
