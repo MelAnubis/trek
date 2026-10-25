@@ -2,9 +2,8 @@
  * Lógica pura de Tours, copiada tal cual de liketrek/TREK v5.0.0
  * (shared/src/tours, AGPL-3.0): etapas, ritmo de carrera, tiempo DIN 33466,
  * métricas de un trazado y lo que cada tipo pide al enrutador (Valhalla).
- * El servidor lleva la misma copia en server/src/tours/core.ts.
+ * El servidor lleva la misma copia en server/src/tours/core.ts (con zod).
  */
-import { z } from 'zod';
 
 // ── geo/haversine.ts ──
 /**
@@ -133,11 +132,6 @@ export function tourStageKeysOf(points: readonly StoredStagePoint[]): string[] {
  */
 export const MIN_RUN_PACE_SECONDS_PER_KM = 2 * 60;
 export const MAX_RUN_PACE_SECONDS_PER_KM = 20 * 60;
-export const runPaceSecondsPerKmSchema = z
-  .number()
-  .int()
-  .min(MIN_RUN_PACE_SECONDS_PER_KM)
-  .max(MAX_RUN_PACE_SECONDS_PER_KM);
 
 /** The planned running time in whole minutes: the distance at the pace, 8 km at 6:00 min/km is 48 minutes. */
 export function runMinutesAtPace(distanceKm: number, paceSecondsPerKm: number): number {
@@ -172,8 +166,7 @@ export function hikingTimeMinutes(distanceKm: number, climbM: number, descentM: 
  * climb and descent by the signposts' rule; `run_pace`: a run's distance at
  * the pace its runners entered.
  */
-export const tourTimeEstimateBasisSchema = z.enum(['din33466', 'run_pace']);
-export type TourTimeEstimateBasis = z.infer<typeof tourTimeEstimateBasisSchema>;
+export type TourTimeEstimateBasis = 'din33466' | 'run_pace';
 
 /**
  * TIME-01: the time a tour without a planned time is estimated to take, in
@@ -181,11 +174,7 @@ export type TourTimeEstimateBasis = z.infer<typeof tourTimeEstimateBasisSchema>;
  * stored. `minutes` is null when the rule needs heights the track does not
  * carry: then the time is unknown, never the time on the flat.
  */
-export const tourTimeEstimateSchema = z.object({
-  minutes: z.number().int().nonnegative().nullable(),
-  basis: tourTimeEstimateBasisSchema,
-});
-export type TourTimeEstimate = z.infer<typeof tourTimeEstimateSchema>;
+export interface TourTimeEstimate { minutes: number | null; basis: TourTimeEstimateBasis }
 
 /** What an estimate is read from: the tour's type, its measures, its planned time and a run's pace. */
 export interface TourTimeEstimateSource {
