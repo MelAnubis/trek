@@ -59,7 +59,7 @@ function textEl(overrides: Record<string, unknown> = {}) {
 
 describe('bookElementSchema — text kind — self-hosted font library', () => {
   it('BOOKSCHEMA-024: accepts every font id in the self-hosted @fontsource library, not just the original 3 back-compat slots', () => {
-    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter']);
+    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost']);
     for (const font of BOOK_FONTS_IDS) {
       const parsed = bookElementSchema.safeParse(textEl({ font }));
       expect(parsed.success, font).toBe(true);
