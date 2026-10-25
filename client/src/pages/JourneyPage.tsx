@@ -277,8 +277,8 @@ export default function JourneyPage() {
             {/* Suggestion banner */}
             {activeSuggestion && (
               <div className="relative rounded-2xl overflow-hidden mb-8" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #334155 100%)' }}>
-                <div className="absolute inset-0 pointer-events-none hidden md:block" style={{ background: 'radial-gradient(circle at 85% 50%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 100% 100%, rgba(236,72,153,0.3), transparent 50%)' }} />
-                <div className="absolute inset-0 pointer-events-none md:hidden" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(99,102,241,0.5), transparent 60%), radial-gradient(circle at 20% 90%, rgba(236,72,153,0.35), transparent 60%)' }} />
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow hidden md:block" style={{ background: 'radial-gradient(circle at 85% 50%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 100% 100%, rgba(236,72,153,0.3), transparent 50%)' }} />
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow md:hidden" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(99,102,241,0.5), transparent 60%), radial-gradient(circle at 20% 90%, rgba(236,72,153,0.35), transparent 60%)' }} />
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 p-5 text-white">
                   <div className="flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-[10px] bg-white/15 backdrop-blur flex items-center justify-center flex-shrink-0">
@@ -322,19 +322,19 @@ export default function JourneyPage() {
 
                 <div
                   onClick={() => navigate(`/journey/${activeJourney.id}`)}
-                  className="relative rounded-3xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-xl h-[340px] md:h-[400px]"
+                  className="relative rounded-3xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 hover:shadow-xl h-[340px] md:h-[400px] trek-gradient"
                   style={{ background: pickGradient(activeJourney.id) }}
                 >
                   {/* Cover image */}
                   {activeJourney.cover_image && (
                     <div className="absolute inset-0 z-[1]">
                       <img src={`/uploads/${activeJourney.cover_image}`} className="w-full h-full object-cover" alt="" />
-                      <div className="absolute inset-0" style={{ background: pickGradient(activeJourney.id), opacity: 0.45 }} />
+                      <div className="absolute inset-0 trek-gradient" style={{ background: pickGradient(activeJourney.id), opacity: 0.45 }} />
                     </div>
                   )}
 
                   {/* Gradient overlays */}
-                  <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'radial-gradient(circle at 15% 20%, rgba(236,72,153,0.35), transparent 40%), radial-gradient(circle at 85% 80%, rgba(251,146,60,0.3), transparent 45%), radial-gradient(circle at 50% 50%, rgba(99,102,241,0.25), transparent 50%)' }} />
+                  <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2]" style={{ background: 'radial-gradient(circle at 15% 20%, rgba(236,72,153,0.35), transparent 40%), radial-gradient(circle at 85% 80%, rgba(251,146,60,0.3), transparent 45%), radial-gradient(circle at 50% 50%, rgba(99,102,241,0.25), transparent 50%)' }} />
                   <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 50%, rgba(0,0,0,0.4) 100%), linear-gradient(90deg, rgba(0,0,0,0.15) 0%, transparent 50%)' }} />
 
                   <div className="relative h-full p-6 md:p-8 flex flex-col z-[3] text-white">
@@ -531,7 +531,7 @@ export default function JourneyPage() {
                       }`}>
                         {selected && <Check size={12} className="text-white dark:text-zinc-900" />}
                       </div>
-                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden" style={{ background: pickGradient(trip.id) }}>
+                      <div className="w-12 h-12 rounded-lg flex-shrink-0 overflow-hidden trek-gradient" style={{ background: pickGradient(trip.id) }}>
                         {trip.cover_image && (
                           <img src={trip.cover_image} className="w-full h-full object-cover" alt="" />
                         )}
@@ -765,11 +765,11 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
       onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--glass-shadow)' }}
     >
       {/* Cover */}
-      <div className="h-[170px] relative overflow-hidden" style={{ background: pickGradient(j.id) }}>
+      <div className="h-[170px] relative overflow-hidden trek-gradient" style={{ background: pickGradient(j.id) }}>
         {j.cover_image && (
           <>
             <img src={`/uploads/${j.cover_image}`} className="absolute inset-0 w-full h-full object-cover" alt="" />
-            <div className="absolute inset-0" style={{ background: pickGradient(j.id), opacity: 0.4 }} />
+            <div className="absolute inset-0 trek-gradient" style={{ background: pickGradient(j.id), opacity: 0.4 }} />
           </>
         )}
         <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)' }} />

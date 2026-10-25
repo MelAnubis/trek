@@ -8,20 +8,24 @@
  */
 (function () {
   try {
+    var root = document.documentElement;
+    // The default look is black and white (data-scheme="mono"); only the
+    // 'indigo' scheme paints without the attribute.
+    root.setAttribute('data-scheme', 'mono');
     if (location.pathname.indexOf('/shared/') === 0 || location.pathname.indexOf('/public/') === 0) return;
     var raw = localStorage.getItem('trek_appearance');
     if (!raw) return;
     var s = JSON.parse(raw);
     if (!s || s.v !== 1) return;
-    var root = document.documentElement;
     var mode = s.darkMode;
     var dark = mode === 'auto'
       ? !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)
       : (mode === true || mode === 'dark');
     if (dark) root.classList.add('dark');
     var a = s.appearance || {};
-    var schemes = ['mono', 'teal', 'green', 'rose', 'amber', 'violet', 'highContrast', 'custom'];
-    if (schemes.indexOf(a.scheme) !== -1) root.setAttribute('data-scheme', a.scheme);
+    var schemes = ['teal', 'green', 'rose', 'amber', 'violet', 'highContrast', 'custom'];
+    if (a.scheme === 'indigo') root.removeAttribute('data-scheme');
+    else if (schemes.indexOf(a.scheme) !== -1) root.setAttribute('data-scheme', a.scheme);
     if (a.transparency === false) root.setAttribute('data-no-transparency', '');
     if (a.density === 'compact') root.setAttribute('data-density', 'compact');
     if (a.reduceMotion === true) root.setAttribute('data-reduce-motion', '');

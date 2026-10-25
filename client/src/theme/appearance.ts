@@ -4,9 +4,10 @@
  * `appearance` setting. A trimmed port of liketrek/TREK's appearance
  * feature (same AGPLv3 license); the rules kept from it:
  *
- * - DEFAULT_APPEARANCE is exactly today's look: the default scheme sets no
- *   attribute, every scale is 1 — a user who never opens the tab sees no
- *   change.
+ * - DEFAULT_APPEARANCE is the #ESTODOBAJADA look: black, white and zinc
+ *   greys (painted through data-scheme="mono"); every scale is 1. The old
+ *   indigo look is still there as the 'indigo' scheme, which sets no
+ *   attribute. A saved 'mono' is the same thing as the default now.
  * - normalizeAppearance never throws and lets nothing unchecked through: a
  *   bad blob (hand-edited, from an older version) can't reach the DOM.
  * - applyAppearance is the ONE place that writes it to the DOM, and it
@@ -17,13 +18,13 @@
  * (--accent, --bg-hover…), and index.css redefines those per scheme.
  */
 
-export const APPEARANCE_SCHEMES = ['default', 'mono', 'teal', 'green', 'rose', 'amber', 'violet', 'highContrast', 'custom'] as const
+export const APPEARANCE_SCHEMES = ['default', 'indigo', 'teal', 'green', 'rose', 'amber', 'violet', 'highContrast', 'custom'] as const
 export type AppearanceScheme = (typeof APPEARANCE_SCHEMES)[number]
 
 /** A representative swatch per scheme for the picker (light, dark). */
 export const SCHEME_SWATCHES: Record<Exclude<AppearanceScheme, 'custom'>, [string, string]> = {
-  default: ['#6366f1', '#818cf8'],
-  mono: ['#111827', '#e4e4e7'],
+  default: ['#111111', '#fafafa'],
+  indigo: ['#6366f1', '#818cf8'],
   teal: ['#0d9488', '#14b8a6'],
   green: ['#16a34a', '#22c55e'],
   rose: ['#e11d48', '#f43f5e'],
@@ -66,6 +67,7 @@ export function normalizeAppearance(raw: unknown): AppearanceConfig {
   if (!v || typeof v !== 'object' || Array.isArray(v)) v = {}
 
   const scheme = (APPEARANCE_SCHEMES as readonly string[]).includes(v.scheme as string) ? v.scheme as AppearanceScheme : 'default'
+  // (an older saved 'mono' is not in the list any more: it falls to 'default', which is the same look)
   const accent = typeof v.accent === 'string' && HEX.test(v.accent) ? expandHex(v.accent) : null
   const fs = typeof v.fontScale === 'number' && Number.isFinite(v.fontScale) ? v.fontScale : 1
   return {
@@ -97,10 +99,17 @@ export function resolveDark(mode: DarkMode, isShared = false): boolean {
 
 export const APPEARANCE_SNAPSHOT_KEY = 'trek_appearance'
 
+/** The data-scheme value a scheme paints with (null = no attribute, the original indigo CSS). */
+export function domScheme(scheme: AppearanceScheme): string | null {
+  if (scheme === 'default') return 'mono'
+  if (scheme === 'indigo') return null
+  return scheme
+}
+
 /**
  * Write the look to <html>. Idempotent; with DEFAULT_APPEARANCE it leaves
- * no attribute and no inline style behind. Shared/public pages force the
- * neutral light default whatever the viewer's own settings are.
+ * only data-scheme="mono" and no inline style behind. Shared/public pages
+ * force the light default whatever the viewer's own settings are.
  */
 export function applyAppearance(input: { darkMode: DarkMode; appearance?: unknown; isSharedPage?: boolean }, root: HTMLElement = document.documentElement): AppearanceConfig {
   const cfg = normalizeAppearance(input.appearance)
@@ -110,7 +119,8 @@ export function applyAppearance(input: { darkMode: DarkMode; appearance?: unknow
 
   root.classList.toggle('dark', dark)
   const attr = (name: string, on: boolean, value = '') => (on ? root.setAttribute(name, value) : root.removeAttribute(name))
-  attr('data-scheme', eff.scheme !== 'default', eff.scheme)
+  const ds = domScheme(eff.scheme)
+  attr('data-scheme', ds !== null, ds ?? '')
   attr('data-no-transparency', !eff.transparency)
   attr('data-density', eff.density === 'compact', 'compact')
   attr('data-reduce-motion', eff.reduceMotion)

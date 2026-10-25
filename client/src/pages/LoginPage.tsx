@@ -285,7 +285,7 @@ export default function LoginPage(): React.ReactElement {
   const inputBase: React.CSSProperties = {
     width: '100%', padding: '11px 12px 11px 40px', border: '1px solid #e5e7eb',
     borderRadius: 12, fontSize: 14, fontFamily: 'inherit', outline: 'none',
-    color: '#111827', background: 'white', boxSizing: 'border-box', transition: 'border-color 0.15s',
+    color: '#111111', background: 'white', boxSizing: 'border-box', transition: 'border-color 0.15s',
   }
 
   if (showTakeoff) {
@@ -363,7 +363,7 @@ export default function LoginPage(): React.ReactElement {
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
         }}>
           <img src="/logo-light.svg" alt="Trek Wanderer" style={{ height: 72 }} />
-          <p style={{ margin: 0, fontSize: 20, color: 'rgba(255,255,255,0.6)', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase', whiteSpace: 'nowrap' }}>{t('login.tagline')}</p>
+          <p style={{ margin: 0, fontSize: 20, color: 'rgba(255,255,255,0.6)', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line', textAlign: 'center' }}>{t('login.tagline')}</p>
         </div>
 
 
@@ -490,8 +490,8 @@ export default function LoginPage(): React.ReactElement {
                 style={{
                   display: 'block', width: '100%', textAlign: 'left',
                   padding: '9px 16px', border: 'none',
-                  background: value === language ? 'rgba(99,102,241,0.08)' : 'transparent',
-                  color: value === language ? '#4f46e5' : '#374151',
+                  background: value === language ? 'rgba(0,0,0,0.06)' : 'transparent',
+                  color: value === language ? '#111111' : '#374151',
                   fontWeight: value === language ? 600 : 400,
                   fontSize: 14, cursor: 'pointer', fontFamily: 'inherit',
                   transition: 'background 0.1s',
@@ -507,7 +507,7 @@ export default function LoginPage(): React.ReactElement {
       </div>
 
       {/* Left — branding */}
-      <div style={{ display: 'none', width: '55%', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '60px 48px', position: 'relative', overflow: 'hidden' }}
+      <div style={{ display: 'none', width: '55%', background: 'linear-gradient(135deg, #09090b 0%, #18181b 50%, #09090b 100%)', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '60px 48px', position: 'relative', overflow: 'hidden' }}
         className="lg-panel">
         <style>{`@media(min-width:1024px){.lg-panel{display:flex!important}}`}</style>
 
@@ -529,8 +529,8 @@ export default function LoginPage(): React.ReactElement {
         </div>
 
         {/* Animated glow orbs */}
-        <div className="login-orb1" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(99,102,241,0.1) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="login-orb2" style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(14,165,233,0.08) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="login-orb1" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+        <div className="login-orb2" style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
 
         {/* Animated planes — realistic silhouettes at different sizes/speeds */}
         <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
@@ -608,7 +608,7 @@ export default function LoginPage(): React.ReactElement {
             <img src="/logo-light.svg" alt="Trek Wanderer" style={{ height: 64 }} />
           </div>
 
-          <h2 style={{ margin: '0 0 12px', fontSize: 36, fontWeight: 700, color: 'white', lineHeight: 1.15, letterSpacing: '-0.02em', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase' }}>
+          <h2 style={{ margin: '0 0 12px', fontSize: 36, color: 'white', lineHeight: 1.15, fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line' }}>
             {t('login.tagline')}
           </h2>
           <p style={{ margin: '0 0 44px', fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
@@ -654,7 +654,7 @@ export default function LoginPage(): React.ReactElement {
             className="mobile-logo">
             <style>{`@media(min-width:1024px){.mobile-logo{display:none!important}}`}</style>
             <img src="/logo-dark.svg" alt="Trek Wanderer" style={{ height: 48 }} />
-            <p style={{ margin: 0, fontSize: 16, color: '#9ca3af', fontFamily: "'MuseoModerno', sans-serif", textTransform: 'lowercase', whiteSpace: 'nowrap' }}>{t('login.tagline')}</p>
+            <p style={{ margin: 0, fontSize: 16, color: '#71717a', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line', textAlign: 'center' }}>{t('login.tagline')}</p>
           </div>
 
           <div style={{
@@ -668,7 +668,7 @@ export default function LoginPage(): React.ReactElement {
           }}>
             {oidcOnly ? (
               <>
-                <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111827' }}>{t('login.title')}</h2>
+                <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111111' }}>{t('login.title')}</h2>
                 <p style={{ margin: '0 0 24px', fontSize: 13.5, color: '#9ca3af' }}>{noRedirect ? t('login.oidcLoggedOut') : t('login.oidcOnly')}</p>
                 {error && (
                   <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 16 }}>
@@ -678,7 +678,7 @@ export default function LoginPage(): React.ReactElement {
                 <a href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''}`}
                   style={{
                     width: '100%', padding: '12px',
-                    background: '#111827', color: 'white',
+                    background: '#111111', color: 'white',
                     border: 'none', borderRadius: 12,
                     fontSize: 14, fontWeight: 700, cursor: 'pointer',
                     fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -686,7 +686,7 @@ export default function LoginPage(): React.ReactElement {
                     boxSizing: 'border-box',
                   }}
                   onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = '#1f2937' }}
-                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = '#111827' }}
+                  onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => { e.currentTarget.style.background = '#111111' }}
                 >
                   <Shield size={16} />
                   {t('login.oidcSignIn', { name: appConfig?.oidc_display_name || 'SSO' })}
@@ -694,7 +694,7 @@ export default function LoginPage(): React.ReactElement {
               </>
             ) : (
             <>
-            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111827' }}>
+            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111111' }}>
               {passwordChangeStep
                 ? t('login.setNewPassword')
                 : mode === 'login' && mfaStep
@@ -732,7 +732,7 @@ export default function LoginPage(): React.ReactElement {
                       <input
                         type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)} required
                         placeholder={t('settings.newPassword')} style={inputBase}
-                        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                         onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                       />
                     </div>
@@ -744,7 +744,7 @@ export default function LoginPage(): React.ReactElement {
                       <input
                         type="password" value={confirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)} required
                         placeholder={t('settings.confirmPassword')} style={inputBase}
-                        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                        onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                         onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                       />
                     </div>
@@ -766,7 +766,7 @@ export default function LoginPage(): React.ReactElement {
                       placeholder="000000 or XXXX-XXXX"
                       required
                       style={inputBase}
-                      onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                      onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                     />
                   </div>
@@ -790,7 +790,7 @@ export default function LoginPage(): React.ReactElement {
                     <input
                       type="text" value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} required
                       placeholder="admin" style={inputBase}
-                      onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                      onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                     />
                   </div>
@@ -806,7 +806,7 @@ export default function LoginPage(): React.ReactElement {
                   <input
                     type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required
                     placeholder={t('login.emailPlaceholder')} style={inputBase}
-                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                     onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                   />
                 </div>
@@ -822,7 +822,7 @@ export default function LoginPage(): React.ReactElement {
                   <input
                     type={showPassword ? 'text' : 'password'} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required
                     placeholder="••••••••" style={{ ...inputBase, paddingRight: 44 }}
-                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111827'}
+                    onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                     onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                   />
                   <button type="button" onClick={() => setShowPassword(v => !v)} style={{
@@ -850,7 +850,7 @@ export default function LoginPage(): React.ReactElement {
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                       color: '#6b7280', fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
                     }}
-                      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = '#111827' }}
+                      onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = '#111111' }}
                       onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.color = '#6b7280' }}
                     >{t('login.forgotPassword')}</button>
                   </div>
@@ -859,13 +859,13 @@ export default function LoginPage(): React.ReactElement {
               )}
 
               <button type="submit" disabled={isLoading} style={{
-                marginTop: 4, width: '100%', padding: '12px', background: '#111827', color: 'white',
+                marginTop: 4, width: '100%', padding: '12px', background: '#111111', color: 'white',
                 border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: isLoading ? 'default' : 'pointer',
                 fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 opacity: isLoading ? 0.7 : 1, transition: 'opacity 0.15s',
               }}
                 onMouseEnter={(e: React.MouseEvent<HTMLButtonElement>) => { if (!isLoading) e.currentTarget.style.background = '#1f2937' }}
-                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = '#111827'}
+                onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = '#111111'}
               >
                 {isLoading
                   ? <><div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />{passwordChangeStep ? t('settings.updatePassword') : mode === 'register' ? t('login.creating') : (mode === 'login' && mfaStep ? t('login.mfaVerify') : t('login.signingIn'))}</>
@@ -879,7 +879,7 @@ export default function LoginPage(): React.ReactElement {
               <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: '#9ca3af' }}>
                 {mode === 'login' ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
                 <button onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); setMfaStep(false); setMfaToken(''); setMfaCode('') }}
-                  style={{ background: 'none', border: 'none', color: '#111827', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+                  style={{ background: 'none', border: 'none', color: '#111111', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
                   {mode === 'login' ? t('login.register') : t('login.signIn')}
                 </button>
               </p>

@@ -26,10 +26,10 @@ export default function BottomNav() {
         style={{
           height: 'calc(84px + env(safe-area-inset-bottom, 0px))',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: dark ? 'rgba(10,10,20,0.94)' : 'rgba(250,250,255,0.94)',
+          background: dark ? 'rgba(9,9,11,0.94)' : 'rgba(250,250,250,0.94)',
           backdropFilter: 'blur(24px) saturate(160%)',
           WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-          borderTop: `1px solid ${dark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.1)'}`,
+          borderTop: '1px solid var(--chrome-border)',
         }}
       >
         {items.map(({ to, label, icon: Icon }) => (

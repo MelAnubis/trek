@@ -483,6 +483,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --border-primary: rgba(99,102,241,0.14);
   --border-secondary: rgba(99,102,241,0.07);
   --border-faint: rgba(99,102,241,0.04);
+  --chrome-border: rgba(99,102,241,0.1);
 
   /* Accent — Indigo */
   --accent: #6366f1;
@@ -549,6 +550,7 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --border-primary: rgba(129,140,248,0.15);
   --border-secondary: rgba(129,140,248,0.07);
   --border-faint: rgba(255,255,255,0.04);
+  --chrome-border: rgba(129,140,248,0.1);
   --accent: #818cf8;
   --accent-hover: #6366f1;
   --accent-light: rgba(129,140,248,0.15);
@@ -598,14 +600,37 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 }
 
 /* ── Appearance: colour schemes (data-scheme) ─────────────────────────
-   See src/theme/appearance.ts. The default scheme sets NO attribute, so
-   nothing below applies to it — today's indigo look is untouched. Each
+   See src/theme/appearance.ts. The default scheme paints as "mono"; only
+   the 'indigo' scheme sets NO attribute and keeps the original look. Each
    scheme sets its accent and a --tint the indigo-tinted neutrals (hover,
    selection, borders, scrollbars) are re-derived from, light and dark
    tuned separately. */
 
-:root[data-scheme="mono"]   { --accent: #111827; --accent-hover: #000000; --accent-text: #ffffff; --tint: #64748b; }
-.dark[data-scheme="mono"]   { --accent: #e4e4e7; --accent-hover: #ffffff; --accent-text: #111827; --tint: #a1a1aa; }
+/* mono = the default #ESTODOBAJADA look: black, white and zinc greys, the
+   indigo-tinted surfaces and texts swapped for neutral ones too. */
+:root[data-scheme="mono"] {
+  --accent: #111111; --accent-hover: #3f3f46; --accent-text: #ffffff; --tint: #71717a;
+  --bg-secondary: #fafafa; --bg-tertiary: #f4f4f5;
+  --text-primary: #111111; --text-secondary: #3f3f46; --text-muted: #71717a; --text-faint: #a1a1aa;
+  --sidebar-bg: rgba(250,250,250,0.86);
+  --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.06);
+  --scrollbar-track: #f4f4f5;
+  --glass-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 1px 0 rgba(255,255,255,0.70) inset;
+  --journal-bg: #fafafa; --journal-text: #111111; --journal-muted: #71717a; --journal-faint: #a1a1aa;
+  --chrome-border: rgba(0,0,0,0.08);
+}
+.dark[data-scheme="mono"] {
+  --accent: #fafafa; --accent-hover: #d4d4d8; --accent-text: #111111; --tint: #a1a1aa;
+  --bg-primary: #09090b; --bg-secondary: #111113; --bg-tertiary: #18181b;
+  --bg-elevated: rgba(9,9,11,0.88); --bg-card: #111113; --bg-input: #18181b;
+  --text-primary: #fafafa; --text-secondary: #d4d4d8; --text-muted: #a1a1aa; --text-faint: #71717a;
+  --sidebar-bg: rgba(9,9,11,0.88);
+  --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+  --tooltip-bg: rgba(18,18,21,0.96);
+  --scrollbar-track: #111113;
+  --journal-bg: #09090b; --journal-card: #111113; --journal-text: #fafafa; --journal-muted: #a1a1aa; --journal-faint: #71717a;
+  --chrome-border: rgba(255,255,255,0.08);
+}
 :root[data-scheme="teal"]   { --accent: #0d9488; --accent-hover: #0f766e; --accent-text: #ffffff; --tint: #0d9488; }
 .dark[data-scheme="teal"]   { --accent: #14b8a6; --accent-hover: #0d9488; --accent-text: #04211f; --tint: #14b8a6; }
 :root[data-scheme="green"]  { --accent: #16a34a; --accent-hover: #15803d; --accent-text: #ffffff; --tint: #16a34a; }
@@ -642,6 +667,14 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --bg-elevated: #131316; --sidebar-bg: #131316; --tooltip-bg: #131316; --modal-bg: #131316;
 }
 
+/* The coloured glows over the dark hero cards go away in black and white. */
+html[data-scheme="mono"] .trek-hero-glow { display: none; }
+/* …the colour gradients of journeys without a cover turn graphite… */
+html[data-scheme="mono"] .trek-gradient { background: linear-gradient(135deg, #09090b 0%, #27272a 100%) !important; }
+/* …and day badges and the active entry outline follow the ink. */
+html[data-scheme="mono"] .trek-day-badge { background: var(--accent) !important; color: var(--accent-text) !important; }
+html[data-scheme="mono"] [data-entry-id][style*="outline"] { outline-color: var(--accent) !important; }
+
 /* Neutrals re-derived from the scheme's tint (any non-default scheme). */
 html[data-scheme]:not([data-scheme="default"]) {
   --accent-light: color-mix(in srgb, var(--accent) 12%, transparent);
@@ -674,6 +707,16 @@ html[data-scheme]:not([data-scheme="default"]) :is(.hover\:bg-indigo-700:hover, 
 html[data-scheme]:not([data-scheme="default"]) :is(.text-indigo-300, .text-indigo-400, .text-indigo-500, .text-indigo-600, .text-indigo-700, .text-indigo-800) { color: var(--accent) !important; }
 html[data-scheme]:not([data-scheme="default"]) :is(.hover\:text-indigo-300:hover, .hover\:text-indigo-700:hover) { color: var(--accent-hover) !important; }
 html[data-scheme]:not([data-scheme="default"]) :is(.border-indigo-500, .border-indigo-600, .ring-indigo-500) { border-color: var(--accent) !important; --tw-ring-color: var(--accent) !important; }
+
+/* Black & white: the pale indigo/violet tints hard-coded as Tailwind classes
+   turn into neutral greys (the solid accent ones are handled above). */
+html[data-scheme="mono"] :is(.bg-indigo-50, .bg-indigo-50\/50, .bg-indigo-100, .hover\:bg-indigo-100:hover, .bg-violet-50, .bg-violet-100, .bg-purple-100) { background-color: #f4f4f5 !important; }
+html.dark[data-scheme="mono"] :is(.dark\:bg-indigo-500\/5, .dark\:bg-indigo-500\/10, .dark\:bg-indigo-500\/15, .dark\:bg-indigo-900\/30, .dark\:bg-indigo-900\/40, .dark\:bg-violet-900\/20, .dark\:bg-violet-900\/30, .dark\:bg-purple-900\/40) { background-color: rgba(255,255,255,0.06) !important; }
+html[data-scheme="mono"] :is(.border-indigo-100, .border-indigo-300, .border-indigo-400) { border-color: #d4d4d8 !important; }
+html.dark[data-scheme="mono"] :is(.dark\:border-indigo-500\/20, .dark\:border-indigo-500\/40) { border-color: rgba(255,255,255,0.14) !important; }
+html[data-scheme="mono"] :is(.text-violet-500, .text-violet-600, .text-purple-800) { color: var(--accent) !important; }
+html.dark[data-scheme="mono"] :is(.dark\:text-violet-400, .dark\:text-purple-300, .dark\:text-indigo-300, .dark\:text-indigo-400, .dark\:text-indigo-800) { color: var(--text-secondary) !important; }
+html[data-scheme="mono"] .hover\:ring-indigo-400:hover { --tw-ring-color: var(--accent) !important; }
 
 /* ── Transparency off ──────────────────────────────────────────────────
    Solid surfaces and no backdrop blur anywhere — easier to read over the

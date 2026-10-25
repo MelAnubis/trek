@@ -667,14 +667,14 @@ export default function JourneyDetailPage() {
 
           {/* Hero card — hidden on mobile gallery/journey views (floating top bar handles branding there) */}
           <div className={`px-4 md:px-0 mb-6 ${isMobileChromeless ? 'hidden' : ''}`}>
-            <div className="rounded-none md:rounded-2xl -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7" style={{ background: pickGradient(current.id), color: 'white' }}>
+            <div className="rounded-none md:rounded-2xl -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7 trek-gradient" style={{ background: pickGradient(current.id), color: 'white' }}>
                 {current.cover_image && (
                   <div className="absolute inset-0 z-[1]">
                     <img src={`/uploads/${current.cover_image}`} className="w-full h-full object-cover" alt="" />
-                    <div className="absolute inset-0" style={{ background: pickGradient(current.id), opacity: 0.55 }} />
+                    <div className="absolute inset-0 trek-gradient" style={{ background: pickGradient(current.id), opacity: 0.55 }} />
                   </div>
                 )}
-                <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(236,72,153,0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(99,102,241,0.3), transparent 50%)' }} />
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2]" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(236,72,153,0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(99,102,241,0.3), transparent 50%)' }} />
 
                 <div className="relative z-[3] flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
@@ -886,7 +886,7 @@ export default function JourneyDetailPage() {
                       <div key={date} className="flex flex-col gap-3 trek-stagger">
                         <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur border-y md:border border-zinc-200 dark:border-zinc-700 rounded-none md:rounded-xl -mx-4 md:mx-0 px-4 py-3.5 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold text-white" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length] }}>
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[13px] font-bold text-white trek-day-badge" style={{ background: DAY_COLORS[dayIdx % DAY_COLORS.length] }}>
                               {dayIdx + 1}
                             </div>
                             <div>
@@ -3180,7 +3180,7 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
                 key={trip.id}
                 className="flex items-center gap-2.5 p-2.5 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 border border-transparent"
               >
-                <div className="w-9 h-9 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.id) }} />
+                <div className="w-9 h-9 rounded-md flex-shrink-0 trek-gradient" style={{ background: pickGradient(trip.id) }} />
                 <div className="flex-1 min-w-0">
                   <div className="text-[13px] font-medium text-zinc-900 dark:text-white truncate">{trip.title}</div>
                   {(trip.destination || trip.start_date) && (
@@ -3634,7 +3634,7 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
             <div className="flex flex-col gap-1.5">
               {journey.trips.map((trip: any) => (
                 <div key={trip.trip_id} className="flex items-center gap-2.5 p-2 rounded-lg bg-zinc-50 dark:bg-zinc-800">
-                  <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: pickGradient(trip.trip_id) }} />
+                  <div className="w-8 h-8 rounded-md flex-shrink-0 trek-gradient" style={{ background: pickGradient(trip.trip_id) }} />
                   <div className="flex-1 min-w-0">
                     <div className="text-[12px] font-medium text-zinc-900 dark:text-white">{trip.title}</div>
                     <div className="text-[10px] text-zinc-500">{trip.place_count || 0} {t('journey.synced.places')}</div>

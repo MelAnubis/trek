@@ -24,7 +24,7 @@ function useJson<T>(url: string | null): { data: T | null; error: boolean } {
 
 function Shell({ children }: { children: React.ReactNode }) {
   // Página pública: siempre clara, legible, sin la interfaz de la app.
-  return <div className="min-h-screen bg-[#fbfaf7] text-zinc-900" style={{ ['--blog-accent' as string]: '#b45309' }}>{children}</div>
+  return <div className="min-h-screen bg-white text-zinc-900" style={{ ['--blog-accent' as string]: '#111111' }}>{children}</div>
 }
 
 function NotFound() {
@@ -60,7 +60,7 @@ function PublicIndex({ token }: { token: string }) {
           </div>
         ) : (
           <div className="max-w-[1080px] mx-auto px-6 pt-16 pb-6">
-            <div className="text-[12px] uppercase tracking-[0.14em] text-amber-700">{t('blog.public.kicker')}</div>
+            <div className="text-[12px] uppercase tracking-[0.14em] text-zinc-500">{t('blog.public.kicker')}</div>
             <h1 className="text-[36px] sm:text-[54px] font-bold tracking-[-0.03em] leading-[1.02]">{data.journey.title}</h1>
             {data.journey.subtitle && <p className="text-[18px] text-zinc-600 mt-2" style={{ fontFamily: READING_FONT }}>{data.journey.subtitle}</p>}
           </div>
@@ -74,7 +74,7 @@ function PublicIndex({ token }: { token: string }) {
               {first.cover_photo_id && <img src={photo(token, first.cover_photo_id, 'original')} alt="" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500" />}
             </div>
             <div>
-              <div className="text-[12px] uppercase tracking-[0.12em] text-amber-700 mb-2">{t('blog.public.latest')} · {fmt(first.post_date)}</div>
+              <div className="text-[12px] uppercase tracking-[0.12em] text-zinc-500 mb-2">{t('blog.public.latest')} · {fmt(first.post_date)}</div>
               <h2 className="text-[28px] sm:text-[36px] font-bold tracking-[-0.02em] leading-[1.1] group-hover:underline decoration-2 underline-offset-4">{first.title || t('blog.post.untitled')}</h2>
               {first.excerpt && <p className="text-[17px] text-zinc-600 mt-3 leading-relaxed" style={{ fontFamily: READING_FONT }}>{first.excerpt}</p>}
               <span className="inline-flex items-center gap-1.5 text-[14px] font-medium mt-4">{t('blog.public.read')} <ArrowRight size={15} /></span>
@@ -96,7 +96,10 @@ function PublicIndex({ token }: { token: string }) {
           </div>
         )}
       </main>
-      <footer className="text-center text-[12px] text-zinc-400 pb-10">Trek</footer>
+      <footer className="flex flex-col items-center gap-2 pb-10">
+        <img src="/sticker-dark.svg" alt="#ESTODOBAJADA" style={{ height: 22 }} />
+        <span className="text-[12px] text-zinc-500">{t('blog.public.footer')}</span>
+      </footer>
     </Shell>
   )
 }
@@ -115,7 +118,7 @@ function PublicPost({ token, slug }: { token: string; slug: string }) {
         <Link to={`/public/journey/${token}/blog`} className="inline-flex items-center gap-1.5 text-[13px] text-zinc-500 hover:text-zinc-900"><ArrowLeft size={14} />{t('blog.public.allPosts')}</Link>
       </nav>
       <article className="max-w-[720px] mx-auto px-5 pt-8 pb-16">
-        <div className="text-[12px] uppercase tracking-[0.12em] text-amber-700 mb-3">{date}</div>
+        <div className="text-[12px] uppercase tracking-[0.12em] text-zinc-500 mb-3">{date}</div>
         <h1 className="text-[34px] sm:text-[46px] font-bold tracking-[-0.03em] leading-[1.05]">{post.title || t('blog.post.untitled')}</h1>
         {post.author && <div className="text-[13px] text-zinc-500 mt-3">{t('blog.public.by', { name: post.author.username })}</div>}
         {post.cover_photo_id && !post.blocks.some(b => (b.type === 'photo' && b.photo.photoId === post.cover_photo_id)) && (

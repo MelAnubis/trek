@@ -92,14 +92,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   return (
     <nav style={{
       background: dark
-        ? (scrolled ? 'rgba(10,10,20,0.82)' : 'rgba(10,10,20,0.94)')
-        : (scrolled ? 'rgba(250,250,255,0.78)' : 'rgba(250,250,255,0.94)'),
+        ? (scrolled ? 'rgba(9,9,11,0.82)' : 'rgba(9,9,11,0.94)')
+        : (scrolled ? 'rgba(250,250,250,0.78)' : 'rgba(250,250,250,0.94)'),
       backdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
       WebkitBackdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
-      borderBottom: `1px solid ${dark ? 'rgba(129,140,248,0.1)' : 'rgba(99,102,241,0.1)'}`,
+      borderBottom: '1px solid var(--chrome-border)',
       boxShadow: scrolled
-        ? (dark ? '0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(129,140,248,0.06)' : '0 4px 24px rgba(99,102,241,0.08), 0 0 0 1px rgba(99,102,241,0.06)')
-        : (dark ? '0 1px 16px rgba(0,0,0,0.25)' : '0 1px 12px rgba(99,102,241,0.05)'),
+        ? (dark ? '0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--chrome-border)' : '0 4px 24px rgba(0,0,0,0.06), 0 0 0 1px var(--chrome-border)')
+        : (dark ? '0 1px 16px rgba(0,0,0,0.25)' : '0 1px 12px rgba(0,0,0,0.04)'),
       touchAction: 'manipulation',
       paddingTop: 'env(safe-area-inset-top, 0px)',
       height: 'var(--nav-h)',

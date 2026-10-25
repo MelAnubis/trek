@@ -100,7 +100,7 @@ export default function MobileEntryCard({ entry, dayLabel, dayColor, isActive, o
         <div className="flex-1 p-3 flex flex-col min-w-0">
           {/* Day number + date + mood/weather */}
           <div className="flex items-center gap-1.5 mb-1">
-            <span className="w-5 h-5 rounded text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0" style={{ background: dayColor }}>
+            <span className="w-5 h-5 rounded text-white text-[10px] font-bold flex items-center justify-center flex-shrink-0 trek-day-badge" style={{ background: dayColor }}>
               {dayLabel}
             </span>
             <span className="text-[11px] text-zinc-400 font-medium">{dateStr}</span>

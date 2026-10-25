@@ -639,3 +639,35 @@
   /* The bottom tab bar's centre "+" replaces the floating FAB on mobile */
   .trek-dash .fab-new-trip { display: none; }
 }
+
+/* #ESTODOBAJADA (black & white, the default scheme): neutral greys instead
+   of the warm palette, ink accent. */
+html[data-scheme="mono"] .trek-dash {
+  --bg: #fafafa;
+  --bg-2: #f4f4f5;
+  --surface-2: #fafafa;
+  --ink: #111111;
+  --ink-2: #3f3f46;
+  --ink-3: #71717a;
+  --line: #e4e4e7;
+  --line-2: #d4d4d8;
+  --accent: #111111;
+  --accent-ink: #111111;
+  --accent-soft: #f4f4f5;
+}
+html.dark[data-scheme="mono"] .trek-dash {
+  --bg: #09090b;
+  --bg-2: #111113;
+  --surface: #111113;
+  --surface-2: #18181b;
+  --ink: #fafafa;
+  --ink-2: #d4d4d8;
+  --ink-3: #a1a1aa;
+  --line: #27272a;
+  --line-2: #3f3f46;
+  --accent: #fafafa;
+  --accent-ink: #fafafa;
+  --accent-soft: #27272a;
+}
+html[data-scheme="mono"] .trek-dash .fab-new-trip { background: #111111; }
+html.dark[data-scheme="mono"] .trek-dash .fab-new-trip { background: #fafafa; color: #111111; }

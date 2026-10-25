@@ -73,7 +73,7 @@ function PostCover({ post }: { post: LocalPost }) {
   const src = usePhotoSrc(ref, 'thumbnail')
   return src
     ? <img src={src} alt="" loading="lazy" className="w-full h-full object-cover" />
-    : <div className="w-full h-full bg-gradient-to-br from-indigo-100 to-amber-50 dark:from-indigo-950 dark:to-zinc-900 flex items-center justify-center text-indigo-300 dark:text-indigo-800"><Newspaper size={28} /></div>
+    : <div className="w-full h-full bg-gradient-to-br from-zinc-100 to-zinc-50 dark:from-zinc-800 dark:to-zinc-900 flex items-center justify-center text-zinc-300 dark:text-indigo-800"><Newspaper size={28} /></div>
 }
 
 const STATUS_ICON = { draft: PencilLine, private: Lock, published: Globe }
@@ -370,7 +370,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
   const publish = () => update({ status: draft.status === 'published' ? 'private' : 'published' })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100" style={{ ['--blog-accent' as string]: '#6366f1' }}>
+    <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100" style={{ ['--blog-accent' as string]: 'var(--accent)' }}>
       <Navbar />
       {/* Barra superior del post */}
       <div className="sticky z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur border-b border-zinc-100 dark:border-zinc-900" style={{ top: 'var(--nav-h, 56px)', marginTop: 'var(--nav-h, 56px)' }}>

@@ -23,7 +23,7 @@ const ICON_COLORS: Record<ToastType, string> = {
   success: '#22c55e',
   error: '#ef4444',
   warning: '#f59e0b',
-  info: '#6366f1',
+  info: 'var(--accent)',
 }
 
 export function ToastContainer() {
@@ -87,8 +87,8 @@ export function ToastContainer() {
         }
         .nomad-toast {
           background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(99, 102, 241, 0.12);
-          box-shadow: 0 8px 32px rgba(99, 102, 241, 0.1), inset 0 0.5px 0 rgba(255,255,255,0.6);
+          border: 1px solid var(--chrome-border);
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08), inset 0 0.5px 0 rgba(255,255,255,0.6);
         }
         .nomad-toast span { color: rgba(15, 14, 26, 0.9) !important; }
         .dark .nomad-toast {

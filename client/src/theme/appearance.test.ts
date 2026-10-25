@@ -26,10 +26,10 @@ describe('normalizeAppearance', () => {
 })
 
 describe('applyAppearance', () => {
-  it('FE-APPEARANCE-003: the default look leaves no attribute or inline style behind', () => {
+  it('FE-APPEARANCE-003: the default look is black and white, with no other attribute or inline style', () => {
     applyAppearance({ darkMode: 'light', appearance: { scheme: 'rose', fontScale: 1.2, density: 'compact' } })
     applyAppearance({ darkMode: 'light', appearance: undefined })
-    expect(root().getAttribute('data-scheme')).toBeNull()
+    expect(root().getAttribute('data-scheme')).toBe('mono')
     expect(root().getAttribute('data-density')).toBeNull()
     expect(root().style.fontSize).toBe('')
     expect(root().classList.contains('dark')).toBe(false)
@@ -56,7 +56,7 @@ describe('applyAppearance', () => {
     const before = localStorage.getItem(APPEARANCE_SNAPSHOT_KEY)
     applyAppearance({ darkMode: 'dark', appearance: { scheme: 'teal', fontScale: 1.3 }, isSharedPage: true })
     expect(root().classList.contains('dark')).toBe(false)
-    expect(root().getAttribute('data-scheme')).toBeNull()
+    expect(root().getAttribute('data-scheme')).toBe('mono')
     expect(root().style.fontSize).toBe('')
     expect(localStorage.getItem(APPEARANCE_SNAPSHOT_KEY)).toBe(before)
   })
@@ -64,5 +64,15 @@ describe('applyAppearance', () => {
   it('FE-APPEARANCE-006: accent text is white on dark fills and near-black on light ones', () => {
     expect(accentTextFor('#1d4ed8')).toBe('#ffffff')
     expect(accentTextFor('#facc15')).toBe('#111827')
+  })
+})
+
+describe('#ESTODOBAJADA', () => {
+  it('FE-APPEARANCE-007: the old indigo look is the indigo scheme, and a saved mono is the default', () => {
+    applyAppearance({ darkMode: 'light', appearance: { scheme: 'indigo' } })
+    expect(root().getAttribute('data-scheme')).toBeNull()
+    expect(normalizeAppearance({ scheme: 'mono' }).scheme).toBe('default')
+    applyAppearance({ darkMode: 'light', appearance: { scheme: 'mono' } })
+    expect(root().getAttribute('data-scheme')).toBe('mono')
   })
 })
