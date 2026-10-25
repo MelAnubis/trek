@@ -2731,6 +2731,82 @@ function runMigrations(db: Database.Database): void {
       if (!col('journeys', 'kind')) db.exec("ALTER TABLE journeys ADD COLUMN kind TEXT NOT NULL DEFAULT 'journey'");
       if (!col('journeys', 'magazine_meta')) db.exec('ALTER TABLE journeys ADD COLUMN magazine_meta TEXT');
     },
+    // 5.0 — Tours (de liketrek/TREK v5): una excursión es un lugar del viaje
+    // (su route_geometry y su asignación a días de siempre) más esta faceta,
+    // con sus puntos de control en orden. Mismas tablas que en la v5.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tour_types (
+          key TEXT PRIMARY KEY,
+          label_key TEXT NOT NULL,
+          icon TEXT NOT NULL,
+          color TEXT NOT NULL,
+          routing_profile TEXT,
+          is_sport INTEGER NOT NULL DEFAULT 1,
+          enabled INTEGER NOT NULL DEFAULT 1,
+          sort_order INTEGER NOT NULL DEFAULT 0
+        )
+      `);
+      db.exec(`
+        INSERT OR IGNORE INTO tour_types (key, label_key, icon, color, routing_profile, is_sport, enabled, sort_order) VALUES
+          ('hike', 'tourTypes.hike', 'Mountain', '#16a34a', 'pedestrian', 1, 1, 0),
+          ('bike', 'tourTypes.bike', 'Bike', '#2563eb', 'bicycle', 1, 1, 1),
+          ('run', 'tourTypes.run', 'Footprints', '#dc2626', 'pedestrian', 1, 1, 2),
+          ('ski', 'tourTypes.ski', 'MountainSnow', '#0891b2', NULL, 1, 0, 3),
+          ('kayak', 'tourTypes.kayak', 'Sailboat', '#0d9488', NULL, 1, 0, 4),
+          ('walk', 'tourTypes.walk', 'Landmark', '#9333ea', 'pedestrian', 0, 0, 5),
+          ('food', 'tourTypes.food', 'UtensilsCrossed', '#ea580c', 'pedestrian', 0, 0, 6),
+          ('horse', 'tourTypes.horse', 'Horseshoe', '#a16207', NULL, 1, 0, 7)
+      `);
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tours (
+          place_id INTEGER PRIMARY KEY REFERENCES places(id) ON DELETE CASCADE,
+          tour_type TEXT NOT NULL REFERENCES tour_types(key),
+          distance REAL,
+          elevation_gain REAL,
+          elevation_loss REAL,
+          duration REAL,
+          difficulty TEXT,
+          match_confidence REAL,
+          created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+          max_hiking_difficulty INTEGER CHECK(max_hiking_difficulty IS NULL OR max_hiking_difficulty BETWEEN 1 AND 6),
+          planned_duration_minutes INTEGER,
+          break_additional_minutes INTEGER,
+          derived_from_place_id INTEGER REFERENCES places(id) ON DELETE SET NULL,
+          recorded_route_geometry TEXT,
+          origin TEXT NOT NULL DEFAULT 'trek',
+          origin_file_name TEXT,
+          revision INTEGER NOT NULL DEFAULT 1,
+          hiking_preferences TEXT,
+          bike_profile TEXT,
+          run_profile TEXT,
+          run_pace_seconds_per_km INTEGER,
+          track_started_at TEXT,
+          track_ended_at TEXT
+        )
+      `);
+      db.exec('CREATE INDEX IF NOT EXISTS idx_tours_tour_type ON tours(tour_type)');
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tour_waypoints (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          place_id INTEGER NOT NULL REFERENCES tours(place_id) ON DELETE CASCADE,
+          lat REAL NOT NULL CHECK(lat >= -90 AND lat <= 90),
+          lng REAL NOT NULL CHECK(lng >= -180 AND lng <= 180),
+          role TEXT NOT NULL CHECK(role IN ('start', 'via', 'end')),
+          sequence INTEGER NOT NULL CHECK(sequence >= 0),
+          fixed_leg TEXT,
+          shaping INTEGER NOT NULL DEFAULT 0,
+          linked_place_id INTEGER REFERENCES places(id) ON DELETE SET NULL,
+          station_key TEXT,
+          name TEXT,
+          poi_category TEXT,
+          stage_end INTEGER NOT NULL DEFAULT 0,
+          UNIQUE(place_id, sequence)
+        )
+      `);
+      const col = (t: string, c: string) => !!db.prepare(`SELECT 1 FROM pragma_table_info('${t}') WHERE name = ?`).get(c);
+      if (!col('day_assignments', 'tour_stage_key')) db.exec('ALTER TABLE day_assignments ADD COLUMN tour_stage_key TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

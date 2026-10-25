@@ -46,6 +46,7 @@ import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import siteRoutes from './routes/site';
 import magazineRoutes from './routes/magazines';
+import toursRoutes from './routes/tours';
 import blogRoutes from './routes/blog';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
@@ -156,6 +157,9 @@ export function createApp(): express.Application {
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
           // MapLibre + OpenFreeMap: style JSON, vector tiles, sprites and glyphs.
           "https://tiles.openfreemap.org",
+          // Tours (v5): routing and heights on the public Valhalla, topo/cycle tiles for the planner.
+          "https://valhalla1.openstreetmap.de",
+          "https://*.tile.opentopomap.org", "https://*.tile-cyclosm.openstreetmap.fr",
           // Bikepack integration (iframe + API calls)
           "https://trekwanderer.info:448"
         ],
@@ -193,6 +197,8 @@ export function createApp(): express.Application {
   // would never actually apply: the earlier 100kb parser would already
   // have rejected the request before this one ever ran.
   app.use('/api/journeys/:id/book', express.json({ limit: '20mb' }));
+  // A tour goes whole: its line with heights (a long one is a megabyte or more).
+  app.use('/api/trips/:tripId/tours', express.json({ limit: '4mb' }));
   // Blog posts carry hand-drawn sketches as stroke data — same ordering constraint.
   app.use('/api/journeys/:id/blog', express.json({ limit: '12mb' }));
   // Planner routes carry a whole GPX track as JSON — same ordering constraint as above.
@@ -311,6 +317,7 @@ export function createApp(): express.Application {
   app.use('/api/trips/:tripId/days', daysRoutes);
   app.use('/api/trips/:tripId/accommodations', accommodationsRoutes);
   app.use('/api/trips/:tripId/places', placesRoutes);
+  app.use('/api/trips/:tripId/tours', toursRoutes);
   app.use('/api/trips/:tripId/packing', packingRoutes);
   app.use('/api/trips/:tripId/todo', todoRoutes);
   app.use('/api/trips/:tripId/files', filesRoutes);
