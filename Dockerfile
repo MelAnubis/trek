@@ -2,7 +2,14 @@
 FROM node:24-alpine AS client-builder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm install --legacy-peer-deps
+# npm's download cache survives between builds (BuildKit cache mount), so a version bump
+# in package.json doesn't download everything again; slow networks get more retries/time.
+ENV npm_config_fetch_retries=6 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=180000 \
+    npm_config_fetch_timeout=600000
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund
 COPY client/ ./
 RUN npm run build
 
@@ -13,8 +20,10 @@ WORKDIR /app
 
 # Timezone support + native deps (better-sqlite3 needs build tools)
 COPY server/package*.json ./
-RUN apk add --no-cache tzdata dumb-init su-exec python3 make g++ libheif libheif-dev && \
-    npm ci --production && \
+RUN --mount=type=cache,target=/root/.npm \
+    apk add --no-cache tzdata dumb-init su-exec python3 make g++ libheif libheif-dev && \
+    npm ci --production --prefer-offline --no-audit --no-fund \
+      --fetch-retries=6 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=180000 --fetch-timeout=600000 && \
     npm rebuild sharp && \
     rm package-lock.json && \
     apk del python3 make g++ && \
