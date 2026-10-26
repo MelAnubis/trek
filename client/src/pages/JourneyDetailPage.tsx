@@ -37,6 +37,7 @@ import { PlannerNotesCard, appendToStory, notesToStory, type PlannerNote } from 
 import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
+import { placePhotosOnRoute, photosPlacedByTime, uniquePhotos } from '../components/Journey/photoRoute'
 import { fetchJourneyGpxTracks, buildTrailSegments, flattenWaypoints } from '../components/Journey/journeyGpx'
 import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { fetchJourneyTours, type JourneyTours } from '../components/Journey/journeyTours'
@@ -462,15 +463,24 @@ export default function JourneyDetailPage() {
   // one location — see server's resolveAndStoreGps for how `lat`/`lng` get
   // filled in on trek_photos. Kept as the raw photo list too, so clicking a
   // pin can open the same lightbox the gallery/entry views already use.
+  // Fotos sobre la ruta: every photo of the journal (entries and gallery, once each). A photo
+  // without its own GPS that a recorded track places by its time gets a pin as well.
+  const allJourneyPhotos = useMemo(() => uniquePhotos([
+    ...(current?.entries || []).flatMap(e => e.photos || []),
+    ...((current?.gallery || []) as (JourneyPhoto | GalleryPhoto)[]),
+  ] as (JourneyPhoto | GalleryPhoto)[]), [current?.entries, current?.gallery])
   const photosWithGps = useMemo(() => {
-    const list: JourneyPhoto[] = []
+    const list: (JourneyPhoto | GalleryPhoto)[] = []
     for (const entry of current?.entries || []) {
       for (const photo of entry.photos || []) {
         if (photo.lat != null && photo.lng != null) list.push(photo)
       }
     }
+    for (const placed of photosPlacedByTime(gpxTracks, allJourneyPhotos)) {
+      if (!list.some(p => p.photo_id === placed.photo.photo_id)) list.push({ ...placed.photo, lat: placed.lat, lng: placed.lng })
+    }
     return list
-  }, [current?.entries])
+  }, [current?.entries, gpxTracks, allJourneyPhotos])
   const photoMarkers = useMemo(
     () => photosWithGps.map(p => ({ id: String(p.id), lat: p.lat!, lng: p.lng!, thumbUrl: photoUrl(p, 'thumbnail') })),
     [photosWithGps]
@@ -913,9 +923,19 @@ export default function JourneyDetailPage() {
                           </div>
                         </div>
 
-                        {tracksByDate.has(date) && (
-                          <DayRouteCard tracks={tracksByDate.get(date)!} tileUrl={mapTileUrl} />
-                        )}
+                        {tracksByDate.has(date) && (() => {
+                          const dayTracks = tracksByDate.get(date)!
+                          const onRoute = placePhotosOnRoute(dayTracks, allJourneyPhotos, date)
+                          return (
+                            <DayRouteCard tracks={dayTracks} tileUrl={mapTileUrl}
+                              photos={onRoute}
+                              photoSrc={p => photoUrl(p, 'thumbnail')}
+                              onPhotoClick={i => setLightbox({
+                                photos: onRoute.map(({ photo: p }) => ({ id: p.id, src: photoUrl(p, 'original'), caption: (p as JourneyPhoto).caption ?? null, provider: (p as JourneyPhoto).provider, asset_id: (p as JourneyPhoto).asset_id, owner_id: (p as JourneyPhoto).owner_id })),
+                                index: i,
+                              })} />
+                          )
+                        })()}
 
                         {plannerNotes[date]?.length ? <PlannerNotesCard notes={plannerNotes[date]} t={t} /> : null}
 

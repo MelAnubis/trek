@@ -4,6 +4,10 @@ type Strings = Record<string, string>
 export const plan5Es: Strings = {
   'journey.route.planned': 'Planificado',
   'journey.route.stage': 'Etapa {number} · {name}',
+  'journey.route.photos': 'Fotos en la ruta',
+  'journey.route.photoAt': 'km {km} · {ele} m',
+  'journey.route.photoAtKm': 'km {km}',
+  'journey.route.photoByTime': 'Situada por la hora',
   'trip.tracks.tourTitle': 'Excursión de la que es este track',
   'trip.tracks.linkTour': 'Es lo que hice de la excursión:',
   'trip.tracks.noTour': 'Ninguna',
@@ -68,6 +72,10 @@ export const plan5Es: Strings = {
 export const plan5En: Strings = {
   'journey.route.planned': 'Planned',
   'journey.route.stage': 'Stage {number} · {name}',
+  'journey.route.photos': 'Photos along the route',
+  'journey.route.photoAt': 'km {km} · {ele} m',
+  'journey.route.photoAtKm': 'km {km}',
+  'journey.route.photoByTime': 'Placed by its time',
   'trip.tracks.tourTitle': 'Tour this track is what was done of',
   'trip.tracks.linkTour': 'What I did of the tour:',
   'trip.tracks.noTour': 'None',

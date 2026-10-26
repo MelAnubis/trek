@@ -464,47 +464,63 @@ export async function buildRouteMapImage(
 
 // ── Elevation profile SVG ─────────────────────────────────────────────────────
 
-export function buildElevationSvg(tracks: PdfGpxTrack[]): string {
-  const W = 760, H = 140
+/** A point of a route's profile: cumulative km, elevation, where and when. */
+export interface RouteSeriesPoint { d: number; e: number; lat: number; lng: number; t: number | null }
 
-  // Build cumulative-distance+elevation series from all tracks
-  const pts: { d: number; e: number }[] = []
+/** Parses a GPX/EXIF time; one without a zone is read as the browser's local time. */
+export function parseRouteTime(s: string | null | undefined): number | null {
+  if (!s) return null
+  const v = Date.parse(s.trim().replace(' ', 'T'))
+  return Number.isFinite(v) ? v : null
+}
+
+/**
+ * The cumulative-distance series the elevation profile is drawn from (~400
+ * samples per track). With `requireEle` false, points without a height are
+ * kept too (e = NaN) — used to place things on a track that has no heights.
+ */
+export function routeSeries(tracks: PdfGpxTrack[], requireEle = true): RouteSeriesPoint[] {
+  const pts: RouteSeriesPoint[] = []
   let cumD = 0
-
   for (const track of tracks) {
-    const elePts = track.points.filter(p => p.ele != null)
-    if (elePts.length < 2) continue
-    // Sample to ~400 points per track
-    const step = Math.max(1, Math.floor(elePts.length / 400))
-    let prev: typeof elePts[0] | null = null
-    for (let i = 0; i < elePts.length; i += step) {
-      const p = elePts[i]
+    const src = requireEle ? track.points.filter(p => p.ele != null) : track.points
+    if (src.length < 2) continue
+    const step = Math.max(1, Math.floor(src.length / 400))
+    let prev: typeof src[0] | null = null
+    const push = (p: typeof src[0]) => {
       if (prev) cumD += haversineKm(prev.lat, prev.lng, p.lat, p.lng)
-      pts.push({ d: cumD, e: p.ele! })
+      pts.push({ d: cumD, e: p.ele ?? NaN, lat: p.lat, lng: p.lng, t: parseRouteTime(p.time) })
       prev = p
     }
-    // ensure last point is captured
-    const lastP = elePts[elePts.length - 1]
-    if (prev && lastP !== prev) {
-      cumD += haversineKm(prev.lat, prev.lng, lastP.lat, lastP.lng)
-      pts.push({ d: cumD, e: lastP.ele! })
-    }
+    for (let i = 0; i < src.length; i += step) push(src[i])
+    const lastP = src[src.length - 1]
+    if (prev && lastP !== prev) push(lastP)
   }
+  return pts
+}
 
-  if (pts.length < 2) return ''
-
+/** The geometry buildElevationSvg draws with, so overlays can sit on the same line. */
+export function elevationGeometry(pts: RouteSeriesPoint[]) {
+  const W = 760, H = 140
+  if (pts.length < 2) return null
   const minE = Math.min(...pts.map(p => p.e))
   const maxE = Math.max(...pts.map(p => p.e))
   const maxD = pts[pts.length - 1].d
-  if (maxD === 0) return ''
-
+  if (maxD === 0) return null
   const PAD = { t: 16, r: 8, b: 28, l: 46 }
   const cW = W - PAD.l - PAD.r
   const cH = H - PAD.t - PAD.b
   const eRange = maxE - minE || 1
-
   const px = (d: number) => PAD.l + (d / maxD) * cW
   const py = (e: number) => PAD.t + (1 - (e - minE) / eRange) * cH
+  return { W, H, PAD, cW, cH, minE, maxE, maxD, eRange, px, py }
+}
+
+export function buildElevationSvg(tracks: PdfGpxTrack[]): string {
+  const pts = routeSeries(tracks)
+  const geo = elevationGeometry(pts)
+  if (!geo) return ''
+  const { W, H, PAD, cW, cH, minE, maxD, eRange, px, py } = geo
 
   // Build filled path
   const linePts = pts.map(p => `${px(p.d).toFixed(1)},${py(p.e).toFixed(1)}`).join(' ')
