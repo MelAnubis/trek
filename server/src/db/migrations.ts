@@ -2817,6 +2817,12 @@ function runMigrations(db: Database.Database): void {
       const has = !!db.prepare("SELECT 1 FROM pragma_table_info('places') WHERE name = 'email'").get();
       if (!has) db.exec('ALTER TABLE places ADD COLUMN email TEXT');
     },
+    // Plan frente a realidad: a recorded track (GPX tab) is what was done of a planned tour.
+    () => {
+      const has = !!db.prepare("SELECT 1 FROM pragma_table_info('gpx_tracks') WHERE name = 'tour_place_id'").get();
+      if (!has) db.exec('ALTER TABLE gpx_tracks ADD COLUMN tour_place_id INTEGER REFERENCES places(id) ON DELETE SET NULL');
+      db.exec('CREATE INDEX IF NOT EXISTS idx_gpx_tracks_tour ON gpx_tracks(tour_place_id)');
+    },
   ];
 
   if (currentVersion < migrations.length) {

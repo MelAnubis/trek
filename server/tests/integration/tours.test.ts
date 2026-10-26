@@ -232,4 +232,31 @@ describe('Tours', () => {
     expect((await request(app).get(url(trip.id, `/${id}/export.gpx?stage=3`)).set('Cookie', authCookie(user.id))).status).toBe(404);
     expect((await request(app).get(url(trip.id, `/${id}/export.gpx?stage=x`)).set('Cookie', authCookie(user.id))).status).toBe(400);
   });
+
+  it('TOUR-009 — plan frente a realidad: a GPX-tab track links to a tour, shows in its list row and detail, and can become a tour itself', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const tour = (await request(app).post(url(trip.id)).set('Cookie', authCookie(user.id)).send(body())).body.tour.place_id;
+    const otherTour = (await request(app).post(url(other.id)).set('Cookie', authCookie(user.id)).send(body())).body.tour.place_id;
+    const pts = JSON.stringify(line.map(([lat, lng, ele]) => ({ lat, lng: lng + 0.0003, ele: ele + 5 })));
+    const trackId = Number(testDb.prepare(`INSERT INTO gpx_tracks (trip_id, user_id, track_name, total_distance, total_elevation_gain, total_elevation_loss, duration_seconds, point_count, points_json, transport_mode)
+      VALUES (?, ?, 'Lo que hice', 11.2, 410, 12, 6000, 50, ?, 'cycling')`).run(trip.id, user.id, pts).lastInsertRowid);
+    const bad = await request(app).patch(`/api/trips/${trip.id}/gpx/${trackId}`).set('Cookie', authCookie(user.id)).send({ tour_place_id: otherTour });
+    expect(bad.status).toBe(400);
+    const ok = await request(app).patch(`/api/trips/${trip.id}/gpx/${trackId}`).set('Cookie', authCookie(user.id)).send({ tour_place_id: tour });
+    expect(ok.status).toBe(200);
+    const list = await request(app).get(url(trip.id)).set('Cookie', authCookie(user.id));
+    expect(list.body.tours[0].actual_track).toMatchObject({ id: trackId, track_name: 'Lo que hice', total_distance: 11.2, duration_seconds: 6000 });
+    const d = await request(app).get(url(trip.id, `/${tour}`)).set('Cookie', authCookie(user.id));
+    expect(d.body.actual_points).toHaveLength(50);
+    expect(d.body.actual_points[0][2]).toBe(805);
+    const made = await request(app).post(url(trip.id, `/from-track/${trackId}`)).set('Cookie', authCookie(user.id));
+    expect(made.status).toBe(201);
+    expect(made.body.tour).toMatchObject({ name: 'Lo que hice', tour_type: 'bike', origin: 'gpx', has_waypoints: false });
+    expect((await request(app).post(url(trip.id, '/from-track/99999')).set('Cookie', authCookie(user.id))).status).toBe(404);
+    // Deleting the tour lets go of the link, never of the track.
+    await request(app).delete(url(trip.id, `/${tour}`)).set('Cookie', authCookie(user.id));
+    expect(testDb.prepare('SELECT tour_place_id FROM gpx_tracks WHERE id = ?').get(trackId)).toMatchObject({ tour_place_id: null });
+  });
 });

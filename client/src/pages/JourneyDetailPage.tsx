@@ -39,6 +39,7 @@ import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
 import { fetchJourneyGpxTracks, buildTrailSegments, flattenWaypoints } from '../components/Journey/journeyGpx'
 import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
+import { fetchJourneyTours, type JourneyTours } from '../components/Journey/journeyTours'
 import { useIsMobile } from '../hooks/useIsMobile'
 import type { JourneyEntry, JourneyPhoto, GalleryPhoto, JourneyTrip, JourneyDetail } from '../store/journeyStore'
 import { computeJourneyLifecycle } from '../utils/journeyLifecycle'
@@ -220,6 +221,8 @@ export default function JourneyDetailPage() {
   const [showDeleteJourneyConfirm, setShowDeleteJourneyConfirm] = useState(false)
   const [hideSkeletons, setHideSkeletons] = useState(false)
   const [gpxTracks, setGpxTracks] = useState<PdfGpxTrack[]>([])
+  // Journeys y Excursiones: the planned route of a day with no recorded track, and the tour names.
+  const [journeyTours, setJourneyTours] = useState<JourneyTours>({ planned: [], names: new Map() })
 
   useEffect(() => {
     if (id) loadJourney(Number(id)).catch(() => {})
@@ -234,6 +237,9 @@ export default function JourneyDetailPage() {
     if (!linkedTripIds) { setGpxTracks([]); return }
     let cancelled = false
     fetchJourneyGpxTracks(current!.trips).then(tracks => { if (!cancelled) setGpxTracks(tracks) })
+    fetchJourneyTours(current!.trips, (n, name) => t('journey.route.stage', { number: n, name }))
+      .then(res => { if (!cancelled) setJourneyTours(res) })
+      .catch(() => { /* the days show their recorded tracks alone */ })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedTripIds])
@@ -513,7 +519,12 @@ export default function JourneyDetailPage() {
   // A planner day with notes but no places still gets its day in the timeline.
   const plannerNotes = current?.planner_notes || {}
   const sortedDates = [...new Set([...dayGroups.keys(), ...Object.keys(plannerNotes).filter(d => plannerNotes[d]?.length)])].sort()
-  const { byDate: tracksByDate } = groupTracksByDate(gpxTracks, sortedDates)
+  // A recorded track carries the name of the tour it is what was done of; a day with none shows its plan.
+  const namedTracks = gpxTracks.map(tr => tr.tour_place_id && journeyTours.names.has(tr.tour_place_id) ? { ...tr, label: journeyTours.names.get(tr.tour_place_id)! } : tr)
+  const { byDate: realByDate } = groupTracksByDate(namedTracks, sortedDates)
+  const { byDate: plannedByDate } = groupTracksByDate(journeyTours.planned, sortedDates)
+  const tracksByDate = new Map(realByDate)
+  plannedByDate.forEach((list, date) => { if (!tracksByDate.has(date)) tracksByDate.set(date, list) })
 
   const tripDateMin = current.trips.length
     ? current.trips.reduce((min: string, t: any) => t.start_date && (!min || t.start_date < min) ? t.start_date : min, '')

@@ -51,6 +51,27 @@ export interface TourListItem {
   stage_count: number | null
   stage_stops: TourStageStop[] | null
   day_numbers?: number[]
+  /** Plan frente a realidad: the recorded track (GPX tab) linked as what was done. */
+  actual_track?: ActualTrack | null
+}
+
+export interface ActualTrack {
+  id: number
+  track_name: string
+  total_distance: number | null
+  total_elevation_gain: number | null
+  total_elevation_loss: number | null
+  duration_seconds: number | null
+  ibp: number | null
+  day_id: number | null
+}
+
+/** A track of the GPX tab, as its list gives it. */
+export interface TripTrack extends ActualTrack {
+  tour_place_id: number | null
+  start_lat: number | null
+  start_lng: number | null
+  is_active: number
 }
 
 export interface TourWaypoint {
@@ -75,6 +96,7 @@ export interface TourDetail {
   route_geometry: GeometryPoint[] | null
   recorded_route_geometry: GeometryPoint[] | null
   days: TourDayRow[]
+  actual_points?: Array<[number, number, number | null]> | null
 }
 
 export interface TourWritePayload {
@@ -127,6 +149,16 @@ export const toursApi = {
     apiClient.post(`${base(tripId)}/${placeId}/restore-recorded`, {}).then(r => r.data as { tour: TourListItem }),
   remove: (tripId: number | string, placeId: number) =>
     apiClient.delete(`${base(tripId)}/${placeId}`).then(r => r.data),
+  fromTrack: (tripId: number | string, trackId: number) =>
+    apiClient.post(`${base(tripId)}/from-track/${trackId}`, {}).then(r => r.data as { tour: TourListItem }),
+  tracks: (tripId: number | string) => apiClient.get(`/trips/${tripId}/gpx`).then(r => r.data as TripTrack[]),
+  linkTrack: (tripId: number | string, trackId: number, tourPlaceId: number | null) =>
+    apiClient.patch(`/trips/${tripId}/gpx/${trackId}`, { tour_place_id: tourPlaceId }).then(r => r.data),
+  uploadTrack: (tripId: number | string, file: File) => {
+    const fd = new FormData()
+    fd.append('gpx', file)
+    return apiClient.post(`/trips/${tripId}/gpx/upload`, fd, { timeout: 60000, headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data as TripTrack)
+  },
   exportUrl: (tripId: number | string, placeId: number) => `/api${base(tripId)}/${placeId}/export.gpx`,
   previewGpx: (tripId: number | string, file: File) => {
     const fd = new FormData()

@@ -567,7 +567,7 @@ router.get('/', authenticate, requireTripAccess, (req: Request, res: Response) =
       `SELECT id, trip_id, track_name, orig_name, total_distance, total_elevation_gain,
               total_elevation_loss, max_elevation, min_elevation, duration_seconds,
               point_count, start_lat, start_lng, end_lat, end_lng,
-              ibp, sort_order, is_active, day_id, transport_mode, created_at
+              ibp, sort_order, is_active, day_id, transport_mode, tour_place_id, created_at
        FROM gpx_tracks WHERE trip_id = ? ORDER BY sort_order ASC, id ASC`
     ).all(tripId) as any[];
     res.json(tracks);
@@ -1213,7 +1213,7 @@ router.post('/:trackId/split-manual', authenticate, requireTripAccess, (req: Req
 router.patch('/:trackId', authenticate, requireTripAccess, (req: Request, res: Response) => {
   const tripId  = (req as AuthRequest).params.id;
   const trackId = req.params.trackId;
-  const { track_name, is_active, day_id } = req.body;
+  const { track_name, is_active, day_id, tour_place_id } = req.body;
   try {
     const track = db.prepare('SELECT id FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId);
     if (!track) return res.status(404).json({ error: 'Track not found' });
@@ -1224,6 +1224,12 @@ router.patch('/:trackId', authenticate, requireTripAccess, (req: Request, res: R
       db.prepare('UPDATE gpx_tracks SET is_active = ? WHERE id = ?').run(is_active ? 1 : 0, trackId);
     if (day_id !== undefined)
       db.prepare('UPDATE gpx_tracks SET day_id = ? WHERE id = ?').run(day_id === null ? null : Number(day_id), trackId);
+    // Plan frente a realidad: the tour of this trip the track is what was done of.
+    if (tour_place_id !== undefined) {
+      if (tour_place_id !== null && !db.prepare('SELECT 1 FROM tours tr JOIN places p ON p.id = tr.place_id WHERE tr.place_id = ? AND p.trip_id = ?').get(Number(tour_place_id), tripId))
+        return res.status(400).json({ error: 'Tour not in this trip' });
+      db.prepare('UPDATE gpx_tracks SET tour_place_id = ? WHERE id = ?').run(tour_place_id === null ? null : Number(tour_place_id), trackId);
+    }
 
     const updated = db.prepare('SELECT * FROM gpx_tracks WHERE id = ?').get(trackId) as any;
     res.json({ ...updated, points: [], waypoints: [] });

@@ -8,6 +8,8 @@ import { Upload, Trash2, MapPin, Eye, EyeOff, Mountain, RefreshCw, Scissors, Cal
 import { useNavigate } from 'react-router-dom'
 import type { GpxTrack } from './ElevationDetail'
 import GpxSplitWizard from './GpxSplitWizard'
+import { toursApi } from '../../tours/toursApi'
+import { useTranslation } from '../../i18n'
 
 interface Day {
   id: number
@@ -38,6 +40,7 @@ function fmtDist(km: number): string {
 }
 
 export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) {
+  const { t } = useTranslation()
   const [tracks, setTracks]     = useState<any[]>([])
   const [days, setDays]         = useState<Day[]>([])
   const [loading, setLoading]   = useState(false)
@@ -47,6 +50,27 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
   const [dragOver, setDragOver] = useState(false)
   const [wizardTrack, setWizardTrack] = useState<any | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Plan frente a realidad: the trip's tours, so a track can say which one it is what was done of.
+  const [tours, setTours] = useState<{ place_id: number; name: string }[]>([])
+  const [info, setInfo] = useState<string | null>(null)
+  const loadTours = () => toursApi.list(tripId).then(r => setTours(r.tours.map(x => ({ place_id: x.place_id, name: x.name })))).catch(() => setTours([]))
+  useEffect(() => { void loadTours() }, [tripId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const linkTour = async (track: any, tourPlaceId: number | null) => {
+    try {
+      await toursApi.linkTrack(tripId, track.id, tourPlaceId)
+      const updated = tracks.map(t => t.id === track.id ? { ...t, tour_place_id: tourPlaceId } : t)
+      setTracks(updated); onTracksChange?.(updated)
+    } catch (e: any) { setError(e.message) }
+  }
+
+  const toTour = async (track: any) => {
+    try {
+      const res = await toursApi.fromTrack(tripId, track.id)
+      setInfo(t('trip.tracks.madeTour', { name: res.tour.name }))
+      void loadTours()
+    } catch (e: any) { setError(e.message) }
+  }
 
   const load = async () => {
     setLoading(true); setError(null)
@@ -209,6 +233,9 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
           background: '#ef444420', border: '1px solid #ef4444', fontSize: 12, color: '#ef4444',
         }}>⚠ {error}</div>
       )}
+      {info && (
+        <div data-testid="tracks-info" style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 10, background: '#f9731618', border: '1px solid #f9731660', fontSize: 12, color: 'var(--text-primary, #e2e8f0)' }}>{info}</div>
+      )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
@@ -243,6 +270,9 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     onToggle={() => toggleActive(track)}
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
+                    tours={tours}
+                    onLinkTour={tourId => linkTour(track, tourId)}
+                    onMakeTour={() => toTour(track)}
                     onSplit={days.length > 0 ? (exclude: number[]) => splitByDays(track.id, exclude) : undefined}
                     onWizard={() => openWizard(track)}
                     splitting={splitting}
@@ -271,6 +301,9 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
                     onToggle={() => toggleActive(track)}
                     onDelete={() => deleteTrack(track.id)}
                     onAssignDay={dayId => assignDay(track, dayId)}
+                    tours={tours}
+                    onLinkTour={tourId => linkTour(track, tourId)}
+                    onMakeTour={() => toTour(track)}
                     splitting={splitting}
                   />
                 ))}
@@ -288,7 +321,10 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
 }
 
 // ── Track row component ───────────────────────────────────────────────────────
-function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, onAssignDay, onSplit, onWizard, splitting }: {
+function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, onAssignDay, onSplit, onWizard, splitting, tours, onLinkTour, onMakeTour }: {
+  tours: { place_id: number; name: string }[]
+  onLinkTour: (tourPlaceId: number | null) => void
+  onMakeTour: () => void
   track: any
   color: string
   days: Day[]
@@ -306,6 +342,9 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
   const gain    = parseFloat(track.total_elevation_gain) || 0
   const loss    = parseFloat(track.total_elevation_loss) || 0
   const [showDayPicker, setShowDayPicker] = useState(false)
+  const [showTourPicker, setShowTourPicker] = useState(false)
+  const { t } = useTranslation()
+  const linked = tours.find(x => x.place_id === track.tour_place_id)
   const [showSplitPicker, setShowSplitPicker] = useState(false)
   const [excludeDayIds, setExcludeDayIds] = useState<Set<number>>(new Set())
   const navigate = useNavigate()
@@ -337,6 +376,7 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
             {loss > 0   && <span style={{ color: '#38bdf8' }}>↓ {Math.round(loss)} m</span>}
             {track.ibp  && <span style={{ color: '#a78bfa', fontWeight: 700 }}>IBP {track.ibp}</span>}
             {dayLabel   && <span style={{ color: color, fontWeight: 600 }}>📅 {dayLabel}</span>}
+            {linked     && <span data-testid={`track-tour-${track.id}`} style={{ color: '#f97316', fontWeight: 600 }}><Mountain size={9} style={{ display: 'inline', marginRight: 2 }} />{linked.name}</span>}
           </div>
         </div>
 
@@ -359,6 +399,13 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
           >
             <Download size={15} />
           </a>
+
+          {/* Plan frente a realidad: the tour this track is what was done of */}
+          <button title={t('trip.tracks.tourTitle')} data-testid={`track-tour-btn-${track.id}`} onClick={() => { setShowTourPicker(p => !p); setShowDayPicker(false) }}
+            style={{ background: showTourPicker ? '#f9731630' : 'none', border: 'none', cursor: 'pointer',
+                     padding: 4, borderRadius: 6, color: linked || showTourPicker ? '#f97316' : 'var(--text-tertiary, #64748b)' }}>
+            <Mountain size={15} />
+          </button>
 
           {/* Assign day */}
           <button title="Asignar a un día" onClick={() => setShowDayPicker(p => !p)}
@@ -403,6 +450,28 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
           </button>
         </div>
       </div>
+
+      {showTourPicker && (
+        <div style={{ borderTop: '1px solid var(--border-primary, #2d3f55)', padding: '8px 12px', background: 'var(--bg-tertiary, #1a2535)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 6, fontWeight: 600 }}>{t('trip.tracks.linkTour')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <button onClick={() => { onLinkTour(null); setShowTourPicker(false) }}
+              style={{ padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, background: !linked ? '#f97316' : 'var(--bg-secondary, #253547)', color: !linked ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
+              {t('trip.tracks.noTour')}
+            </button>
+            {tours.map(tour => (
+              <button key={tour.place_id} onClick={() => { onLinkTour(tour.place_id); setShowTourPicker(false) }}
+                style={{ padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, background: linked?.place_id === tour.place_id ? '#f97316' : 'var(--bg-secondary, #253547)', color: linked?.place_id === tour.place_id ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
+                {tour.name}
+              </button>
+            ))}
+          </div>
+          <button data-testid={`track-make-tour-${track.id}`} onClick={() => { onMakeTour(); setShowTourPicker(false) }}
+            style={{ marginTop: 8, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-primary, #2d3f55)', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-primary, #e2e8f0)' }}>
+            {t('trip.tracks.makeTour')}
+          </button>
+        </div>
+      )}
 
       {/* Day picker dropdown */}
       {showDayPicker && (

@@ -60,6 +60,8 @@ interface Props {
   onProfileFocus: (p: [number, number] | null) => void
   onCloseSelection: () => void
   selectedReadOnly: TourListItem | null
+  /** Cards about the open tour shown under its summary (plan frente a realidad). */
+  afterSummary?: React.ReactNode
 }
 
 const section: React.CSSProperties = { border: '1px solid var(--border-faint)', borderRadius: 14, background: 'var(--bg-card)' }
@@ -279,6 +281,7 @@ export default function ToursSidebar(props: Props) {
         )}
 
         {summary && <Summary s={summary} onFocus={props.onProfileFocus} />}
+        {props.afterSummary}
 
         <div style={section}>
           <button type="button" style={headBtn} onClick={() => setFilterOpen(o => !o)}>

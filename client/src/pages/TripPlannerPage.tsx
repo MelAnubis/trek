@@ -29,7 +29,7 @@ import CostsPanel from '../components/Budget/CostsPanel'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
-import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation } from 'lucide-react'
+import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation, Activity } from 'lucide-react'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 import { MapCompassPill } from '../components/Map/MapCompassPill'
@@ -280,8 +280,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
     ...(enabledAddons.budget ? [{ id: 'finanzplan', label: t('trip.tabs.budget'), icon: Wallet }] : []),
     ...(enabledAddons.documents ? [{ id: 'dateien', label: t('trip.tabs.files'), icon: FolderOpen }] : []),
     ...(enabledAddons.collab ? [{ id: 'collab', label: t('admin.addons.catalog.collab.name'), icon: Users }] : []),
-    ...(isCycling ? [{ id: 'gpx', label: 'GPX', icon: Mountain }] : []),
-    ...(isCycling ? [{ id: 'elevation', label: 'Elevación', icon: Mountain }] : []),
+    // Excursiones planifica, Tracks registra lo que de verdad se hizo (con su perfil e IBP dentro).
+    { id: 'gpx', label: t('trip.tabs.tracks'), icon: Activity },
   ]
 
   const [activeTab, setActiveTab] = useState<string>(() => {
@@ -485,7 +485,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
   // Cargar GPX tracks con puntos automáticamente cuando el viaje es ciclista
   useEffect(() => {
-    if (!isCycling || !tripId) return
+    if (!tripId) return
     fetch(`/api/trips/${tripId}/gpx`, { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
       .then((tracks: any[]) => {
@@ -500,7 +500,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         ).then(full => setGpxTracksWithPoints(full as any[]))
       })
       .catch(() => {})
-  }, [tripId, isCycling, (trip as any)?.id])
+  }, [tripId, (trip as any)?.id])
 
   // Track del día seleccionado o track global activo
   const activeGpxTrack = React.useMemo(() => {
@@ -520,11 +520,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
   // The currently-active track is excluded here since it's already drawn
   // via `route` above (highlighted blue line).
   const gpxTracksForMap = React.useMemo(() => {
-    if (!isCycling) return []
     return gpxTracksWithPoints
       .filter((t: any) => t.id !== activeGpxTrack?.id && (t.day_id != null || t.is_active !== 0))
       .map((t: any, i: number) => ({ ...t, color: GPX_TRACK_COLORS[i % GPX_TRACK_COLORS.length] }))
-  }, [isCycling, gpxTracksWithPoints, activeGpxTrack])
+  }, [gpxTracksWithPoints, activeGpxTrack])
 
   const assignTrackDay = React.useCallback(async (trackId: number, dayId: number | null) => {
     if (!tripId) return
@@ -1478,7 +1477,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
             <div style={{ padding: '20px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }} className="max-md:!px-4 max-md:!pt-4">
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-                Tracks GPX
+                {t('trip.tabs.tracksTitle')}
               </h2>
               <button
                 onClick={() => navigate(`/navigate?tripId=${tripId}`)}
@@ -1513,37 +1512,27 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   ).then(full => setGpxTracksWithPoints(full as GpxTrack[]))
                 }}
               />
+              {/* El perfil y el IBP de cada track, antes en su propia pestaña. */}
+              {gpxTracksWithPoints.length > 0 && (
+                <div style={{ marginTop: 24 }}>
+                  <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t('trip.tracks.elevationTitle')}</h3>
+                  <ElevationDetail
+                    tracks={gpxTracksWithPoints}
+                    tripId={tripId ? Number(tripId) : undefined}
+                    onIbpUpdated={(trackId, ibp) =>
+                      setGpxTracksWithPoints(prev => prev.map(t => t.id === trackId ? { ...t, ibp } : t))
+                    }
+                    onTrackUpdated={(updated) =>
+                      setGpxTracksWithPoints(prev => prev.map(t => t.id === updated.id ? updated : t))
+                    }
+                    places={places}
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {activeTab === 'elevation' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-              <div style={{ background: 'var(--bg-tertiary)', borderRadius: 18, padding: '14px 22px', marginBottom: 20 }}>
-                <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Perfil de Elevación · IBPIndex
-                </h2>
-                <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
-                  Análisis de dificultad por track GPX con índice IBP oficial
-                </p>
-              </div>
-            </div>
-            <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
-              <ElevationDetail
-                tracks={gpxTracksWithPoints}
-                tripId={tripId ? Number(tripId) : undefined}
-                onIbpUpdated={(trackId, ibp) =>
-                  setGpxTracksWithPoints(prev => prev.map(t => t.id === trackId ? { ...t, ibp } : t))
-                }
-                onTrackUpdated={(updated) =>
-                  setGpxTracksWithPoints(prev => prev.map(t => t.id === updated.id ? updated : t))
-                }
-                places={places}
-              />
-            </div>
-          </div>
-        )}
       </div>
 
       <PlaceFormModal isOpen={showPlaceForm} onClose={() => { setShowPlaceForm(false); setEditingPlace(null); setEditingAssignmentId(null); setPrefillCoords(null); setNewPlaceDayId(null) }} onSave={handleSavePlace} place={editingPlace} prefillCoords={prefillCoords} assignmentId={editingAssignmentId} dayAssignments={editingAssignmentId ? Object.values(assignments).flat() : []} tripId={tripId} categories={categories} onCategoryCreated={cat => tripActions.addCategory?.(cat)} />

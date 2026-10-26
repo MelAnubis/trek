@@ -12,6 +12,7 @@ import type { TourRoutePart } from './routing/tourRouting'
 import type { RouteHighlight } from './ways/WaysCard'
 import type { TourPoi } from './poi/poiSearch'
 import { POI_COLOR, POI_ICON } from './poi/AlongTourCard'
+import { ACTUAL_COLOR } from './ActualCard'
 
 export type BaseLayer = 'map' | 'topo' | 'hiking' | 'cycling' | 'satellite'
 
@@ -53,6 +54,8 @@ interface Props {
   pad?: { left: number; right: number }
   /** BIK-01: the stretches of a class of surface or way, pointed at on the map. */
   highlight?: RouteHighlight | null
+  /** Plan frente a realidad: the line actually done, over the planned one. */
+  actualLine?: [number, number][] | null
   /** PLN-02: the places found along the tour. */
   pois?: TourPoi[]
   focusedPoiId?: string | null
@@ -219,6 +222,9 @@ export default function TourMap(props: Props) {
               }} />
           )
         })}
+        {props.actualLine && props.actualLine.length > 1 && (
+          <Polyline key="actual" positions={props.actualLine} pathOptions={{ color: ACTUAL_COLOR, weight: 4, opacity: 0.95, dashArray: '2 7', lineCap: 'round' }} interactive={false} />
+        )}
         {props.highlight?.lines.map((ln, i) => (
           <Polyline key={`hl-c-${props.highlight!.id}-${i}`} positions={ln} pathOptions={{ color: '#ffffff', weight: 11, opacity: 0.95 }} interactive={false} />
         ))}

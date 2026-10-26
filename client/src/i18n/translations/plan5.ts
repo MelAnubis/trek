@@ -2,6 +2,16 @@
 type Strings = Record<string, string>
 
 export const plan5Es: Strings = {
+  'journey.route.planned': 'Planificado',
+  'journey.route.stage': 'Etapa {number} · {name}',
+  'trip.tracks.tourTitle': 'Excursión de la que es este track',
+  'trip.tracks.linkTour': 'Es lo que hice de la excursión:',
+  'trip.tracks.noTour': 'Ninguna',
+  'trip.tracks.makeTour': 'Convertir en excursión (para planificar sobre ella)',
+  'trip.tracks.madeTour': '«{name}» ya está en Excursiones.',
+  'trip.tabs.tracks': 'Tracks',
+  'trip.tabs.tracksTitle': 'Tracks: lo que hiciste',
+  'trip.tracks.elevationTitle': 'Perfil de elevación · IBP',
   'places.formLatLabel': 'Latitud',
   'places.formLngLabel': 'Longitud',
   'places.newCategory': 'Nueva categoría',
@@ -56,6 +66,16 @@ export const plan5Es: Strings = {
 }
 
 export const plan5En: Strings = {
+  'journey.route.planned': 'Planned',
+  'journey.route.stage': 'Stage {number} · {name}',
+  'trip.tracks.tourTitle': 'Tour this track is what was done of',
+  'trip.tracks.linkTour': 'What I did of the tour:',
+  'trip.tracks.noTour': 'None',
+  'trip.tracks.makeTour': 'Make it a tour (to plan over it)',
+  'trip.tracks.madeTour': '“{name}” is now in Tours.',
+  'trip.tabs.tracks': 'Tracks',
+  'trip.tabs.tracksTitle': 'Tracks: what you did',
+  'trip.tracks.elevationTitle': 'Elevation profile · IBP',
   'places.formLatLabel': 'Latitude',
   'places.formLngLabel': 'Longitude',
   'places.newCategory': 'New category',

@@ -12,7 +12,7 @@ interface Props {
   open: boolean
   file: File | null
   onClose: () => void
-  onImported: (count: number) => void
+  onImported: (count: number, asTrack?: boolean) => void
 }
 
 interface Choice { take: boolean; name: string; type: TourType }
@@ -34,6 +34,8 @@ export default function GpxImportDialog({ tripId, open, file, onClose, onImporte
   const [choices, setChoices] = useState<Record<number, Choice>>({})
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Excursiones planifica, Tracks registra: the file is a plan, or what was done.
+  const [kind, setKind] = useState<'plan' | 'done'>('plan')
 
   useEffect(() => {
     if (!open || !file) return
@@ -58,6 +60,18 @@ export default function GpxImportDialog({ tripId, open, file, onClose, onImporte
   const doImport = async () => {
     if (!file || !picked.length) return
     setBusy(true)
+    if (kind === 'done') {
+      try {
+        await toursApi.uploadTrack(tripId, file)
+        onImported(1, true)
+        onClose()
+      } catch {
+        setError(t('tours.import.errorIn', { name: file.name }))
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     try {
       const res = await toursApi.importGpx(tripId, file, picked.map(tr => ({ index: tr.index, name: choices[tr.index].name.trim(), tour_type: choices[tr.index].type })))
       onImported(res.tours.length)
@@ -78,11 +92,20 @@ export default function GpxImportDialog({ tripId, open, file, onClose, onImporte
           <button type="button" onClick={onClose} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>{t('common.cancel')}</button>
           <button type="button" disabled={!picked.length || busy} onClick={() => { void doImport() }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: 'none', background: picked.length ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: picked.length ? 'var(--bg-card)' : 'var(--text-faint)', cursor: picked.length ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
-            <Upload size={14} />{busy ? t('tours.import.importing') : t('tours.import.previewConfirm', { count: picked.length })}
+            <Upload size={14} />{busy ? t('tours.import.importing') : kind === 'done' ? t('tours.import.asTrack') : t('tours.import.previewConfirm', { count: picked.length })}
           </button>
         </div>
       }>
       <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>{t('tours.import.previewHint')}</p>
+      <div role="radiogroup" aria-label={t('tours.import.kind')} style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 11, background: 'var(--bg-tertiary)', marginBottom: 12 }}>
+        {(['plan', 'done'] as const).map(k => (
+          <button key={k} type="button" role="radio" aria-checked={kind === k} data-testid={`import-kind-${k}`} onClick={() => setKind(k)}
+            style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: kind === k ? 'var(--bg-card)' : 'transparent', color: 'var(--text-primary)' }}>
+            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600 }}>{t(`tours.import.kind.${k}`)}</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-faint)' }}>{t(`tours.import.kind.${k}Hint`)}</span>
+          </button>
+        ))}
+      </div>
       {error && <div style={{ padding: 10, borderRadius: 10, background: 'rgba(220,38,38,0.08)', color: '#b91c1c', fontSize: 13, marginBottom: 10 }}>{error}</div>}
       {!tracks && !error && <div style={{ fontSize: 13, color: 'var(--text-faint)', padding: 10 }}>{t('common.loading')}</div>}
       {tracks && (

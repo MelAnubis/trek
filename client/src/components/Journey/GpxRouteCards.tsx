@@ -41,6 +41,14 @@ export function DayRouteCard({ tracks, tileUrl }: { tracks: PdfGpxTrack[]; tileU
       {elevationSvg && (
         <div className="px-3 pt-2" dangerouslySetInnerHTML={{ __html: elevationSvg }} />
       )}
+      {(tracks.some(tr => tr.label) || tracks.some(tr => tr.planned)) && (
+        <div data-testid="day-route-label" className="flex items-center gap-2 px-3 pt-2 text-[12px] font-semibold text-zinc-800 dark:text-zinc-100">
+          {tracks.some(tr => tr.planned) && (
+            <span className="rounded-full border border-dashed border-zinc-300 dark:border-zinc-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{t('journey.route.planned')}</span>
+          )}
+          <span className="truncate">{[...new Set(tracks.map(tr => tr.label).filter(Boolean))].join(' · ')}</span>
+        </div>
+      )}
       <div className="flex items-center gap-4 px-3 pb-2.5 pt-1 text-[11px] font-medium text-zinc-500 dark:text-zinc-400">
         <span className="flex items-center gap-1"><RouteIcon size={12} /> {totalKm.toFixed(1)} {t('journey.route.km')}</span>
         <span className="flex items-center gap-1"><Mountain size={12} /> +{Math.round(totalGain)} {t('journey.route.m')}</span>

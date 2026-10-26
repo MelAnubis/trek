@@ -29,6 +29,12 @@ export interface PdfGpxTrack {
   // without fixed calendar dates — lets callers pair a track with the
   // journal's Nth day by position when there's no date to match on.
   day_number?: number | null
+  /** Plan frente a realidad: the tour this track is what was done of. */
+  tour_place_id?: number | null
+  /** The tour's own line, shown on a day without a recorded track. */
+  planned?: boolean
+  /** What the card calls it: the tour's name, «Etapa 2 · …». */
+  label?: string | null
 }
 
 // Minimal shape for map "entry" markers (e.g. Journey Book photo entries).

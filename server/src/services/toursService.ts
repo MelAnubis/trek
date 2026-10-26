@@ -136,6 +136,13 @@ function waypointOut(w: WaypointRow) {
   };
 }
 
+/** Plan frente a realidad: the recorded track (GPX tab) linked as what was done of this tour, measured. */
+function actualTrackOf(placeId: number) {
+  const t = db.prepare(`SELECT id, track_name, total_distance, total_elevation_gain, total_elevation_loss, duration_seconds, ibp, day_id
+    FROM gpx_tracks WHERE tour_place_id = ? ORDER BY id LIMIT 1`).get(placeId) as Record<string, unknown> | undefined;
+  return t ?? null;
+}
+
 function listItem(row: TourRow & { name: string; description: string | null; website: string | null; planned: number; day_numbers?: string | null }) {
   const points = waypointsOf(row.place_id)
   const stops = tourStageStopsOf(points.map(p => ({ role: p.role, shaping: !!p.shaping, stage_end: !!p.stage_end, key: p.station_key ?? undefined, lat: p.lat, lng: p.lng })));
@@ -155,6 +162,7 @@ function listItem(row: TourRow & { name: string; description: string | null; web
     origin: row.origin, origin_file_name: row.origin_file_name, revision: row.revision,
     track_started_at: row.track_started_at, track_ended_at: row.track_ended_at,
     time_estimate: tourTimeEstimate(row),
+    actual_track: actualTrackOf(row.place_id),
     stage_count: stageCount > 1 ? stageCount : null,
     stage_stops: stops.length >= 3 ? stops : null,
   };
@@ -176,6 +184,13 @@ export function getTourItem(tripId: number | string, placeId: number) {
   return row ? listItem(row) : null;
 }
 
+function actualPointsOf(placeId: number): Array<[number, number, number | null]> | null {
+  const t = db.prepare('SELECT points_json FROM gpx_tracks WHERE tour_place_id = ? ORDER BY id LIMIT 1').get(placeId) as { points_json: string | null } | undefined;
+  if (!t) return null;
+  const pts = parseJson<Array<{ lat: number; lng: number; ele?: number | null }>>(t.points_json) ?? [];
+  return pts.map(p => [p.lat, p.lng, p.ele ?? null]);
+}
+
 export function getTourDetail(tripId: number | string, placeId: number) {
   const tour = getTourItem(tripId, placeId);
   if (!tour) return null;
@@ -189,6 +204,7 @@ export function getTourDetail(tripId: number | string, placeId: number) {
     route_geometry: parseJson<GeometryPoint[]>(place.route_geometry),
     recorded_route_geometry: parseJson<GeometryPoint[]>(recorded.recorded_route_geometry),
     days,
+    actual_points: actualPointsOf(placeId),
   };
 }
 
@@ -479,4 +495,27 @@ export function importTracks(tripId: number | string, tracks: ImportedTrack[], c
       fileName.slice(0, 255), m.hasElevation ? 1 : 0.4, times[0] ?? null, times[times.length - 1] ?? null);
     return placeId;
   }))();
+}
+
+/**
+ * A recorded track of the GPX tab made a tour of its own: kept as recorded, like
+ * an import, so it can be planned over with «Planificar versión editable».
+ */
+export function tourFromTrack(tripId: number | string, trackId: number): number {
+  const t = db.prepare('SELECT track_name, points_json, transport_mode FROM gpx_tracks WHERE id = ? AND trip_id = ?').get(trackId, tripId) as
+    { track_name: string; points_json: string | null; transport_mode: string | null } | undefined;
+  if (!t) throw new TourError(404, 'Track not found');
+  const raw = parseJson<Array<{ lat: number; lng: number; ele?: number | null; time?: string | null }>>(t.points_json) ?? [];
+  const pts = raw.filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+  if (pts.length < 2) throw new TourError(422, 'The track has no line');
+  const withHeights = pts.every(p => p.ele != null && Number.isFinite(p.ele));
+  const track: ImportedTrack = {
+    index: 0,
+    name: t.track_name || 'Track',
+    points: pts.map(p => (withHeights ? [p.lat, p.lng, Number(p.ele)] : [p.lat, p.lng]) as GeometryPoint),
+    times: pts.map(p => p.time ?? null),
+  };
+  const type = t.transport_mode === 'cycling' ? 'bike' : t.transport_mode === 'running' ? 'run' : 'hike';
+  const [id] = importTracks(tripId, [track], [{ index: 0, name: track.name.slice(0, 255), tour_type: type }], `${track.name}.gpx`);
+  return id;
 }

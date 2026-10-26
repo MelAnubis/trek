@@ -18,7 +18,8 @@ import WaysCard, { type RouteHighlight } from './ways/WaysCard'
 import AlongTourCard from './poi/AlongTourCard'
 import type { TourPoi } from './poi/poiSearch'
 import { useTourPlanner } from './useTourPlanner'
-import { toursApi, type TourDetail, type TourListItem } from './toursApi'
+import { toursApi, type TourDetail, type TourListItem, type TripTrack } from './toursApi'
+import ActualCard from './ActualCard'
 import { TOUR_TYPE_COLOR, tourPlannedTimes } from './presentation'
 import { computeTourMetrics } from './core'
 import { stopNameOf } from './stages'
@@ -56,6 +57,9 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   const [confirm, setConfirm] = useState<null | { kind: 'delete'; tour: TourListItem } | { kind: 'discard'; then: () => void }>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [highlight, setHighlight] = useState<RouteHighlight | null>(null)
+  // Plan frente a realidad: the trip's recorded tracks, and what was done of the open tour.
+  const [tripTracks, setTripTracks] = useState<TripTrack[]>([])
+  const [actual, setActual] = useState<{ placeId: number; points: Array<[number, number, number | null]> | null; dayIds: number[] } | null>(null)
   const [pois, setPois] = useState<TourPoi[]>([])
   const [focusedPoi, setFocusedPoi] = useState<string | null>(null)
 
@@ -71,6 +75,8 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   }, [tripId])
 
   useEffect(() => { void refresh() }, [refresh])
+  const refreshTracks = useCallback(() => { toursApi.tracks(tripId).then(setTripTracks).catch(() => { /* the card offers upload alone */ }) }, [tripId])
+  useEffect(() => { refreshTracks() }, [refreshTracks])
   useEffect(() => {
     const fn = (event: Record<string, unknown>) => {
       const type = String(event.type ?? '')
@@ -108,6 +114,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   const openTour = (tour: TourListItem) => guardDirty(async () => {
     try {
       const detail = await toursApi.get(tripId, tour.place_id)
+      setActual({ placeId: tour.place_id, points: detail.actual_points ?? null, dayIds: detail.days.map(d => d.day_id) })
       if (detail.waypoints.length >= 2 && canEdit) {
         setSelected(null)
         planner.openTour(detail)
@@ -232,6 +239,36 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   }
 
   const editing = !!planner.open
+  const activeTour = tours.find(x => x.place_id === (planner.open?.placeId ?? selected?.tour.place_id ?? -1)) ?? null
+  const actualLine = actual && activeTour && actual.placeId === activeTour.place_id && actual.points ? actual.points.map(p => [p[0], p[1]] as [number, number]) : null
+  const reloadActual = async (placeId: number) => {
+    await refresh(); refreshTracks()
+    try { const d = await toursApi.get(tripId, placeId); setActual({ placeId, points: d.actual_points ?? null, dayIds: d.days.map(x => x.day_id) }) } catch { /* stays as it was */ }
+  }
+  const actualCard = activeTour ? (
+    <ActualCard
+      tour={activeTour}
+      planned={summary ? { distanceKm: summary.distanceKm, gain: summary.gain, loss: summary.loss, minutes: summary.plannedMinutes ?? summary.movingMinutes } : { distanceKm: activeTour.distance, gain: activeTour.elevation_gain, loss: activeTour.elevation_loss, minutes: activeTour.duration }}
+      tracks={tripTracks}
+      dayIds={actual?.placeId === activeTour.place_id ? actual.dayIds : []}
+      canEdit={canEdit}
+      onLink={async trackId => {
+        const current = activeTour.actual_track?.id
+        try {
+          if (trackId == null && current) await toursApi.linkTrack(tripId, current, null)
+          else if (trackId != null) await toursApi.linkTrack(tripId, trackId, activeTour.place_id)
+          await reloadActual(activeTour.place_id)
+        } catch { toast.error(t('common.unknownError')) }
+      }}
+      onUpload={async file => {
+        try {
+          const track = await toursApi.uploadTrack(tripId, file)
+          await toursApi.linkTrack(tripId, track.id, activeTour.place_id)
+          await reloadActual(activeTour.place_id)
+        } catch { toast.error(t('tours.import.errorIn', { name: file.name })) }
+      }}
+    />
+  ) : null
   // The settled line the cards read, the same array while it does not change.
   const routeLine = useMemo(() => planner.geometry ? planner.geometry.map(p => [p[0], p[1]] as [number, number]) : null, [planner.geometry])
   // A new or closed tour takes the places found and the map's pointing down.
@@ -259,6 +296,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
       onToggleAddMode={() => planner.setAddMode(!planner.addMode)}
       hint={mapHint}
       highlight={highlight}
+      actualLine={actualLine}
       pois={editing ? pois : []}
       focusedPoiId={focusedPoi}
       onPoiClick={poi => setFocusedPoi(poi.id)}
@@ -297,6 +335,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
       onProfileFocus={setFocus}
       onCloseSelection={() => setSelected(null)}
       selectedReadOnly={selected?.tour ?? null}
+      afterSummary={actualCard}
     />
   )
 
@@ -350,7 +389,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
       )}
 
       <GpxImportDialog tripId={tripId} open={!!importFile} file={importFile} onClose={() => setImportFile(null)}
-        onImported={count => { toast.success(t('tours.import.success', { count })); void refresh(); void useTripStore.getState().loadTrip(tripId) }} />
+        onImported={(count, asTrack) => { if (asTrack) { toast.success(t('tours.import.trackSaved')); refreshTracks(); return } toast.success(t('tours.import.success', { count })); void refresh(); void useTripStore.getState().loadTrip(tripId) }} />
 
       <ConfirmDialog
         isOpen={confirm?.kind === 'delete'}

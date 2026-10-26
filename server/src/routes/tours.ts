@@ -7,7 +7,7 @@ import { checkPermission } from '../services/permissions';
 import type { AuthRequest } from '../types';
 import {
   TourError, copyTour, createTour, deleteTour, exportTourGpx, getTourDetail, getTourItem, gpxFileName, importChoiceSchema,
-  importTracks, listTourTypes, listTours, placePayload, previewTrack, readTrackFile, restoreRecorded, tourWriteSchema, updateTour,
+  importTracks, tourFromTrack, listTourTypes, listTours, placePayload, previewTrack, readTrackFile, restoreRecorded, tourWriteSchema, updateTour,
 } from '../services/toursService';
 
 /**
@@ -70,6 +70,16 @@ router.post('/import/gpx', authenticate, requireTripAccess, upload.single('file'
     const ids = importTracks(req.params.tripId, tracks, parsed.data.choices, req.file.originalname || 'track.gpx');
     ids.forEach(id => announce(req, req.params.tripId, id, true));
     res.status(201).json({ tours: ids.map(id => getTourItem(req.params.tripId, id)) });
+  } catch (e) { fail(res, e); }
+});
+
+// A recorded track of the GPX tab made a tour (Excursiones planifica, GPX registra).
+router.post('/from-track/:trackId', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  if (!canEdit(req)) return res.status(403).json({ error: 'No permission' });
+  try {
+    const id = tourFromTrack(req.params.tripId, Number(req.params.trackId));
+    announce(req, req.params.tripId, id, true);
+    res.status(201).json({ tour: getTourItem(req.params.tripId, id) });
   } catch (e) { fail(res, e); }
 });
 
