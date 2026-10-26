@@ -16,6 +16,11 @@ interface Props {
   trackPoints?: TrackPoint[]
   tripId?: number
   onExit: () => void
+  /** Fase B: record what is done while following the route. */
+  recordWhileFollowing?: boolean
+  /** Called with the track just saved to the trip (to link it to its tour). */
+  onRecordingSaved?: (track: { id: number }) => Promise<void>
+  saveNote?: string
 }
 
 
@@ -54,7 +59,7 @@ function useWakeLock(enabled: boolean) {
   }, [enabled])
 }
 
-export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId, onExit }: Props) {
+export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId, onExit, recordWhileFollowing = false, onRecordingSaved, saveNote }: Props) {
   const nav = useNavigation()
   const [autoFollow, setAutoFollow] = useState(true)
   const [showElevation, setShowElevation] = useState(!!trackPoints?.length)
@@ -71,7 +76,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   React.useEffect(() => {
     if (trackPoints?.length && !startedFollowing.current && nav.navMode === 'idle') {
       startedFollowing.current = true
-      nav.loadTrackAndFollow(trackPoints)
+      nav.loadTrackAndFollow(trackPoints, { record: recordWhileFollowing })
     }
   }, [trackPoints]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -171,14 +176,19 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   }, [nav, tripId])
 
   const handleStopFollowing = useCallback(() => {
+    const recorded = nav.isRecording && nav.recordedPoints.length > 1
     nav.stopFollowing()
-    onExit()
+    if (recorded) setShowSummary(true)
+    else onExit()
   }, [nav, onExit])
 
   const handleSaveToTrip = async (name: string, targetTripId?: number) => {
     const id = targetTripId ?? tripId
     if (!id) return
-    await nav.recorder.saveToTrip(id, name)
+    const track = await nav.recorder.saveToTrip(id, name)
+    if (onRecordingSaved && track?.id && id === tripId) {
+      try { await onRecordingSaved(track) } catch { /* saved anyway; it can be linked from the Tracks tab */ }
+    }
     setTimeout(onExit, 1200)
   }
 
@@ -374,7 +384,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
                 <CtrlButton
                   icon={<Navigation size={18} color="#3b82f6" />}
                   label="Seguir track"
-                  onClick={() => nav.loadTrackAndFollow(trackPoints)}
+                  onClick={() => nav.loadTrackAndFollow(trackPoints, { record: recordWhileFollowing })}
                   accent="#3b82f6"
                 />
               )}
@@ -416,7 +426,16 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
           {nav.navMode === 'following' && (
             <>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#64748b' }}>Progreso</div>
+                <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  Progreso
+                  {nav.isRecording && (
+                    <span data-testid="nav-rec" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#f87171', fontWeight: 700 }}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
+                      REC · {nav.recordedPoints.length} pts
+                    </span>
+                  )}
+                </div>
+                {nav.geoRecordingError && <div style={{ fontSize: 10, color: '#f97316', fontWeight: 600, lineHeight: 1.3 }}>{nav.geoRecordingError}</div>}
                 <div style={{ marginTop: 3, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${nav.progressPct.toFixed(1)}%`, background: '#3b82f6', borderRadius: 2, transition: 'width 0.5s' }} />
                 </div>
@@ -429,9 +448,10 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
                 accent="#22d96e"
               />
               <CtrlButton
-                icon={<Square size={18} color="#94a3b8" />}
-                label="Salir"
+                icon={<Square size={18} color={nav.isRecording ? '#ef4444' : '#94a3b8'} />}
+                label={nav.isRecording ? 'Terminar' : 'Salir'}
                 onClick={handleStopFollowing}
+                accent={nav.isRecording ? '#ef4444' : undefined}
               />
             </>
           )}
@@ -479,7 +499,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       {showSummary && (
         <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 200 }} />}>
           <NavSummary
-            trackName={DEFAULT_ROUTE_NAME()}
+            trackName={recordWhileFollowing ? trackName : DEFAULT_ROUTE_NAME()}
+            saveNote={saveNote}
             recordedPoints={nav.recordedPoints}
             stats={nav.stats}
             navPhotos={nav.navPhotos}

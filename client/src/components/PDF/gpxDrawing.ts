@@ -35,6 +35,8 @@ export interface PdfGpxTrack {
   planned?: boolean
   /** What the card calls it: the tour's name, «Etapa 2 · …». */
   label?: string | null
+  /** Name of the stop the stage ends at, when the plan has one. */
+  end_name?: string | null
 }
 
 // Minimal shape for map "entry" markers (e.g. Journey Book photo entries).

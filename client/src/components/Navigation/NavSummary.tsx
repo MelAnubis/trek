@@ -18,6 +18,8 @@ interface Props {
   onSaveToTrip: (name: string, tripId?: number) => Promise<void>
   onDownload: (name: string) => Promise<void>
   onDiscard: () => void
+  /** A line under the save button, e.g. the tour the track will be linked to. */
+  saveNote?: string
 }
 
 function fmt(m: number) {
@@ -53,7 +55,7 @@ function PhotoPin({ photo }: { photo: NavPhoto }) {
   return <Marker position={[photo.lat, photo.lng]} icon={icon} interactive={false} />
 }
 
-export default function NavSummary({ trackName, recordedPoints, stats, navPhotos, tripId, onSaveToTrip, onDownload, onDiscard }: Props) {
+export default function NavSummary({ trackName, recordedPoints, stats, navPhotos, tripId, onSaveToTrip, onDownload, onDiscard, saveNote }: Props) {
   const [name, setName] = React.useState(trackName)
   const [saving, setSaving] = React.useState(false)
   const [saved, setSaved] = React.useState(false)
@@ -157,6 +159,9 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
 
         {/* Actions */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {saveNote && tripId && (
+            <div data-testid="nav-save-note" style={{ fontSize: 12, color: '#fdba74', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: 10, padding: '8px 12px' }}>{saveNote}</div>
+          )}
           {/* Save to trip: direct when tripId is known, or via selector for free navigation */}
           {tripId ? (
             <button onClick={handleSave} disabled={saving || saved} style={{

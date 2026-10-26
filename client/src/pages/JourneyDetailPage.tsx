@@ -38,6 +38,7 @@ import MobileMapTimeline from '../components/Journey/MobileMapTimeline'
 import MobileEntryView from '../components/Journey/MobileEntryView'
 import { DayRouteCard, JourneyRouteSummary } from '../components/Journey/GpxRouteCards'
 import { placePhotosOnRoute, photosPlacedByTime, uniquePhotos } from '../components/Journey/photoRoute'
+import { buildStageEntry } from '../components/Journey/stageEntry'
 import { fetchJourneyGpxTracks, buildTrailSegments, flattenWaypoints } from '../components/Journey/journeyGpx'
 import { groupTracksByDate, type PdfGpxTrack } from '../components/PDF/gpxDrawing'
 import { fetchJourneyTours, type JourneyTours } from '../components/Journey/journeyTours'
@@ -191,7 +192,7 @@ export default function JourneyDetailPage() {
   const navigate = useNavigate()
   const toast = useToast()
   const { t, locale } = useTranslation()
-  const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, deleteJourney, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
+  const { current, loading, notFound, loadJourney, createEntry, updateEntry, deleteEntry, deleteJourney, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
   // A magazine has no journal to show: its page is the Studio.
   useEffect(() => {
     if ((current as { kind?: string } | null)?.kind === 'magazine' && String(current!.id) === String(id)) navigate(`/journey/${current!.id}/studio`, { replace: true })
@@ -530,9 +531,14 @@ export default function JourneyDetailPage() {
   const plannerNotes = current?.planner_notes || {}
   const sortedDates = [...new Set([...dayGroups.keys(), ...Object.keys(plannerNotes).filter(d => plannerNotes[d]?.length)])].sort()
   // A recorded track carries the name of the tour it is what was done of; a day with none shows its plan.
-  const namedTracks = gpxTracks.map(tr => tr.tour_place_id && journeyTours.names.has(tr.tour_place_id) ? { ...tr, label: journeyTours.names.get(tr.tour_place_id)! } : tr)
-  const { byDate: realByDate } = groupTracksByDate(namedTracks, sortedDates)
   const { byDate: plannedByDate } = groupTracksByDate(journeyTours.planned, sortedDates)
+  // …and when that day is one stage of the tour, the stage's name and where it ends.
+  const namedTracks = gpxTracks.map(tr => {
+    if (!tr.tour_place_id || !journeyTours.names.has(tr.tour_place_id)) return tr
+    const stage = tr.date ? (plannedByDate.get(tr.date) || []).find(p => p.tour_place_id === tr.tour_place_id) : undefined
+    return { ...tr, label: stage?.label ?? journeyTours.names.get(tr.tour_place_id)!, end_name: stage?.end_name ?? null }
+  })
+  const { byDate: realByDate } = groupTracksByDate(namedTracks, sortedDates)
   const tracksByDate = new Map(realByDate)
   plannedByDate.forEach((list, date) => { if (!tracksByDate.has(date)) tracksByDate.set(date, list) })
 
@@ -926,8 +932,41 @@ export default function JourneyDetailPage() {
                         {tracksByDate.has(date) && (() => {
                           const dayTracks = tracksByDate.get(date)!
                           const onRoute = placePhotosOnRoute(dayTracks, allJourneyPhotos, date)
+                          const draft = buildStageEntry(dayTracks, v => v.duration
+                            ? t('journey.stageEntry.statsTime', { km: v.km, up: v.up, down: v.down, duration: v.duration })
+                            : t('journey.stageEntry.stats', { km: v.km, up: v.up, down: v.down }), locale)
+                          const dayEntries = current.entries.filter(e => e.entry_date === date)
+                          const entryExists = !!draft && dayEntries.some(e => e.type !== 'skeleton' && (e.title === draft.title || (draft.tour_place_id != null && e.source_place_id === draft.tour_place_id)))
+                          // The tour's suggested entry of that day is filled in rather than doubled.
+                          const suggested = draft?.tour_place_id != null ? dayEntries.find(e => e.type === 'skeleton' && e.source_place_id === draft.tour_place_id) : undefined
+                          const createStageEntry = async () => {
+                            if (!draft) return
+                            const { tour_place_id: _tour, ...fields } = draft
+                            const data = { ...fields, entry_date: date, type: 'entry' }
+                            try {
+                              let entryId: number
+                              if (suggested) {
+                                // a story on a suggested entry makes it a real one (server side)
+                                const { type: _type, ...rest } = data
+                                await updateEntry(suggested.id, { ...rest, story: suggested.story ? `${data.story}\n\n${suggested.story}` : data.story })
+                                entryId = suggested.id
+                              } else {
+                                entryId = (await createEntry(current.id, data)).id
+                              }
+                              let linked = 0
+                              for (const { photo } of onRoute) {
+                                try { await journeyPhotoRepo.linkPhoto(entryId, current.id, photo.id); linked++ } catch { /* already there */ }
+                              }
+                              await loadJourney(current.id)
+                              toast.success(t('journey.stageEntry.created', { count: linked }))
+                            } catch (err) {
+                              toast.error(getApiErrorMessage(err, t('journey.stageEntry.failed')))
+                            }
+                          }
                           return (
                             <DayRouteCard tracks={dayTracks} tileUrl={mapTileUrl}
+                              onCreateEntry={canEditEntries && draft ? createStageEntry : undefined}
+                              entryExists={entryExists}
                               photos={onRoute}
                               photoSrc={p => photoUrl(p, 'thumbnail')}
                               onPhotoClick={i => setLightbox({

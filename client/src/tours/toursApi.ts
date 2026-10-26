@@ -154,6 +154,8 @@ export const toursApi = {
   tracks: (tripId: number | string) => apiClient.get(`/trips/${tripId}/gpx`).then(r => r.data as TripTrack[]),
   linkTrack: (tripId: number | string, trackId: number, tourPlaceId: number | null) =>
     apiClient.patch(`/trips/${tripId}/gpx/${trackId}`, { tour_place_id: tourPlaceId }).then(r => r.data),
+  setTrackDay: (tripId: number | string, trackId: number, dayId: number | null) =>
+    apiClient.patch(`/trips/${tripId}/gpx/${trackId}`, { day_id: dayId }).then(r => r.data),
   uploadTrack: (tripId: number | string, file: File) => {
     const fd = new FormData()
     fd.append('gpx', file)

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Camera, Mountain, Route as RouteIcon } from 'lucide-react'
+import { Camera, Check, Loader2, Mountain, NotebookPen, Route as RouteIcon } from 'lucide-react'
 import { buildElevationSvg, buildRouteMapImage, DEFAULT_TILE_URL, elevationGeometry, routeSeries, type PdfGpxTrack } from '../PDF/gpxDrawing'
 import { useTranslation } from '../../i18n'
 import { formatKm, type PlacedPhoto, type RoutePhotoInput } from './photoRoute'
@@ -10,6 +10,10 @@ interface RoutePhotosProps {
   photoSrc?: (photo: RoutePhotoInput) => string
   /** Index into `photos`. */
   onPhotoClick?: (index: number) => void
+  /** Entradas por etapa: makes the journal entry of this day's route. */
+  onCreateEntry?: () => Promise<void>
+  /** The day already has the entry of this route. */
+  entryExists?: boolean
 }
 
 /**
@@ -22,9 +26,10 @@ interface RoutePhotosProps {
  * job (it only mounts this when groupTracksByDate found something for the
  * date), but an empty-points track is also guarded here just in case.
  */
-export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoClick }: { tracks: PdfGpxTrack[]; tileUrl?: string } & RoutePhotosProps) {
+export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoClick, onCreateEntry, entryExists }: { tracks: PdfGpxTrack[]; tileUrl?: string } & RoutePhotosProps) {
   const { t, locale } = useTranslation()
   const [mapSrc, setMapSrc] = useState<string | null>(null)
+  const [creating, setCreating] = useState(false)
 
   const hasPoints = tracks.some(track => track.points.length > 0)
   const elevationSvg = useMemo(() => hasPoints ? buildElevationSvg(tracks) : '', [tracks, hasPoints])
@@ -81,6 +86,15 @@ export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoCl
         <span className="flex items-center gap-1"><RouteIcon size={12} /> {totalKm.toFixed(1)} {t('journey.route.km')}</span>
         <span className="flex items-center gap-1"><Mountain size={12} /> +{Math.round(totalGain)} {t('journey.route.m')}</span>
         {photos.length > 0 && <span className="flex items-center gap-1"><Camera size={12} /> {photos.length}</span>}
+        {onCreateEntry && (entryExists ? (
+          <span data-testid="stage-entry-done" className="ml-auto flex items-center gap-1 text-emerald-600 dark:text-emerald-400"><Check size={12} /> {t('journey.stageEntry.done')}</span>
+        ) : (
+          <button type="button" data-testid="stage-entry-create" disabled={creating}
+            onClick={async () => { setCreating(true); try { await onCreateEntry() } finally { setCreating(false) } }}
+            className="ml-auto flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 px-2 py-1 text-[11px] font-semibold text-zinc-700 dark:text-zinc-200 hover:bg-zinc-50 dark:hover:bg-zinc-800 disabled:opacity-60">
+            {creating ? <Loader2 size={12} className="animate-spin" /> : <NotebookPen size={12} />} {t('journey.stageEntry.create')}
+          </button>
+        ))}
       </div>
       {photos.length > 0 && (
         <div data-testid="route-photo-strip" className="border-t border-zinc-100 dark:border-zinc-800 px-3 pt-2 pb-3">

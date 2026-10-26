@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import NavigationView from '../components/Navigation/NavigationView'
 import type { TrackPoint } from '../hooks/useNavigation'
+import { toursApi } from '../tours/toursApi'
+import { tourNavPlan } from '../tours/tourNavigation'
 
 interface TrackMeta {
   id: number
@@ -31,6 +33,11 @@ export default function NavigationPage() {
 
   const tripId = searchParams.get('tripId')
   const trackId = searchParams.get('trackId')
+  // Fase B: navigate a tour (or one of its stages), recording what is done and
+  // linking the recording to the tour and its day when it is saved.
+  const tourId = searchParams.get('tourId')
+  const stageParam = searchParams.get('stage')
+  const [tourLink, setTourLink] = useState<{ placeId: number; dayId: number | null; name: string } | null>(null)
 
   const [trackPoints, setTrackPoints] = useState<TrackPoint[] | undefined>(undefined)
   const [trackName, setTrackName] = useState('Navegación')
@@ -49,7 +56,29 @@ export default function NavigationPage() {
       .finally(() => setLoading(false))
   }, [tripId, trackId])
 
+  useEffect(() => {
+    if (!tripId || !tourId || trackId) return
+    setLoading(true)
+    toursApi.get(tripId, Number(tourId))
+      .then(detail => {
+        const plan = tourNavPlan(detail, { stage: stageParam ? Number(stageParam) : null, stageLabel: (n, name) => `${name} · Etapa ${n}` })
+        if (!plan) throw new Error('La excursión no tiene ruta')
+        setTrackName(plan.name)
+        setTrackPoints(plan.points)
+        setTourLink({ placeId: detail.tour.place_id, dayId: plan.dayId, name: detail.tour.name })
+      })
+      .catch(e => setError(e?.response?.status === 404 ? 'Excursión no encontrada' : (e.message || 'Error')))
+      .finally(() => setLoading(false))
+  }, [tripId, tourId, stageParam, trackId])
+
+  const linkToTour = async (track: { id: number }) => {
+    if (!tripId || !tourLink) return
+    await toursApi.linkTrack(tripId, track.id, tourLink.placeId)
+    if (tourLink.dayId != null) await toursApi.setTrackDay(tripId, track.id, tourLink.dayId)
+  }
+
   const handleExit = () => {
+    if (tripId && tourId) { try { sessionStorage.setItem(`trip-tab-${tripId}`, 'tours') } catch { /* ignore */ } }
     if (tripId) navigate(`/trips/${tripId}`)
     else navigate('/dashboard')
   }
@@ -89,6 +118,9 @@ export default function NavigationPage() {
       trackPoints={trackPoints}
       tripId={tripId ? parseInt(tripId) : undefined}
       onExit={handleExit}
+      recordWhileFollowing={!!tourLink}
+      onRecordingSaved={tourLink ? linkToTour : undefined}
+      saveNote={tourLink ? `Se guardará como lo hecho de «${tourLink.name}»` : undefined}
     />
   )
 }

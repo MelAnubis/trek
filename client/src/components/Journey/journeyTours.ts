@@ -19,11 +19,11 @@ export interface JourneyTours {
   names: Map<number, string>
 }
 
-function asTrack(id: number, label: string, line: number[][], date: string | null, dayNumber: number | null): PdfGpxTrack {
+function asTrack(id: number, label: string, line: number[][], date: string | null, dayNumber: number | null, tourPlaceId: number, endName: string | null): PdfGpxTrack {
   const m = computeTourMetrics(line as GeometryPoint[])
   const heights = line.filter(p => p.length >= 3).map(p => p[2])
   return {
-    id, track_name: label, label, planned: true, date, day_number: dayNumber,
+    id, track_name: label, label, planned: true, date, day_number: dayNumber, tour_place_id: tourPlaceId, end_name: endName,
     total_distance: m.distanceKm,
     total_elevation_gain: m.elevationGainM ?? 0,
     total_elevation_loss: m.elevationLossM ?? 0,
@@ -59,10 +59,10 @@ export async function fetchJourneyTours(trips: { trip_id: number }[], stageLabel
         const at = vertexIndicesOf(d.waypoints, line)
         spans.forEach((span, i) => {
           const part = line.slice(at[span.from], at[span.to] + 1)
-          if (part.length > 1) planned.push(asTrack(-(tour.place_id * 100 + i + 1), stageLabel(i + 1, tour.name), part, days[i].date, days[i].day_number))
+          if (part.length > 1) planned.push(asTrack(-(tour.place_id * 100 + i + 1), stageLabel(i + 1, tour.name), part, days[i].date, days[i].day_number, tour.place_id, d!.waypoints[span.to]?.name ?? null))
         })
       } else {
-        days.forEach((day, i) => planned.push(asTrack(-(tour.place_id * 100 + i), tour.name, line, day.date, day.day_number)))
+        days.forEach((day, i) => planned.push(asTrack(-(tour.place_id * 100 + i), tour.name, line, day.date, day.day_number, tour.place_id, d!.waypoints[d!.waypoints.length - 1]?.name ?? null)))
       }
     }
   }

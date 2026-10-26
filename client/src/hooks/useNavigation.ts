@@ -124,6 +124,7 @@ export function useNavigation() {
   const [isApproaching, setIsApproaching] = useState(false)
   const [navPhotos, setNavPhotos] = useState<NavPhoto[]>([])
   const [geoRecordingError, setGeoRecordingError] = useState<string | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
 
   const startTimeRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -209,18 +210,16 @@ export function useNavigation() {
     }
   }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const startRecording = useCallback(() => {
+  // Starts the recorder and its own GPS watch. Shared by plain recording and by
+  // following a route while recording it (fase B: lo hecho queda grabado a la vez).
+  const beginRecorder = () => {
     recorder.current.start()
     elevGainRef.current = 0
     elevLossRef.current = 0
     lastAltRef.current = null
     setRecordedPoints([])
-    setStats(INITIAL_STATS)
     setGeoRecordingError(null)
-    startTimeRef.current = Date.now()
-    startTimer()
-    setNavMode('recording')
-    geo.setMode('follow')
+    setIsRecording(true)
 
     // Use native background GPS (Capacitor) or high-frequency web watchPosition
     stopRecordWatch()
@@ -242,6 +241,11 @@ export function useNavigation() {
         lastAltRef.current = alt
       }
 
+      // While following, progress along the route drives distance and speed.
+      if (navModeRef.current === 'following') {
+        setStats(s => ({ ...s, elevationGainM: elevGainRef.current, elevationLossM: elevLossRef.current }))
+        return
+      }
       const distM = recorder.current.totalDistanceM()
       const elapsed = startTimeRef.current ? (Date.now() - startTimeRef.current) / 1000 : 0
       const avgKmh = elapsed > 60 ? (distM / 1000) / (elapsed / 3600) : 0
@@ -292,18 +296,29 @@ export function useNavigation() {
         { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
       )
     }
+  }
+
+  const startRecording = useCallback(() => {
+    setStats(INITIAL_STATS)
+    startTimeRef.current = Date.now()
+    startTimer()
+    setNavMode('recording')
+    navModeRef.current = 'recording'
+    geo.setMode('follow')
+    beginRecorder()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopRecording = useCallback(() => {
     stopRecordWatch()
     recorder.current.stop()
+    setIsRecording(false)
     clearTimer()
     setNavMode('idle')
     geo.setMode('off')
     return recorder.current
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const loadTrackAndFollow = useCallback((pts: TrackPoint[]) => {
+  const loadTrackAndFollow = useCallback((pts: TrackPoint[], opts?: { record?: boolean }) => {
     setTrackPoints(pts)
     setProgressIdx(0)
     setIsDeviated(false)
@@ -320,6 +335,8 @@ export function useNavigation() {
     const instrs = generateTrackInstructions(pts)
     setInstructions(instrs)
     setInstrIdx(0)
+    navModeRef.current = 'following'
+    if (opts?.record) beginRecorder()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const navigateToTrack = useCallback(async (profile: 'cycling' | 'walking' | 'driving' = 'cycling') => {
@@ -346,6 +363,13 @@ export function useNavigation() {
   }, [geo.position]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopFollowing = useCallback(() => {
+    if (recorder.current.isRunning) {
+      stopRecordWatch()
+      recorder.current.stop()
+      // the summary shows what was really walked, not the progress along the plan
+      setStats(s => ({ ...s, distanceTraveledM: recorder.current.totalDistanceM() }))
+    }
+    setIsRecording(false)
     clearTimer()
     setNavMode('idle')
     geo.setMode('off')
@@ -398,6 +422,8 @@ export function useNavigation() {
 
     recordedPoints,
     recorder: recorder.current,
+    /** True while the recorder runs — in recording mode, or following a route with record on. */
+    isRecording,
 
     trackPoints,
     progressIdx,

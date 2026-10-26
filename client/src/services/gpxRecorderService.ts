@@ -121,7 +121,8 @@ export class GpxRecorderService {
     setTimeout(() => URL.revokeObjectURL(url), 100)
   }
 
-  async saveToTrip(tripId: number, name = 'Trek Recording'): Promise<void> {
+  /** Uploads the recording as a track of the trip and returns the track created ({ id, ... }). */
+  async saveToTrip(tripId: number, name = 'Trek Recording'): Promise<{ id: number } & Record<string, unknown>> {
     const xml = this.exportGpx(name)
     const blob = new Blob([xml], { type: 'application/gpx+xml' })
     const file = new File([blob], `${name}.gpx`, { type: 'application/gpx+xml' })
@@ -132,5 +133,7 @@ export class GpxRecorderService {
       const err = await r.json().catch(() => ({}))
       throw new Error(err.error || 'Failed to save GPX to trip')
     }
+    const body = await r.json().catch(() => ({}))
+    return (body.track ?? body) as { id: number } & Record<string, unknown>
   }
 }
