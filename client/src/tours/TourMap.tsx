@@ -1,6 +1,7 @@
 // El mapa del espacio de Tours (Leaflet, como en la v5): capas Mapa / Topo / Senderismo / Bici / Satélite,
 // la línea de la excursión, sus puntos arrastrables, las demás excursiones del viaje en tenue y buscar lugar.
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { createElement, useEffect, useMemo, useRef, useState } from 'react'
+import { renderToStaticMarkup } from 'react-dom/server'
 import { MapContainer, TileLayer, Marker, Polyline, CircleMarker, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import { Map as MapIcon, Mountain, Footprints, Bike, Satellite, Search, X, Crosshair } from 'lucide-react'
@@ -8,6 +9,9 @@ import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import type { DraftPoint } from './useTourPlanner'
 import type { TourRoutePart } from './routing/tourRouting'
+import type { RouteHighlight } from './ways/WaysCard'
+import type { TourPoi } from './poi/poiSearch'
+import { POI_COLOR, POI_ICON } from './poi/AlongTourCard'
 
 export type BaseLayer = 'map' | 'topo' | 'hiking' | 'cycling' | 'satellite'
 
@@ -47,6 +51,12 @@ interface Props {
   hint: [number, number][]
   /** Room the floating panels take on each side, kept clear when the map fits the tour. */
   pad?: { left: number; right: number }
+  /** BIK-01: the stretches of a class of surface or way, pointed at on the map. */
+  highlight?: RouteHighlight | null
+  /** PLN-02: the places found along the tour. */
+  pois?: TourPoi[]
+  focusedPoiId?: string | null
+  onPoiClick?: (poi: TourPoi) => void
 }
 
 function pointIcon(label: string, kind: 'end' | 'via' | 'shaping', selected: boolean) {
@@ -59,6 +69,20 @@ function pointIcon(label: string, kind: 'end' | 'via' | 'shaping', selected: boo
   el.style.cssText = `width:${size}px;height:${size}px;border-radius:50%;background:${bg};color:#fff;font:600 12px/1 system-ui,sans-serif;display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.35)`
   el.textContent = label
   return L.divIcon({ className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2], html: el.outerHTML })
+}
+
+function poiIcon(poi: TourPoi, focused: boolean) {
+  const size = focused ? 30 : 22
+  const color = POI_COLOR[poi.category]
+  const svg = renderToStaticMarkup(createElement(POI_ICON[poi.category], { size: focused ? 15 : 12, color: '#fff', strokeWidth: 2.4 }))
+  return L.divIcon({ className: '', iconSize: [size, size], iconAnchor: [size / 2, size / 2],
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center">${svg}</div>` })
+}
+
+function PoiFocus({ poi }: { poi: TourPoi | null }) {
+  const map = useMap()
+  useEffect(() => { if (poi) map.panTo([poi.lat, poi.lng], { animate: true }) }, [poi, map])
+  return null
 }
 
 function ClickHandler({ onClick }: { onClick: (lat: number, lng: number) => void }) {
@@ -195,6 +219,18 @@ export default function TourMap(props: Props) {
               }} />
           )
         })}
+        {props.highlight?.lines.map((ln, i) => (
+          <Polyline key={`hl-c-${props.highlight!.id}-${i}`} positions={ln} pathOptions={{ color: '#ffffff', weight: 11, opacity: 0.95 }} interactive={false} />
+        ))}
+        {props.highlight?.lines.map((ln, i) => (
+          <Polyline key={`hl-${props.highlight!.id}-${i}`} positions={ln} pathOptions={{ color: props.highlight!.color, weight: 7, opacity: 1 }} interactive={false} />
+        ))}
+        {props.pois?.map(poi => (
+          <Marker key={`poi-${poi.id}`} position={[poi.lat, poi.lng]} icon={poiIcon(poi, props.focusedPoiId === poi.id)}
+            zIndexOffset={props.focusedPoiId === poi.id ? 1500 : 500}
+            eventHandlers={{ click: e => { L.DomEvent.stopPropagation(e as unknown as L.LeafletEvent); props.onPoiClick?.(poi) } }} />
+        ))}
+        <PoiFocus poi={props.pois?.find(p => p.id === props.focusedPoiId) ?? null} />
         {props.focus && <CircleMarker center={props.focus} radius={6} pathOptions={{ color: '#111', fillColor: '#fff', fillOpacity: 1, weight: 3 }} interactive={false} />}
       </MapContainer>
 

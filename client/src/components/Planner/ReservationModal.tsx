@@ -60,9 +60,11 @@ interface ReservationModalProps {
   onFileDelete: (fileId: number) => Promise<void>
   accommodations?: Accommodation[]
   defaultAssignmentId?: number | null
+  /** A new booking of this type (TREK v5: «Añadir alojamiento» from a day's + menu). */
+  defaultType?: string | null
 }
 
-export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null }: ReservationModalProps) {
+export function ReservationModal({ isOpen, onClose, onSave, reservation, days, places, assignments, selectedDayId, files = [], onFileUpload, onFileDelete, accommodations = [], defaultAssignmentId = null, defaultType = null }: ReservationModalProps) {
   const { id: tripId } = useParams<{ id: string }>()
   const loadFiles = useTripStore(s => s.loadFiles)
   const toast = useToast()
@@ -132,16 +134,16 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       })
     } else {
       setForm({
-        title: '', type: 'other', status: 'pending',
+        title: '', type: defaultType || 'other', status: 'pending',
         reservation_time: '', reservation_end_time: '', end_date: '', location: '', confirmation_number: '',
         notes: '', assignment_id: defaultAssignmentId ?? '', accommodation_id: '',
         price: '', budget_category: '',
         meta_check_in_time: '', meta_check_in_end_time: '', meta_check_out_time: '',
-        hotel_place_id: '', hotel_start_day: '', hotel_end_day: '',
+        hotel_place_id: '', hotel_start_day: defaultType === 'hotel' && selectedDayId ? selectedDayId : '', hotel_end_day: '',
       })
       setPendingFiles([])
     }
-  }, [reservation, isOpen, selectedDayId, defaultAssignmentId])
+  }, [reservation, isOpen, selectedDayId, defaultAssignmentId, defaultType])
 
   // Re-hydrate hotel day range when the accommodations prop arrives after the modal opens
   // (race: tripAccommodations fetch may complete after isOpen fires, leaving hotel fields empty)

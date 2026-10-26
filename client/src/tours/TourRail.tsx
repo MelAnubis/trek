@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   ArrowLeft, Download, Undo2, Redo2, ArrowDownUp, RefreshCcw, MoreHorizontal, Trash2, MapPin, MapPinned, Crosshair,
-  ChevronDown, ChevronUp, Sun, CalendarRange, Mountain, Bike, Footprints, Save, RotateCcw, Flag, Spline, Waypoints, Link2Off, Info, AlertTriangle, Upload,
+  ChevronDown, ChevronUp, Sun, Ruler, Clock, CalendarRange, Mountain, Bike, Footprints, Save, RotateCcw, Flag, Spline, Waypoints, Link2Off, Info, AlertTriangle, Upload,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import type { TourPlanner } from './useTourPlanner'
 import type { TourType } from './toursApi'
-import { TOUR_TYPES, TOUR_TYPE_COLOR, formatDurationShort, formatPace, parsePace } from './presentation'
+import { TOUR_TYPES, TOUR_TYPE_COLOR, formatDistance, formatDurationShort, formatPace, parsePace } from './presentation'
 import { BIKE_PROFILES, RUN_PROFILES, HIKING_PREFERENCE_KEYS } from './core'
+import { stopNameOf } from './stages'
 
 const TYPE_ICON: Record<TourType, typeof Mountain> = { hike: Mountain, bike: Bike, run: Footprints }
 
@@ -23,6 +24,8 @@ interface Props {
   onStartNew: () => void
   onImport: () => void
   canEdit: boolean
+  /** Cards that read the route: surfaces and ways, places along it. */
+  extra?: React.ReactNode
 }
 
 const label: React.CSSProperties = { fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', margin: '0 0 6px' }
@@ -129,6 +132,37 @@ function PointMenu({ planner, id, index, count }: { planner: TourPlanner; id: st
   )
 }
 
+/** MDT: a multi-day tour downloads whole or day by day. */
+function GpxMenu({ exportUrl, stages }: { exportUrl: string; stages: { number: number; from: string; to: string }[] }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [open])
+  const item: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', borderRadius: 8, fontSize: 12.5, color: 'var(--text-primary)', textDecoration: 'none', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button type="button" style={iconBtn} onClick={() => setOpen(o => !o)} title={t('tours.gpxExport.action')} data-testid="gpx-menu"><Download size={15} /></button>
+      {open && (
+        <div style={{ position: 'absolute', right: 0, top: 32, zIndex: 50, width: 260, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4 }}>
+          <a href={exportUrl} style={{ ...item, fontWeight: 600 }} onClick={() => setOpen(false)}><Download size={13} />{t('tours.gpxExport.whole')}</a>
+          <div style={{ height: 1, background: 'var(--border-faint)', margin: '4px 6px' }} />
+          {stages.map(st => (
+            <a key={st.number} href={`${exportUrl}?stage=${st.number}`} style={item} onClick={() => setOpen(false)}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <Download size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('tours.gpxExport.stage', { number: st.number, from: st.from, to: st.to })}</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function TripPlacePicker({ places, onPick, onClose }: { places: TripPlaceOption[]; onPick: (p: TripPlaceOption) => void; onClose: () => void }) {
   const { t } = useTranslation()
   const [q, setQ] = useState('')
@@ -191,7 +225,7 @@ function statusText(planner: TourPlanner, t: (k: string, p?: Record<string, stri
   return null
 }
 
-export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onStartNew, onImport, canEdit }: Props) {
+export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onStartNew, onImport, canEdit, extra }: Props) {
   const { t } = useTranslation()
   const [showPicker, setShowPicker] = useState(false)
   const [paceText, setPaceText] = useState(formatPace(planner.fields.runPace))
@@ -228,7 +262,9 @@ export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onSta
       <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '12px 12px 10px', borderBottom: '1px solid var(--border-faint)' }}>
         <button type="button" style={iconBtn} onClick={onBack} title={t('tours.planner.backToTours')}><ArrowLeft size={16} /></button>
         <h2 style={{ flex: 1, margin: '0 0 0 4px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{isNew ? t('tours.planner.newTitle') : t('tours.planner.editTitle')}</h2>
-        {exportUrl && <a href={exportUrl} style={{ ...iconBtn, textDecoration: 'none' }} title={t('tours.gpxExport.action')}><Download size={15} /></a>}
+        {exportUrl && (planner.stages.length > 1 && !planner.dirty
+          ? <GpxMenu exportUrl={exportUrl} stages={planner.stages.map(st => ({ number: st.number, from: stopNameOf(planner.points, st.from, n => t('tours.planner.waypointLabel', { n })), to: stopNameOf(planner.points, st.to, n => t('tours.planner.waypointLabel', { n })) }))} />
+          : <a href={exportUrl} style={{ ...iconBtn, textDecoration: 'none' }} title={t('tours.gpxExport.action')}><Download size={15} /></a>)}
         <button type="button" style={{ ...iconBtn, opacity: planner.canUndo ? 1 : 0.35 }} disabled={!planner.canUndo} onClick={planner.undo} title={t('tours.planner.undo')}><Undo2 size={15} /></button>
         <button type="button" style={{ ...iconBtn, opacity: planner.canRedo ? 1 : 0.35 }} disabled={!planner.canRedo} onClick={planner.redo} title={t('tours.planner.redo')}><Redo2 size={15} /></button>
       </div>
@@ -269,6 +305,17 @@ export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onSta
                   {stageHead && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '6px 4px' }}>
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 999, background: 'var(--text-primary)', color: 'var(--bg-card)', fontSize: 11.5, fontWeight: 600 }}><Mountain size={11} />{t('tours.stages.stage', { number: stage })}</span>
+                      {(() => {
+                        const st = planner.stages[stage - 1]
+                        if (!st || st.distanceKm == null) return null
+                        const pill: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 8px', borderRadius: 999, border: '1px solid var(--border-faint)', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }
+                        return (
+                          <span data-testid={`stage-pills-${stage}`} style={{ display: 'inline-flex', gap: 4 }}>
+                            <span style={pill}><Ruler size={10} />{formatDistance(st.distanceKm)}</span>
+                            {st.minutes != null && <span style={pill}><Clock size={10} />{formatDurationShort(st.minutes)}</span>}
+                          </span>
+                        )
+                      })()}
                       <span style={{ flex: 1, height: 1, background: 'var(--border-faint)' }} />
                     </div>
                   )}
@@ -372,6 +419,7 @@ export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onSta
             <strong>{formatDurationShort(planner.plannedTotal)}</strong>
           </div>
         </div>
+        {extra}
         <p style={{ margin: 0, fontSize: 11, color: 'var(--text-faint)' }}>{t('tours.planner.safetyNote')}</p>
       </div>
 

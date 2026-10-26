@@ -8,11 +8,13 @@ interface Props {
   geometry: readonly (readonly number[])[] | null
   onFocus?: (point: [number, number] | null) => void
   height?: number
+  /** MDT-02: where stages end along the route, in metres, marked across the profile. */
+  boundariesM?: number[]
 }
 
 const W = 300
 
-export default function ElevationProfile({ geometry, onFocus, height = 110 }: Props) {
+export default function ElevationProfile({ geometry, onFocus, height = 110, boundariesM = [] }: Props) {
   const { t } = useTranslation()
   const [hover, setHover] = useState<number | null>(null)
 
@@ -62,6 +64,7 @@ export default function ElevationProfile({ geometry, onFocus, height = 110 }: Pr
         </defs>
         <path d={area} fill="url(#tour-elev)" />
         <path d={line} fill="none" stroke="var(--text-primary)" strokeWidth={1.6} vectorEffect="non-scaling-stroke" />
+        {boundariesM.map((m, i) => <line key={i} data-testid="stage-boundary" x1={x(m)} x2={x(m)} y1={0} y2={H} stroke="var(--text-primary)" strokeOpacity={0.55} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />)}
         {focus && <line x1={x(focus.d)} x2={x(focus.d)} y1={0} y2={H} stroke="var(--text-primary)" strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
       </svg>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-faint)', marginTop: 4, minHeight: 14 }}>

@@ -14,10 +14,14 @@ import TourMap, { type BaseLayer, type OtherTourLine } from './TourMap'
 import TourRail, { type TripPlaceOption } from './TourRail'
 import ToursSidebar, { type SummaryData } from './ToursSidebar'
 import GpxImportDialog from './GpxImportDialog'
+import WaysCard, { type RouteHighlight } from './ways/WaysCard'
+import AlongTourCard from './poi/AlongTourCard'
+import type { TourPoi } from './poi/poiSearch'
 import { useTourPlanner } from './useTourPlanner'
 import { toursApi, type TourDetail, type TourListItem } from './toursApi'
 import { TOUR_TYPE_COLOR, tourPlannedTimes } from './presentation'
 import { computeTourMetrics } from './core'
+import { stopNameOf } from './stages'
 
 interface Props {
   tripId: number
@@ -51,6 +55,9 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   const [importFile, setImportFile] = useState<File | null>(null)
   const [confirm, setConfirm] = useState<null | { kind: 'delete'; tour: TourListItem } | { kind: 'discard'; then: () => void }>(null)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [highlight, setHighlight] = useState<RouteHighlight | null>(null)
+  const [pois, setPois] = useState<TourPoi[]>([])
+  const [focusedPoi, setFocusedPoi] = useState<string | null>(null)
 
   const refresh = useCallback(async () => {
     try {
@@ -150,6 +157,13 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
         gain: a?.gain ?? null,
         loss: a?.loss ?? null,
         geometry: planner.geometry,
+        stages: planner.stages.map(st => ({
+          number: st.number,
+          fromName: stopNameOf(planner.points, st.from, n => t('tours.planner.waypointLabel', { n })),
+          toName: stopNameOf(planner.points, st.to, n => t('tours.planner.waypointLabel', { n })),
+          distanceKm: st.distanceKm, gain: st.gain, loss: st.loss, minutes: st.minutes, toM: st.toM,
+        })),
+        stageGpxUrl: planner.open.placeId && !planner.dirty ? (n: number) => `${toursApi.exportUrl(tripId, planner.open!.placeId!)}?stage=${n}` : undefined,
       }
     }
     if (selected) {
@@ -173,7 +187,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
       }
     }
     return null
-  }, [planner.open, planner.analysis, planner.fields, planner.movingMinutes, planner.plannedTotal, planner.geometry, selected])
+  }, [planner.open, planner.analysis, planner.fields, planner.movingMinutes, planner.plannedTotal, planner.geometry, planner.stages, planner.points, planner.dirty, selected, tripId, t])
 
   const addToDay = async (tour: TourListItem, dayId: number) => {
     try {
@@ -218,6 +232,10 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   }
 
   const editing = !!planner.open
+  // The settled line the cards read, the same array while it does not change.
+  const routeLine = useMemo(() => planner.geometry ? planner.geometry.map(p => [p[0], p[1]] as [number, number]) : null, [planner.geometry])
+  // A new or closed tour takes the places found and the map's pointing down.
+  useEffect(() => { setPois([]); setFocusedPoi(null); setHighlight(null) }, [planner.open?.placeId, editing])
   const exportUrl = planner.open?.placeId ? toursApi.exportUrl(tripId, planner.open.placeId) : null
 
   const map = (
@@ -240,12 +258,24 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
       fitKey={`${planner.open?.placeId ?? 'none'}-${selected?.tour.place_id ?? ''}-${tours.length > 0 ? 1 : 0}-${mapHint.length > 0 ? 1 : 0}`}
       onToggleAddMode={() => planner.setAddMode(!planner.addMode)}
       hint={mapHint}
+      highlight={highlight}
+      pois={editing ? pois : []}
+      focusedPoiId={focusedPoi}
+      onPoiClick={poi => setFocusedPoi(poi.id)}
       pad={isMobile ? { left: 30, right: 30 } : { left: leftOpen ? 370 : 50, right: rightOpen ? 340 : 50 }}
     />
   )
 
   const rail = (
-    <TourRail planner={planner} tripPlaces={tripPlaces} exportUrl={exportUrl} onBack={back} onStartNew={startNew} onImport={onImportClick} canEdit={canEdit} />
+    <TourRail planner={planner} tripPlaces={tripPlaces} exportUrl={exportUrl} onBack={back} onStartNew={startNew} onImport={onImportClick} canEdit={canEdit}
+      extra={editing && planner.geometry ? (
+        <>
+          <WaysCard route={routeLine} tourType={planner.fields.tourType} highlight={highlight?.id ?? null} onHighlight={setHighlight} />
+          <AlongTourCard route={routeLine} tourType={planner.fields.tourType} pois={pois} onPois={list => { setPois(list); setFocusedPoi(null) }}
+            focusedId={focusedPoi} onFocus={poi => setFocusedPoi(poi?.id ?? null)} canEdit={canEdit}
+            onAdd={poi => { planner.insertStop(poi.lat, poi.lng, poi.name, poi.category); setPois(list => list.filter(x => x.id !== poi.id)); setFocusedPoi(null) }} />
+        </>
+      ) : null} />
   )
   const sidebar = (
     <ToursSidebar

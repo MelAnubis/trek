@@ -1525,5 +1525,10 @@ const tours: TranslationStrings = {
   'tours.delete.title': '¿Eliminar la excursión?',
   'tours.detail.edit': 'Editar la excursión',
   'tours.detail.close': 'Cerrar',
+  'tours.stages.overviewHint': 'Cada etapa medida sobre la ruta entera, con el tiempo en movimiento sin pausas.',
+  'tours.stages.overnight': 'Noche al final de la etapa',
+  'tours.stages.downloadGpx': 'Descargar GPX de la etapa {number}',
+  'tours.gpxExport.whole': 'Excursión completa',
+  'tours.gpxExport.stage': 'Día {number}: {from} → {to}',
 };
 export default tours;

@@ -1,4 +1,8 @@
 import express, { Request, Response } from 'express';
+import fs from 'fs';
+import path from 'path';
+import sharp from 'sharp';
+import { v4 as uuidv4 } from 'uuid';
 import multer from 'multer';
 import { authenticate } from '../middleware/auth';
 import { requireTripAccess } from '../middleware/tripAccess';
@@ -18,6 +22,7 @@ import {
   importGoogleList,
   importNaverList,
   searchPlaceImage,
+  listSavedPlaces,
   type KmlImportOptions,
   type ListImportOptions,
 } from '../services/placeService';
@@ -176,6 +181,42 @@ router.post('/import/naver-list', authenticate, requireTripAccess, async (req: R
   } catch (err: unknown) {
     console.error('[Places] Naver list import error:', err instanceof Error ? err.message : err);
     res.status(400).json({ error: 'Failed to import Naver Maps list. Make sure the list is shared publicly.' });
+  }
+});
+
+// Añadir lugar (TREK v5): the user's places from their other trips, to add here again.
+router.get('/saved', authenticate, requireTripAccess, (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const status = req.query.status === 'planned' || req.query.status === 'unplanned' ? req.query.status : 'all';
+  const tripFilter = req.query.trip ? Number(req.query.trip) : null;
+  res.json(listSavedPlaces(authReq.user.id, {
+    q: typeof req.query.q === 'string' ? req.query.q : undefined,
+    tripId: tripFilter && Number.isInteger(tripFilter) ? tripFilter : null,
+    status,
+    excludeTripId: Number(req.params.tripId),
+  }));
+});
+
+// Añadir lugar (TREK v5): a picture of the place, chosen before the place is saved.
+const placeImagesDir = path.join(__dirname, '../../uploads/place-images');
+const imageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => cb(null, /^image\/(jpeg|png|gif|webp|heic|heif)$/.test(file.mimetype)),
+});
+router.post('/image', authenticate, requireTripAccess, imageUpload.single('image'), async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  // Checked in the handler, never by a guard in front of a multipart body.
+  if (!checkPermission('place_edit', authReq.user.role, authReq.trip!.user_id, authReq.user.id, authReq.trip!.user_id !== authReq.user.id))
+    return res.status(403).json({ error: 'No permission' });
+  if (!req.file) return res.status(400).json({ error: 'No image uploaded' });
+  try {
+    if (!fs.existsSync(placeImagesDir)) fs.mkdirSync(placeImagesDir, { recursive: true });
+    const name = `${uuidv4()}.jpg`;
+    await sharp(req.file.buffer).rotate().resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toFile(path.join(placeImagesDir, name));
+    res.status(201).json({ image_url: `/uploads/place-images/${name}` });
+  } catch {
+    res.status(422).json({ error: 'The image could not be read' });
   }
 });
 

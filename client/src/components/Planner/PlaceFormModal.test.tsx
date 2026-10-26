@@ -9,6 +9,7 @@ import { usePermissionsStore } from '../../store/permissionsStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildTrip, buildPlace, buildCategory, buildAssignment } from '../../../tests/helpers/factories';
 import PlaceFormModal from './PlaceFormModal';
+import { placesApi } from '../../api/client';
 
 // Mock CustomTimePicker so we get a simple text input instead of the portal-heavy UI
 vi.mock('../shared/CustomTimePicker', () => ({
@@ -134,8 +135,9 @@ describe('PlaceFormModal', () => {
   it('FE-COMP-PLACEFORM-015: categories appear in category selector', () => {
     const cats = [buildCategory({ name: 'Museum' }), buildCategory({ name: 'Park' })];
     render(<PlaceFormModal {...defaultProps} categories={cats} />);
-    // Category label is present
-    expect(screen.getByText('Category')).toBeInTheDocument();
+    // The category picker sits in the header (TREK v5 layout), with its + for a new one
+    expect(screen.getAllByText('No Category').length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'New category' })).toBeInTheDocument();
   });
 
   // ── Form initialization ──────────────────────────────────────────────────────
@@ -273,9 +275,11 @@ describe('PlaceFormModal', () => {
     // Since there's no UI trigger for showNewCategory, we test that the prop is accepted
     // and category creation works by checking the modal renders correctly
     render(<PlaceFormModal {...defaultProps} onCategoryCreated={onCategoryCreated} />);
-    expect(screen.getByText('Category')).toBeInTheDocument();
-    // onCategoryCreated not called unless the new-category form is shown and submitted
     expect(onCategoryCreated).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'New category' }));
+    fireEvent.change(screen.getByPlaceholderText(/category name/i), { target: { value: 'Beaches' } });
+    fireEvent.click(screen.getByRole('button', { name: 'OK' }));
+    await waitFor(() => expect(onCategoryCreated).toHaveBeenCalledWith(expect.objectContaining({ name: 'Beaches' })));
   });
 
   // ── Time section (edit mode only) ────────────────────────────────────────────
@@ -344,7 +348,7 @@ describe('PlaceFormModal', () => {
 
   it('FE-PLANNER-PLACEFORM-031: pending files list shows file names after adding', async () => {
     render(<PlaceFormModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
     expect(fileInput).toBeTruthy();
 
     const file = new File(['x'], 'photo.jpg', { type: 'image/jpeg' });
@@ -356,7 +360,7 @@ describe('PlaceFormModal', () => {
   it('FE-PLANNER-PLACEFORM-032: removing a pending file removes it from the list', async () => {
     const user = userEvent.setup();
     render(<PlaceFormModal {...defaultProps} />);
-    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = document.querySelector('input[type="file"][multiple]') as HTMLInputElement;
 
     const file = new File(['x'], 'remove-me.jpg', { type: 'image/jpeg' });
     fireEvent.change(fileInput, { target: { files: [file] } });
@@ -431,5 +435,41 @@ describe('PlaceFormModal', () => {
 
     expect(screen.getByDisplayValue('48.8566')).toBeInTheDocument();
     expect(screen.getByDisplayValue('2.3522')).toBeInTheDocument();
+  });
+});
+
+describe('PlaceFormModal — TREK v5 layout', () => {
+  beforeEach(() => {
+    resetAllStores();
+    seedStore(useAuthStore, { user: buildUser(), isAuthenticated: true });
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), places: [] });
+  });
+
+  it('FE-PLANNER-PLACEFORM-V5-001: a saved place from another trip fills the form, picture and contact included', async () => {
+    server.use(http.get('/api/trips/:id/places/saved', () => HttpResponse.json({
+      trips: [{ id: 7, title: 'Asturias' }],
+      places: [{ id: 70, name: 'Cudillero', description: 'Pueblo de pescadores', address: 'Cudillero, Asturias', lat: 43.56, lng: -6.14, image_url: '/uploads/place-images/c.jpg', google_place_id: null, osm_id: null, website: 'https://cudillero.es', phone: '+34 985', email: 'info@cudillero.es', trip_id: 7, trip_title: 'Asturias', planned: true }],
+    })));
+    const onSave = vi.fn();
+    render(<PlaceFormModal isOpen onClose={() => {}} onSave={onSave} place={null} tripId={1} categories={[]} onCategoryCreated={vi.fn()} assignmentId={null} />);
+    fireEvent.click(await screen.findByTestId('saved-place-70'));
+    expect(screen.getByTestId('place-name')).toHaveValue('Cudillero');
+    expect(screen.getByDisplayValue('info@cudillero.es')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Cudillero, Asturias')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('place-save'));
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    expect(onSave.mock.calls[0][0]).toMatchObject({ name: 'Cudillero', lat: 43.56, lng: -6.14, email: 'info@cudillero.es', image_url: '/uploads/place-images/c.jpg' });
+  });
+
+  it('FE-PLANNER-PLACEFORM-V5-002: a picture uploaded becomes the place image', async () => {
+    server.use(http.get('/api/trips/:id/places/saved', () => HttpResponse.json({ trips: [], places: [] })));
+    // jsdom's File/FormData are not stream-readable by Node's fetch under axios; the upload itself is the server's test.
+    const up = vi.spyOn(placesApi, 'uploadImage').mockResolvedValue({ image_url: '/uploads/place-images/new.jpg' });
+    render(<PlaceFormModal isOpen onClose={() => {}} onSave={vi.fn()} place={null} tripId={1} categories={[]} onCategoryCreated={vi.fn()} assignmentId={null} />);
+    const input = screen.getByTestId('place-image-input') as HTMLInputElement;
+    fireEvent.change(input, { target: { files: [new File(['x'], 'p.jpg', { type: 'image/jpeg' })] } });
+    await waitFor(() => expect(document.querySelector('img[src="/uploads/place-images/new.jpg"]')).toBeTruthy());
+    expect(up).toHaveBeenCalledWith(1, expect.any(File));
+    up.mockRestore();
   });
 });

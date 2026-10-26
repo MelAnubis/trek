@@ -146,4 +146,43 @@ describe('Plan v5', () => {
       .send({ assignments: [{ place_id: foreign.id, order_index: 0 }] });
     expect(r.body.assignments).toEqual([]);
   });
+
+  it('PLAN5-004 — saved places are the user\'s places from their other trips, once each, filtered by trip, status and text', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const here = createTrip(testDb, user.id);
+    const there = createTrip(testDb, user.id, { title: 'Asturias' });
+    const foreign = createTrip(testDb, other.id);
+    createPlace(testDb, here.id, { name: 'Aquí', lat: 40, lng: -3 });
+    const cud = createPlace(testDb, there.id, { name: 'Cudillero', lat: 43.56, lng: -6.14 });
+    createPlace(testDb, there.id, { name: 'Cudillero', lat: 43.56, lng: -6.14 });
+    createPlace(testDb, there.id, { name: 'Llanes', lat: 43.42, lng: -4.75 });
+    createPlace(testDb, foreign.id, { name: 'Ajeno', lat: 1, lng: 1 });
+    const day = createDay(testDb, there.id);
+    createDayAssignment(testDb, day.id, cud.id);
+    const r = await request(app).get(`/api/trips/${here.id}/places/saved`).set('Cookie', authCookie(user.id));
+    expect(r.status).toBe(200);
+    expect(r.body.places.map((p: any) => p.name).sort()).toEqual(['Cudillero', 'Llanes']);
+    expect(r.body.trips.map((t: any) => t.title)).toEqual(['Asturias']);
+    const planned = await request(app).get(`/api/trips/${here.id}/places/saved?status=planned`).set('Cookie', authCookie(user.id));
+    expect(planned.body.places.map((p: any) => p.name)).toEqual(['Cudillero']);
+    const q = await request(app).get(`/api/trips/${here.id}/places/saved?q=llan`).set('Cookie', authCookie(user.id));
+    expect(q.body.places.map((p: any) => p.name)).toEqual(['Llanes']);
+  });
+
+  it('PLAN5-005 — a place keeps its e-mail, and a picture uploaded comes back as the place image', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const c = await request(app).post(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(user.id)).send({ name: 'Hotel', email: ' hola@hotel.es ', phone: '+34 1' });
+    expect(c.status).toBe(201);
+    expect(c.body.place).toMatchObject({ email: 'hola@hotel.es', phone: '+34 1' });
+    const u = await request(app).put(`/api/trips/${trip.id}/places/${c.body.place.id}`).set('Cookie', authCookie(user.id)).send({ email: '' });
+    expect(u.body.place.email).toBeNull();
+    const png = await (await import('sharp')).default({ create: { width: 8, height: 8, channels: 3, background: '#336699' } }).png().toBuffer();
+    const img = await request(app).post(`/api/trips/${trip.id}/places/image`).set('Cookie', authCookie(user.id)).attach('image', png, { filename: 'p.png', contentType: 'image/png' });
+    expect(img.status).toBe(201);
+    expect(img.body.image_url).toMatch(/^\/uploads\/place-images\/[0-9a-f-]+\.jpg$/);
+    const bad = await request(app).post(`/api/trips/${trip.id}/places/image`).set('Cookie', authCookie(user.id)).attach('image', Buffer.from('nope'), { filename: 'p.png', contentType: 'image/png' });
+    expect(bad.status).toBe(422);
+  });
 });

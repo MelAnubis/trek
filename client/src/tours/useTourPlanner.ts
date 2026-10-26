@@ -9,6 +9,7 @@ import {
 import { routeBikeTour, routeRun, routeWalkingTour, enrichTourElevations, type TourRouteResult, type TourRoutePart } from './routing/tourRouting'
 import { isTourRoute } from './routing/tourRouteOutcome'
 import type { TourFixedLeg } from './routing/types'
+import { stageSpansOf, tourStagesOf } from './stages'
 import { toursApi, type TourDetail, type TourType, type TourWaypoint } from './toursApi'
 
 export interface DraftPoint {
@@ -21,6 +22,7 @@ export interface DraftPoint {
   stage_end?: boolean
   fixed_leg?: TourFixedLeg | null
   key?: string
+  poi_category?: string | null
 }
 
 export type PlannerStatus =
@@ -109,6 +111,18 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
       const next = prev.slice()
       next.splice(leg + 1, 0, { id: newId(), lat, lng, shaping: true })
       return next
+    })
+  }, [commitPoints, route])
+
+  /** PLN-02: a place along the tour taken in as a stop, in the leg it lies nearest (usePoiInsertion of the v5). */
+  const insertStop = useCallback((lat: number, lng: number, name: string, poiCategory: string | null = null) => {
+    commitPoints(prev => {
+      const stop: DraftPoint = { id: newId(), lat, lng, name, poi_category: poiCategory }
+      if (prev.length < 2 || !route) return [...prev, stop]
+      const leg = nearestLeg(prev, route.coordinates, lat, lng)
+      const next = prev.slice()
+      next.splice(leg + 1, 0, stop)
+      return next.map((p, i) => i === leg ? { ...p, fixed_leg: null } : p)
     })
   }, [commitPoints, route])
 
@@ -218,6 +232,19 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
   }, [analysis, route, fields.tourType, fields.runPace])
 
   const stageCount = tourStageCountOf(points)
+  // MDT-02: each stage measured on the one line, by the tour's own rule.
+  const stages = useMemo(() => {
+    if (!fields.multiDay) return []
+    const pts = points.map(p => ({ ...p, stage_end: !!p.stage_end && !p.shaping }))
+    if (stageSpansOf(pts).length < 2) return []
+    return tourStagesOf({
+      points: pts,
+      line: geometry ?? route?.coordinates ?? null,
+      tourType: fields.tourType,
+      routerSeconds: route?.durationSeconds ?? null,
+      runPaceSecondsPerKm: fields.runPace,
+    })
+  }, [fields.multiDay, fields.tourType, fields.runPace, points, geometry, route])
   const plannedTotal = fields.plannedOverride ?? (movingMinutes == null ? null : Math.round(movingMinutes) + (fields.breakMinutes ?? 0))
   const timeTooLong = fields.plannedOverride == null && movingMinutes != null && fields.breakMinutes != null
     && Math.round(movingMinutes) + fields.breakMinutes > maxTourMinutesFor(stageCount)
@@ -257,7 +284,7 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
     })
     const pts: DraftPoint[] = detail.waypoints.map(w => ({
       id: newId(), lat: w.lat, lng: w.lng, name: w.name, linked_place_id: w.linked_place_id ?? null,
-      shaping: !!w.shaping, stage_end: !!w.stage_end, fixed_leg: w.fixed_leg ?? null, key: w.key,
+      shaping: !!w.shaping, stage_end: !!w.stage_end, fixed_leg: w.fixed_leg ?? null, key: w.key, poi_category: w.poi_category ?? null,
     }))
     setPointsState(pts)
     if (detail.route_geometry && detail.route_geometry.length > 1) {
@@ -328,8 +355,8 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
   return {
     open, fields, setFields, points, route, geometry, status, dirty, addMode, setAddMode,
     canUndo: hist.past.length > 0, canRedo: hist.future.length > 0, undo, redo,
-    addPoint, insertShaping, movePoint, removePoint, shiftPoint, reverse, roundTrip, toggleShaping, toggleStageEnd, drawLegByHand, unlinkPlace,
-    analysis, movingMinutes, plannedTotal, timeTooLong, stageCount, canSave, retry,
+    addPoint, insertShaping, insertStop, movePoint, removePoint, shiftPoint, reverse, roundTrip, toggleShaping, toggleStageEnd, drawLegByHand, unlinkPlace,
+    analysis, movingMinutes, plannedTotal, timeTooLong, stageCount, stages, canSave, retry,
     startNew, openTour, startFromLine, close, save,
   }
 }
@@ -360,6 +387,7 @@ function savedWaypoints(points: DraftPoint[], multiDay: boolean): TourWaypoint[]
     linked_place_id: p.linked_place_id ?? null,
     ...(p.key ? { key: p.key } : {}),
     name: p.name ?? null,
+    poi_category: p.poi_category ?? null,
     stage_end: multiDay && i > 0 && i < points.length - 1 ? !!p.stage_end : false,
   }))
 }

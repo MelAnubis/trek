@@ -1,7 +1,7 @@
 // La columna derecha "Excursiones de este viaje" (ToursSidebar + TourListRow + TourScopeSummary de la v5):
 // resumen de la excursión abierta con su perfil, filtro, totales del viaje y la lista.
 import { useEffect, useRef, useState } from 'react'
-import { Plus, ChevronDown, ChevronUp, SlidersHorizontal, BarChart3, Mountain, Bike, Footprints, Clock, Ruler, CalendarDays, Trash2, Upload, Crosshair, Download, Info, Copy, History, X } from 'lucide-react'
+import { Plus, ChevronDown, ChevronUp, SlidersHorizontal, BarChart3, Mountain, Bike, Footprints, Clock, Ruler, CalendarDays, Trash2, Upload, Crosshair, Download, Info, Copy, History, X, Moon } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import ElevationProfile from './ElevationProfile'
 import type { TourListItem, TourType } from './toursApi'
@@ -24,6 +24,21 @@ export interface SummaryData {
   gain: number | null
   loss: number | null
   geometry: readonly (readonly number[])[] | null
+  /** MDT-02: a multi-day tour's stages, each with its own measures; empty for a day tour. */
+  stages?: SummaryStage[]
+  /** Where to download each stage as GPX, by stage number; absent while the tour is not saved. */
+  stageGpxUrl?: (stage: number) => string
+}
+
+export interface SummaryStage {
+  number: number
+  fromName: string
+  toName: string
+  distanceKm: number | null
+  gain: number | null
+  loss: number | null
+  minutes: number | null
+  toM: number | null
 }
 
 interface Props {
@@ -85,13 +100,52 @@ function Summary({ s, onFocus }: { s: SummaryData; onFocus: (p: [number, number]
             <Fact label={t('tours.detail.ascent')} value={formatElevation(s.gain)} />
             <Fact label={t('tours.detail.descent')} value={formatElevation(s.loss)} />
           </div>
+          {(s.stages?.length ?? 0) > 1 && <StageList s={s} />}
           <button type="button" onClick={() => setProfileOpen(o => !o)} style={{ ...headBtn, padding: '14px 0 8px', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
             <span style={{ flex: 1 }}>{t('tours.planner.inspector.elevation')}</span>
             {profileOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
-          {profileOpen && <ElevationProfile geometry={s.geometry} onFocus={onFocus} />}
+          {profileOpen && <ElevationProfile geometry={s.geometry} onFocus={onFocus} boundariesM={(s.stages ?? []).slice(0, -1).flatMap(st => st.toM == null ? [] : [st.toM])} />}
         </div>
       )}
+    </div>
+  )
+}
+
+function StageList({ s }: { s: SummaryData }) {
+  const { t } = useTranslation()
+  const stages = s.stages ?? []
+  const pill: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 7px', borderRadius: 999, border: '1px solid var(--border-faint)', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }
+  return (
+    <div data-testid="summary-stages">
+      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', padding: '16px 0 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        {t('tours.stages.title')}
+        <span title={t('tours.stages.overviewHint')} style={{ display: 'inline-flex', cursor: 'help', marginLeft: 'auto' }}><Info size={12} /></span>
+      </div>
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {stages.map((st, i) => (
+          <li key={st.number} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ position: 'relative', width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+              {st.number}
+              {i < stages.length - 1 && <span title={t('tours.stages.overnight')} style={{ position: 'absolute', right: -7, bottom: -6, width: 15, height: 15, borderRadius: 8, border: '1.5px solid var(--bg-card)', background: 'var(--text-primary)', color: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Moon size={9} /></span>}
+            </span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>{st.fromName}</span>
+                <span style={{ color: 'var(--text-faint)', flexShrink: 0 }}>→</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{st.toName}</span>
+                {s.stageGpxUrl && <a href={s.stageGpxUrl(st.number)} title={t('tours.stages.downloadGpx', { number: st.number })} style={{ color: 'var(--text-faint)', display: 'inline-flex', flexShrink: 0 }}><Download size={13} /></a>}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                <span style={pill}><Ruler size={10} />{formatDistance(st.distanceKm)}</span>
+                {st.gain != null && <span style={pill}>↑ {formatElevation(st.gain)}</span>}
+                {st.loss != null && <span style={pill}>↓ {formatElevation(st.loss)}</span>}
+                {st.minutes != null && <span style={pill}><Clock size={10} />{formatDurationShort(st.minutes)}</span>}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
     </div>
   )
 }

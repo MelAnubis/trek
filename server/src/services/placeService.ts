@@ -111,27 +111,28 @@ export function createPlace(
     category_id?: number; price?: number; currency?: string;
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
-    google_place_id?: string; osm_id?: string; website?: string; phone?: string;
+    google_place_id?: string; osm_id?: string; website?: string; phone?: string; email?: string;
     transport_mode?: string; tags?: number[];
   },
 ) {
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
-    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
+    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, email,
     transport_mode, tags = [],
   } = body;
 
   const result = db.prepare(`
     INSERT INTO places (trip_id, name, description, lat, lng, address, category_id, price, currency,
       place_time, end_time,
-      duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, transport_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, transport_mode, email)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     tripId, name, description || null, lat || null, lng || null, address || null,
     category_id || null, price || null, currency || null,
     place_time || null, end_time || null, duration_minutes || 60, notes || null, image_url || null,
     google_place_id || null, osm_id || null, website || null, phone || null, transport_mode || 'walking',
+    typeof email === 'string' && email.trim() ? email.trim().slice(0, 200) : null,
   );
 
   const placeId = result.lastInsertRowid;
@@ -168,7 +169,7 @@ export function updatePlace(
     category_id?: number; price?: number; currency?: string;
     place_time?: string; end_time?: string;
     duration_minutes?: number; notes?: string; image_url?: string;
-    google_place_id?: string; osm_id?: string; website?: string; phone?: string;
+    google_place_id?: string; osm_id?: string; website?: string; phone?: string; email?: string;
     transport_mode?: string; tags?: number[];
   },
 ) {
@@ -178,7 +179,7 @@ export function updatePlace(
   const {
     name, description, lat, lng, address, category_id, price, currency,
     place_time, end_time,
-    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone,
+    duration_minutes, notes, image_url, google_place_id, osm_id, website, phone, email,
     transport_mode, tags,
   } = body;
 
@@ -201,6 +202,7 @@ export function updatePlace(
       osm_id = ?,
       website = ?,
       phone = ?,
+      email = ?,
       transport_mode = COALESCE(?, transport_mode),
       updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
@@ -222,6 +224,7 @@ export function updatePlace(
     osm_id !== undefined ? osm_id : existingPlace.osm_id,
     website !== undefined ? website : existingPlace.website,
     phone !== undefined ? phone : existingPlace.phone,
+    email !== undefined ? (typeof email === 'string' && email.trim() ? email.trim().slice(0, 200) : null) : (existingPlace as { email?: string | null }).email ?? null,
     transport_mode || null,
     placeId,
   );
@@ -850,4 +853,42 @@ export async function searchPlaceImage(tripId: string, placeId: string, userId: 
   }));
 
   return { photos };
+}
+
+// ---------------------------------------------------------------------------
+// Saved places (Añadir lugar, TREK v5): the user's places from their other trips
+// ---------------------------------------------------------------------------
+
+export function listSavedPlaces(userId: number, opts: { q?: string; tripId?: number | null; status?: 'all' | 'planned' | 'unplanned'; excludeTripId?: number | null }) {
+  const params: unknown[] = [userId, userId];
+  let where = `p.trip_id IN (SELECT t.id FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ? WHERE t.user_id = ? OR m.user_id IS NOT NULL)
+    AND NOT EXISTS (SELECT 1 FROM tours tr WHERE tr.place_id = p.id) AND p.lat IS NOT NULL AND p.lng IS NOT NULL`;
+  if (opts.excludeTripId) { where += ' AND p.trip_id != ?'; params.push(opts.excludeTripId); }
+  if (opts.tripId) { where += ' AND p.trip_id = ?'; params.push(opts.tripId); }
+  if (opts.q && opts.q.trim()) { where += ' AND (p.name LIKE ? OR p.address LIKE ?)'; const like = `%${opts.q.trim().slice(0, 100)}%`; params.push(like, like); }
+  const planned = 'EXISTS (SELECT 1 FROM day_assignments da WHERE da.place_id = p.id)';
+  if (opts.status === 'planned') where += ` AND ${planned}`;
+  if (opts.status === 'unplanned') where += ` AND NOT ${planned}`;
+  const rows = db.prepare(`
+    SELECT p.id, p.name, p.description, p.address, p.lat, p.lng, p.image_url, p.google_place_id, p.osm_id, p.website, p.phone, p.email,
+      p.trip_id, t.title AS trip_title, ${planned} AS planned
+    FROM places p JOIN trips t ON t.id = p.trip_id
+    WHERE ${where}
+    ORDER BY p.created_at DESC, p.id DESC LIMIT 400
+  `).all(...params) as Array<Record<string, unknown> & { name: string; lat: number; lng: number }>;
+  // Each place once: the same name at the same spot in two trips is one saved place.
+  const seen = new Set<string>();
+  const places = rows.filter(r => {
+    const key = `${r.name.trim().toLowerCase()}|${Number(r.lat).toFixed(4)}|${Number(r.lng).toFixed(4)}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 150).map(r => ({ ...r, planned: !!r.planned }));
+  const trips = db.prepare(`
+    SELECT DISTINCT t.id, t.title FROM trips t LEFT JOIN trip_members m ON m.trip_id = t.id AND m.user_id = ?
+    WHERE (t.user_id = ? OR m.user_id IS NOT NULL) ${opts.excludeTripId ? 'AND t.id != ?' : ''}
+      AND EXISTS (SELECT 1 FROM places p WHERE p.trip_id = t.id AND p.lat IS NOT NULL)
+    ORDER BY t.start_date DESC, t.id DESC
+  `).all(...(opts.excludeTripId ? [userId, userId, opts.excludeTripId] : [userId, userId]));
+  return { places, trips };
 }

@@ -1085,3 +1085,7 @@ img[alt="Trek Wanderer"] {
   transform: translateY(-2px);
   box-shadow: var(--glass-shadow-lg);
 }
+
+/* Añadir lugar (TREK v5): details · form · saved places side by side, stacked on a narrow screen. */
+.place-form-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 1023px) { .place-form-grid { grid-template-columns: minmax(0, 1fr); } }

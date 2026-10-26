@@ -73,6 +73,7 @@ export interface Place {
   transport_mode: string | null
   website: string | null
   phone: string | null
+  email?: string | null
   created_at: string
   /** Set when the place is a tour (Tours, TREK v5): hike, bike or run. */
   tour_type?: string | null

@@ -315,23 +315,64 @@ export function placePayload(placeId: number) {
 const esc = (s: string) => s.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
-export function exportTourGpx(tripId: number | string, placeId: number): { name: string; xml: string } | null {
+/** The vertex of the line each point lies at, searching on from where the one before lay (stages/tourStages.ts of the v5). */
+function vertexIndicesOf(points: ReadonlyArray<{ lat: number; lng: number }>, line: ReadonlyArray<readonly number[]>): number[] {
+  const metres = (v: readonly number[], lat: number, lng: number) => Math.hypot((v[1] - lng) * Math.cos((lat * Math.PI) / 180), v[0] - lat) * 111_320;
+  const out: number[] = [];
+  let from = 0;
+  for (const p of points) {
+    let nearest = Infinity;
+    for (let i = from; i < line.length; i++) nearest = Math.min(nearest, metres(line[i], p.lat, p.lng));
+    let index = from;
+    for (let i = from; i < line.length; i++) if (metres(line[i], p.lat, p.lng) <= nearest + 30) { index = i; break; }
+    out.push(index);
+    from = index;
+  }
+  return out;
+}
+
+/** A multi-day tour's stages as spans of its points: from the start or a stage end to the next one, or to the end. */
+function stageSpans(points: ReadonlyArray<{ stage_end?: boolean }>): Array<{ from: number; to: number }> {
+  if (points.length < 2) return [];
+  const spans: Array<{ from: number; to: number }> = [];
+  let from = 0;
+  points.forEach((p, i) => { if (p.stage_end && i > 0 && i < points.length - 1) { spans.push({ from, to: i }); from = i; } });
+  spans.push({ from, to: points.length - 1 });
+  return spans;
+}
+
+/**
+ * The tour as GPX: the whole of it, or one stage (day) of a multi-day tour,
+ * cut from the one line at the stops that end the stages.
+ */
+export function exportTourGpx(tripId: number | string, placeId: number, stage?: number): { name: string; xml: string } | null {
   const d = getTourDetail(tripId, placeId);
   if (!d) return null;
-  const pts = d.route_geometry ?? [];
-  const wpts = d.waypoints.filter(w => !w.shaping).map((w, i) =>
+  let pts = d.route_geometry ?? [];
+  let points = d.waypoints;
+  let name = d.tour.name;
+  if (stage != null) {
+    const spans = stageSpans(d.waypoints);
+    const span = spans[stage - 1];
+    if (!span || spans.length < 2 || pts.length < 2) return null;
+    const at = vertexIndicesOf(d.waypoints, pts);
+    pts = pts.slice(at[span.from], at[span.to] + 1);
+    points = d.waypoints.slice(span.from, span.to + 1);
+    name = `${d.tour.name} - ${stage}`;
+  }
+  const wpts = points.filter(w => !w.shaping).map((w, i) =>
     `  <wpt lat="${w.lat}" lon="${w.lng}"><name>${esc(w.name || (i === 0 ? 'Start' : `${i}`))}</name></wpt>`);
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<gpx version="1.1" creator="Trek Wanderer" xmlns="http://www.topografix.com/GPX/1/1">',
-    `  <metadata><name>${esc(d.tour.name)}</name>${d.tour.description ? `<desc>${esc(d.tour.description)}</desc>` : ''}</metadata>`,
+    `  <metadata><name>${esc(name)}</name>${d.tour.description ? `<desc>${esc(d.tour.description)}</desc>` : ''}</metadata>`,
     ...wpts,
-    `  <trk><name>${esc(d.tour.name)}</name><type>${d.tour.tour_type}</type><trkseg>`,
+    `  <trk><name>${esc(name)}</name><type>${d.tour.tour_type}</type><trkseg>`,
     ...pts.map(p => `      <trkpt lat="${p[0]}" lon="${p[1]}">${p.length === 3 ? `<ele>${p[2]}</ele>` : ''}</trkpt>`),
     '  </trkseg></trk>',
     '</gpx>',
   ].join('\n');
-  return { name: d.tour.name, xml };
+  return { name, xml };
 }
 
 export function gpxFileName(name: string): string {

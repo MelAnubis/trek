@@ -9,6 +9,7 @@ const sizeClasses: Record<string, string> = {
   xl: 'max-w-2xl',
   '2xl': 'max-w-4xl',
   '3xl': 'max-w-5xl',
+  '4xl': 'max-w-7xl',
 }
 
 interface ModalProps {
@@ -19,6 +20,8 @@ interface ModalProps {
   size?: string
   footer?: React.ReactNode
   hideCloseButton?: boolean
+  /** The title is a whole header (a form's name field, its pickers): it takes the width, on a tinted band. */
+  wideTitle?: boolean
 }
 
 export default function Modal({
@@ -29,6 +32,7 @@ export default function Modal({
   size = 'md',
   footer,
   hideCloseButton = false,
+  wideTitle = false,
 }: ModalProps) {
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
@@ -77,10 +81,12 @@ export default function Modal({
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between px-6 py-4 flex-shrink-0"
-          style={{ borderBottom: '1px solid var(--modal-border)' }}
+          className={`flex ${wideTitle ? 'items-start gap-4' : 'items-center'} justify-between px-6 py-4 flex-shrink-0`}
+          style={{ borderBottom: '1px solid var(--modal-border)', ...(wideTitle ? { background: 'var(--bg-tertiary)' } : {}) }}
         >
-          <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>
+          {wideTitle
+            ? <div className="flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</div>
+            : <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>}
           {!hideCloseButton && (
             <button
               onClick={onClose}

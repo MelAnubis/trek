@@ -200,6 +200,9 @@ interface DayPlanSidebarProps {
   canUndo?: boolean
   lastActionLabel?: string | null
   onUndo?: () => void
+  /** The day's + menu (TREK v5): a place straight onto this day, an accommodation from this day. */
+  onNewPlaceForDay?: (dayId: number) => void
+  onAddAccommodation?: (dayId: number) => void
   onRouteRefresh?: () => void
   onAddTransport?: (dayId: number) => void
   onEditTransport?: (reservation: Reservation) => void
@@ -231,6 +234,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   canUndo = false,
   lastActionLabel = null,
   onUndo,
+  onNewPlaceForDay,
+  onAddAccommodation,
   onRouteRefresh,
   onAddTransport,
   onEditTransport,
@@ -1131,8 +1136,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
               <div
                 onClick={() => { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }}
-                onContextMenu={canEditDays && da.length > 0 ? e => ctxMenu.open(e, [
-                  { label: t('dayplan.clearDay'), icon: Eraser, danger: true, onClick: () => setClearDayTarget({ id: day.id, label: day.title || t('dayplan.dayN', { n: index + 1 }) }) },
+                onContextMenu={canEditDays ? e => ctxMenu.open(e, [
+                  onNewPlaceForDay && { label: t('dayplan.addMenu.place'), icon: MapPin, onClick: () => onNewPlaceForDay(day.id) },
+                  onAddAccommodation && { label: t('dayplan.addMenu.accommodation'), icon: Hotel, onClick: () => onAddAccommodation(day.id) },
+                  onAddTransport && { label: t('dayplan.addMenu.transport'), icon: Car, onClick: () => onAddTransport(day.id) },
+                  { label: t('dayplan.addMenu.note'), icon: FileText, onClick: () => openAddNote(day.id, e) },
+                  da.length > 0 && { divider: true },
+                  da.length > 0 && { label: t('dayplan.clearDay'), icon: Eraser, danger: true, onClick: () => setClearDayTarget({ id: day.id, label: day.title || t('dayplan.dayN', { n: index + 1 }) }) },
                 ]) : undefined}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                 onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayId(null) }}
@@ -1190,11 +1200,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                       >
                         <Pencil size={15} strokeWidth={1.8} color="var(--text-secondary)" />
                       </button>}
-                      {canEditDays && onAddTransport && (
-                        <Tooltip label={t('transport.addTransport')} placement="top">
+                      {canEditDays && (
+                        <Tooltip label={t('dayplan.addToDay')} placement="top">
                         <button
-                          onClick={e => { e.stopPropagation(); onAddTransport(day.id) }}
-                          aria-label={t('transport.addTransport')}
+                          data-testid={`day-add-menu-${day.id}`}
+                          onClick={e => {
+                            e.stopPropagation()
+                            ctxMenu.open(e, [
+                              onNewPlaceForDay && { label: t('dayplan.addMenu.place'), icon: MapPin, onClick: () => onNewPlaceForDay(day.id) },
+                              onAddAccommodation && { label: t('dayplan.addMenu.accommodation'), icon: Hotel, onClick: () => onAddAccommodation(day.id) },
+                              onAddTransport && { label: t('dayplan.addMenu.transport'), icon: Car, onClick: () => onAddTransport(day.id) },
+                              { label: t('dayplan.addMenu.note'), icon: FileText, onClick: () => openAddNote(day.id, e) },
+                            ])
+                          }}
+                          aria-label={t('dayplan.addToDay')}
                           style={{
                             flexShrink: 0,
                             background: 'none',

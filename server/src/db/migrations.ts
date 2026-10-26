@@ -2812,6 +2812,11 @@ function runMigrations(db: Database.Database): void {
       const has = !!db.prepare("SELECT 1 FROM pragma_table_info('day_assignments') WHERE name = 'route_excluded'").get();
       if (!has) db.exec('ALTER TABLE day_assignments ADD COLUMN route_excluded INTEGER NOT NULL DEFAULT 0');
     },
+    // Añadir lugar (TREK v5): e-mail beside the phone.
+    () => {
+      const has = !!db.prepare("SELECT 1 FROM pragma_table_info('places') WHERE name = 'email'").get();
+      if (!has) db.exec('ALTER TABLE places ADD COLUMN email TEXT');
+    },
   ];
 
   if (currentVersion < migrations.length) {

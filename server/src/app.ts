@@ -262,6 +262,7 @@ export function createApp(): express.Application {
   // trip).
   app.use('/uploads/avatars', express.static(path.join(__dirname, '../uploads/avatars')));
   app.use('/uploads/covers', express.static(path.join(__dirname, '../uploads/covers')));
+  app.use('/uploads/place-images', express.static(path.join(__dirname, '../uploads/place-images')));
   app.use('/uploads/journey', express.static(path.join(__dirname, '../uploads/journey')));
   app.use('/uploads/nav-photos', express.static(path.join(__dirname, '../uploads/nav-photos')));
 

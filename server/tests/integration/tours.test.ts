@@ -214,4 +214,22 @@ describe('Tours', () => {
     const places = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(user.id));
     expect(places.body.places.find((p: any) => p.id === id)).toMatchObject({ tour_type: 'bike', category_color: '#2563eb' });
   });
+
+  it('TOUR-008 — a multi-day tour downloads day by day: each stage cut from the one line at its stop', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const pts = wp([[41.06, -4.72], [41.11, -4.72], [41.158, -4.72]], { 1: { stage_end: true, name: 'Refugio' } });
+    const id = (await request(app).post(url(trip.id)).set('Cookie', authCookie(user.id)).send(body({ waypoints: pts }))).body.tour.place_id;
+    const whole = await request(app).get(url(trip.id, `/${id}/export.gpx`)).set('Cookie', authCookie(user.id));
+    const one = await request(app).get(url(trip.id, `/${id}/export.gpx?stage=1`)).set('Cookie', authCookie(user.id));
+    const two = await request(app).get(url(trip.id, `/${id}/export.gpx?stage=2`)).set('Cookie', authCookie(user.id));
+    const count = (x: string) => (x.match(/<trkpt/g) || []).length;
+    expect(one.status).toBe(200);
+    expect(count(whole.text)).toBe(50);
+    expect(count(one.text) + count(two.text)).toBe(51);
+    expect(one.text).toContain('<name>Subida al castillo - 1</name>');
+    expect(two.text).toContain('Refugio');
+    expect((await request(app).get(url(trip.id, `/${id}/export.gpx?stage=3`)).set('Cookie', authCookie(user.id))).status).toBe(404);
+    expect((await request(app).get(url(trip.id, `/${id}/export.gpx?stage=x`)).set('Cookie', authCookie(user.id))).status).toBe(400);
+  });
 });

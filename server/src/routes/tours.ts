@@ -74,8 +74,10 @@ router.post('/import/gpx', authenticate, requireTripAccess, upload.single('file'
 });
 
 router.get('/:placeId/export.gpx', authenticate, requireTripAccess, (req: Request, res: Response) => {
-  const out = exportTourGpx(req.params.tripId, Number(req.params.placeId));
-  if (!out) return res.status(404).json({ error: 'Tour not found' });
+  const stage = req.query.stage != null ? Number(req.query.stage) : undefined;
+  if (stage != null && (!Number.isInteger(stage) || stage < 1 || stage > 60)) return res.status(400).json({ error: 'Invalid stage' });
+  const out = exportTourGpx(req.params.tripId, Number(req.params.placeId), stage);
+  if (!out) return res.status(404).json({ error: stage != null ? 'Stage not found' : 'Tour not found' });
   res.setHeader('Content-Type', 'application/gpx+xml; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="${gpxFileName(out.name)}"`);
   res.send(out.xml);

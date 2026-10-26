@@ -294,6 +294,14 @@ export const placesApi = {
       apiClient.post(`/trips/${tripId}/places/import/naver-list`, { url, enrich }).then(r => r.data),
   bulkDelete: (tripId: number | string, ids: number[]) =>
       apiClient.post(`/trips/${tripId}/places/bulk-delete`, { ids }).then(r => r.data),
+  /** Añadir lugar (TREK v5): places from the user's other trips. */
+  saved: (tripId: number | string, params: { q?: string; trip?: string; status?: string }) =>
+      apiClient.get(`/trips/${tripId}/places/saved`, { params }).then(r => r.data),
+  uploadImage: (tripId: number | string, file: File) => {
+    const fd = new FormData()
+    fd.append('image', file)
+    return apiClient.post(`/trips/${tripId}/places/image`, fd, { headers: { 'Content-Type': 'multipart/form-data' }, timeout: 60000 }).then(r => r.data as { image_url: string })
+  },
 }
 
 /** What «Vaciar día» took off a day, kept to put it back on undo. */

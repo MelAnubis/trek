@@ -1494,5 +1494,10 @@ const tours: TranslationStrings = {
   'tours.delete.title': 'Delete tour?',
   'tours.detail.edit': 'Edit tour',
   'tours.detail.close': 'Close',
+  'tours.stages.overviewHint': 'Each stage measured on the whole route, moving time without breaks.',
+  'tours.stages.overnight': 'Night at the end of the stage',
+  'tours.stages.downloadGpx': 'Download stage {number} as GPX',
+  'tours.gpxExport.whole': 'Whole tour',
+  'tours.gpxExport.stage': 'Day {number}: {from} → {to}',
 };
 export default tours;
