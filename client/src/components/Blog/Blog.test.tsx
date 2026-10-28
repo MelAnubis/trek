@@ -18,6 +18,9 @@ import type { BlogBlock, SketchStroke } from '../../blog/types'
 vi.mock('../Journey/JourneyMapAuto', () => ({ default: () => <div data-testid="map" /> }))
 vi.mock('../Journey/JourneyMap', () => ({ default: () => <div data-testid="map" /> }))
 vi.mock('../Layout/Navbar', () => ({ default: () => <nav /> }))
+// BlockNote can't run in jsdom; the page logic is tested with the old editor, which takes the same props
+// (the BlockNote ⇄ BlogBlocks conversion has its own tests in blog/blockNoteConvert.test.ts).
+vi.mock('./BlockNoteEditor', async () => ({ default: (await import('./BlockEditor')).default }))
 
 function sizeSvg(el: Element) {
   (el as SVGSVGElement).getBoundingClientRect = () => ({ left: 0, top: 0, width: 500, height: 310, right: 500, bottom: 310, x: 0, y: 0, toJSON: () => ({}) }) as DOMRect
