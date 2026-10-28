@@ -51,12 +51,12 @@ function AutoText({ value, onChange, className, placeholder, inputRef, onKeyDown
   )
 }
 
-function Thumb({ refp, className }: { refp: PhotoRef; className?: string }) {
+export function Thumb({ refp, className }: { refp: PhotoRef; className?: string }) {
   const src = usePhotoSrc(refp, 'thumbnail')
   return src ? <img src={src} alt="" className={className} draggable={false} /> : <div className={`bg-zinc-200 dark:bg-zinc-800 animate-pulse ${className || ''}`} />
 }
 
-function BigPhoto({ refp, className }: { refp: PhotoRef; className?: string }) {
+export function BigPhoto({ refp, className }: { refp: PhotoRef; className?: string }) {
   const src = usePhotoSrc(refp, 'original')
   return src ? <img src={src} alt="" className={className} draggable={false} /> : <div className={`bg-zinc-200 dark:bg-zinc-800 animate-pulse aspect-[4/3] ${className || ''}`} />
 }

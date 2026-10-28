@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft, Plus, Eye, PencilLine, SlidersHorizontal, CloudOff, UploadCloud, Check, AlertTriangle, X,
@@ -17,7 +17,9 @@ import { ensureSketchImages, mapKey } from '../blog/sketchImage'
 import { useSettingsStore } from '../store/settingsStore'
 import { DEFAULT_TILE_URL } from '../components/PDF/gpxDrawing'
 import type { BlogBlock, BlockType, LocalPost, PhotoRef } from '../blog/types'
-import BlockEditor, { InsertMenu, useBlockInserter, type PhotoRequest } from '../components/Blog/BlockEditor'
+import { InsertMenu, useBlockInserter, type PhotoRequest } from '../components/Blog/BlockEditor'
+// BlockNote is big: it loads only when the blog editor opens.
+const BlockEditor = lazy(() => import('../components/Blog/BlockNoteEditor'))
 import BlogPostView, { READING_FONT } from '../components/Blog/BlogPostView'
 import PostSettings from '../components/Blog/PostSettings'
 import PhotoPicker from '../components/Blog/PhotoPicker'
@@ -476,11 +478,13 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
                   onFocus={() => setSelected(null)}
                   ref={el => { if (el) { el.style.height = 'auto'; el.style.height = `${el.scrollHeight}px` } }}
                   className="w-full resize-none bg-transparent outline-none text-[32px] sm:text-[42px] font-bold tracking-[-0.025em] leading-[1.08] mb-6 placeholder:text-zinc-300 dark:placeholder:text-zinc-700 overflow-hidden" />
-                <BlockEditor
-                  blocks={draft.blocks} onChange={setBlocks} meta={meta} maps={server?.maps} postDate={draft.post_date}
-                  selectedId={selected} onSelect={setSelected} requestPhotos={requestPhotos} touch={touch}
-                  openSketch={openSketch} onSketchClosed={() => setOpenSketch(null)}
-                />
+                <Suspense fallback={<div className="h-40 rounded-xl bg-zinc-100 dark:bg-zinc-800 animate-pulse" />}>
+                  <BlockEditor
+                    blocks={draft.blocks} onChange={setBlocks} meta={meta} maps={server?.maps} postDate={draft.post_date}
+                    selectedId={selected} onSelect={setSelected} requestPhotos={requestPhotos} touch={touch}
+                    openSketch={openSketch} onSketchClosed={() => setOpenSketch(null)}
+                  />
+                </Suspense>
               </>
             )}
           </article>

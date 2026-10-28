@@ -1089,3 +1089,16 @@ img[alt="Trek Wanderer"] {
 /* Añadir lugar (TREK v5): details · form · saved places side by side, stacked on a narrow screen. */
 .place-form-grid { display: grid; grid-template-columns: 280px minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
 @media (max-width: 1023px) { .place-form-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Blog: BlockNote con la tipografía de lectura del blog */
+.trek-bn .bn-container, .trek-bn .bn-editor { background: transparent; }
+.trek-bn { margin-left: -46px; }
+.trek-bn .bn-editor { padding-inline: 46px 0; font-family: var(--trek-reading-font); }
+.trek-bn .bn-block-content[data-content-type="paragraph"],
+.trek-bn .bn-block-content[data-content-type="bulletListItem"],
+.trek-bn .bn-block-content[data-content-type="numberedListItem"] { font-size: 18px; line-height: 1.75; }
+.trek-bn .bn-block-content[data-content-type="heading"] { font-family: system-ui, -apple-system, sans-serif; letter-spacing: -0.015em; }
+.trek-bn .bn-block-content[data-content-type="quote"] { font-size: 22px; font-style: italic; }
+.trek-bn .trek-bn-bar { opacity: 0; transition: opacity .15s; }
+.trek-bn .trek-bn-media:hover .trek-bn-bar, .trek-bn .trek-bn-media:focus-within .trek-bn-bar { opacity: 1; }
+@media (max-width: 640px) { .trek-bn { margin-left: 0; } .trek-bn .bn-editor { padding-inline: 0; } .trek-bn .trek-bn-bar { opacity: 1; } }
