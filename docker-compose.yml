@@ -13,6 +13,9 @@ services:
       - CHOWN
       - SETUID
       - SETGID
+      # dumb-init (root) has to pass docker stop's SIGTERM on to the app (user node);
+      # without KILL it can't, and Docker ends it with SIGKILL after 10 s (exit 137).
+      - KILL
     tmpfs:
       - /tmp:noexec,nosuid,size=64m
     environment:

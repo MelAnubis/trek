@@ -100,6 +100,82 @@ const FOSSGIS_OSRM = 'https://routing.openstreetmap.de'
  * or by bike when the day is planned cycling. Falls back to the car router, and to null
  * (the caller keeps the straight line) when nobody can route it.
  */
+// Routed legs are kept on the device, so a day opens with its roads at once and only new or
+// changed legs go to the router again (the public servers ask for fair use).
+const ROUTE_CACHE_KEY = 'trek-route-cache-v1'
+const ROUTE_CACHE_MAX = 300
+let routeCache: Map<string, [number, number][]> | null = null
+
+function loadRouteCache(): Map<string, [number, number][]> {
+  if (routeCache) return routeCache
+  routeCache = new Map()
+  try {
+    const raw = localStorage.getItem(ROUTE_CACHE_KEY)
+    if (raw) for (const [k, v] of JSON.parse(raw) as [string, [number, number][]][]) routeCache.set(k, v)
+  } catch { /* no storage: memory only */ }
+  return routeCache
+}
+
+function saveRouteCache(): void {
+  const cache = loadRouteCache()
+  while (cache.size > ROUTE_CACHE_MAX) cache.delete(cache.keys().next().value as string)
+  try { localStorage.setItem(ROUTE_CACHE_KEY, JSON.stringify([...cache])) } catch {
+    // full: keep the newer half
+    const keep = [...cache].slice(Math.floor(cache.size / 2))
+    cache.clear(); keep.forEach(([k, v]) => cache.set(k, v))
+    try { localStorage.setItem(ROUTE_CACHE_KEY, JSON.stringify(keep)) } catch { /* memory only */ }
+  }
+}
+
+/** Fewer points to keep: ~5 m precision is plenty for drawing a day on a map. */
+function compactLine(line: [number, number][]): [number, number][] {
+  const out: [number, number][] = []
+  for (const [lat, lng] of line) {
+    const p: [number, number] = [Math.round(lat * 1e5) / 1e5, Math.round(lng * 1e5) / 1e5]
+    const last = out[out.length - 1]
+    if (!last || last[0] !== p[0] || last[1] !== p[1]) out.push(p)
+  }
+  return out
+}
+
+/** Clears the routed legs kept on this device (tests, or a user asking to refresh). */
+export function clearRouteCache(): void {
+  routeCache = new Map()
+  try { localStorage.removeItem(ROUTE_CACHE_KEY) } catch { /* ignore */ }
+}
+
+/**
+ * The day's stops joined leg by leg along paths and roads, each leg from the device cache when
+ * it was routed before. A leg nobody can route stays straight. Null when no leg could be routed.
+ */
+export async function routeDayLine(
+  waypoints: Waypoint[],
+  profile: 'foot' | 'bike',
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<[number, number][] | null> {
+  if (!waypoints || waypoints.length < 2) return null
+  const cache = loadRouteCache()
+  const out: [number, number][] = []
+  let routedAny = false
+  let changed = false
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i], b = waypoints[i + 1]
+    const key = `${profile}:${a.lat.toFixed(5)},${a.lng.toFixed(5)};${b.lat.toFixed(5)},${b.lng.toFixed(5)}`
+    let leg = cache.get(key) ?? null
+    if (leg) {
+      cache.delete(key); cache.set(key, leg) // most recently used last
+    } else {
+      leg = await routeLine([a, b], profile, { signal })
+      if (leg) { leg = compactLine(leg); cache.set(key, leg); changed = true }
+    }
+    if (leg && leg.length > 1) routedAny = true
+    const piece = leg && leg.length > 1 ? leg : [[a.lat, a.lng], [b.lat, b.lng]] as [number, number][]
+    out.push(...(out.length ? piece.slice(1) : piece))
+  }
+  if (changed) saveRouteCache()
+  return routedAny ? out : null
+}
+
 export async function routeLine(
   waypoints: Waypoint[],
   profile: 'foot' | 'bike',

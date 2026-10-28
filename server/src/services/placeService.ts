@@ -297,28 +297,37 @@ export const KMZ_DECOMPRESSED_SIZE_LIMIT = 50 * 1024 * 1024; // 50 MB
 
 const COORD_DEDUP_TOLERANCE = 0.0001; // ≈ 11 m
 
-interface DedupSet {
+interface DedupBucket {
   names: Set<string>;
   coords: Array<{ lat: number; lng: number }>;
 }
 
+/** Points are only compared with points and tracks with tracks: a track named like a town is not that town. */
+interface DedupSet {
+  points: DedupBucket;
+  tracks: DedupBucket;
+}
+
+type DedupCandidate = { name: string | null | undefined; lat: number | null; lng: number | null; isTrack?: boolean };
+
 /** Build a lookup of names/coords for places already in a trip. */
 function buildDedupSet(tripId: string): DedupSet {
-  const rows = db.prepare('SELECT name, lat, lng FROM places WHERE trip_id = ?').all(tripId) as Array<{
+  const rows = db.prepare('SELECT name, lat, lng, route_geometry FROM places WHERE trip_id = ?').all(tripId) as Array<{
     name: string | null;
     lat: number | null;
     lng: number | null;
+    route_geometry: string | null;
   }>;
-  const names = new Set<string>();
-  const coords: Array<{ lat: number; lng: number }> = [];
+  const set: DedupSet = { points: { names: new Set(), coords: [] }, tracks: { names: new Set(), coords: [] } };
   for (const row of rows) {
+    const bucket = row.route_geometry ? set.tracks : set.points;
     if (row.name) {
-      names.add(row.name.trim().toLowerCase());
+      bucket.names.add(row.name.trim().toLowerCase());
     } else if (row.lat != null && row.lng != null) {
-      coords.push({ lat: row.lat, lng: row.lng });
+      bucket.coords.push({ lat: row.lat, lng: row.lng });
     }
   }
-  return { names, coords };
+  return set;
 }
 
 /**
@@ -326,14 +335,12 @@ function buildDedupSet(tripId: string): DedupSet {
  * Named places match by case-insensitive name; unnamed places fall back to
  * coordinate proximity.
  */
-function isPlaceDuplicate(
-  candidate: { name: string | null | undefined; lat: number | null; lng: number | null },
-  dedup: DedupSet,
-): boolean {
+function isPlaceDuplicate(candidate: DedupCandidate, dedup: DedupSet): boolean {
+  const bucket = candidate.isTrack ? dedup.tracks : dedup.points;
   const normalizedName = candidate.name?.trim().toLowerCase();
-  if (normalizedName) return dedup.names.has(normalizedName);
+  if (normalizedName) return bucket.names.has(normalizedName);
   if (candidate.lat != null && candidate.lng != null) {
-    return dedup.coords.some(
+    return bucket.coords.some(
       (c) =>
         Math.abs(c.lat - candidate.lat!) <= COORD_DEDUP_TOLERANCE &&
         Math.abs(c.lng - candidate.lng!) <= COORD_DEDUP_TOLERANCE,
@@ -343,15 +350,13 @@ function isPlaceDuplicate(
 }
 
 /** Record a newly inserted place so subsequent candidates in the same batch are checked against it. */
-function trackInsertedInDedupSet(
-  place: { name: string | null | undefined; lat: number | null; lng: number | null },
-  dedup: DedupSet,
-): void {
+function trackInsertedInDedupSet(place: DedupCandidate, dedup: DedupSet): void {
+  const bucket = place.isTrack ? dedup.tracks : dedup.points;
   const normalizedName = place.name?.trim().toLowerCase();
   if (normalizedName) {
-    dedup.names.add(normalizedName);
+    bucket.names.add(normalizedName);
   } else if (place.lat != null && place.lng != null) {
-    dedup.coords.push({ lat: place.lat, lng: place.lng });
+    bucket.coords.push({ lat: place.lat, lng: place.lng });
   }
 }
 
@@ -433,14 +438,14 @@ export function importGpx(tripId: string, fileBuffer: Buffer, opts: GpxImportOpt
   let skipped = 0;
   const insertAll = db.transaction(() => {
     for (const wp of waypoints) {
-      if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup)) {
+      if (isPlaceDuplicate({ name: wp.name, lat: wp.lat, lng: wp.lng, isTrack: !!wp.routeGeometry }, dedup)) {
         skipped++;
         continue;
       }
       const result = insertStmt.run(tripId, wp.name, wp.description, wp.lat, wp.lng, wp.routeGeometry || null);
       const place = getPlaceWithTags(Number(result.lastInsertRowid));
       created.push(place);
-      trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng }, dedup);
+      trackInsertedInDedupSet({ name: wp.name, lat: wp.lat, lng: wp.lng, isTrack: !!wp.routeGeometry }, dedup);
     }
   });
   insertAll();
@@ -511,7 +516,7 @@ export function importKmlPlaces(tripId: string, fileBuffer: Buffer, opts: KmlImp
       const fallbackName = `Placemark ${fallbackIndex}`;
       const name = parsedPlacemark.name || fallbackName;
 
-      if (isPlaceDuplicate({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng }, dedup)) {
+      if (isPlaceDuplicate({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng, isTrack: isPath }, dedup)) {
         summary.skippedCount += 1;
         dupCount++;
         fallbackIndex += 1;
@@ -532,7 +537,7 @@ export function importKmlPlaces(tripId: string, fileBuffer: Buffer, opts: KmlImp
 
       const place = getPlaceWithTags(Number(result.lastInsertRowid));
       created.push(place);
-      trackInsertedInDedupSet({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng }, dedup);
+      trackInsertedInDedupSet({ name, lat: parsedPlacemark.lat, lng: parsedPlacemark.lng, isTrack: isPath }, dedup);
       summary.createdCount += 1;
       fallbackIndex += 1;
     }

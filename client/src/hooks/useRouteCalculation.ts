@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTripStore } from '../store/tripStore'
-import { calculateSegments, routeLine } from '../components/Map/RouteCalculator'
+import { calculateSegments, routeDayLine } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
@@ -114,7 +114,7 @@ export function useRouteCalculation(
         const routed: [number, number][][] = []
         for (const seg of segments) {
           try {
-            const line = await routeLine(seg.map(([lat, lng]) => ({ lat, lng })), profile, { signal: controller.signal })
+            const line = await routeDayLine(seg.map(([lat, lng]) => ({ lat, lng })), profile, { signal: controller.signal })
             routed.push(line && line.length > 1 ? line : seg)
           } catch {
             return

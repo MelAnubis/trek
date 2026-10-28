@@ -885,6 +885,36 @@ describe('GPX Import — edge cases', () => {
     expect(res.status).toBe(400);
     expect(res.body.error).toMatch(/no matching places/i);
   });
+
+  it('PLACE-019d — a track named like an existing place is not a duplicate, but a waypoint is', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    createPlace(testDb, trip.id, { name: 'Arévalo', lat: 41.06, lng: -4.72 });
+
+    const gpx = Buffer.from(
+      '<?xml version="1.0" encoding="UTF-8"?>' +
+      '<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">' +
+      '<wpt lat="41.06" lon="-4.72"><name>Arévalo</name></wpt>' +
+      '<trk><name>Arévalo</name><trkseg><trkpt lat="41.06" lon="-4.72"/><trkpt lat="41.07" lon="-4.71"/></trkseg></trk>' +
+      '</gpx>'
+    );
+    const first = await request(app)
+      .post(`/api/trips/${trip.id}/places/import/gpx`)
+      .set('Cookie', authCookie(user.id))
+      .attach('file', gpx, { filename: 'arevalo.gpx', contentType: 'application/gpx+xml' });
+    expect(first.status).toBe(201);
+    expect(first.body.places).toHaveLength(1);
+    expect(first.body.places[0].route_geometry).toBeTruthy();
+    expect(first.body.skipped).toBe(1);
+
+    // the same track again is a duplicate of the track
+    const again = await request(app)
+      .post(`/api/trips/${trip.id}/places/import/gpx`)
+      .set('Cookie', authCookie(user.id))
+      .attach('file', gpx, { filename: 'arevalo.gpx', contentType: 'application/gpx+xml' });
+    expect(again.body.skipped ?? 0).toBeGreaterThanOrEqual(1);
+    expect(again.body.places ?? []).toHaveLength(0);
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
