@@ -2,6 +2,7 @@
 // puntos con deshacer/rehacer, ruta por Valhalla según el tipo, alturas, tiempos DIN / router / ritmo,
 // etapas para una excursión de varios días, y guardar con control de revisión.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { bestInsertIndex } from './insertion'
 import {
   computeTourMetrics, hikingTimeMinutes, runMinutesAtPace, maxTourMinutesFor, tourStageCountOf,
   type BikeProfile, type HikingPreferences, type RunProfile,
@@ -102,6 +103,27 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
   const addPoint = useCallback((lat: number, lng: number, extra: Partial<DraftPoint> = {}) => {
     commitPoints(prev => [...prev, { id: newId(), lat, lng, ...extra }])
   }, [commitPoints])
+
+  /** A place taken in where it fits along the route (least detour), not tacked on after the finish. */
+  const addPointInOrder = useCallback((lat: number, lng: number, extra: Partial<DraftPoint> = {}) => {
+    commitPoints(prev => {
+      const at = bestInsertIndex(prev, { lat, lng })
+      const next = prev.slice()
+      next.splice(at, 0, { id: newId(), lat, lng, ...extra })
+      return next.map((p, i) => i === at - 1 ? { ...p, fixed_leg: null } : p)
+    })
+  }, [commitPoints])
+
+  /** «Colocar en su sitio»: takes a stop out and puts it back where it fits along the route. */
+  const placeInOrder = useCallback((id: string) => commitPoints(prev => {
+    const i = prev.findIndex(p => p.id === id)
+    if (i < 0 || prev.length < 3) return prev
+    const rest = prev.filter(p => p.id !== id)
+    const at = bestInsertIndex(rest, prev[i])
+    if (at === i) return prev
+    rest.splice(at, 0, prev[i])
+    return rest.map(p => ({ ...p, fixed_leg: null }))
+  }), [commitPoints])
 
   const insertShaping = useCallback((lat: number, lng: number) => {
     // A shaping point goes in the leg of the route nearest the click.
@@ -355,7 +377,7 @@ export function useTourPlanner(tripId: number | string, onSaved: (placeId: numbe
   return {
     open, fields, setFields, points, route, geometry, status, dirty, addMode, setAddMode,
     canUndo: hist.past.length > 0, canRedo: hist.future.length > 0, undo, redo,
-    addPoint, insertShaping, insertStop, movePoint, removePoint, shiftPoint, reverse, roundTrip, toggleShaping, toggleStageEnd, drawLegByHand, unlinkPlace,
+    addPoint, addPointInOrder, placeInOrder, insertShaping, insertStop, movePoint, removePoint, shiftPoint, reverse, roundTrip, toggleShaping, toggleStageEnd, drawLegByHand, unlinkPlace,
     analysis, movingMinutes, plannedTotal, timeTooLong, stageCount, stages, canSave, retry,
     startNew, openTour, startFromLine, close, save,
   }

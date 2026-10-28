@@ -1516,5 +1516,6 @@ const tours: TranslationStrings = {
   'tours.import.kind.doneHint': 'It goes to Tracks as the real route',
   'tours.import.asTrack': 'Save to Tracks',
   'tours.import.trackSaved': 'Saved to Tracks as the real route',
+  'tours.planner.placeInOrder': 'Put in its place along the route',
 };
 export default tours;

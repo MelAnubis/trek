@@ -104,6 +104,7 @@ function PointMenu({ planner, id, index, count }: { planner: TourPlanner; id: st
   const items: ({ icon: typeof Sun; label: string; run: () => void; hide?: boolean } | 'sep')[] = [
     { icon: ChevronUp, label: t('tours.planner.moveUp'), run: () => planner.shiftPoint(id, -1), hide: index === 0 },
     { icon: ChevronDown, label: t('tours.planner.moveDown'), run: () => planner.shiftPoint(id, 1), hide: index === count - 1 },
+    { icon: Waypoints, label: t('tours.planner.placeInOrder'), run: () => planner.placeInOrder(id), hide: count < 3 },
     'sep',
     { icon: Spline, label: p.fixed_leg ? t('tours.planner.recomputeLeg') : t('tours.planner.freeLeg'), run: () => planner.drawLegByHand(id), hide: index === count - 1 },
     { icon: Waypoints, label: p.shaping ? t('tours.planner.makeStop') : t('tours.planner.makeShaping'), run: () => planner.toggleShaping(id), hide: !inner },
@@ -352,7 +353,7 @@ export default function TourRail({ planner, tripPlaces, exportUrl, onBack, onSta
                 <MapPinned size={14} />{t('tours.placePicker.open')}
               </button>
             </div>
-            {showPicker && <TripPlacePicker places={tripPlaces} onClose={() => setShowPicker(false)} onPick={tp => { planner.addPoint(tp.lat, tp.lng, { name: tp.name, linked_place_id: tp.id }); setShowPicker(false) }} />}
+            {showPicker && <TripPlacePicker places={tripPlaces} onClose={() => setShowPicker(false)} onPick={tp => { planner.addPointInOrder(tp.lat, tp.lng, { name: tp.name, linked_place_id: tp.id }); setShowPicker(false) }} />}
             <p style={{ margin: '8px 4px 2px', fontSize: 11.5, color: 'var(--text-faint)', lineHeight: 1.45 }}>
               {count < 2 ? t('tours.planner.emptyHint') : t('tours.planner.shapeOnLine')}
               {f.multiDay && count >= 2 && <> {t('tours.stages.emptyHint')}</>}
