@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { markdownToPlainText } from '../components/Journey/stripMarkdown'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Minus, Plus, Printer, Redo2, Sparkles, Undo2 } from 'lucide-react'
+import { ArrowLeft, BookOpen, Clipboard, ClipboardPaste, Lock, Minus, Plus, Printer, Redo2, RefreshCw, Sparkles, Undo2 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useJourneyStore } from '../store/journeyStore'
 import { useSettingsStore } from '../store/settingsStore'
@@ -113,6 +113,13 @@ export default function JourneyStudioPage() {
 
   const { record, loaded: bookLoaded, state, queueSave, saveNow, acceptTheirs, keepMine } = useBookStore(journeyId, loadDoc)
   const { peers, cursors, moveCursor } = useBookPresence(journeyId)
+
+  // A book saved by a newer Studio, or one this user may only view: on screen,
+  // closed to every change (the store's commit/apply refuse while readOnly).
+  const setReadOnly = useStudioStore(s => s.setReadOnly)
+  const readOnly = state.status === 'newer' || state.status === 'readonly'
+  useEffect(() => { setReadOnly(readOnly) }, [readOnly, setReadOnly])
+  useEffect(() => () => setReadOnly(false), [setReadOnly])
 
   const builtRef = useRef({ built: false })
 
@@ -351,6 +358,7 @@ export default function JourneyStudioPage() {
     : state.status === 'saved' ? t('journey.studio.saveSaved')
     : state.status === 'error' ? t('journey.studio.saveError')
     : state.status === 'readonly' ? t('journey.studio.saveReadonly')
+    : state.status === 'newer' ? t('journey.studio.saveNewer')
     : ''
 
   return (
@@ -507,6 +515,21 @@ export default function JourneyStudioPage() {
           <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} onGeneratePacking={generatePackingList} onGenerateAccommodations={generateAccommodationsList} />
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            {state.status === 'newer' && (
+              <div role="alert" data-testid="newer-notice" style={{
+                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', flexShrink: 0,
+                borderBottom: '1px solid #f59e0b', background: 'rgba(245,158,11,0.12)', fontSize: 12, color: 'var(--text-primary)',
+              }}>
+                <Lock size={14} style={{ flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 200 }}>{t('journey.studio.newerNotice')}</span>
+                <button onClick={() => window.location.reload()} style={{
+                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none',
+                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
+                }}>
+                  <RefreshCw size={13} /> {t('journey.studio.reload')}
+                </button>
+              </div>
+            )}
             {resizeNotice && (
               <div role="status" data-testid="resize-notice" style={{
                 display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', flexShrink: 0,

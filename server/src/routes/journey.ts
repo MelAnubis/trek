@@ -8,6 +8,7 @@ import { AuthRequest } from '../types';
 import * as svc from '../services/journeyService';
 import * as journeyBookSvc from '../services/journeyBookService';
 import { bookSaveRequestSchema } from '../services/journeyBook/bookStoreSchema';
+import { BOOK_SCHEMA_NEWER_CODE } from '../services/journeyBook/bookSchemaRev';
 import { db } from '../db/database';
 import { createOrUpdateJourneyShareLink, getJourneyShareLink, deleteJourneyShareLink, getPublicJourney } from '../services/journeyShareService';
 import { uploadToImmich } from '../services/memories/immichService';
@@ -490,6 +491,11 @@ router.put('/:id/book', authenticate, (req: Request, res: Response) => {
 
   const result = journeyBookSvc.saveBook(journeyId, authReq.user.id, parsed.data);
   if (result === null) return res.status(403).json({ error: 'Not allowed' });
+  if ('newer' in result) {
+    // No `current`: nothing here an older writer could safely take. The Studio
+    // reads the code, goes read-only and asks for a reload.
+    return res.status(409).json({ error: 'Book was saved by a newer version of TREK Studio', code: BOOK_SCHEMA_NEWER_CODE, schemaRev: result.newer });
+  }
   if ('conflict' in result) {
     return res.status(409).json({ error: 'Book was changed by someone else', current: result.conflict });
   }

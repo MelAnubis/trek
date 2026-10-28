@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { ChevronsDown, ChevronsUp, Copy, Lock, RotateCcw, RotateCw, Trash2, Unlock } from 'lucide-react'
+import { ChevronsDown, ChevronsUp, Copy, Group, Lock, RotateCcw, RotateCw, Trash2, Ungroup, Unlock } from 'lucide-react'
 import type { BookElement, BookPageSetup, BookSpread } from '../../types/book'
 import { SpreadFold, SpreadView } from './SpreadView'
 import { elementId } from './bookIds'
 import { fontStack } from './bookFonts'
 import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
+import { useStudioKeys } from './useStudioKeys'
+import { selectionShape } from './studioGestures'
+import { isWholeGroup } from './bookGroups'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
 import { PeerCursors } from './PeerCursors'
@@ -81,20 +84,25 @@ export function StudioCanvas({
   const selection = useStudioStore(s => s.selection)
   const select = useStudioStore(s => s.select)
   const removeElements = useStudioStore(s => s.removeElements)
-  const spreadCount = useStudioStore(s => s.doc?.spreads.length ?? 0)
   // Page numbers count along the whole book (see foliosOf), so they need it.
   const allSpreads = useStudioStore(s => s.doc?.spreads)
-  const setActiveSpread = useStudioStore(s => s.setActiveSpread)
   const duplicate = useStudioStore(s => s.duplicate)
-  const copyToClipboard = useStudioStore(s => s.copy)
   const pasteFromClipboard = useStudioStore(s => s.paste)
   const clipboard = useStudioStore(s => s.clipboard)
   const toast = useToast()
   const raise = useStudioStore(s => s.raise)
   const commit = useStudioStore(s => s.commit)
   const addElement = useStudioStore(s => s.addElement)
+  const enteredGroup = useStudioStore(s => s.enteredGroup)
+  const enterGroup = useStudioStore(s => s.enterGroup)
+  const groupSelection = useStudioStore(s => s.group)
+  const ungroupSelection = useStudioStore(s => s.ungroup)
+  const readOnly = useStudioStore(s => s.readOnly)
   const [dropTarget, setDropTarget] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+
+  // Delete, arrows, Ctrl+G/D/A/C, Ctrl+Alt+C/V, Ctrl+[ ], Escape, Page Up/Down.
+  useStudioKeys({ spreadIndex, editing: !!editing })
 
   /**
    * Turn the selection by a number of degrees. Kept in -180..180 so an
@@ -124,51 +132,15 @@ export function StudioCanvas({
   const frameUnder = (x: number, y: number) => spread?.elements.find(el =>
     el.kind === 'photo'
     && !el.locked
+    && !el.hidden
     && x >= el.frame.x && x <= el.frame.x + el.frame.w
     && y >= el.frame.y && y <= el.frame.y + el.frame.h,
   ) ?? null
   const scaled = pxPerMm * zoom
 
-  const { guides, dragging, startMove, startResize, startRotate, onPointerMove, finish } = useSpreadInteraction({
+  const { guides, dragging, marquee, startMove, startPaper, startResize, startRotate, onPointerMove, finish } = useSpreadInteraction({
     spread, spreadIndex, page, pxPerMm: scaled,
   })
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selection.length) {
-        e.preventDefault()
-        const ids = deletable(spread, selection)
-        if (ids.length) removeElements(spreadIndex, ids)
-        return
-      }
-      // Page Down/Up move a page at a time, from anywhere in Studio — this
-      // listener is on window, not the canvas element, so it fires
-      // regardless of which panel (sidebar, inspector, canvas itself) has
-      // focus, the same way Delete/Backspace above already does.
-      if (e.key === 'PageDown' || e.key === 'PageUp') {
-        if (!spreadCount) return
-        e.preventDefault()
-        const next = spreadIndex + (e.key === 'PageDown' ? 1 : -1)
-        if (next >= 0 && next < spreadCount) setActiveSpread(next)
-        return
-      }
-      // Ctrl/Cmd+C, from anywhere in Studio, same as Delete/Backspace above
-      // — the clipboard is in-memory, not the document, so copying works
-      // even with nothing selected (a no-op). Ctrl/Cmd+V is handled by the
-      // native `paste` listener below instead of here: preventDefault on
-      // keydown would stop the browser's own paste action, and with it the
-      // `paste` event that carries the OS clipboard's actual content.
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
-        if (!selection.length) return
-        e.preventDefault()
-        copyToClipboard(spreadIndex, selection)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selection, spread, spreadIndex, removeElements, spreadCount, setActiveSpread, copyToClipboard])
 
   useEffect(() => {
     // Computed fresh from the prop rather than the render-body `single`
@@ -239,7 +211,11 @@ export function StudioCanvas({
 
   const single = spread.role !== 'inner'
   const sheetW = single ? page.pageWidth : page.pageWidth * 2
-  const sel = spread.elements.filter(e => selection.includes(e.id))
+  const sel = spread.elements.filter(e => selection.includes(e.id) && !e.hidden)
+  // More than one selected: one box around all of them, with one set of handles (Shift keeps the proportions).
+  const { many, box, asGroup, anyMovable } = selectionShape(spread, sel)
+  const grouped = sel.some(e => e.group)
+  const canGroup = sel.filter(e => !e.locked).length >= 2 && !isWholeGroup(spread, sel.filter(e => !e.locked).map(e => e.id))
 
   return (
     <div
@@ -311,7 +287,8 @@ export function StudioCanvas({
           position: 'relative',
           transformOrigin: 'top left',
         }}
-        onPointerDown={() => select([])}
+        // A press on bare paper draws a marquee; without a drag it clears the selection.
+        onPointerDown={startPaper}
       >
         <SpreadView spread={spread} page={page} big={zoom > 0.34} dropLabel={dropLabel} spreadIndex={spreadIndex} folios={allSpreads ? foliosOf(allSpreads, spreadIndex, folioSettings(page).startAt) : undefined} />
 
@@ -321,11 +298,16 @@ export function StudioCanvas({
 
         {/* Hit targets sit above the page so a photo's own <img> never eats
             the gesture, and so a locked element simply is not grabbable. */}
-        {spread.elements.map(el => (
+        {spread.elements.filter(el => !el.hidden).map(el => (
           <div
             key={el.id}
+            data-element-id={el.id}
             onPointerDown={e => { if (editing !== el.id) startMove(e, el) }}
-            onDoubleClick={() => { if (el.kind === 'text' && !el.locked) setEditing(el.id) }}
+            onDoubleClick={() => {
+              // Into the group first, the way design tools do it; a second one edits a text.
+              if (el.group && enteredGroup !== el.group) { enterGroup(spreadIndex, el.id); return }
+              if (el.kind === 'text' && !el.locked && !readOnly) setEditing(el.id)
+            }}
             style={{
               position: 'absolute',
               left: `${el.frame.x}mm`,
@@ -425,11 +407,13 @@ export function StudioCanvas({
               width: el.frame.w * scaled,
               height: el.frame.h * scaled,
               transform: el.rotation ? `rotate(${el.rotation}deg)` : undefined,
-              outline: '1.5px solid var(--text-primary, #111)',
+              // Quieter as one of several (the box around them carries the handles); dashed when picked inside its group.
+              outline: many ? '1px solid rgba(17,17,17,0.45)' : '1.5px solid var(--text-primary, #111)',
+              outlineStyle: el.group && el.group === enteredGroup ? 'dashed' : 'solid',
               pointerEvents: 'none',
             }}
           >
-            {sel.length === 1 && !dragging && !el.locked && ROTATE_CORNERS.map(c => (
+            {sel.length === 1 && !dragging && !el.locked && !readOnly && ROTATE_CORNERS.map(c => (
               <div
                 key={c.id}
                 className={`st-rotate is-${c.id}`}
@@ -448,7 +432,7 @@ export function StudioCanvas({
               </div>
             ))}
 
-            {sel.length === 1 && !dragging && !el.locked && HANDLES.map(h => (
+            {sel.length === 1 && !dragging && !el.locked && !readOnly && HANDLES.map(h => (
               <span
                 key={h}
                 className={`st-handle ${h.length === 2 ? 'is-corner' : h === 'n' || h === 's' ? 'is-h' : 'is-v'}`}
@@ -464,8 +448,46 @@ export function StudioCanvas({
           </div>
         ))}
 
+        {/* A multi-selection as one box: one set of handles resizes them together (Shift keeps the
+            proportions). A whole group's box is dashed, so a group reads as a group before anything is done to it. */}
+        {box && (
+          <div
+            className="st-select-box"
+            data-testid="selection-box"
+            style={{
+              position: 'absolute', left: box.x * scaled, top: box.y * scaled, width: box.w * scaled, height: box.h * scaled,
+              outline: `1.5px ${asGroup ? 'dashed' : 'solid'} var(--text-primary, #111)`, pointerEvents: 'none',
+            }}
+          >
+            {!dragging && anyMovable && !readOnly && HANDLES.map(h => (
+              <span
+                key={h}
+                className="st-handle"
+                style={{
+                  position: 'absolute', left: HANDLE_POS[h].left, top: HANDLE_POS[h].top, cursor: HANDLE_POS[h].cursor,
+                  width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5,
+                  background: 'var(--bg-card, #fff)', border: '1.5px solid var(--text-primary, #111)',
+                  pointerEvents: 'auto',
+                }}
+                onPointerDown={e => startResize(e, h)}
+              />
+            ))}
+          </div>
+        )}
+
+        {marquee && (
+          <div
+            className="st-marquee"
+            data-testid="marquee"
+            style={{
+              position: 'absolute', left: marquee.x * scaled, top: marquee.y * scaled, width: marquee.w * scaled, height: marquee.h * scaled,
+              border: '1px solid #2563eb', background: 'rgba(37,99,235,0.08)', pointerEvents: 'none',
+            }}
+          />
+        )}
+
         {/* The quick bar: the three or four things you reach for constantly, right where you are already looking. */}
-        {sel.length >= 1 && !dragging && (() => {
+        {sel.length >= 1 && !dragging && !readOnly && (() => {
           const x0 = Math.min(...sel.map(e => e.frame.x)) * scaled
           const x1 = Math.max(...sel.map(e => e.frame.x + e.frame.w)) * scaled
           const y0 = Math.min(...sel.map(e => e.frame.y)) * scaled
@@ -483,15 +505,21 @@ export function StudioCanvas({
               <button type="button" onClick={() => duplicate(spreadIndex, selection)} title={t('journey.studio.duplicate')} className="st-qb-btn">
                 <Copy size={14} />
               </button>
-              {sel.length === 1 && (
-                <>
-                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'front')} title={t('journey.studio.toFront')} className="st-qb-btn">
-                    <ChevronsUp size={14} />
-                  </button>
-                  <button type="button" onClick={() => raise(spreadIndex, sel[0].id, 'back')} title={t('journey.studio.toBack')} className="st-qb-btn">
-                    <ChevronsDown size={14} />
-                  </button>
-                </>
+              <button type="button" onClick={() => raise(spreadIndex, selection, 'front')} title={t('journey.studio.toFront')} className="st-qb-btn">
+                <ChevronsUp size={14} />
+              </button>
+              <button type="button" onClick={() => raise(spreadIndex, selection, 'back')} title={t('journey.studio.toBack')} className="st-qb-btn">
+                <ChevronsDown size={14} />
+              </button>
+              {canGroup && (
+                <button type="button" onClick={() => groupSelection(spreadIndex)} title={`${t('journey.studio.layers.groupAction')} (Ctrl+G)`} className="st-qb-btn" data-testid="qb-group">
+                  <Group size={14} />
+                </button>
+              )}
+              {grouped && !canGroup && (
+                <button type="button" onClick={() => ungroupSelection(spreadIndex)} title={`${t('journey.studio.layers.ungroup')} (Ctrl+Shift+G)`} className="st-qb-btn" data-testid="qb-ungroup">
+                  <Ungroup size={14} />
+                </button>
               )}
               <button type="button" onClick={e => rotateBy(e.shiftKey ? -1 : -15)} title={t('journey.studio.rotateLeft')} className="st-qb-btn">
                 <RotateCcw size={14} />

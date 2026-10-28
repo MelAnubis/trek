@@ -1,4 +1,7 @@
-import { Lock, Plus, Trash2, Unlock } from 'lucide-react'
+import { Lock, Plus, Printer, Trash2, AlertTriangle, Unlock } from 'lucide-react'
+import { StudioArrangeSection } from './StudioArrangeSection'
+import { selectionTitle } from './studioLayerRows'
+import { MIN_PRINT_DPI, photoDpi, usePhotoPixels } from './photoResolution'
 import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
@@ -166,6 +169,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
   const selection = useStudioStore(s => s.selection)
   const updateElement = useStudioStore(s => s.updateElement)
   const setFrame = useStudioStore(s => s.setFrame)
+  const readOnly = useStudioStore(s => s.readOnly)
 
   const spread = doc?.spreads[spreadIndex]
   const el = spread?.elements.find(e => selection.includes(e.id) && selection[selection.length - 1] === e.id)
@@ -182,16 +186,30 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
   }
 
   const patch = (p: Partial<BookElement>) => updateElement(spreadIndex, el.id, p)
+  const visibleSelection = selection.filter(id => spread?.elements.some(e => e.id === id))
+  const title = visibleSelection.length > 1
+    ? selectionTitle(spread, visibleSelection, t)
+    : (el.name || t(`journey.studio.kind.${el.kind}`))
 
   return (
     <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{el.kind}</span>
+        <span data-testid="inspector-title" style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
         <button onClick={() => patch({ locked: !el.locked })} title={t(el.locked ? 'journey.studio.unlock' : 'journey.studio.lock')}
           style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
           {el.locked ? <Lock size={12} /> : <Unlock size={12} />}
         </button>
       </div>
+
+      {/* Read-only (a newer Studio's book, or a viewer): every control shows its value and none can change it. */}
+      <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      <StudioArrangeSection spreadIndex={spreadIndex} t={t} />
+
+      {visibleSelection.length > 1 && (
+        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '-4px 0 12px', lineHeight: 1.4 }}>
+          {t('journey.studio.inspectorLastPicked', { kind: el.name || t(`journey.studio.kind.${el.kind}`) })}
+        </p>
+      )}
 
       {/* Position & size */}
       <div style={FIELD}>
@@ -223,6 +241,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               <option value="contain">Contain</option>
             </select>
           </div>
+          <PrintResolution el={el} />
           <div style={FIELD}>
             <span style={LABEL}>Focal point</span>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 2 }}>
@@ -372,11 +391,35 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       {el.kind === 'list' && <ListFields el={el} patch={patch} />}
       {el.kind === 'packing' && <PackingFields el={el} patch={patch} />}
       {el.kind === 'accommodation' && <AccommodationFields el={el} patch={patch} />}
+      </fieldset>
     </div>
   )
 }
 
 type Patch = (p: Partial<BookElement>) => void
+
+/** What prints when the photo leaves the printer: about this many dots per inch, and a warning under the threshold. */
+function PrintResolution({ el }: { el: BookPhotoElement }) {
+  const { t } = useTranslation()
+  const pixels = usePhotoPixels(el.photoId)
+  const dpi = el.photoId == null ? null : photoDpi(el, pixels)
+  if (dpi === null) return null
+  const low = dpi < MIN_PRINT_DPI
+  return (
+    <div role="status" data-testid="photo-dpi" data-low={low ? 'true' : 'false'} style={{
+      display: 'flex', gap: 8, alignItems: 'flex-start', padding: '7px 9px', marginBottom: 12, borderRadius: 8,
+      border: `1px solid ${low ? '#f59e0b' : 'var(--border-primary)'}`,
+      background: low ? 'rgba(245,158,11,0.10)' : 'var(--bg-tertiary)',
+      color: low ? '#b45309' : 'var(--text-muted)',
+    }}>
+      {low ? <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden /> : <Printer size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden />}
+      <div>
+        <p style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>{t('journey.studio.photo.dpi', { dpi })}</p>
+        {low && <p style={{ margin: '2px 0 0', fontSize: 10.5, lineHeight: 1.4 }}>{t('journey.studio.photo.dpiLow', { min: MIN_PRINT_DPI })}</p>}
+      </div>
+    </div>
+  )
+}
 
 function MapFields({ el, patch }: { el: BookMapElement; patch: Patch }) {
   return (

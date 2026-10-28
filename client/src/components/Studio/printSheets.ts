@@ -11,6 +11,8 @@
  * instead: a press reads where to cut from the marks.
  */
 
+import { whenReady } from './printReady'
+
 const PAPER = '#ffffff'
 const WORKTOP = '#52525b'
 const BAR = '#0f172a'
@@ -29,7 +31,8 @@ export interface PrintSheetsInput {
   leafWidth?: number
   leafHeight?: number
   title: string
-  labels: { save: string; close: string; count: string; preparing: string }
+  /** `preparingProgress` may carry {done} and {total}; without it the plain `preparing` label stays. */
+  labels: { save: string; close: string; count: string; preparing: string; preparingProgress?: string }
 }
 
 /**
@@ -194,38 +197,16 @@ ${leafRule(input)}
 
   iframe.addEventListener('load', () => {
     fitPreview()
-    void whenReady(iframe).then(() => {
+    // Not printable until every photo and typeface is in (printReady.ts): the
+    // button says how far along it is and only turns on at the end.
+    void whenReady(iframe, ({ done, total }) => {
+      if (!save.disabled || !input.labels.preparingProgress || !total) return
+      save.textContent = input.labels.preparingProgress.replace('{done}', String(done)).replace('{total}', String(total))
+    }).then(() => {
       save.disabled = false
       save.textContent = input.labels.save
     })
   })
 
   return close
-}
-
-/**
- * When the document is actually printable — a photograph still decoding
- * prints as an empty box, and a face still loading prints in the
- * fallback, so both images and fonts are waited on (bounded by a ceiling,
- * so a picture that will never load can't hold the button hostage forever).
- */
-async function whenReady(iframe: HTMLIFrameElement): Promise<void> {
-  const win = iframe.contentWindow
-  const doc = iframe.contentDocument
-  if (!win || !doc) return
-
-  const settle = (el: Element) => new Promise<void>(resolve => {
-    el.addEventListener('load', () => resolve(), { once: true })
-    el.addEventListener('error', () => resolve(), { once: true })
-  })
-
-  const images = Array.from(doc.images).map(img => (img.complete ? Promise.resolve() : settle(img)))
-
-  const wait = win.setTimeout?.bind(win) ?? setTimeout
-  const ceiling = new Promise<void>(resolve => { wait(resolve, 8000) })
-
-  await Promise.race([
-    Promise.all([...images, doc.fonts?.ready ?? Promise.resolve()]),
-    ceiling,
-  ])
 }

@@ -2,6 +2,7 @@ import { db } from '../db/database';
 import { canAccessJourney, canEdit, broadcastJourneyEvent } from './journeyService';
 import { normalizeBookDocument, type BookDocument } from './journeyBook/bookSchema';
 import type { BookRecord, BookSummary } from './journeyBook/bookStoreSchema';
+import { BOOK_SCHEMA_REV, bookSchemaRev } from './journeyBook/bookSchemaRev';
 
 /**
  * Storing TREK Studio books — ported from liketrek/trek's
@@ -131,21 +132,34 @@ export function getBookForPublicShare(journeyId: number): BookRecord | null {
 /**
  * Create or update, against a version.
  *
- * Returns the saved record, or `{ conflict }` when the base version has
- * moved. A conflict is an ordinary outcome of two people working, not an
- * exception.
+ * Returns the saved record, `{ conflict }` when the base version has moved,
+ * or `{ newer }` when the save would overwrite a book written by a newer
+ * revision of the format than the writer (or this server) knows — see
+ * bookSchemaRev.ts. A conflict is an ordinary outcome of two people
+ * working, not an exception; a newer book is an old tab or an offline
+ * draft, and taking its save would write down everything it could not read.
  */
 export function saveBook(
   journeyId: number,
   userId: number,
   input: { title: string; document: unknown; baseVersion?: number },
-): { record: BookRecord } | { conflict: BookRecord } | null {
+): { record: BookRecord } | { conflict: BookRecord } | { newer: number } | null {
   if (!canWrite(journeyId, userId)) return null;
+
+  const incomingRev = bookSchemaRev(input.document);
+  // A writer newer than this server: what it sent has already lost what this build cannot read.
+  if (incomingRev > BOOK_SCHEMA_REV) return { newer: incomingRev };
 
   const document = JSON.stringify(normalizeBookDocument(input.document));
   const existing = db.prepare(
-    'SELECT id, version FROM journey_books WHERE journey_id = ? ORDER BY id ASC LIMIT 1'
-  ).get(journeyId) as { id: number; version: number } | undefined;
+    'SELECT id, version, document FROM journey_books WHERE journey_id = ? ORDER BY id ASC LIMIT 1'
+  ).get(journeyId) as { id: number; version: number; document: string } | undefined;
+
+  // An older writer has already lost what it could not read; it does not get to save that loss.
+  if (existing) {
+    const storedRev = bookSchemaRev(safeParse(existing.document));
+    if (storedRev > incomingRev) return { newer: storedRev };
+  }
 
   if (!existing) {
     const result = db.prepare(`

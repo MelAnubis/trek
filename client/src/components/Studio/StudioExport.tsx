@@ -102,6 +102,7 @@ export function StudioExport({ doc, title, onClose, printOnDemandAvailable, onOr
         close: t('common.close'),
         count: t('journey.studio.exportSheetCount', { count: sheetCount }),
         preparing: t('journey.studio.exportPreparing'),
+        preparingProgress: t('journey.studio.exportPreparingProgress'),
       },
     })
     setBuilding(false)

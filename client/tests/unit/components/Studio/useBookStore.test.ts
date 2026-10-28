@@ -137,3 +137,45 @@ describe('useBookStore — offline safety net', () => {
     await waitFor(async () => expect(await offlineDb.journeyBookDrafts.get(JOURNEY_ID)).toBeUndefined());
   });
 });
+
+describe('useBookStore — format revision (5.5)', () => {
+  const record = (document: BookDocument, version = 3) =>
+    ({ id: 1, journeyId: JOURNEY_ID, title: 'T', version, updatedAt: null, updatedBy: null, document });
+
+  it('stamps every save with this build\'s revision', async () => {
+    let sent: { document?: { schemaRev?: number } } = {};
+    server.use(http.put(`/api/journeys/${JOURNEY_ID}/book`, async ({ request }) => {
+      sent = await request.json() as typeof sent;
+      return HttpResponse.json({ book: record(makeDoc('Saved')) });
+    }));
+    const { result } = renderHook(() => useBookStore(JOURNEY_ID));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    act(() => { result.current.saveNow(makeDoc('Saved'), 'Saved'); });
+    await waitFor(() => expect(result.current.state.status).toBe('saved'));
+    expect(sent.document?.schemaRev).toBe(2);
+  });
+
+  it('opens a book saved by a newer Studio read-only, and never writes it', async () => {
+    let putCalled = false;
+    server.use(
+      http.get(`/api/journeys/${JOURNEY_ID}/book`, () => HttpResponse.json({ book: record({ ...makeDoc('From the future'), schemaRev: 99 }) })),
+      http.put(`/api/journeys/${JOURNEY_ID}/book`, () => { putCalled = true; return HttpResponse.json({ book: record(makeDoc()) }); }),
+    );
+    const { result } = renderHook(() => useBookStore(JOURNEY_ID));
+    await waitFor(() => expect(result.current.state.status).toBe('newer'));
+    act(() => { result.current.saveNow(makeDoc('Mine'), 'Mine'); });
+    await new Promise(r => setTimeout(r, 30));
+    expect(putCalled).toBe(false);
+    expect((result.current.state as { schemaRev: number }).schemaRev).toBe(99);
+  });
+
+  it('goes read-only when the server refuses an older format over a newer book', async () => {
+    server.use(http.put(`/api/journeys/${JOURNEY_ID}/book`, () =>
+      HttpResponse.json({ error: 'newer', code: 'book_schema_newer', schemaRev: 3 }, { status: 409 })));
+    const { result } = renderHook(() => useBookStore(JOURNEY_ID));
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    act(() => { result.current.saveNow(makeDoc('Mine'), 'Mine'); });
+    await waitFor(() => expect(result.current.state.status).toBe('newer'));
+    expect(await offlineDb.journeyBookDrafts.get(JOURNEY_ID)).toBeUndefined();
+  });
+});

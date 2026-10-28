@@ -41,6 +41,17 @@ interface BookElementBase {
   rotation: number;
   opacity: number;
   locked: boolean;
+  /**
+   * Layer fields (schema rev 2, ported from liketrek/TREK's book-groups.ts).
+   * All optional and left out when unset, so an element nobody named,
+   * grouped or hid stores exactly what it stored before.
+   */
+  /** What the layers panel calls it — none means "its first words, or its kind". */
+  name?: string;
+  /** The group it belongs to, an id meaningful only on its own spread. */
+  group?: string;
+  /** Kept in the layers panel, off the page — on screen and in print. */
+  hidden?: boolean;
 }
 
 export interface BookPhotoElement extends BookElementBase {
@@ -260,6 +271,12 @@ export type BookElement =
   | BookStatsElement | BookPlacesElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
   | BookPackingElement | BookAccommodationElement;
 
+/** A group's name; membership lives on the elements' own `group`. */
+export interface BookGroup {
+  id: string;
+  name?: string;
+}
+
 export interface BookSpread {
   id: string;
   /** 'inner' is a double spread; 'cover', 'first', 'last' and 'back' are single pages. */
@@ -269,6 +286,8 @@ export interface BookSpread {
   elements: BookElement[];
   parked: BookElement[];
   entryId: number | null;
+  /** Names of the groups on this spread (schema rev 2). Absent when none is named. */
+  groups?: BookGroup[];
 }
 
 /** Folio settings — mirrors the server's bookPageNumbersSchema. Only `show` is required: a book saved before the rest existed reads as the defaults (see FOLIO_DEFAULTS). */
@@ -297,6 +316,11 @@ export interface BookPageSetup {
 
 export interface BookDocument {
   version: 1;
+  /**
+   * Which revision of the format wrote it — see bookSchemaRev.ts. Absent on
+   * every book saved before revisions existed, which reads as 1.
+   */
+  schemaRev?: number;
   title: string;
   page: BookPageSetup;
   spreads: BookSpread[];
@@ -317,5 +341,7 @@ export interface BookRecord extends BookSummary {
 
 export interface BookConflict {
   error: string;
-  current: BookRecord;
+  current?: BookRecord;
+  /** 'book_schema_newer' when the stored book was written by a newer Studio. */
+  code?: string;
 }

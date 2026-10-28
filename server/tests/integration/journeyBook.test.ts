@@ -228,3 +228,88 @@ describe('DELETE /api/journeys/:id/book', () => {
     expect(getRes.body.book).toBeNull();
   });
 });
+
+describe('PUT /api/journeys/:id/book — layers and format revision (5.5)', () => {
+  const layeredDoc = (schemaRev?: number) => ({
+    ...emptyDoc(),
+    ...(schemaRev ? { schemaRev } : {}),
+    spreads: [{
+      id: 'sp-1', role: 'inner' as const, background: null, parked: [], entryId: null,
+      groups: [{ id: 'g-1', name: 'Title block' }],
+      elements: [
+        { id: 'a', kind: 'shape', frame: { x: 0, y: 0, w: 10, h: 10 }, group: 'g-1', name: 'Backing' },
+        { id: 'b', kind: 'shape', frame: { x: 5, y: 5, w: 10, h: 10 }, group: 'g-1', hidden: true },
+      ],
+    }],
+  });
+
+  it('JOURNEYBOOK-010 — keeps element names, groups, hidden flags, the spread\'s group names and the revision', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const res = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: layeredDoc(2) });
+    expect(res.status).toBe(200);
+
+    const got = await request(app).get(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id));
+    const doc = got.body.book.document;
+    expect(doc.schemaRev).toBe(2);
+    expect(doc.spreads[0].groups).toEqual([{ id: 'g-1', name: 'Title block' }]);
+    expect(doc.spreads[0].elements[0]).toMatchObject({ group: 'g-1', name: 'Backing' });
+    expect(doc.spreads[0].elements[1]).toMatchObject({ group: 'g-1', hidden: true });
+  });
+
+  it('JOURNEYBOOK-011 — an older writer cannot save over a book written by a newer revision', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const first = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: layeredDoc(2) });
+    expect(first.status).toBe(200);
+
+    // An old tab (5.4 and before) stamps nothing: it reads as revision 1.
+    const stale = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: 'old tab', document: emptyDoc(), baseVersion: first.body.book.version });
+    expect(stale.status).toBe(409);
+    expect(stale.body.code).toBe('book_schema_newer');
+    expect(stale.body.schemaRev).toBe(2);
+    expect(stale.body.current).toBeUndefined();
+
+    const got = await request(app).get(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id));
+    expect(got.body.book.version).toBe(first.body.book.version);
+    expect(got.body.book.document.spreads[0].elements).toHaveLength(2);
+  });
+
+  it('JOURNEYBOOK-012 — a document from a revision newer than this server is refused', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const res = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: layeredDoc(999) });
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('book_schema_newer');
+  });
+
+  it('JOURNEYBOOK-013 — a book saved before revisions existed is still updated by any writer', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const first = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: emptyDoc() });
+    const next = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: layeredDoc(2), baseVersion: first.body.book.version });
+    expect(next.status).toBe(200);
+    expect(next.body.book.document.schemaRev).toBe(2);
+  });
+
+  it('JOURNEYBOOK-014 — a bad layer field falls back to unset rather than dropping the element', async () => {
+    const { user } = createUser(testDb);
+    const journey = createJourney(testDb, user.id);
+    const doc = layeredDoc(2);
+    (doc.spreads[0].elements[0] as Record<string, unknown>).name = 'x'.repeat(500);
+    (doc.spreads[0].elements[1] as Record<string, unknown>).hidden = 'yes';
+    const res = await request(app).put(`/api/journeys/${journey.id}/book`).set('Cookie', authCookie(user.id))
+      .send({ title: '', document: doc });
+    expect(res.status).toBe(200);
+    const els = res.body.book.document.spreads[0].elements;
+    expect(els).toHaveLength(2);
+    expect(els[0].name).toBeUndefined();
+    expect(els[1].hidden).toBeUndefined();
+  });
+});

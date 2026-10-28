@@ -69,12 +69,26 @@ export const bookFrameSchema = z.object({
 });
 export type BookFrame = z.infer<typeof bookFrameSchema>;
 
+export const MAX_LAYER_NAME = 60;
+export const MAX_GROUP_ID = 40;
+
 const elementBase = {
   id: z.string().min(1),
   frame: bookFrameSchema,
   rotation: z.number().finite().default(0),
   opacity: z.number().min(0).max(1).default(1),
   locked: z.boolean().default(false),
+  /*
+   * Layer fields (schema rev 2 — see bookSchemaRev.ts), ported from
+   * liketrek/TREK's book.schema.ts. Optional, and a bad value falls back to
+   * "not set" rather than taking the whole element down.
+   */
+  /** What the layers panel calls it. */
+  name: z.string().trim().min(1).max(MAX_LAYER_NAME).optional().catch(undefined),
+  /** The group it belongs to, an id meaningful only on its own spread. */
+  group: z.string().min(1).max(MAX_GROUP_ID).optional().catch(undefined),
+  /** In the layers panel, off the page — on screen and in print. */
+  hidden: z.boolean().optional().catch(undefined),
 };
 
 export const bookPhotoElementSchema = z.object({
@@ -411,6 +425,11 @@ export const bookSpreadSchema = z.object({
   elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   parked: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   entryId: z.number().int().nullable().default(null),
+  /** Names of the groups on this spread; membership lives on the elements (schema rev 2). */
+  groups: z.array(z.object({
+    id: z.string().min(1).max(MAX_GROUP_ID),
+    name: z.string().trim().min(1).max(MAX_LAYER_NAME).optional().catch(undefined),
+  })).max(MAX_SPREAD_ELEMENTS).optional().catch(undefined),
 });
 export type BookSpread = z.infer<typeof bookSpreadSchema>;
 
@@ -448,6 +467,8 @@ export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 export const bookDocumentSchema = z.object({
   /** In the document, not in a column: a format bump must not need a migration. */
   version: z.literal(1).catch(1).default(1),
+  /** Which revision of the format wrote it (bookSchemaRev.ts). Absent reads as 1. */
+  schemaRev: z.number().int().min(1).max(10000).optional().catch(undefined),
   title: z.string().max(MAX_BOOK_TITLE).default(''),
   page: bookPageSetupSchema.default(() => bookPageSetupSchema.parse({})),
   spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),

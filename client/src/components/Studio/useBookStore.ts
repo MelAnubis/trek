@@ -3,6 +3,7 @@ import type { BookDocument, BookRecord } from '../../types/book'
 import { journeyApi } from '../../api/client'
 import { addListener, removeListener } from '../../api/websocket'
 import { offlineDb } from '../../db/offlineDb'
+import { BOOK_SCHEMA_NEWER_CODE, bookSchemaRev, isBookNewerThanReader, stampBookSchemaRev } from './bookSchemaRev'
 
 /**
  * Saving the book. Ported from liketrek/trek's
@@ -12,10 +13,16 @@ import { offlineDb } from '../../db/offlineDb'
  * (matches the pattern JourneyDetailPage.tsx already uses for its own
  * `journey:*` events — see its WebSocket real-time updates effect).
  *
- * No client-side `normalizeBookDocument` here (unlike upstream): there is
- * no legacy document format yet to guard against — the server always
- * returns an already-normalized document — so this is deferred until a
- * schema change actually needs it.
+ * No client-side `normalizeBookDocument` here (unlike upstream): the server
+ * always returns an already-normalized document.
+ *
+ * ── Version protection (5.5) ──────────────────────────────────────────────
+ *
+ * Every save is stamped with this build's format revision (bookSchemaRev.ts).
+ * A book written by a newer Studio opens read-only — state `newer` — and is
+ * never written from here: this build would save it minus everything it
+ * cannot read. The server enforces the same rule from its side, refusing an
+ * older format over a newer book with a 409 that carries BOOK_SCHEMA_NEWER_CODE.
  *
  * ── Why autosave rather than a save button ────────────────────────────────
  *
@@ -49,6 +56,8 @@ export type SaveState =
   | { status: 'conflict'; current: BookRecord }
   /** The journey is open to this user, but they may not write it (role 'viewer'). */
   | { status: 'readonly' }
+  /** Saved by a newer Studio than this one: shown, never written. A reload brings the newer Studio. */
+  | { status: 'newer'; schemaRev: number }
   | { status: 'error' }
 
 export function useBookStore(
@@ -112,6 +121,14 @@ export function useBookStore(
         synced.current = res.book?.document ?? null
         latest.current = res.book?.document ?? null
 
+        // Written by a newer Studio: open it to read, never to write — and
+        // leave any offline draft alone, since resuming it would be refused anyway.
+        if (res.book && isBookNewerThanReader(res.book.document)) {
+          blocked.current = true
+          setState({ status: 'newer', schemaRev: bookSchemaRev(res.book.document) })
+          return
+        }
+
         // An edit that failed to reach the server last time (offline, or the
         // tab closed before reconnecting) is still sitting in IndexedDB —
         // resume it rather than silently losing it. Its own baseVersion, not
@@ -142,7 +159,7 @@ export function useBookStore(
     try {
       const res: { book: BookRecord } = await journeyApi.saveBook(journeyId, {
         title: next.title,
-        document: next.document,
+        document: stampBookSchemaRev(next.document),
         baseVersion: version.current ?? undefined,
       })
       setRecord(res.book)
@@ -155,8 +172,15 @@ export function useBookStore(
       // A 409 is not a failure, it is the other person — the current record
       // comes back in the body so the editor can offer to take their
       // version or keep going from here.
-      const res = (err as { response?: { status?: number; data?: { current?: BookRecord } } }).response
-      if (res?.status === 409 && res.data?.current) {
+      const res = (err as { response?: { status?: number; data?: { current?: BookRecord; code?: string; schemaRev?: number } } }).response
+      if (res?.status === 409 && res.data?.code === BOOK_SCHEMA_NEWER_CODE) {
+        // Someone with a newer Studio saved this book: nothing this tab holds
+        // may go over it. The edit stays on screen; the draft is dropped, since
+        // retrying it later would only be refused again.
+        blocked.current = true
+        void offlineDb.journeyBookDrafts.delete(journeyId)
+        setState({ status: 'newer', schemaRev: typeof res.data.schemaRev === 'number' ? res.data.schemaRev : 0 })
+      } else if (res?.status === 409 && res.data?.current) {
         blocked.current = true
         setState({ status: 'conflict', current: res.data.current })
       } else if (res?.status === 403) {
@@ -213,13 +237,14 @@ export function useBookStore(
   }, [write])
 
   const acceptTheirs = useCallback((current: BookRecord) => {
-    blocked.current = false
+    const newer = isBookNewerThanReader(current.document)
+    blocked.current = newer
     setRecord(current)
     version.current = current.version
     synced.current = current.document
     latest.current = current.document
     pending.current = null
-    setState({ status: 'idle' })
+    setState(newer ? { status: 'newer', schemaRev: bookSchemaRev(current.document) } : { status: 'idle' })
     // Their version wins outright — any locally-saved-but-unsent edit from
     // before this conflict is superseded, not merely retried later.
     void offlineDb.journeyBookDrafts.delete(journeyId)
@@ -257,6 +282,11 @@ export function useBookStore(
           version.current = res.book.version
           synced.current = res.book.document
           latest.current = res.book.document
+          // Saved by someone with a newer Studio: shown as it is, and closed to writes from here.
+          if (isBookNewerThanReader(res.book.document)) {
+            blocked.current = true
+            setState({ status: 'newer', schemaRev: bookSchemaRev(res.book.document) })
+          }
           onRemoteRef.current?.(res.book.document)
         })
         .catch(() => { /* The next save will conflict and offer the choice. */ })

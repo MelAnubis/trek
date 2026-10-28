@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Globe2,
+import { Globe2, Layers,
   Award, BarChart3, Circle, Compass, Copy, Hotel, ImageIcon, ListChecks, Luggage, Map as MapIconLucide, MapPin, Plus, Sparkles,
   Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
@@ -18,6 +18,7 @@ import type { BookElement, BookMetric, BookPageSetup, BookShapeId } from '../../
 import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosByDay'
 import { folioLabel, folioSettings, foliosOf } from './bookSheets'
 import { countryName } from './countryShapes'
+import { StudioLayersPanel } from './StudioLayersPanel'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -55,8 +56,10 @@ function loadCollapsedSections(): Record<string, boolean> {
  * anything that belongs in the saved book.
  */
 function CollapsibleSection({
-  icon, title, collapsed, onToggle, headerExtra, children,
+  icon, title, collapsed, onToggle, headerExtra, children, disabled,
 }: {
+  /** Read-only book: the section's controls stay visible and cannot be used. */
+  disabled?: boolean
   icon?: React.ReactNode
   title: string
   collapsed: boolean
@@ -79,7 +82,9 @@ function CollapsibleSection({
         </button>
         {headerExtra}
       </div>
-      {!collapsed && children}
+      {!collapsed && (disabled
+        ? <fieldset disabled style={{ border: 0, padding: 0, margin: 0, minWidth: 0, opacity: 0.55 }}>{children}</fieldset>
+        : children)}
     </div>
   )
 }
@@ -157,6 +162,7 @@ export function StudioSidebar({
   const addElement = useStudioStore(s => s.addElement)
   const updateElement = useStudioStore(s => s.updateElement)
   const commit = useStudioStore(s => s.commit)
+  const readOnly = useStudioStore(s => s.readOnly)
 
   if (!doc) return null
 
@@ -336,12 +342,24 @@ export function StudioSidebar({
         </div>
       </CollapsibleSection>
 
+      {/* Layers — what is on this page, front to back (lock, hide, rename, reorder, group). */}
+      <CollapsibleSection
+        icon={<Layers size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.layers')}
+        collapsed={!!collapsedSections.layers}
+        onToggle={() => toggleSection('layers')}
+        headerExtra={spread ? <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{spread.elements.length}</span> : undefined}
+      >
+        <StudioLayersPanel t={t} />
+      </CollapsibleSection>
+
       {/* Layouts */}
       <CollapsibleSection
         icon={<LayoutGrid size={12} color="var(--text-faint)" />}
         title={t('journey.studio.layoutsTab')}
         collapsed={!!collapsedSections.layouts}
         onToggle={() => toggleSection('layouts')}
+        disabled={readOnly}
       >
         <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
           {t('journey.studio.layoutsHint')}
@@ -366,6 +384,7 @@ export function StudioSidebar({
         title={t('journey.studio.elementsTab')}
         collapsed={!!collapsedSections.elements}
         onToggle={() => toggleSection('elements')}
+        disabled={readOnly}
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button onClick={() => addCentered(80, 20, (id, frame) => ({
@@ -417,6 +436,7 @@ export function StudioSidebar({
         title={t('journey.studio.travelTab')}
         collapsed={!!collapsedSections.travel}
         onToggle={() => toggleSection('travel')}
+        disabled={readOnly}
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
           <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
@@ -471,6 +491,7 @@ export function StudioSidebar({
         title={t('journey.studio.photosTab')}
         collapsed={!!collapsedSections.photos}
         onToggle={() => toggleSection('photos')}
+        disabled={readOnly}
         headerExtra={
           <>
             <input ref={photoFileRef} type="file" accept="image/*" multiple hidden onChange={e => void handlePhotoUpload(e)} />
