@@ -10,12 +10,13 @@ import type { RouteSegment } from '../../../src/types';
 // Mock the RouteCalculator module to avoid real OSRM fetch calls
 vi.mock('../../../src/components/Map/RouteCalculator', () => ({
   calculateSegments: vi.fn(),
+  routeLine: vi.fn().mockResolvedValue(null),
   calculateRoute: vi.fn(),
   optimizeRoute: vi.fn((waypoints: unknown[]) => waypoints),
   generateGoogleMapsUrl: vi.fn(),
 }));
 
-const { calculateSegments } = await import('../../../src/components/Map/RouteCalculator');
+const { calculateSegments, routeLine } = await import('../../../src/components/Map/RouteCalculator');
 
 function buildMockStore(assignments: Record<string, ReturnType<typeof buildAssignment>[]> = {}): Partial<TripStoreState> {
   // Also populate the real Zustand store so updateRouteForDay (which reads from
@@ -306,5 +307,34 @@ describe('useRouteCalculation', () => {
     expect(result.current.route).toEqual([
       [[p1.lat, p1.lng], [p2.lat, p2.lng], [p3.lat, p3.lng]],
     ]);
+  });
+
+  it('FE-HOOK-ROUTE-014: the straight line is swapped for the routed one, by bike on a cycling day', async () => {
+    useSettingsStore.setState({ settings: { route_calculation: true, day_route_profile: 'cycling' } as any });
+    const p1 = buildPlace({ lat: 41.06, lng: -4.72 });
+    const p2 = buildPlace({ lat: 41.2, lng: -4.5 });
+    const store = buildMockStore({ '5': [buildAssignment({ day_id: 5, order_index: 0, place: p1 }), buildAssignment({ day_id: 5, order_index: 1, place: p2 })] });
+    const routed: [number, number][] = [[41.06, -4.72], [41.1, -4.65], [41.2, -4.5]];
+    (routeLine as ReturnType<typeof vi.fn>).mockResolvedValueOnce(routed);
+
+    const { result } = renderHook(() => useRouteCalculation(store as TripStoreState, 5));
+    await act(async () => {});
+
+    expect((routeLine as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[1]).toBe('bike');
+    expect(result.current.route).toEqual([routed]);
+  });
+
+  it('FE-HOOK-ROUTE-015: a stretch nobody can route stays straight', async () => {
+    useSettingsStore.setState({ settings: { route_calculation: true } as any });
+    const p1 = buildPlace({ lat: 41.06, lng: -4.72 });
+    const p2 = buildPlace({ lat: 41.2, lng: -4.5 });
+    const store = buildMockStore({ '5': [buildAssignment({ day_id: 5, order_index: 0, place: p1 }), buildAssignment({ day_id: 5, order_index: 1, place: p2 })] });
+    (routeLine as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null);
+
+    const { result } = renderHook(() => useRouteCalculation(store as TripStoreState, 5));
+    await act(async () => {});
+
+    expect((routeLine as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[1]).toBe('foot');
+    expect(result.current.route).toEqual([[[p1.lat, p1.lng], [p2.lat, p2.lng]]]);
   });
 });

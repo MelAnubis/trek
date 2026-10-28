@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { useSettingsStore } from '../store/settingsStore'
 import { useTripStore } from '../store/tripStore'
-import { calculateSegments } from '../components/Map/RouteCalculator'
+import { calculateSegments, routeLine } from '../components/Map/RouteCalculator'
 import type { TripStoreState } from '../store/tripStore'
 import type { RouteSegment, RouteResult } from '../types'
 
@@ -22,6 +22,7 @@ export function useRouteCalculation(
   const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
   const routeCalcEnabled = useSettingsStore((s) => s.settings.route_calculation) !== false
+  const dayRouteProfile = useSettingsStore((s) => s.settings.day_route_profile)
   const routeAbortRef = useRef<AbortController | null>(null)
   const reservationsForSignature = useTripStore((s) => s.reservations)
 
@@ -105,6 +106,23 @@ export function useRouteCalculation(
     if (!routeCalcEnabled) { setRouteSegments([]); return }
     const controller = new AbortController()
     routeAbortRef.current = controller
+    // The straight line shows at once; each stretch is then swapped for the way along paths and
+    // roads (on foot, or by bike when the day is planned cycling). A stretch nobody can route stays straight.
+    if (segments.length > 0) {
+      const profile = dayRouteProfile === 'cycling' ? 'bike' : 'foot'
+      void (async () => {
+        const routed: [number, number][][] = []
+        for (const seg of segments) {
+          try {
+            const line = await routeLine(seg.map(([lat, lng]) => ({ lat, lng })), profile, { signal: controller.signal })
+            routed.push(line && line.length > 1 ? line : seg)
+          } catch {
+            return
+          }
+        }
+        if (!controller.signal.aborted) setRoute(routed)
+      })()
+    }
     try {
       const calcSegments = await calculateSegments(geocodedWaypoints, { signal: controller.signal })
       if (!controller.signal.aborted) setRouteSegments(calcSegments)
@@ -112,7 +130,7 @@ export function useRouteCalculation(
       if (err instanceof Error && err.name !== 'AbortError') setRouteSegments([])
       else if (!(err instanceof Error)) setRouteSegments([])
     }
-  }, [routeCalcEnabled, activeGpxTrack])
+  }, [routeCalcEnabled, activeGpxTrack, dayRouteProfile])
 
   // Stable signature for transport reservations on the selected day — changes when a transport
   // is added, removed, or repositioned, ensuring route recalc fires even on transport-only reorders.
@@ -146,7 +164,7 @@ export function useRouteCalculation(
     }
     updateRouteForDay(selectedDayId)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDayId, selectedDayAssignments, transportSignature, activeGpxTrack])
+  }, [selectedDayId, selectedDayAssignments, transportSignature, activeGpxTrack, dayRouteProfile])
 
   return { route, routeSegments, routeInfo, setRoute, setRouteInfo, updateRouteForDay }
 }
