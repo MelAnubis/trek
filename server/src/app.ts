@@ -154,6 +154,8 @@ export function createApp(): express.Application {
           "https://geocoding-api.open-meteo.com", "https://api.exchangerate-api.com",
           "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_50m_admin_0_countries.geojson",
           "https://router.project-osrm.org/route/v1/",
+          // Plan: the day's stops joined along paths (foot) or cycleways (bike).
+          "https://routing.openstreetmap.de/",
           "https://api.mapbox.com", "https://*.tiles.mapbox.com", "https://events.mapbox.com",
           // MapLibre + OpenFreeMap: style JSON, vector tiles, sprites and glyphs.
           "https://tiles.openfreemap.org",

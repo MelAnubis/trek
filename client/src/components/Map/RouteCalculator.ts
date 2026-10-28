@@ -92,6 +92,39 @@ export function optimizeRoute(places: Waypoint[]): Waypoint[] {
   return result
 }
 
+/** FOSSGIS runs OSRM with real foot and bike profiles; the demo server only knows the car. */
+const FOSSGIS_OSRM = 'https://routing.openstreetmap.de'
+
+/**
+ * The line a day's stops are joined by, along paths and roads rather than straight: on foot,
+ * or by bike when the day is planned cycling. Falls back to the car router, and to null
+ * (the caller keeps the straight line) when nobody can route it.
+ */
+export async function routeLine(
+  waypoints: Waypoint[],
+  profile: 'foot' | 'bike',
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<[number, number][] | null> {
+  if (!waypoints || waypoints.length < 2) return null
+  const coords = waypoints.map(p => `${p.lng},${p.lat}`).join(';')
+  const urls = [
+    `${FOSSGIS_OSRM}/routed-${profile}/route/v1/driving/${coords}?overview=full&geometries=geojson&steps=false`,
+    `${OSRM_BASE}/driving/${coords}?overview=full&geometries=geojson&steps=false`,
+  ]
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, { signal })
+      if (!res.ok) continue
+      const data = await res.json()
+      const line = data?.code === 'Ok' ? data.routes?.[0]?.geometry?.coordinates : null
+      if (Array.isArray(line) && line.length > 1) return line.map(([lng, lat]: [number, number]) => [lat, lng])
+    } catch (err) {
+      if (signal?.aborted) throw err
+    }
+  }
+  return null
+}
+
 /** Fetches per-leg distance/duration from OSRM and returns segment metadata (midpoints, walking/driving times). */
 export async function calculateSegments(
   waypoints: Waypoint[],
