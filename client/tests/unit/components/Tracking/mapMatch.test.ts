@@ -2,7 +2,8 @@
  * Tracking en vivo 5.7.3 — drawing the track along streets and paths.
  */
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { cleanTrack, costingFor, linesNow, matchTrack, stretches } from '../../../../src/components/Tracking/mapMatch'
+import { cleanTrack, costingFor, gapsOf, linesNow, matchTrack, stretches } from '../../../../src/components/Tracking/mapMatch'
+import { lineStyle } from '../../../../src/components/Tracking/useMatchedTrack'
 import { resetValhallaTurns } from '../../../../src/tours/routing/valhalla'
 import type { TrackPoint } from '../../../../src/components/Tracking/trackingModel'
 
@@ -98,3 +99,77 @@ describe('matchTrack', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
+
+/**
+ * 5.7.7 — a real round trip from a phone that stopped recording with the
+ * screen off: a short walk, ~4 km with no fixes at all, and the walk on the
+ * other side. Synthetic coordinates with the same shape as the report.
+ */
+describe('holes in the recording (5.7.7)', () => {
+  const fetchMock = vi.fn()
+  beforeEach(() => { resetValhallaTurns(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockReset() })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  const at = (min: number, lat: number, lng: number, motion = 'walking'): TrackPoint =>
+    ({ ts: new Date(t0 + min * 60_000).toISOString(), lat, lng, motion, accuracy: 8 })
+  const before = [at(0, 40.5200, -3.5000), at(1, 40.5195, -3.4995), at(2, 40.5190, -3.4990), at(3, 40.5185, -3.4985)]
+  // ~3.9 km west-south-west, 8 minutes later: a drive the phone did not record.
+  const after = [at(11, 40.5117, -3.5440), at(12, 40.5112, -3.5446), at(13, 40.5108, -3.5450), at(14, 40.5104, -3.5455)]
+  const day = [...before, ...after]
+
+  it('finds the hole, how long and how far, and guesses it was driven', () => {
+    const gaps = gapsOf(day)
+    expect(gaps).toHaveLength(1)
+    expect(gaps[0].distanceM).toBeGreaterThan(3500)
+    expect(gaps[0].durationMs).toBe(8 * 60_000)
+    expect(gaps[0].costing).toBe('auto')
+    // A short pause on one spot, or an overnight, is no hole to draw.
+    expect(gapsOf(before)).toHaveLength(0)
+    expect(gapsOf([...before, { ...after[0], ts: new Date(t0 + 10 * 3_600_000).toISOString() }])).toHaveLength(0)
+  })
+
+  it('draws the hole straight and marked as a guess until it is routed', () => {
+    const lines = linesNow(day)
+    expect(lines.map(l => !!l.inferred)).toEqual([false, true, false])
+    expect(lines[1].positions).toEqual([[before[3].lat, before[3].lng], [after[0].lat, after[0].lng]])
+    expect(lineStyle(lines[1], true)).toMatchObject({ dashArray: '1 8', opacity: 0.5 })
+  })
+
+  it('routes the hole along the roads by car, and keeps the guess apart from the recording', async () => {
+    const road: [number, number][] = [[before[3].lat, before[3].lng], [40.515, -3.52], [after[0].lat, after[0].lng]]
+    fetchMock.mockImplementation(async (url: string) => {
+      if (String(url).endsWith('/route')) return new Response(JSON.stringify({ trip: { legs: [{ shape: encode(road) }] } }), { status: 200 })
+      return new Response(JSON.stringify({ trip: { legs: [{ shape: encode([[40.52, -3.5], [40.5185, -3.4985]]) }] } }), { status: 200 })
+    })
+    const lines = await matchTrack(day)
+    const routeCall = fetchMock.mock.calls.find(c => String(c[0]).endsWith('/route'))!
+    const body = JSON.parse((routeCall[1] as RequestInit).body as string)
+    expect(body.costing).toBe('auto')
+    expect(body.locations).toHaveLength(2)
+    expect(lines[1]).toMatchObject({ inferred: true, matched: true })
+    expect(lines[1].positions).toHaveLength(3)
+  })
+
+  it('an unbelievable detour stays a straight guess', async () => {
+    const detour: [number, number][] = [[before[3].lat, before[3].lng], [41.2, -3.0], [after[0].lat, after[0].lng]]
+    fetchMock.mockImplementation(async (url: string) => (String(url).endsWith('/route')
+      ? new Response(JSON.stringify({ trip: { legs: [{ shape: encode(detour) }] } }), { status: 200 })
+      : new Response('{}', { status: 400 })))
+    const lines = await matchTrack(day)
+    expect(lines[1].matched).toBe(false)
+    expect(lines[1].positions).toHaveLength(2)
+  })
+
+  it('a stretch too sparse to trace (a fix every km) is routed through its fixes instead', async () => {
+    const car = [at(0, 40.50, -3.50, 'driving'), at(1, 40.51, -3.50, 'driving'), at(2, 40.52, -3.50, 'driving'), at(3, 40.53, -3.50, 'driving')]
+    const road: [number, number][] = [[40.50, -3.50], [40.505, -3.501], [40.51, -3.50], [40.52, -3.50], [40.53, -3.50]]
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode(road) }] } }), { status: 200 }))
+    const lines = await matchTrack(car)
+    expect(fetchMock.mock.calls.map(c => String(c[0]).split('/').pop())).toEqual(['route'])
+    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)
+    expect(body.locations.map((l: { type: string }) => l.type)).toEqual(['break', 'through', 'through', 'break'])
+    expect(lines[0]).toMatchObject({ matched: true })
+    expect(lines[0].inferred).toBeUndefined()
+  })
+})
+

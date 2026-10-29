@@ -16,7 +16,8 @@ import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToast } from '../components/shared/Toast'
 import { CopyField } from '../components/Tracking/CopyField'
-import { joinedLine, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
+import { joinedLine, lineStyle, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
+import { gapsOf, type TrackGap } from '../components/Tracking/mapMatch'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
 import {
   MOTION_COLORS, formatDistance, formatDuration, localDayRange, localToday, shareUrl, utcOffsetMinutes,
@@ -115,6 +116,8 @@ export default function TrackingPage() {
   // A live day is matched again a quarter of a minute after its last new point, only its last stretch asked for.
   const { lines, status: matchStatus } = useMatchedTrack(points, snap, isToday ? 15_000 : 0)
   const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
+  // Where the phone recorded nothing (5.7.7): listed, so a hole is seen as one rather than as a wrong line.
+  const gaps = useMemo(() => gapsOf(points), [points])
   const live = isToday && device?.last_position ? [device.last_position.lat, device.last_position.lng] as [number, number] : null
   const center: [number, number] = live ?? (points[0] ? [points[0].lat, points[0].lng] : [40.4, -3.7])
 
@@ -214,6 +217,7 @@ export default function TrackingPage() {
           {t('tracking.snap')}
           {snap && total > 1 && <MatchBadge status={matchStatus} />}
         </label>
+        <GapNotice gaps={gaps} />
         {isToday && (
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
@@ -260,7 +264,7 @@ export default function TrackingPage() {
           <MapContainer center={center} zoom={13} style={{ position: 'absolute', inset: 0 }}>
             <TileLayer url={tileUrl} attribution="&copy; OpenStreetMap" />
             {lines.map((s, i) => (
-              <Polyline key={i} positions={s.positions} pathOptions={{ color: s.color, weight: s.matched ? 5 : 4, opacity: s.matched ? 0.9 : 0.75, dashArray: s.matched || !snap ? undefined : '6 6' }} />
+              <Polyline key={i} positions={s.positions} pathOptions={{ ...lineStyle(s, snap), lineCap: s.inferred ? 'round' : undefined }} />
             ))}
             {/* The live dot joined to the end of the line, so the two read as one track. */}
             {live && lastDrawn && (lastDrawn[0] !== live[0] || lastDrawn[1] !== live[1]) && (
@@ -401,6 +405,26 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
 }
 
 /** How the drawing along the ways is going: matching, done, partly, or not at all (straight lines shown). */
+/** The holes in the day's recording, with what usually causes them on Android. */
+function GapNotice({ gaps }: { gaps: TrackGap[] }) {
+  const { t, locale } = useTranslation()
+  if (!gaps.length) return null
+  const time = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
+  return (
+    <div data-testid="track-gaps" className="rounded-xl p-3 text-xs space-y-1" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.45)', color: 'var(--text-secondary)' }}>
+      <div className="font-semibold" style={{ color: '#b45309' }}>{t('tracking.gaps.title', { count: gaps.length })}</div>
+      <ul className="space-y-0.5">
+        {gaps.slice(0, 6).map(g => (
+          <li key={g.from.ts}>
+            {t('tracking.gaps.item', { from: time(g.from.ts), to: time(g.to.ts), km: formatDistance(g.distanceM) })}
+          </li>
+        ))}
+      </ul>
+      <p style={{ color: 'var(--text-muted)' }}>{t('tracking.gaps.hint')}</p>
+    </div>
+  )
+}
+
 function MatchBadge({ status }: { status: MatchStatus }) {
   const { t } = useTranslation()
   if (status === 'off') return null

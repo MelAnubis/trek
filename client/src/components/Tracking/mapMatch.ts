@@ -34,12 +34,38 @@ export interface MatchedLine {
   positions: [number, number][]
   /** False when the line is the cleaned GPS points because matching failed or was not asked. */
   matched: boolean
+  /**
+   * A stretch with no fixes at all (5.7.7): the phone stopped recording, so
+   * the way between the last fix before and the first after is guessed —
+   * routed along the network when the router can, a straight line otherwise.
+   * Drawn apart (dashed, fainter) so a guess never passes for a recording.
+   */
+  inferred?: boolean
+}
+
+/** A hole in the recording between two stretches: where it stopped, where it started again. */
+export interface TrackGap {
+  from: TrackPoint
+  to: TrackPoint
+  distanceM: number
+  durationMs: number
+  /** How the way between is guessed, from the speed the hole implies and the stretches either side. */
+  costing: Costing
 }
 
 /** A pause this long between two fixes starts a new stretch: the phone was off, in a tunnel, on a train. */
 const GAP_MS = 10 * 60 * 1000
 /** A jump this far between two fixes starts a new stretch too. */
 const GAP_M = 3000
+/** A hole shorter than this is no hole: the stretches just meet. */
+const BRIDGE_MIN_M = 150
+/** A hole longer than this (an overnight, a flight) is not bridged: the guess would be fiction. */
+const BRIDGE_MAX_MS = 3 * 60 * 60 * 1000
+const BRIDGE_MAX_M = 150_000
+/** The most waypoints one routed request carries (the public instance's limit is 20). */
+const VIA_MAX = 20
+/** Waypoints closer than this add nothing to a routed line. */
+const VIA_MIN_M = 120
 /** The most points one matching request carries; a longer stretch goes in windows. */
 const WINDOW = 1500
 /** The most requests one track may take; past that the rest is drawn unmatched. */
@@ -175,6 +201,97 @@ export async function matchPoints(points: TrackPoint[], costing: Costing, signal
   }
 }
 
+/** The costing a hole is guessed with: the speed it implies, or the way the stretches either side were travelled. */
+function bridgeCosting(distanceM: number, durationMs: number, before: Costing, after: Costing): Costing {
+  const kmh = durationMs > 0 ? (distanceM / 1000) / (durationMs / 3_600_000) : Infinity
+  if (before === 'auto' || after === 'auto' || kmh > 28) return 'auto'
+  if (before === 'bicycle' || after === 'bicycle' || kmh > 9) return 'bicycle'
+  return 'pedestrian'
+}
+
+/**
+ * The holes in a recording: between two stretches cut by a long pause or a
+ * jump, where the phone recorded nothing (Android stopping Overland with the
+ * screen off is the usual cause). A hole that is too short to matter or too
+ * long to guess (an overnight, a flight) is left out.
+ */
+export function trackGaps(parts: Stretch[]): TrackGap[] {
+  const out: TrackGap[] = []
+  for (let i = 1; i < parts.length; i++) {
+    const a = parts[i - 1].points[parts[i - 1].points.length - 1]
+    const b = parts[i].points[0]
+    if (!a || !b || a === b) continue
+    const distanceM = distM(a, b)
+    const durationMs = Date.parse(b.ts) - Date.parse(a.ts)
+    if (distanceM < BRIDGE_MIN_M || distanceM > BRIDGE_MAX_M || durationMs > BRIDGE_MAX_MS) continue
+    out.push({ from: a, to: b, distanceM, durationMs, costing: bridgeCosting(distanceM, durationMs, parts[i - 1].costing, parts[i].costing) })
+  }
+  return out
+}
+
+/** The holes of a day's points, as the map draws and lists them. */
+export function gapsOf(points: TrackPoint[]): TrackGap[] {
+  return trackGaps(stretches(cleanTrack(points)))
+}
+
+/**
+ * A line along the network through `points` (as waypoints, in order), for a
+ * hole between two fixes and for a stretch too sparse to be matched: a few
+ * fixes kilometres apart are a route, not a trace. Null when it cannot be had.
+ */
+export async function routeVia(points: { lat: number; lng: number }[], costing: Costing, signal?: AbortSignal): Promise<[number, number][] | null> {
+  const base = valhallaBase()
+  if (!base || points.length < 2) return null
+  // Thinned to waypoints that mean something, ends kept, then sent in request-sized windows.
+  const via = points.filter((p, i) => i === 0 || i === points.length - 1 || distM(p, points[i - 1]) >= VIA_MIN_M)
+  const out: [number, number][] = []
+  for (let i = 0; i < via.length - 1; i += VIA_MAX - 1) {
+    const win = via.slice(i, i + VIA_MAX)
+    if (win.length < 2) break
+    const bounded = signal ? AbortSignal.any([signal, AbortSignal.timeout(TIMEOUT_MS)]) : AbortSignal.timeout(TIMEOUT_MS)
+    try {
+      await valhallaTurn(base, signal)
+      if (signal?.aborted) return null
+      const response = await fetch(`${base}/route`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
+        body: JSON.stringify({
+          locations: win.map((p, k) => ({ lat: p.lat, lon: p.lng, type: k === 0 || k === win.length - 1 ? 'break' : 'through', radius: 50 })),
+          costing,
+          costing_options: COSTING_OPTIONS[costing],
+          directions_options: { units: 'kilometers', directions_type: 'none' },
+        }),
+        signal: bounded,
+      })
+      if (!response.ok) return null
+      const data = await response.json() as { trip?: { legs?: { shape?: string }[] } }
+      const line = (data.trip?.legs ?? []).flatMap(l => (l.shape ? decodePolyline(l.shape, 6) : []))
+      if (line.length < 2) return null
+      out.push(...(out.length ? line.slice(1) : line))
+    } catch {
+      return null
+    }
+  }
+  return out.length > 1 ? out : null
+}
+
+/** Whether a routed guess is believable for the time the hole lasted: no faster than a motorway allows. */
+function plausible(line: [number, number][], gap: TrackGap): boolean {
+  let m = 0
+  for (let i = 1; i < line.length; i++) m += distM({ lat: line[i - 1][0], lng: line[i - 1][1] }, { lat: line[i][0], lng: line[i][1] })
+  // A detour more than three times the straight distance is a router that found another way round.
+  if (m > Math.max(gap.distanceM * 3, gap.distanceM + 2000)) return false
+  return gap.durationMs <= 0 || (m / 1000) / (gap.durationMs / 3_600_000) < 150
+}
+
+/** Whether a stretch's fixes are too far apart to be matched as a trace (a car with the screen off logs every km or so). */
+function sparse(points: TrackPoint[]): boolean {
+  if (points.length < 2) return false
+  let total = 0
+  for (let i = 1; i < points.length; i++) total += distM(points[i - 1], points[i])
+  return total / (points.length - 1) > 400
+}
+
 /** Stretches split into request-sized windows that overlap by one point. */
 function windows(points: TrackPoint[]): TrackPoint[][] {
   if (points.length <= WINDOW) return [points]
@@ -199,14 +316,45 @@ function stretchKey(s: Stretch): string {
  * straight lines while its last stretch is matched again.
  */
 export function linesNow(points: TrackPoint[], cache?: Map<string, [number, number][]>, clean = true): MatchedLine[] {
+  return plan(points, clean).map(item => item.line(cache))
+}
+
+type Planned = { key: string; matchable: boolean; line: (cache?: Map<string, [number, number][]>) => MatchedLine } & (
+  | { kind: 'stretch'; stretch: Stretch }
+  | { kind: 'gap'; gap: TrackGap }
+)
+
+/** The track as what is drawn, in order: each stretch, and after it the hole to the next one when there is one. */
+function plan(points: TrackPoint[], clean = true): Planned[] {
   const parts = stretches(clean ? cleanTrack(points) : points)
-  return parts.map(st => {
-    const known = st.points.length > 1 ? cache?.get(stretchKey(st)) : undefined
-    return {
-      color: motionColor(st.motion), motion: st.motion, matched: !!known,
-      positions: known ?? st.points.map(p => [p.lat, p.lng] as [number, number]),
+  const gaps = clean ? trackGaps(parts) : []
+  const out: Planned[] = []
+  parts.forEach((st, i) => {
+    const key = stretchKey(st)
+    out.push({
+      kind: 'stretch', stretch: st, key, matchable: st.points.length > 1,
+      line: cache => {
+        const known = st.points.length > 1 ? cache?.get(key) : undefined
+        return { color: motionColor(st.motion), motion: st.motion, matched: !!known, positions: known ?? st.points.map(p => [p.lat, p.lng] as [number, number]) }
+      },
+    })
+    const next = parts[i + 1]
+    const gap = next && gaps.find(g => g.from === st.points[st.points.length - 1] && g.to === next.points[0])
+    if (gap) {
+      const gkey = `gap|${gap.costing}|${gap.from.ts}|${gap.to.ts}`
+      out.push({
+        kind: 'gap', gap, key: gkey, matchable: false,
+        line: cache => {
+          const known = cache?.get(gkey)
+          return {
+            color: motionColor(st.motion ?? next.motion), motion: null, matched: !!known, inferred: true,
+            positions: known ?? [[gap.from.lat, gap.from.lng], [gap.to.lat, gap.to.lng]],
+          }
+        },
+      })
     }
   })
+  return out
 }
 
 export async function matchTrack(points: TrackPoint[], opts: {
@@ -215,30 +363,45 @@ export async function matchTrack(points: TrackPoint[], opts: {
   /** Matched lines already known, by stretch: a live day only re-asks for the stretch that grew. */
   cache?: Map<string, [number, number][]>
 } = {}): Promise<MatchedLine[]> {
-  const parts = stretches(cleanTrack(points))
-  const lines = linesNow(points, opts.cache)
+  const items = plan(points)
+  const lines = items.map(item => item.line(opts.cache))
   let requests = 0
-  for (let i = 0; i < parts.length; i++) {
+  const keep = (i: number, key: string, positions: [number, number][]) => {
+    opts.cache?.set(key, positions)
+    if (opts.cache && opts.cache.size > 300) opts.cache.delete(opts.cache.keys().next().value as string)
+    lines[i] = { ...lines[i], positions, matched: true }
+    opts.onProgress?.(lines.slice())
+  }
+  for (let i = 0; i < items.length; i++) {
     if (opts.signal?.aborted) break
-    const s = parts[i]
-    if (s.points.length < 2) continue
-    if (lines[i].matched) continue
-    const key = stretchKey(s)
-    const pieces: [number, number][] = []
-    let ok = true
-    for (const w of windows(s.points)) {
-      if (requests >= MAX_REQUESTS) { ok = false; break }
+    const item = items[i]
+    if (lines[i].matched || requests >= MAX_REQUESTS) continue
+    if (item.kind === 'gap') {
+      // The hole, guessed along the network; kept straight when the guess is not believable.
       requests++
-      const matched = await matchPoints(w, s.costing, opts.signal)
-      if (!matched) { ok = false; break }
-      pieces.push(...(pieces.length ? matched.slice(1) : matched))
+      const routed = await routeVia([item.gap.from, item.gap.to], item.gap.costing, opts.signal)
+      if (routed && plausible(routed, item.gap)) keep(i, item.key, routed)
+      continue
     }
-    if (ok && pieces.length > 1) {
-      opts.cache?.set(key, pieces)
-      if (opts.cache && opts.cache.size > 300) opts.cache.delete(opts.cache.keys().next().value as string)
-      lines[i] = { ...lines[i], positions: pieces, matched: true }
-      opts.onProgress?.(lines.slice())
+    const s = item.stretch
+    if (s.points.length < 2) continue
+    const pieces: [number, number][] = []
+    let ok = !sparse(s.points)
+    if (ok) {
+      for (const w of windows(s.points)) {
+        if (requests >= MAX_REQUESTS) { ok = false; break }
+        requests++
+        const matched = await matchPoints(w, s.costing, opts.signal)
+        if (!matched) { ok = false; break }
+        pieces.push(...(pieces.length ? matched.slice(1) : matched))
+      }
     }
+    if (ok && pieces.length > 1) { keep(i, item.key, pieces); continue }
+    // Too sparse to match, or the matcher gave up: routed through its fixes instead, which follows the roads too.
+    if (requests >= MAX_REQUESTS || opts.signal?.aborted) continue
+    requests++
+    const routed = await routeVia(s.points, s.costing, opts.signal)
+    if (routed) keep(i, item.key, routed)
   }
   return lines
 }

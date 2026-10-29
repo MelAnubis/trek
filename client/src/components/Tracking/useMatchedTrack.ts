@@ -23,7 +23,7 @@ export function useMatchedTrack(points: TrackPoint[], snap: boolean, liveDelayMs
     setLines(now)
     if (!snap || points.length < 2) { setStatus(snap ? 'matched' : 'off'); return }
     // Everything already in the cache: nothing to ask.
-    if (now.every(l => l.matched || l.positions.length < 2)) { setStatus('matched'); return }
+    if (now.every(l => l.matched || l.inferred || l.positions.length < 2) && now.filter(l => l.inferred).every(l => l.matched)) { setStatus('matched'); return }
     const controller = new AbortController()
     const start = points[0]?.ts ?? null
     const delay = start === lastStart.current ? liveDelayMs : 0
@@ -37,8 +37,10 @@ export function useMatchedTrack(points: TrackPoint[], snap: boolean, liveDelayMs
       }).then(done => {
         if (controller.signal.aborted) return
         setLines(done)
-        const matched = done.filter(l => l.matched).length
-        const matchable = done.filter(l => l.positions.length > 1).length
+        // A hole's guess is a bonus, not part of what was recorded: it does not count either way.
+        const recorded = done.filter(l => !l.inferred)
+        const matched = recorded.filter(l => l.matched).length
+        const matchable = recorded.filter(l => l.positions.length > 1).length
         setStatus(matched === 0 ? 'failed' : matched < matchable ? 'partial' : 'matched')
       })
     }, delay)
@@ -52,4 +54,14 @@ export function useMatchedTrack(points: TrackPoint[], snap: boolean, liveDelayMs
 export function joinedLine(lines: MatchedLine[]): [number, number][] {
   return lines.flatMap((l, i) => (i > 0 && lines[i - 1].positions.length && l.positions.length
     && lines[i - 1].positions[lines[i - 1].positions.length - 1].join() === l.positions[0].join() ? l.positions.slice(1) : l.positions))
+}
+
+/**
+ * How a line is drawn: a recorded one solid when it follows the ways and
+ * dashed while it is still the raw fixes; a guessed hole (no fixes at all)
+ * fainter and finely dotted, so it never passes for a recording.
+ */
+export function lineStyle(l: MatchedLine, snap: boolean): { color: string; weight: number; opacity: number; dashArray?: string } {
+  if (l.inferred) return { color: l.color, weight: 4, opacity: 0.5, dashArray: '1 8' }
+  return { color: l.color, weight: l.matched ? 5 : 4, opacity: l.matched ? 0.9 : 0.75, dashArray: l.matched || !snap ? undefined : '6 6' }
 }
