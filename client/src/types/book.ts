@@ -83,6 +83,10 @@ export interface BookPhotoElement extends BookElementBase {
   duotone?: BookPhotoDuotone | null;
   /** A die-cut edge grown `width` mm around the shape, behind the picture. */
   cutout?: BookPhotoEdge | null;
+  /** A cut edge along the mask or the rectangle (schema rev 4, 5.7.6). */
+  edge?: BookEdge;
+  /** Millimetres the cut bites in, and the length of one tooth. */
+  edgeSize?: number;
 }
 
 export interface BookPhotoEdge { width: number; color: string }
@@ -98,8 +102,9 @@ export interface BookTextBinding {
   value?: string;
 }
 
-export interface BookTextElement extends BookElementBase {
+export interface BookTextElement extends BookElementBase, BookThemedColour {
   kind: 'text';
+  fontRole?: BookFontSlot;
   text: string;
   font: BookFontFamily;
   size: number;
@@ -117,7 +122,7 @@ export interface BookTextElement extends BookElementBase {
   overridden: boolean;
 }
 
-export interface BookShapeElement extends BookElementBase {
+export interface BookShapeElement extends BookElementBase, BookThemedColour {
   kind: 'shape';
   shape: BookShapeId;
   fill: string | null;
@@ -126,6 +131,85 @@ export interface BookShapeElement extends BookElementBase {
   strokeWidth: number;
   strokeStyle: 'solid' | 'dashed' | 'dotted';
   radius: number;
+  /** Gradient, see-through colour or pattern (rev 4, see bookPaint.ts); `fill` holds the colour standing for it. */
+  paint?: BookPaint;
+  edge?: BookEdge;
+  edgeSize?: number;
+  strokeToken?: BookColorToken;
+}
+
+/*
+ * ── Paint (schema rev 4, 5.7.6) — port of liketrek/TREK book-paint.schema.ts ──
+ */
+export const BOOK_PATTERNS = ['checker', 'gingham', 'stripes', 'pinstripe', 'dots', 'polka', 'zigzag', 'waves', 'grid', 'scales', 'sunburst', 'confetti', 'linen', 'grain'] as const
+export type BookPattern = (typeof BOOK_PATTERNS)[number]
+export const MAX_PAINT_STOPS = 6
+export const PATTERN_SCALE = { min: 0.25, max: 4 } as const
+export const RADIAL_RADIUS = { min: 0.05, max: 2 } as const
+export interface BookPaintStop { at: number; color: string; alpha?: number }
+export type BookPaint =
+  | { type: 'solid'; color: string; alpha?: number }
+  | { type: 'linear'; angle: number; stops: BookPaintStop[] }
+  | { type: 'radial'; cx: number; cy: number; r: number; stops: BookPaintStop[] }
+  | { type: 'pattern'; pattern: BookPattern; fg: string; bg: string | null; scale: number; angle: number }
+export type BookGradientPaint = Extract<BookPaint, { type: 'linear' | 'radial' }>
+export type BookPatternPaint = Extract<BookPaint, { type: 'pattern' }>
+
+/** Cut edges (rev 4) — see shapeOutline.ts. */
+export const BOOK_EDGES = ['straight', 'zigzag', 'scallop', 'perforated', 'wavy', 'torn', 'deckle'] as const
+export type BookEdge = (typeof BOOK_EDGES)[number]
+export const BOOK_EDGE_SIZE = { min: 0.5, max: 30 } as const
+
+/*
+ * ── Themes (rev 4) — port of liketrek/TREK book-theme.schema.ts ──
+ * Elements keep their real colours and fonts; a link beside them names the
+ * palette entry or face slot it came from (bookTheme.ts).
+ */
+export const BOOK_PALETTE_KEYS = ['paper', 'ink', 'accent', 'accent2', 'accent3'] as const
+export type BookPaletteKey = (typeof BOOK_PALETTE_KEYS)[number]
+export const BOOK_COLOR_TOKENS = ['paper', 'ink', 'muted', 'accent', 'accent2', 'accent3'] as const
+export type BookColorToken = (typeof BOOK_COLOR_TOKENS)[number]
+export const BOOK_FONT_SLOTS = ['display', 'heading', 'body', 'script'] as const
+export type BookFontSlot = (typeof BOOK_FONT_SLOTS)[number]
+export const BOOK_THEME_MOTIFS = ['ephemera', 'landmarks', 'tropical', 'mediterranean', 'sea', 'mountains', 'nordic', 'asia', 'food', 'paper', 'doodles', 'ornaments'] as const
+export type BookThemeMotif = (typeof BOOK_THEME_MOTIFS)[number]
+export const BOOK_THEME_DECORATIONS = ['none', 'light', 'rich'] as const
+export type BookThemeDecoration = (typeof BOOK_THEME_DECORATIONS)[number]
+export type BookPalette = Record<BookPaletteKey, string>
+export interface BookThemeFont { font: string; weight?: number; italic?: boolean }
+export interface BookTheme {
+  id: string | null
+  palette: BookPalette
+  fonts: { display: BookThemeFont; heading: BookThemeFont; body: BookThemeFont; script: BookThemeFont | null }
+  motifs: BookThemeMotif[]
+  decoration: BookThemeDecoration
+  frameStyle: 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape'
+  tilt: number
+}
+/** The colour link most kinds carry. */
+interface BookThemedColour { token?: BookColorToken }
+
+/*
+ * ── A drawn line (rev 4) — port of liketrek/TREK book-line.schema.ts ──
+ * Points are fractions of the frame (bookLine.ts keeps the two in step).
+ */
+export const MAX_LINE_POINTS = 32
+export const BOOK_LINE_CAPS = ['none', 'arrow', 'open', 'dot', 'bar'] as const
+export type BookLineCap = (typeof BOOK_LINE_CAPS)[number]
+export const BOOK_LINE_ORNAMENTS = ['none', 'diamond', 'dot', 'star', 'sun', 'heart'] as const
+export type BookLineOrnament = (typeof BOOK_LINE_ORNAMENTS)[number]
+export interface BookLineElement extends BookElementBase {
+  kind: 'line'
+  points: { x: number; y: number }[]
+  curve: 'straight' | 'smooth'
+  stroke: string
+  strokeWidth: number
+  dash: 'solid' | 'dashed' | 'dotted'
+  squiggle: 'none' | 'wave' | 'zigzag'
+  startCap: BookLineCap
+  endCap: BookLineCap
+  wobble: number
+  ornament: BookLineOrnament
 }
 
 /**
@@ -150,6 +234,9 @@ interface BookTypeset {
   font: BookFontFamily;
   color: string;
   accent: string;
+  token?: BookColorToken;
+  accentToken?: BookColorToken;
+  fontRole?: BookFontSlot;
 }
 
 export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss', 'budget'] as const;
@@ -213,7 +300,7 @@ export interface BookBadgeElement extends BookElementBase, BookTypeset {
   style: 'plain' | 'chip' | 'outline' | 'stacked';
 }
 
-export interface BookIconElement extends BookElementBase {
+export interface BookIconElement extends BookElementBase, BookThemedColour {
   kind: 'icon';
   /** A lucide export name, PascalCase — "Compass", "Plane", "MountainSnow". */
   name: string;
@@ -293,7 +380,7 @@ export interface BookAccommodationElement extends BookElementBase, BookTypeset {
 export type BookElement =
   | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
   | BookStatsElement | BookPlacesElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
-  | BookPackingElement | BookAccommodationElement;
+  | BookPackingElement | BookAccommodationElement | BookLineElement;
 
 /** A group's name; membership lives on the elements' own `group`. */
 export interface BookGroup {
@@ -306,6 +393,9 @@ export interface BookSpread {
   /** 'inner' is a double spread; 'cover', 'first', 'last' and 'back' are single pages. */
   role: 'cover' | 'first' | 'inner' | 'last' | 'back';
   background: string | null;
+  /** Gradient, see-through colour or pattern on the page (rev 4); `background` holds the colour standing for it. */
+  backgroundPaint?: BookPaint;
+  backgroundToken?: BookColorToken;
   /** Back to front — elements[0] paints first. */
   elements: BookElement[];
   parked: BookElement[];
@@ -348,6 +438,8 @@ export interface BookDocument {
   title: string;
   page: BookPageSetup;
   spreads: BookSpread[];
+  /** The book's theme (rev 4, bookTheme.ts). */
+  theme?: BookTheme;
 }
 
 export interface BookSummary {

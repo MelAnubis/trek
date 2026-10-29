@@ -7,7 +7,7 @@ import {
   PHOTO_ADJUSTMENTS, PHOTO_DUOTONES, PHOTO_EDGE_MAX, PHOTO_LOOK_STARTS, PHOTO_SHADOW_REACH, PHOTO_ZOOM,
   photoLookOf, type PhotoAdjustment,
 } from './photoLook'
-import type { BookPhotoAdjust, BookPhotoEdge, BookPhotoElement } from '../../types/book'
+import type { BookElement, BookPhotoAdjust, BookPhotoEdge, BookPhotoElement } from '../../types/book'
 
 /**
  * The inspector rows of the photo look (5.7.2, port of liketrek/TREK's
@@ -46,13 +46,18 @@ const signed = (v: number) => {
 
 /** `set` and `live` for one photo: a drag is held as one gesture and recorded once. */
 export function usePhotoLookPatch(spreadIndex: number, id: string) {
+  return useUndoablePatch<Patch>(spreadIndex, id)
+}
+
+/** `set` (one undo step) and `live` (a drag, recorded once on release) for any element. */
+export function useUndoablePatch<P extends Partial<BookElement>>(spreadIndex: number, id: string) {
   const dragging = useRef(false)
-  const update = (p: Patch) => useStudioStore.getState().updateElement(spreadIndex, id, p)
-  const live = (p: Patch) => {
+  const update = (p: P) => useStudioStore.getState().updateElement(spreadIndex, id, p)
+  const live = (p: P) => {
     if (!dragging.current) { useStudioStore.getState().beginGesture(); dragging.current = true }
     update(p)
   }
-  const set = (p: Patch) => {
+  const set = (p: P) => {
     if (!dragging.current) useStudioStore.getState().beginGesture()
     dragging.current = false
     update(p)

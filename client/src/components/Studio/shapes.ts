@@ -130,7 +130,7 @@ function scallop(lobes: number, depth: number): string {
 }
 
 /** A circle as four cubics. */
-function circle(cx = 50, cy = 50, rx = 50, ry = 50): string {
+export function circle(cx = 50, cy = 50, rx = 50, ry = 50): string {
   const kx = rx * K, ky = ry * K
   return `M${r2(cx)} ${r2(cy - ry)}`
     + `C${r2(cx + kx)} ${r2(cy - ry)} ${r2(cx + rx)} ${r2(cy - ky)} ${r2(cx + rx)} ${r2(cy)}`
@@ -140,7 +140,7 @@ function circle(cx = 50, cy = 50, rx = 50, ry = 50): string {
 }
 
 /** A rounded rectangle, corner radius in the same 0..100 units. */
-function roundRect(r: number, x = 0, y = 0, w = 100, h = 100): string {
+export function roundRect(r: number, x = 0, y = 0, w = 100, h = 100): string {
   const k = r * (1 - K)
   return `M${r2(x + r)} ${r2(y)}L${r2(x + w - r)} ${r2(y)}`
     + `C${r2(x + w - k)} ${r2(y)} ${r2(x + w)} ${r2(y + k)} ${r2(x + w)} ${r2(y + r)}`

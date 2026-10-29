@@ -25,8 +25,9 @@ import type { BookDocument } from '../../types/book'
  *
  * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
  * - 3 (5.7.2): the photo look — `border`, `shadow`, `zoom`, `flipX`, `adjust`, `duotone`, `cutout`.
+ * - 4 (5.7.6): paint (`paint`, `backgroundPaint`), cut edges (`edge`, `edgeSize`), the `line` element, and themes (`theme`, `token`, `strokeToken`, `accentToken`, `fontRole`, `backgroundToken`).
  */
-export const BOOK_SCHEMA_REV = 3
+export const BOOK_SCHEMA_REV = 4
 
 /** The `code` a refused save carries when the stored book is newer than the writer. */
 export const BOOK_SCHEMA_NEWER_CODE = 'book_schema_newer'

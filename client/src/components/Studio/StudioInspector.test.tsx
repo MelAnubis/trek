@@ -321,12 +321,12 @@ describe('StudioInspector — shape gradient and stroke', () => {
     expect(selectedShapeEl().shape).toBe('heart')
   })
 
-  it('FE-COMP-STUDIOINSPECTOR-018: changing Gradient updates the store', () => {
+  it('FE-COMP-STUDIOINSPECTOR-018: picking a gradient fill (5.7.6 paint picker) updates the store', () => {
     useStudioStore.getState().load(doc([shapeEl()]))
     useStudioStore.getState().select(['shape-1'])
     render(<StudioInspector spreadIndex={1} />)
-    fireEvent.change(screen.getByDisplayValue('None'), { target: { value: 'up' } })
-    expect(selectedShapeEl().gradient).toBe('up')
+    fireEvent.click(screen.getByTestId('paint-kind-gradient'))
+    expect(selectedShapeEl().paint?.type).toBe('linear')
   })
 
   it('FE-COMP-STUDIOINSPECTOR-019: stroke fields are hidden until the Stroke toggle is on', () => {
@@ -415,9 +415,11 @@ describe('StudioInspector — style pickers', () => {
   it('FE-COMP-STUDIOINSPECTOR-039: with nothing selected, the page background swatches colour the current spread, and Reset clears it', () => {
     useStudioStore.getState().load(doc([]))
     render(<StudioInspector spreadIndex={1} />)
-    fireEvent.click(screen.getAllByRole('button', { name: 'journey.studio.style.pageBackground #fbf6ec' })[0])
+    // The background is a paint picker since 5.7.6: a solid colour, then back to the paper.
+    fireEvent.click(screen.getByTestId('paint-kind-solid'))
+    fireEvent.click(screen.getAllByRole('button', { name: 'journey.studio.paint.colour #fbf6ec' })[0])
     expect(useStudioStore.getState().doc!.spreads[1].background).toBe('#fbf6ec')
-    fireEvent.click(screen.getByRole('button', { name: 'journey.studio.style.resetBackground' }))
+    fireEvent.click(screen.getByTestId('paint-kind-none'))
     expect(useStudioStore.getState().doc!.spreads[1].background).toBeNull()
   })
 })

@@ -16,6 +16,7 @@ import { estimateTextHeight } from './autoLayout'
 import { encodeImageForPaste, fitImageFrame } from './pastedImage'
 import { useToast } from '../shared/Toast'
 import { folioSettings, foliosOf } from './bookSheets'
+import { LineHandles } from './LineHandles'
 
 /**
  * The sheet plus everything you do to it. Ported from liketrek/trek's
@@ -413,7 +414,12 @@ export function StudioCanvas({
               pointerEvents: 'none',
             }}
           >
-            {sel.length === 1 && !dragging && !el.locked && !readOnly && ROTATE_CORNERS.map(c => (
+            {/* A line is edited by its points, not by its box (LineHandles.tsx). */}
+            {sel.length === 1 && !dragging && !el.locked && !readOnly && el.kind === 'line' && (
+              <LineHandles el={el} spreadIndex={spreadIndex} scaled={scaled} t={t} />
+            )}
+
+            {sel.length === 1 && !dragging && !el.locked && !readOnly && el.kind !== 'line' && ROTATE_CORNERS.map(c => (
               <div
                 key={c.id}
                 className={`st-rotate is-${c.id}`}
@@ -432,7 +438,7 @@ export function StudioCanvas({
               </div>
             ))}
 
-            {sel.length === 1 && !dragging && !el.locked && !readOnly && HANDLES.map(h => (
+            {sel.length === 1 && !dragging && !el.locked && !readOnly && el.kind !== 'line' && HANDLES.map(h => (
               <span
                 key={h}
                 className={`st-handle ${h.length === 2 ? 'is-corner' : h === 'n' || h === 's' ? 'is-h' : 'is-v'}`}

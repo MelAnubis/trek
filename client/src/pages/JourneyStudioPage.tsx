@@ -21,6 +21,7 @@ import { PrintOrderModal } from '../components/Studio/PrintOrderModal'
 // with no external CDN request.
 import '../components/Studio/bookFonts'
 import { buildBook, emptyBook, relayoutSpread, type AutoInput } from '../components/Studio/autoLayout'
+import { layoutWithTheme } from '../components/Studio/bookTheme'
 import { PAGE_PRESETS, pageSetupFor } from '../components/Studio/pagePresets'
 import { PageFormatMenu } from '../components/Studio/PageFormatMenu'
 import { AutoLayoutMenu, readAutoStyle, type AutoStyle } from '../components/Studio/AutoLayoutMenu'
@@ -279,12 +280,23 @@ export default function JourneyStudioPage() {
 
   const spread = doc?.spreads[activeSpread] ?? null
 
+  /** The page just laid out, in the book's theme — folded into the same undo step as the layout. */
+  const commitThemed = (spreadId: string) => {
+    const store = useStudioStore.getState()
+    const d = store.doc
+    if (!d?.theme) return
+    const themed = layoutWithTheme(d, d.theme, [spreadId])
+    if (themed !== d) store.apply(() => themed)
+  }
+
   const handleAutoSpread = () => {
     if (!autoInput || !spread) return
     commit(d => ({
       ...d,
       spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : relayoutSpread(sp, autoInput, activeSpread) ?? sp)),
     }))
+    // Dressed in the book's theme, when it has one (bookTheme.ts).
+    commitThemed(spread.id)
     toast.success(t('journey.studio.autoLayoutDone'))
   }
 
@@ -294,6 +306,7 @@ export default function JourneyStudioPage() {
       ...d,
       spreads: d.spreads.map((sp, i) => (i !== activeSpread ? sp : relayoutSpread(sp, autoInput, activeSpread, design) ?? sp)),
     }))
+    commitThemed(spread.id)
   }
 
   const handleAutoBook = async () => {
@@ -324,7 +337,7 @@ export default function JourneyStudioPage() {
           overviewRoute = await buildOverviewRouteImages(gpxTracks, tileUrl)
         }
       }
-      commit(() => buildBook({ ...autoInput, routeImagesByDate, overviewRoute }))
+      commit(d => layoutWithTheme(buildBook({ ...autoInput, routeImagesByDate, overviewRoute }), d.theme))
       setResizeNotice(false)
       toast.success(t('journey.studio.autoLayoutDone'))
     } finally {

@@ -92,6 +92,71 @@ const elementBase = {
 };
 
 /*
+ * Paint (schema rev 4, 5.7.6) — ported from liketrek/TREK's
+ * shared/src/book/book-paint.schema.ts. What fills a shape or a page when
+ * one flat colour is not enough: a colour with its own alpha, a linear or
+ * radial gradient of 2–6 stops, or one of the repeating patterns. Additive:
+ * the shape keeps `fill`/`gradient` and the page `background` set to the
+ * colour that stands for the paint, so an older reader still draws close.
+ * Unreadable paint falls back to none (the colour beside it draws).
+ */
+export const BOOK_PATTERNS = ['checker', 'gingham', 'stripes', 'pinstripe', 'dots', 'polka', 'zigzag', 'waves', 'grid', 'scales', 'sunburst', 'confetti', 'linen', 'grain'] as const;
+export const MAX_PAINT_STOPS = 6;
+const alpha = z.number().min(0).max(1);
+const paintAngle = z.number().finite().min(-360).max(360);
+const paintStop = z.object({ at: z.number().min(0).max(1), color: hex, alpha: alpha.optional() });
+const paintStops = z.array(paintStop).min(2).max(MAX_PAINT_STOPS);
+export const bookPaintSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('solid'), color: hex, alpha: alpha.optional() }),
+  z.object({ type: z.literal('linear'), angle: paintAngle, stops: paintStops }),
+  z.object({ type: z.literal('radial'), cx: z.number().min(0).max(1), cy: z.number().min(0).max(1), r: z.number().min(0.05).max(2), stops: paintStops }),
+  z.object({ type: z.literal('pattern'), pattern: z.enum(BOOK_PATTERNS), fg: hex, bg: hex.nullable(), scale: z.number().min(0.25).max(4), angle: paintAngle }),
+]);
+export type BookPaint = z.infer<typeof bookPaintSchema>;
+const paintField = bookPaintSchema.optional().catch(undefined);
+
+/*
+ * Cut edges (rev 4) — book-shapes-more.ts upstream. How the outline of a
+ * shape, or of a photo's cut, is finished; optional, so older documents read
+ * exactly as stored.
+ */
+export const BOOK_EDGES = ['straight', 'zigzag', 'scallop', 'perforated', 'wavy', 'torn', 'deckle'] as const;
+const edgeFields = {
+  edge: z.enum(BOOK_EDGES).optional().catch(undefined),
+  /** How deep the cut bites and how long one tooth is, in millimetres. */
+  edgeSize: z.number().finite().min(0.5).max(30).transform(v => Math.round(v * 100) / 100).optional().catch(undefined),
+};
+
+/*
+ * Theme links (rev 4) — book-theme.schema.ts upstream. Every element keeps
+ * its real colour and font; a link beside it names the palette entry or the
+ * typeface slot it came from, so applying a theme rewrites what is linked and
+ * leaves the rest alone. An unknown link reads as none.
+ */
+export const BOOK_COLOR_TOKENS = ['paper', 'ink', 'muted', 'accent', 'accent2', 'accent3'] as const;
+export const BOOK_FONT_SLOTS = ['display', 'heading', 'body', 'script'] as const;
+export const BOOK_THEME_MOTIFS = ['ephemera', 'landmarks', 'tropical', 'mediterranean', 'sea', 'mountains', 'nordic', 'asia', 'food', 'paper', 'doodles', 'ornaments'] as const;
+const tokenField = z.enum(BOOK_COLOR_TOKENS).optional().catch(undefined);
+const fontRoleField = z.enum(BOOK_FONT_SLOTS).optional().catch(undefined);
+const themeFont = z.object({
+  font: z.string().regex(/^[a-z][a-z0-9]*$/).max(32),
+  weight: z.number().int().min(100).max(900).multipleOf(100).optional(),
+  italic: z.boolean().optional(),
+});
+export const bookThemeSchema = z.object({
+  /** The built-in theme it started from, or null for a palette of the book's own. */
+  id: z.string().regex(/^[a-z0-9-]+$/).max(40).nullable().catch(null),
+  palette: z.object({ paper: hex, ink: hex, accent: hex, accent2: hex, accent3: hex }),
+  fonts: z.object({ display: themeFont, heading: themeFont, body: themeFont, script: themeFont.nullable() }),
+  motifs: z.array(z.string().max(24)).max(BOOK_THEME_MOTIFS.length).catch([])
+    .transform(list => [...new Set(list)].filter(m => (BOOK_THEME_MOTIFS as readonly string[]).includes(m))),
+  decoration: z.enum(['none', 'light', 'rich']).catch('light'),
+  frameStyle: z.enum(['none', 'polaroid', 'white', 'shadow', 'film', 'tape']).catch('none'),
+  tilt: z.number().min(0).max(8).catch(0),
+});
+export type BookTheme = z.infer<typeof bookThemeSchema>;
+
+/*
  * The photo look (schema rev 3, 5.7.2) — ported from liketrek/TREK's
  * shared/src/book/book-photo-look.schema.ts. Every part optional, null or
  * absent is off, and a value that cannot be read falls back to off rather
@@ -124,6 +189,7 @@ const photoLookFields = {
 
 export const bookPhotoElementSchema = z.object({
   ...photoLookFields,
+  ...edgeFields,
   ...elementBase,
   kind: z.literal('photo'),
   /** `trek_photos.id` — never a resolved URL, so the document survives a provider change. */
@@ -168,6 +234,8 @@ export const bookTextElementSchema = z.object({
     .nullable()
     .default(null),
   overridden: z.boolean().default(false),
+  token: tokenField,
+  fontRole: fontRoleField,
 });
 
 export const bookShapeElementSchema = z.object({
@@ -180,6 +248,35 @@ export const bookShapeElementSchema = z.object({
   strokeWidth: mm.default(0),
   strokeStyle: z.enum(['solid', 'dashed', 'dotted']).default('solid'),
   radius: mm.default(0),
+  /** Gradient, see-through colour or pattern (rev 4); `fill` holds the colour that stands for it. */
+  paint: paintField,
+  ...edgeFields,
+  token: tokenField,
+  strokeToken: tokenField,
+});
+
+/*
+ * A drawn line (rev 4) — book-line.schema.ts upstream. Points are fractions
+ * of the frame, so anything that moves or scales the frame carries the line.
+ */
+export const MAX_LINE_POINTS = 32;
+export const BOOK_LINE_CAPS = ['none', 'arrow', 'open', 'dot', 'bar'] as const;
+export const BOOK_LINE_ORNAMENTS = ['none', 'diamond', 'dot', 'star', 'sun', 'heart'] as const;
+const unit = z.number().finite().min(0).max(1);
+export const bookLineElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('line'),
+  points: z.array(z.object({ x: unit, y: unit })).min(2).max(MAX_LINE_POINTS).default([{ x: 0, y: 0.5 }, { x: 1, y: 0.5 }]),
+  curve: z.enum(['straight', 'smooth']).catch('straight').default('straight'),
+  stroke: hex.default('#141414'),
+  strokeWidth: z.number().finite().min(0.05).max(20).transform(v => Math.round(v * 100) / 100).default(0.5),
+  dash: z.enum(['solid', 'dashed', 'dotted']).catch('solid').default('solid'),
+  squiggle: z.enum(['none', 'wave', 'zigzag']).catch('none').default('none'),
+  startCap: z.enum(BOOK_LINE_CAPS).catch('none').default('none'),
+  endCap: z.enum(BOOK_LINE_CAPS).catch('none').default('none'),
+  /** How much it wavers, as if drawn by hand: 0 is ruled. */
+  wobble: z.number().min(0).max(1).catch(0).default(0),
+  ornament: z.enum(BOOK_LINE_ORNAMENTS).catch('none').default('none'),
 });
 
 /** Max length of an `image` element's data: URI — generous enough for a
@@ -209,6 +306,9 @@ const typeset = {
   color: hex.default('#1a1a1a'),
   /** The one colour that carries emphasis — the figure in a stat, the fill of a chip. */
   accent: hex.default('#111111'),
+  token: tokenField,
+  accentToken: tokenField,
+  fontRole: fontRoleField,
 };
 
 export const BOOK_METRICS = ['distance', 'days', 'steps', 'photos', 'countries', 'places', 'furthest', 'elevationGain', 'elevationLoss', 'budget'] as const;
@@ -318,6 +418,7 @@ export const bookIconElementSchema = z.object({
   color: hex.default('#111827'),
   /** Against lucide's own 24-unit grid, not millimetres — an icon's weight is not a length. */
   lineWidth: z.number().min(0.25).max(4).default(2),
+  token: tokenField,
 });
 
 export const MAX_LIST_ITEMS = 60;
@@ -429,6 +530,7 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookMapElementSchema,
   bookPackingElementSchema,
   bookAccommodationElementSchema,
+  bookLineElementSchema,
 ]);
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
@@ -443,6 +545,7 @@ export type BookListElement = z.infer<typeof bookListElementSchema>;
 export type BookMapElement = z.infer<typeof bookMapElementSchema>;
 export type BookPackingElement = z.infer<typeof bookPackingElementSchema>;
 export type BookAccommodationElement = z.infer<typeof bookAccommodationElementSchema>;
+export type BookLineElement = z.infer<typeof bookLineElementSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),
@@ -454,6 +557,9 @@ export const bookSpreadSchema = z.object({
    */
   role: z.enum(['cover', 'first', 'inner', 'last', 'back']).default('inner'),
   background: hex.nullable().default(null),
+  /** Gradient, see-through colour or pattern on the page (rev 4); `background` holds the colour standing for it. */
+  backgroundPaint: paintField,
+  backgroundToken: tokenField,
   elements: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   parked: z.array(bookElementSchema).max(MAX_SPREAD_ELEMENTS).default([]),
   entryId: z.number().int().nullable().default(null),
@@ -504,6 +610,8 @@ export const bookDocumentSchema = z.object({
   title: z.string().max(MAX_BOOK_TITLE).default(''),
   page: bookPageSetupSchema.default(() => bookPageSetupSchema.parse({})),
   spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),
+  /** The book's theme (rev 4): palette, faces by role, motifs. Unreadable is no theme. */
+  theme: bookThemeSchema.optional().catch(undefined),
 });
 export type BookDocument = z.infer<typeof bookDocumentSchema>;
 

@@ -1,5 +1,5 @@
-import { useId, type CSSProperties } from 'react'
-import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
+import { useId, useMemo, type CSSProperties } from 'react'
+import type { BookElement, BookImageElement, BookPageSetup, BookPaint, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { filterCss, frameSpec, textEffectCss } from './bookStyles'
 import { BookPhotoImg } from './BookPhotoImg'
@@ -7,6 +7,10 @@ import { folioSettings, isNumbered } from './bookSheets'
 import { folioInk } from './folioColour'
 import { AccommodationView, BadgeView, CountriesView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
+import { PaintedPath, SpreadPaint } from './paint/paintRender'
+import { roundedRectPath, strokeDash } from './paint/paintGeometry'
+import { hasEdge, photoEdgeClip, photoEdgePath, shapeOutline } from './shapeOutline'
+import { LineView } from './LineView'
 import { photoLookOf, pictureFilter, silhouetteShadows, svgFilterMatrices, zoomPlacement, type PhotoLook } from './photoLook'
 
 /**
@@ -56,6 +60,8 @@ function hexToRgba(hex: string, alpha: number): string {
  * shapes.ts's own comment for why.
  */
 function ShapeView({ el }: { el: BookShapeElement }) {
+  // A paint (gradient, see-through colour, pattern) or a cut edge: drawn wholly in SVG (5.7.6).
+  if (el.paint || hasEdge(el, el.shape)) return <PaintedShapeView el={el} paint={el.paint ?? legacyPaint(el)} />
   const fill = el.fill ?? 'transparent'
   const gradient = el.gradient !== 'none' && el.fill
   const gradientId = `shape-grad-${el.id}`
@@ -111,6 +117,52 @@ function ShapeView({ el }: { el: BookShapeElement }) {
 
 
 const round2 = (n: number) => Math.round(n * 100) / 100
+
+/** What a shape's old fields say, as paint, for one drawn in SVG because of its edge. */
+function legacyPaint(el: BookShapeElement): BookPaint | null {
+  if (el.fill === null) return null
+  if (el.gradient === 'none') return { type: 'solid', color: el.fill }
+  const color = el.fill
+  return { type: 'linear', angle: el.gradient === 'up' ? 0 : 180, stops: [{ at: 0, color, alpha: 0 }, { at: 0.46, color, alpha: 0.55 }, { at: 1, color, alpha: 1 }] }
+}
+
+/**
+ * A shape carrying a paint or a cut edge, drawn wholly in SVG (port of
+ * liketrek/TREK's paint/PaintedShape.tsx). The path is drawn into the frame
+ * inset by half the stroke, so the whole stroke sits inside the frame.
+ */
+function PaintedShapeView({ el, paint }: { el: BookShapeElement; paint: BookPaint | null }) {
+  const sw = el.stroke ? el.strokeWidth : 0
+  const w = Math.max(0.01, el.frame.w - sw)
+  const h = Math.max(0.01, el.frame.h - sw)
+  const d = useMemo(
+    () => (hasEdge(el, el.shape) ? shapeOutline(el, w, h)
+      : el.shape === 'rect' ? roundedRectPath(w, h, Math.max(0, el.radius - sw / 2))
+        : shapeOutline(el, w, h)),
+    [el, w, h, sw],
+  )
+  const box = useMemo(() => ({ x: 0, y: 0, w, h }), [w, h])
+  return (
+    <div style={frameStyle(el)}>
+      <svg width={`${el.frame.w}mm`} height={`${el.frame.h}mm`} viewBox={`0 0 ${el.frame.w} ${el.frame.h}`} style={{ display: 'block', overflow: 'visible' }}>
+        <g transform={sw ? `translate(${sw / 2} ${sw / 2})` : undefined}>
+          <PaintedPath
+            d={d}
+            paint={paint}
+            box={box}
+            idPrefix={el.id}
+            fillRule={HOLED_SHAPES.has(el.shape) ? 'evenodd' : undefined}
+            stroke={el.stroke ?? undefined}
+            strokeWidth={sw || undefined}
+            strokeDasharray={strokeDash(el.strokeStyle, sw)}
+            strokeLinecap={el.strokeStyle === 'dotted' ? 'round' : undefined}
+            strokeLinejoin="round"
+          />
+        </g>
+      </svg>
+    </div>
+  )
+}
 
 function PhotoView({ el, big, print, dropLabel, publicToken }: {
   el: BookPhotoElement; big: boolean; print: boolean; dropLabel: string; publicToken?: string
@@ -177,7 +229,9 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
   // sidesteps that entirely: its 0..1 coordinates are fractions of the
   // clipped element's own box, whatever that box is sized in.
   const clipId = `photo-mask-${el.id}`
-  const needsClipPath = el.mask != null && el.mask !== 'ellipse' && el.mask !== 'rect'
+  // A cut edge (5.7.6) replaces the mask's outline with its cut one, in the picture box's own millimetres.
+  const edgeClip = photoEdgeClip(el, el.frame.w - pad * 2, el.frame.h - pad - (bottom || pad))
+  const needsClipPath = edgeClip !== null || (el.mask != null && el.mask !== 'ellipse' && el.mask !== 'rect')
 
   const picture = (
     <div
@@ -197,7 +251,7 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
         <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden>
           <defs>
             <clipPath id={clipId} clipPathUnits="objectBoundingBox">
-              <path d={unitPath(SHAPE_PATHS[el.mask!] ?? SHAPE_PATHS.rect)} />
+              <path d={edgeClip ?? unitPath(SHAPE_PATHS[el.mask!] ?? SHAPE_PATHS.rect)} />
             </clipPath>
           </defs>
         </svg>
@@ -207,7 +261,8 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
       )}
       {!empty && (
         <BorderBand mask={el.mask} radius={el.radius} look={look}
-          width={el.frame.w - pad * 2} height={el.frame.h - pad - (bottom || pad)} />
+          width={el.frame.w - pad * 2} height={el.frame.h - pad - (bottom || pad)}
+          d={edgeClip ? photoEdgePath(el, el.frame.w - pad * 2, el.frame.h - pad - (bottom || pad)) ?? undefined : undefined} />
       )}
       {filterId && (
         <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden>
@@ -282,7 +337,8 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
       }}
     >
       {silhouette && (look.shadow || look.cutout) && (
-        <ShapeSilhouette w={el.frame.w} h={el.frame.h} mask={el.mask!} look={look} />
+        <ShapeSilhouette w={el.frame.w} h={el.frame.h} mask={el.mask ?? 'rect'} look={look}
+          d={edgeClip ? photoEdgePath(el, el.frame.w, el.frame.h) ?? undefined : undefined} />
       )}
       {picture}
       {overlay}
@@ -320,8 +376,8 @@ function LookPicture({ el, look, big, print, publicToken, filterId }: {
 }
 
 /** The hard shadow and die-cut edge of a shaped photo: its mask, grown by the cutout, behind the picture. */
-function ShapeSilhouette({ w, h, mask, look }: { w: number; h: number; mask: NonNullable<BookPhotoElement['mask']>; look: PhotoLook }) {
-  const d = scalePath(SHAPE_PATHS[mask] ?? SHAPE_PATHS.rect, w, h)
+function ShapeSilhouette({ w, h, mask, look, d: given }: { w: number; h: number; mask: NonNullable<BookPhotoElement['mask']>; look: PhotoLook; d?: string }) {
+  const d = given ?? scalePath(SHAPE_PATHS[mask] ?? SHAPE_PATHS.rect, w, h)
   const rule = HOLED_SHAPES.has(mask) ? 'evenodd' : undefined
   const grow = look.cutout?.width ?? 0
   const path = (color: string, dx = 0, dy = 0) => (
@@ -338,17 +394,17 @@ function ShapeSilhouette({ w, h, mask, look }: { w: number; h: number; mask: Non
 }
 
 /** The border: a band along the inside of the picture's edge, following its shape. */
-function BorderBand({ mask, radius, look, width, height }: {
-  mask: BookPhotoElement['mask']; radius: number | undefined; look: PhotoLook; width: number; height: number
+function BorderBand({ mask, radius, look, width, height, d }: {
+  mask: BookPhotoElement['mask']; radius: number | undefined; look: PhotoLook; width: number; height: number; d?: string
 }) {
   const border = look.border
   if (!border || width <= 0 || height <= 0) return null
-  if (mask && mask !== 'rect' && mask !== 'ellipse') {
+  if (d || (mask && mask !== 'rect' && mask !== 'ellipse')) {
     // Stroked twice as wide as the band and cut by the picture's own clip, so exactly the inner half shows.
     return (
       <svg aria-hidden viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
         style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', pointerEvents: 'none' }}>
-        <path d={scalePath(SHAPE_PATHS[mask] ?? SHAPE_PATHS.rect, width, height)} fill="none"
+        <path d={d ?? scalePath(SHAPE_PATHS[mask ?? 'rect'] ?? SHAPE_PATHS.rect, width, height)} fill="none"
           stroke={border.color} strokeWidth={border.width * 2} strokeLinejoin="round" />
       </svg>
     )
@@ -396,6 +452,7 @@ export function ElementView({
   if (el.kind === 'list') return <ListView el={el} />
   if (el.kind === 'packing') return <PackingView el={el} />
   if (el.kind === 'accommodation') return <AccommodationView el={el} />
+  if (el.kind === 'line') return <LineView el={el} frameStyle={frameStyle(el)} />
 
   return (
     <div
@@ -520,6 +577,10 @@ export function SpreadView({
         overflow: print ? 'visible' : 'hidden',
       }}
     >
+      {spread.backgroundPaint && (
+        <SpreadPaint paint={spread.backgroundPaint} width={page.pageWidth * (spread.role === 'inner' ? 2 : 1)}
+          height={page.pageHeight} bleed={page.bleed} idPrefix={spread.id} />
+      )}
       {/* A hidden layer stays in the layers panel and off the page, here and in print. */}
       {spread.elements.filter(el => !el.hidden).map(el => (
         <ElementView key={el.id} el={el} big={big} print={print} dropLabel={dropLabel} publicToken={publicToken} />

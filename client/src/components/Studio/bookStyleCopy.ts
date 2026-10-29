@@ -23,9 +23,9 @@ export interface BookCopiedStyle {
 const TYPESET = ['font', 'color', 'accent']
 
 const STYLE_KEYS: Record<BookElement['kind'], readonly string[]> = {
-  photo: ['opacity', 'fit', 'radius', 'filter', 'frameStyle', 'mask', 'border', 'shadow', 'zoom', 'flipX', 'adjust', 'duotone', 'cutout'],
+  photo: ['opacity', 'fit', 'radius', 'filter', 'frameStyle', 'mask', 'border', 'shadow', 'zoom', 'flipX', 'adjust', 'duotone', 'cutout', 'edge', 'edgeSize'],
   text: ['opacity', 'font', 'size', 'weight', 'italic', 'align', 'leading', 'tracking', 'color', 'effect', 'highlight', 'uppercase'],
-  shape: ['opacity', 'fill', 'gradient', 'stroke', 'strokeWidth', 'strokeStyle', 'radius'],
+  shape: ['opacity', 'fill', 'gradient', 'paint', 'stroke', 'strokeWidth', 'strokeStyle', 'radius', 'edge', 'edgeSize'],
   image: ['opacity', 'fit', 'radius'],
   map: ['opacity', 'fit', 'radius'],
   stats: ['opacity', ...TYPESET, 'layout', 'showIcons', 'units'],
@@ -36,6 +36,7 @@ const STYLE_KEYS: Record<BookElement['kind'], readonly string[]> = {
   list: ['opacity', ...TYPESET, 'layout', 'showMarks'],
   packing: ['opacity', ...TYPESET, 'groupByCategory', 'showQuantity', 'columns'],
   accommodation: ['opacity', ...TYPESET, 'showConfirmation', 'layout'],
+  line: ['opacity', 'stroke', 'strokeWidth', 'dash', 'curve', 'squiggle', 'startCap', 'endCap', 'wobble', 'ornament'],
 }
 
 /** Fields that mean the same thing on every kind that has them, so they may cross kinds. */
@@ -72,5 +73,11 @@ export function pastableStyle(style: BookCopiedStyle, kind: BookElement['kind'])
 export function withPastedStyle(el: BookElement, style: BookCopiedStyle): BookElement {
   const look = pastableStyle(style, el.kind)
   if (!look) return el
-  return { ...el, ...look } as BookElement
+  const next = { ...el, ...look } as Record<string, unknown>
+  // Within a kind, an optional part the source does not wear (a paint, an edge, a photo look) is taken off too.
+  if (style.kind === el.kind) for (const key of OPTIONAL_LOOK) if (style.props[key] === undefined && key in next && bookStyleKeys(el.kind).includes(key)) delete next[key]
+  return next as unknown as BookElement
 }
+
+/** Look fields that are absent when off, rather than set to a neutral value. */
+const OPTIONAL_LOOK = ['paint', 'edge', 'edgeSize', 'border', 'shadow', 'zoom', 'flipX', 'adjust', 'duotone', 'cutout']

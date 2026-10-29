@@ -1,6 +1,6 @@
 import {
   Award, BarChart3, ChevronRight, Eye, EyeOff, Globe2, GripVertical, Group, Hotel, ImageIcon, ListChecks,
-  Lock, Luggage, Map as MapIcon, MapPin, Shapes, Sparkles, Square, Type, Ungroup, Unlock, type LucideIcon,
+  Lock, Luggage, Spline, Map as MapIcon, MapPin, Shapes, Sparkles, Square, Type, Ungroup, Unlock, type LucideIcon,
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import type { BookElement } from '../../types/book'
@@ -30,7 +30,7 @@ import { dropOn, layerKeyAction, layerLabel, layerRows, rowIds, type LayerDrop, 
 const KIND_ICONS: Record<string, LucideIcon> = {
   photo: ImageIcon, text: Type, shape: Square, image: ImageIcon, icon: Sparkles, map: MapIcon,
   stats: BarChart3, countries: Globe2, places: MapPin, badge: Award, list: ListChecks,
-  packing: Luggage, accommodation: Hotel,
+  packing: Luggage, accommodation: Hotel, line: Spline,
 }
 
 /** How far, in pixels, a press on a row travels before it is a drag rather than a click. */

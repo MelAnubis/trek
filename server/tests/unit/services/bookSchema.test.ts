@@ -353,3 +353,46 @@ describe('bookElementSchema — photo look (rev 3)', () => {
   });
 });
 
+
+describe('bookSchema — rev 4 (5.7.6): paint, edges, lines, themes', () => {
+  const at = { id: 'x', frame: { x: 0, y: 0, w: 50, h: 40 }, rotation: 0, opacity: 1, locked: false };
+
+  it('BOOKSCHEMA-P3-001: a shape keeps its paint, edge and theme links; unreadable ones fall back to none', () => {
+    const paint = { type: 'linear', angle: 90, stops: [{ at: 0, color: '#000000' }, { at: 1, color: '#ffffff', alpha: 0.5 }] };
+    const r = bookElementSchema.parse({ ...at, kind: 'shape', paint, edge: 'torn', edgeSize: 4.256, token: 'accent', strokeToken: 'ink' }) as any;
+    expect(r).toMatchObject({ paint, edge: 'torn', edgeSize: 4.26, token: 'accent', strokeToken: 'ink' });
+    const bad = bookElementSchema.parse({ ...at, kind: 'shape', paint: { type: 'linear', stops: [] }, edge: 'lace', token: 'sky' }) as any;
+    expect(bad.kind).toBe('shape');
+    expect([bad.paint, bad.edge, bad.token]).toEqual([undefined, undefined, undefined]);
+    for (const pattern of ['checker', 'sunburst', 'grain']) {
+      const p = bookElementSchema.parse({ ...at, kind: 'shape', paint: { type: 'pattern', pattern, fg: '#111111', bg: null, scale: 1, angle: 0 } }) as any;
+      expect(p.paint.pattern).toBe(pattern);
+    }
+  });
+
+  it('BOOKSCHEMA-P3-002: a line reads with its defaults and keeps up to 32 points', () => {
+    const r = bookElementSchema.parse({ ...at, kind: 'line' }) as any;
+    expect(r).toMatchObject({ kind: 'line', points: [{ x: 0, y: 0.5 }, { x: 1, y: 0.5 }], curve: 'straight', strokeWidth: 0.5, startCap: 'none', ornament: 'none' });
+    const points = Array.from({ length: 32 }, (_, i) => ({ x: i / 31, y: 0.5 }));
+    expect((bookElementSchema.parse({ ...at, kind: 'line', points, endCap: 'arrow', squiggle: 'wave', wobble: 0.4 }) as any).points).toHaveLength(32);
+    expect(bookElementSchema.safeParse({ ...at, kind: 'line', points: [...points, { x: 1, y: 1 }] }).success).toBe(false);
+    expect((bookElementSchema.parse({ ...at, kind: 'line', endCap: 'rocket' }) as any).endCap).toBe('none');
+  });
+
+  it('BOOKSCHEMA-P3-003: a document keeps its theme and a page its background paint; an unreadable theme is no theme', () => {
+    const theme = {
+      id: 'riviera', palette: { paper: '#fffaf0', ink: '#22324a', accent: '#2a78bd', accent2: '#6f7f34', accent3: '#e9b824' },
+      fonts: { display: { font: 'playfair', weight: 600 }, heading: { font: 'montserrat' }, body: { font: 'serif' }, script: null },
+      motifs: ['sea', 'nope'], decoration: 'light', frameStyle: 'none', tilt: 0,
+    };
+    const doc = normalizeBookDocument({
+      title: 'T', theme,
+      spreads: [{ id: 'a', background: '#ffeedd', backgroundToken: 'paper', backgroundPaint: { type: 'solid', color: '#ffeedd', alpha: 0.5 }, elements: [{ ...at, kind: 'text', token: 'ink', fontRole: 'body' }] }],
+    }) as any;
+    expect(doc.theme.motifs).toEqual(['sea']);
+    expect(doc.theme.palette.accent).toBe('#2a78bd');
+    expect(doc.spreads[0]).toMatchObject({ backgroundToken: 'paper', backgroundPaint: { type: 'solid', alpha: 0.5 } });
+    expect(doc.spreads[0].elements[0]).toMatchObject({ token: 'ink', fontRole: 'body' });
+    expect((normalizeBookDocument({ theme: { palette: 'red' } }) as any).theme).toBeUndefined();
+  });
+});

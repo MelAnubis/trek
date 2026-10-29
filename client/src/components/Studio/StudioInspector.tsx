@@ -3,7 +3,11 @@ import { StudioArrangeSection } from './StudioArrangeSection'
 import { selectionTitle } from './studioLayerRows'
 import { MIN_PRINT_DPI, photoDpi, usePhotoPixels } from './photoResolution'
 import { photoZoomOf } from './photoLook'
-import { PhotoCropExtras, PhotoLookSections, usePhotoLookPatch } from './StudioPhotoLook'
+import { PhotoCropExtras, PhotoLookSections, usePhotoLookPatch, useUndoablePatch } from './StudioPhotoLook'
+import { EdgeSection, PageBackgroundSection, ShapeFillSection } from './StudioPaintSections'
+import { LineInspector } from './StudioLineInspector'
+import { withThemeLinks } from './bookTheme'
+import { StudioThemeLink } from './theme/StudioThemePanel'
 import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
@@ -52,7 +56,6 @@ const INPUT: React.CSSProperties = { padding: '6px 8px', borderRadius: 6, border
 function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: number }) {
   const { t } = useTranslation()
   const setPageNumbers = useStudioStore(s => s.setPageNumbers)
-  const setSpreadBackground = useStudioStore(s => s.setSpreadBackground)
   const spread = doc.spreads[spreadIndex]
   const cfg = folioSettings(doc.page)
   const seg = (on: boolean): React.CSSProperties => ({
@@ -65,19 +68,7 @@ function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: n
     <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
       <span style={{ ...LABEL, display: 'block', marginBottom: 14 }}>{t('journey.studio.document')}</span>
 
-      {spread && (
-        <div style={FIELD} data-testid="page-background">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={LABEL}>{t('journey.studio.style.pageBackground')}</span>
-            {spread.background && (
-              <button onClick={() => setSpreadBackground(spreadIndex, null)} style={{ fontSize: 10, border: 'none', background: 'none', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}>
-                {t('journey.studio.style.resetBackground')}
-              </button>
-            )}
-          </div>
-          <ColorSwatches value={spread.background ?? '#ffffff'} onPick={c => setSpreadBackground(spreadIndex, c.toLowerCase() === '#ffffff' ? null : c)} label={t('journey.studio.style.pageBackground')} t={t} />
-        </div>
-      )}
+      {spread && <PageBackgroundSection spread={spread} spreadIndex={spreadIndex} t={t} />}
 
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.pageNumbers')}</span>
@@ -170,6 +161,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
   const doc = useStudioStore(s => s.doc)
   const selection = useStudioStore(s => s.selection)
   const updateElement = useStudioStore(s => s.updateElement)
+  const theme = useStudioStore(s => s.doc?.theme)
   const setFrame = useStudioStore(s => s.setFrame)
   const readOnly = useStudioStore(s => s.readOnly)
 
@@ -187,7 +179,14 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
     )
   }
 
-  const patch = (p: Partial<BookElement>) => updateElement(spreadIndex, el.id, p)
+  // A colour or face changed by hand unlinks it from the theme; a link set takes the theme's value (bookTheme.ts).
+  const patch = (p: Partial<BookElement>) => {
+    const linked = withThemeLinks({ ...el, ...p } as BookElement, p as Record<string, unknown>, theme) as unknown as Record<string, unknown>
+    const out: Record<string, unknown> = { ...p }
+    for (const k of Object.keys(linked)) if (linked[k] !== (el as unknown as Record<string, unknown>)[k]) out[k] = linked[k]
+    for (const k of ['token', 'strokeToken', 'accentToken', 'fontRole']) if (k in el && !(k in linked)) out[k] = undefined
+    updateElement(spreadIndex, el.id, out as Partial<BookElement>)
+  }
   const visibleSelection = selection.filter(id => spread?.elements.some(e => e.id === id))
   const title = visibleSelection.length > 1
     ? selectionTitle(spread, visibleSelection, t)
@@ -234,6 +233,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
         <input type="range" min={0} max={1} step={0.05} value={el.opacity} onChange={e => patch({ opacity: Number(e.target.value) })} />
       </div>
 
+      {el.kind === 'line' && <LineInspector el={el} spreadIndex={spreadIndex} t={t} />}
+
       {el.kind === 'photo' && (
         <>
           <div style={FIELD}>
@@ -276,6 +277,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             <span style={LABEL}>Corner radius</span>
             <input type="number" min={0} style={INPUT} value={el.radius} onChange={e => patch({ radius: Number(e.target.value) || 0 })} />
           </div>
+          <ElementEdge el={el} spreadIndex={spreadIndex} outline={el.mask && el.mask !== 'rect' ? el.mask : null} />
           <PhotoLook el={el} spreadIndex={spreadIndex} part="sections" />
         </>
       )}
@@ -325,6 +327,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.style.textColor')}</span>
             <ColorSwatches value={el.color} onPick={color => patch({ color })} label={t('journey.studio.style.textColor')} t={t} />
+            <StudioThemeLink theme={theme} token={el.token} t={t} onLink={(token, color) => patch({ color, token })} onUnlink={() => updateElement(spreadIndex, el.id, { token: undefined })} />
           </div>
         </>
       )}
@@ -341,18 +344,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               ))}
             </select>
           </div>
-          <div style={FIELD}>
-            <span style={LABEL}>{t('journey.studio.style.fill')}</span>
-            <ColorSwatches value={el.fill ?? '#111827'} onPick={fill => patch({ fill })} label={t('journey.studio.style.fill')} t={t} />
-          </div>
-          <div style={FIELD}>
-            <span style={LABEL}>Gradient</span>
-            <select style={INPUT} value={el.gradient} onChange={e => patch({ gradient: e.target.value as BookShapeElement['gradient'] })}>
-              <option value="none">None</option>
-              <option value="up">Fades up</option>
-              <option value="down">Fades down</option>
-            </select>
-          </div>
+          <ShapeFillSection el={el} spreadIndex={spreadIndex} t={t} />
+          {el.fill !== null && <StudioThemeLink theme={theme} token={el.token} t={t} onLink={(token, fill) => patch({ fill, token, paint: undefined })} onUnlink={() => updateElement(spreadIndex, el.id, { token: undefined })} />}
           {el.shape === 'rect' && (
             <div style={FIELD}>
               <span style={LABEL}>Corner radius</span>
@@ -383,6 +376,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               </div>
             </>
           )}
+          <ElementEdge el={el} spreadIndex={spreadIndex} outline={el.shape} />
         </>
       )}
 
@@ -401,6 +395,13 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
 }
 
 type Patch = (p: Partial<BookElement>) => void
+
+/** The cut edge of a shape or a photo (StudioPaintSections.tsx), each change one undo step. */
+function ElementEdge({ el, spreadIndex, outline }: { el: BookShapeElement | BookPhotoElement; spreadIndex: number; outline: BookShapeId | null }) {
+  const { t } = useTranslation()
+  const { set } = useUndoablePatch<Partial<BookElement>>(spreadIndex, el.id)
+  return <EdgeSection edge={el.edge} edgeSize={el.edgeSize} outline={outline} onSet={p => set(p as Partial<BookElement>)} t={t} />
+}
 
 /** The photo look's rows (StudioPhotoLook.tsx), each change one undo step. */
 function PhotoLook({ el, spreadIndex, part }: { el: BookPhotoElement; spreadIndex: number; part: 'crop' | 'sections' }) {

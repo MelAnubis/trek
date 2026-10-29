@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { Globe2, Layers,
+import { Globe2, Layers, Palette,
   Award, BarChart3, Circle, Compass, Copy, Hotel, ImageIcon, ListChecks, Luggage, Map as MapIconLucide, MapPin, Plus, Sparkles,
   Square, Trash2, Type, Upload, ChevronUp, ChevronDown, ChevronRight, LayoutGrid,
 } from 'lucide-react'
@@ -20,6 +20,8 @@ import { folioLabel, folioSettings, foliosOf } from './bookSheets'
 import { countryName } from './countryShapes'
 import { StudioLayersPanel } from './StudioLayersPanel'
 import { StudioProviderPhotos } from './StudioProviderPhotos'
+import { StudioLineShelf } from './StudioLineShelf'
+import { StudioThemePanel } from './theme/StudioThemePanel'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -148,8 +150,8 @@ export function StudioSidebar({
   /** Photos just brought in from Immich/Synology, shown on their own until the panel's filter is changed. */
   const [recentPhotoIds, setRecentPhotoIds] = useState<Set<number> | null>(null)
   const photoFileRef = useRef<HTMLInputElement>(null)
-  const toggleSection = (id: string) => setCollapsedSections(prev => {
-    const next = { ...prev, [id]: !prev[id] }
+  const toggleSection = (id: string, wasCollapsed = !!collapsedSections[id]) => setCollapsedSections(prev => {
+    const next = { ...prev, [id]: !wasCollapsed }
     try { localStorage.setItem(SIDEBAR_COLLAPSE_KEY, JSON.stringify(next)) } catch { /* private-mode/blocked storage — collapse state just won't persist */ }
     return next
   })
@@ -433,6 +435,8 @@ export function StudioSidebar({
             </div>
           )}
         </div>
+        <StudioLineShelf page={doc.page} single={doc.spreads[activeSpread]?.role !== 'inner'} t={t}
+          onAdd={el => addElement(activeSpread, el)} />
       </CollapsibleSection>
 
       {/* Travel */}
@@ -489,6 +493,17 @@ export function StudioSidebar({
           <button onClick={() => void addPacking()} className="st-sb-add"><Luggage size={15} /> {t('journey.studio.addPacking')}</button>
           <button onClick={() => void addAccommodation()} className="st-sb-add"><Hotel size={15} /> {t('journey.studio.addAccommodation')}</button>
         </div>
+      </CollapsibleSection>
+
+      {/* Theme (5.7.6): folded until opened, being the tallest section. */}
+      <CollapsibleSection
+        icon={<Palette size={12} color="var(--text-faint)" />}
+        title={t('studio.theme.panel')}
+        collapsed={collapsedSections.theme !== false}
+        onToggle={() => toggleSection('theme', collapsedSections.theme !== false)}
+        disabled={readOnly}
+      >
+        <StudioThemePanel />
       </CollapsibleSection>
 
       {/* Photos */}
