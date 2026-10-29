@@ -26,6 +26,10 @@ describe('FE-CLIENT-INTERCEPTOR: 401 AUTH_REQUIRED redirect allowlist', () => {
       expect(isAuthPublicPath('/shared/abc123token')).toBe(true)
     })
 
+    it('FE-CLIENT-INTERCEPTOR-005b: /live/:token (Tracking en vivo link) is public', () => {
+      expect(isAuthPublicPath('/live/abc123token')).toBe(true)
+    })
+
     it('FE-CLIENT-INTERCEPTOR-006: /public/journey/:token', () => {
       expect(isAuthPublicPath('/public/journey/xyz789')).toBe(true)
     })

@@ -41,7 +41,7 @@ import memoriesRoutes from './routes/memories/unified';
 import photoRoutes from './routes/photos';
 import notificationRoutes from './routes/notifications';
 import shareRoutes from './routes/share';
-import liveLocationRoutes from './routes/liveLocation';
+import trackingRoutes from './routes/tracking';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import siteRoutes from './routes/site';
@@ -206,6 +206,9 @@ export function createApp(): express.Application {
   app.use('/api/journeys/:id/blog', express.json({ limit: '12mb' }));
   // Planner routes carry a whole GPX track as JSON — same ordering constraint as above.
   app.use('/api/planner', express.json({ limit: '15mb' }));
+  // Overland sends up to a few thousand GeoJSON points per batch when it has
+  // been offline for a while — far past the blanket 100kb.
+  app.use('/api/tracking/overland', express.json({ limit: '10mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -440,7 +443,7 @@ export function createApp(): express.Application {
   app.use('/api/backup', backupRoutes);
   app.use('/api/notifications', notificationRoutes);
   app.use('/api', shareRoutes);
-  app.use('/api', liveLocationRoutes);
+  app.use('/api', trackingRoutes);
 
   // OAuth 2.1 — public endpoints
   // Gate: 404 when MCP addon is disabled (M2 — prevents feature fingerprinting)

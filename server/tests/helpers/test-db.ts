@@ -99,6 +99,9 @@ const RESET_TABLES = [
   'audit_log',
   // System notices
   'user_notice_dismissals',
+  // Tracking en vivo (Overland)
+  'tracking_points',
+  'tracking_devices',
   // User data
   'settings',
   'mcp_tokens',

@@ -2823,6 +2823,54 @@ function runMigrations(db: Database.Database): void {
       if (!has) db.exec('ALTER TABLE gpx_tracks ADD COLUMN tour_place_id INTEGER REFERENCES places(id) ON DELETE SET NULL');
       db.exec('CREATE INDEX IF NOT EXISTS idx_gpx_tracks_tour ON gpx_tracks(tour_place_id)');
     },
+    // 5.7.1 — Tracking en vivo: phones running Overland (Android/iOS) post their
+    // GPS points here. One row per phone (its own token, kept only as a hash),
+    // its last fix and status, and an optional public share link.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tracking_devices (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          token_hash TEXT NOT NULL UNIQUE,
+          token_hint TEXT,
+          overland_device_id TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          last_seen_at DATETIME,
+          last_lat REAL,
+          last_lng REAL,
+          last_accuracy REAL,
+          last_speed REAL,
+          last_altitude REAL,
+          last_motion TEXT,
+          last_point_at TEXT,
+          battery_level REAL,
+          battery_state TEXT,
+          status TEXT,
+          status_at TEXT,
+          retention_days INTEGER,
+          share_token TEXT UNIQUE,
+          share_label TEXT,
+          share_started_at DATETIME,
+          share_expires_at DATETIME
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracking_devices_user ON tracking_devices(user_id);
+        CREATE TABLE IF NOT EXISTS tracking_points (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          device_id INTEGER NOT NULL REFERENCES tracking_devices(id) ON DELETE CASCADE,
+          ts TEXT NOT NULL,
+          lat REAL NOT NULL,
+          lng REAL NOT NULL,
+          altitude REAL,
+          speed REAL,
+          accuracy REAL,
+          motion TEXT,
+          battery_level REAL,
+          UNIQUE(device_id, ts)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracking_points_device_ts ON tracking_points(device_id, ts);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

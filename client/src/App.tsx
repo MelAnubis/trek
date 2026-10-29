@@ -23,6 +23,7 @@ import BlogPublicPage from './pages/BlogPublicPage'
 import { SiteHomePage, SiteRoutePage, SiteStoryPage } from './site/SitePages'
 import SharedTripPage from './pages/SharedTripPage'
 import LiveLocationPage from './pages/LiveLocationPage'
+import TrackingPage from './pages/TrackingPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
@@ -122,7 +123,7 @@ export default function App() {
   const { loadAddons } = useAddonStore()
 
   useEffect(() => {
-    if (!location.pathname.startsWith('/shared/') && !location.pathname.startsWith('/public/') && !location.pathname.startsWith('/login')) {
+    if (!location.pathname.startsWith('/shared/') && !location.pathname.startsWith('/public/') && !location.pathname.startsWith('/live/') && !location.pathname.startsWith('/login')) {
       // If the persist snapshot already has an authenticated user, validate
       // silently so the PWA shell renders immediately without a spinner.
       const alreadyAuthenticated = useAuthStore.getState().isAuthenticated
@@ -256,6 +257,14 @@ export default function App() {
           element={
             <ProtectedRoute adminRequired>
               <AdminPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tracking"
+          element={
+            <ProtectedRoute>
+              <TrackingPage />
             </ProtectedRoute>
           }
         />

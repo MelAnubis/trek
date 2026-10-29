@@ -68,7 +68,8 @@ apiClient.interceptors.request.use(
 export function isAuthPublicPath(pathname: string): boolean {
   // '/', '/explora', /rutas/… and /relatos/… are the public site (#ESTODOBAJADA).
   const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/', '/explora']
-  const publicPrefixes = ['/shared/', '/public/', '/rutas/', '/relatos/']
+  // /live/… is a Tracking en vivo link: watched by people without an account.
+  const publicPrefixes = ['/shared/', '/public/', '/rutas/', '/relatos/', '/live/']
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
 }
 
@@ -793,14 +794,23 @@ export const shareApi = {
   getSharedTrip: (token: string) => apiClient.get(`/shared/${token}`).then(r => r.data),
 }
 
-export const liveLocationApi = {
-  start: (label?: string) => apiClient.post('/live-location/start', { label }).then(r => r.data),
-  stop: () => apiClient.post('/live-location/stop').then(r => r.data),
-  mine: () => apiClient.get('/live-location/mine').then(r => r.data),
-  sendPoint: (token: string, point: { lat: number; lng: number; accuracy?: number | null; altitude?: number | null; speed?: number | null; recorded_at?: string }) =>
-    apiClient.post(`/live-location/${token}/point`, point).then(r => r.data),
+/** Tracking en vivo (5.7.1): phones running Overland post to /api/tracking/overland; this is the owner's side. */
+export const trackingApi = {
+  devices: () => apiClient.get('/tracking/devices').then(r => r.data),
+  createDevice: (name: string) => apiClient.post('/tracking/devices', { name }).then(r => r.data),
+  updateDevice: (id: number, patch: { name?: string; retention_days?: number | null }) => apiClient.patch(`/tracking/devices/${id}`, patch).then(r => r.data),
+  regenerateToken: (id: number) => apiClient.post(`/tracking/devices/${id}/token`).then(r => r.data),
+  deleteDevice: (id: number) => apiClient.delete(`/tracking/devices/${id}`).then(r => r.data),
+  track: (id: number, params: { from: string; to: string; max_accuracy?: number }) => apiClient.get(`/tracking/devices/${id}/track`, { params }).then(r => r.data),
+  days: (id: number, offset: number) => apiClient.get(`/tracking/devices/${id}/days`, { params: { offset } }).then(r => r.data),
+  gpxUrl: (id: number, params: { from: string; to: string; max_accuracy?: number }) =>
+    `/api/tracking/devices/${id}/gpx?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])).toString()}`,
+  saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number }) =>
+    apiClient.post(`/tracking/devices/${id}/save-route`, body).then(r => r.data),
+  share: (id: number, hours: number, label?: string) => apiClient.post(`/tracking/devices/${id}/share`, { hours, label }).then(r => r.data),
+  stopShare: (id: number) => apiClient.delete(`/tracking/devices/${id}/share`).then(r => r.data),
   // Public — no auth, used by the viewer page.
-  getPublic: (token: string) => apiClient.get(`/live-location/${token}`).then(r => r.data),
+  getPublic: (token: string) => apiClient.get(`/tracking/public/${token}`).then(r => r.data),
 }
 
 export const notificationsApi = {

@@ -13,7 +13,7 @@ import IntegrationsTab from '../components/Settings/IntegrationsTab'
 import AccountTab from '../components/Settings/AccountTab'
 import AboutTab from '../components/Settings/AboutTab'
 import OfflineTab from '../components/Settings/OfflineTab'
-import LiveLocationTab from '../components/Settings/LiveLocationTab'
+import TrackingTab from '../components/Settings/TrackingTab'
 
 export default function SettingsPage(): React.ReactElement {
   const { t } = useTranslation()
@@ -25,7 +25,7 @@ export default function SettingsPage(): React.ReactElement {
   const hasIntegrations = memoriesEnabled || mcpEnabled
 
   const [appVersion, setAppVersion] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('display')
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'display')
 
   useEffect(() => {
     loadAddons()
@@ -47,7 +47,7 @@ export default function SettingsPage(): React.ReactElement {
       ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }]
       : []),
     { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
-    { id: 'location', label: 'Ubicación en vivo', icon: MapPinned },
+    { id: 'tracking', label: t('tracking.title'), icon: MapPinned },
     { id: 'account', label: t('settings.tabs.account'), icon: User },
     ...(appVersion
       ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info }]
@@ -93,7 +93,7 @@ export default function SettingsPage(): React.ReactElement {
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'integrations' && hasIntegrations && <IntegrationsTab />}
             {activeTab === 'offline' && <OfflineTab />}
-            {activeTab === 'location' && <LiveLocationTab />}
+            {(activeTab === 'tracking' || activeTab === 'location') && <TrackingTab />}
             {activeTab === 'account' && <AccountTab />}
             {activeTab === 'about' && appVersion && <AboutTab appVersion={appVersion} />}
           </PageSidebar>

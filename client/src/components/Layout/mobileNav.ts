@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Compass, Globe, Navigation, Plane, Route, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, CalendarDays, Compass, Globe, Navigation, Plane, Radio, Route, Settings, type LucideIcon } from 'lucide-react'
 
 /**
  * The phone's bottom bar: which destinations it shows and in what order,
@@ -27,6 +27,7 @@ export const MOBILE_NAV_CATALOG: MobileNavItem[] = [
   { id: 'atlas', to: '/atlas', icon: Globe, labelKey: 'admin.addons.catalog.atlas.name', addon: 'atlas' },
   { id: 'vacay', to: '/vacay', icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name', addon: 'vacay' },
   { id: 'navigate', to: '/navigate', icon: Navigation, labelKey: 'nav.mobile.navigate' },
+  { id: 'tracking', to: '/tracking', icon: Radio, labelKey: 'tracking.title' },
   { id: 'notifications', to: '/notifications', icon: Bell, labelKey: 'nav.mobile.notifications' },
   { id: 'settings', to: '/settings', icon: Settings, labelKey: 'nav.bottomSettings' },
 ]
