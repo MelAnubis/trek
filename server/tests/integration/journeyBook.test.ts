@@ -229,7 +229,7 @@ describe('DELETE /api/journeys/:id/book', () => {
   });
 });
 
-describe('PUT /api/journeys/:id/book — layers and format revision (5.5)', () => {
+describe('PUT /api/journeys/:id/book — layers and format revision (5.7)', () => {
   const layeredDoc = (schemaRev?: number) => ({
     ...emptyDoc(),
     ...(schemaRev ? { schemaRev } : {}),

@@ -4,7 +4,7 @@
  * license). See the client's components/Studio/bookSchemaRev.ts for the why;
  * the two constants must stay equal (a client test checks it).
  *
- * - 2 (5.5): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
+ * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
  */
 export const BOOK_SCHEMA_REV = 2;
 

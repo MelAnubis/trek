@@ -138,7 +138,7 @@ describe('useBookStore — offline safety net', () => {
   });
 });
 
-describe('useBookStore — format revision (5.5)', () => {
+describe('useBookStore — format revision (5.7)', () => {
   const record = (document: BookDocument, version = 3) =>
     ({ id: 1, journeyId: JOURNEY_ID, title: 'T', version, updatedAt: null, updatedBy: null, document });
 

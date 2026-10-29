@@ -23,7 +23,7 @@ import type { BookDocument } from '../../types/book'
  * it equal to the server's own constant (server/src/services/journeyBook/
  * bookSchemaRev.ts) — a test checks the two agree.
  *
- * - 2 (5.5): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
+ * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
  */
 export const BOOK_SCHEMA_REV = 2
 

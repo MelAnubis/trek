@@ -16,7 +16,7 @@ import { BOOK_SCHEMA_NEWER_CODE, bookSchemaRev, isBookNewerThanReader, stampBook
  * No client-side `normalizeBookDocument` here (unlike upstream): the server
  * always returns an already-normalized document.
  *
- * ── Version protection (5.5) ──────────────────────────────────────────────
+ * ── Version protection (5.7) ──────────────────────────────────────────────
  *
  * Every save is stamped with this build's format revision (bookSchemaRev.ts).
  * A book written by a newer Studio opens read-only — state `newer` — and is

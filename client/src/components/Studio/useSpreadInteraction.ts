@@ -7,7 +7,7 @@ import { MIN_FRAME_MM, boxOf, mapFrame, marqueeHits, rectBetween, resizeBox, typ
 /**
  * Moving and resizing on the sheet. Ported from liketrek/TREK's
  * client/src/components/Studio/useSpreadInteraction.ts (same AGPLv3
- * license), 5.5 edition: group-aware picking, the marquee, and one resize
+ * license), 5.7 edition: group-aware picking, the marquee, and one resize
  * box for a whole multi-selection (Shift keeps its proportions).
  *
  * Hand-rolled on pointer events rather than a drag-and-drop library, because the
