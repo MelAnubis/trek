@@ -240,6 +240,23 @@ describe('Track, history and routes', () => {
     expect(Number(row.total_distance)).toBeGreaterThan(0);
   });
 
+  it('TRACKING-018 — a route can be saved along the matched line, with time and altitude from the nearest fix', async () => {
+    const { user, device } = await withPoints();
+    const trip = createTrip(testDb, user.id);
+    const line = [[43.36, -5.84], [43.365, -5.835], [43.37, -5.83], [43.375, -5.825], [43.38, -5.82]];
+    const res = await request(app).post(`/api/tracking/devices/${device.id}/save-route`).set('Cookie', authCookie(user.id))
+      .send({ from: '2026-10-20T00:00:00Z', to: '2026-10-20T23:59:59Z', trip_id: trip.id, line });
+    expect(res.status).toBe(201);
+    const row = testDb.prepare('SELECT point_count, points_json FROM gpx_tracks WHERE id = ?').get(res.body.trackId) as { point_count: number; points_json: string };
+    expect(row.point_count).toBe(5);
+    const pts = JSON.parse(row.points_json);
+    expect(pts[0]).toMatchObject({ lat: 43.36, lng: -5.84, ele: 30, time: '2026-10-20T08:00:00.000Z' });
+    expect(pts[4].time).toBe('2026-10-20T08:10:00.000Z');
+    const bad = await request(app).post(`/api/tracking/devices/${device.id}/save-route`).set('Cookie', authCookie(user.id))
+      .send({ from: '2026-10-20T00:00:00Z', to: '2026-10-20T23:59:59Z', trip_id: trip.id, line: [[999, 1], [1, 1]] });
+    expect(bad.status).toBe(400);
+  });
+
   it('TRACKING-013 — saving into someone else\'s trip, or a day of another trip, is refused', async () => {
     const { user, device } = await withPoints();
     const { user: other } = createUser(testDb);

@@ -805,7 +805,7 @@ export const trackingApi = {
   days: (id: number, offset: number) => apiClient.get(`/tracking/devices/${id}/days`, { params: { offset } }).then(r => r.data),
   gpxUrl: (id: number, params: { from: string; to: string; max_accuracy?: number }) =>
     `/api/tracking/devices/${id}/gpx?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])).toString()}`,
-  saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number }) =>
+  saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number; line?: [number, number][] }) =>
     apiClient.post(`/tracking/devices/${id}/save-route`, body).then(r => r.data),
   share: (id: number, hours: number, label?: string) => apiClient.post(`/tracking/devices/${id}/share`, { hours, label }).then(r => r.data),
   stopShare: (id: number) => apiClient.delete(`/tracking/devices/${id}/share`).then(r => r.data),

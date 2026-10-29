@@ -16,9 +16,10 @@ import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToast } from '../components/shared/Toast'
 import { CopyField } from '../components/Tracking/CopyField'
+import { joinedLine, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
 import {
-  MOTION_COLORS, formatDistance, formatDuration, localDayRange, localToday, motionSegments, shareUrl, utcOffsetMinutes,
+  MOTION_COLORS, formatDistance, formatDuration, localDayRange, localToday, shareUrl, utcOffsetMinutes,
   type TrackPoint, type TrackStats, type TrackingDevice,
 } from '../components/Tracking/trackingModel'
 
@@ -67,6 +68,9 @@ export default function TrackingPage() {
   const [total, setTotal] = useState(0)
   const [hideImprecise, setHideImprecise] = useState(true)
   const [follow, setFollow] = useState(false)
+  // Drawn along streets and paths (5.7.3) unless turned off; remembered per browser.
+  const [snap, setSnapState] = useState(() => { try { return localStorage.getItem('trek-tracking-snap') !== '0' } catch { return true } })
+  const setSnap = (v: boolean) => { setSnapState(v); try { localStorage.setItem('trek-tracking-snap', v ? '1' : '0') } catch { /* private mode */ } }
   const [panel, setPanel] = useState<'share' | 'save' | null>(null)
   const isToday = day === localToday()
 
@@ -108,7 +112,9 @@ export default function TrackingPage() {
     return () => { removeListener(handler); if (refetchTimer.current) { clearTimeout(refetchTimer.current); refetchTimer.current = null } }
   }, [deviceId, isToday, loadTrack])
 
-  const segments = useMemo(() => motionSegments(points), [points])
+  // A live day is matched again a quarter of a minute after its last new point, only its last stretch asked for.
+  const { lines, status: matchStatus } = useMatchedTrack(points, snap, isToday ? 15_000 : 0)
+  const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
   const live = isToday && device?.last_position ? [device.last_position.lat, device.last_position.lng] as [number, number] : null
   const center: [number, number] = live ?? (points[0] ? [points[0].lat, points[0].lng] : [40.4, -3.7])
 
@@ -203,6 +209,11 @@ export default function TrackingPage() {
           <input type="checkbox" checked={hideImprecise} onChange={e => setHideImprecise(e.target.checked)} />
           {t('tracking.hideImprecise', { m: GOOD_ACCURACY_M })}
         </label>
+        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
+          {t('tracking.snap')}
+          {snap && total > 1 && <MatchBadge status={matchStatus} />}
+        </label>
         {isToday && (
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
@@ -239,6 +250,7 @@ export default function TrackingPage() {
         {device && panel === 'share' && <SharePanel device={device} onChange={next => setDevices(list => list?.map(d => (d.id === next.id ? next : d)) ?? list)} onClose={() => setPanel(null)} />}
         {device && panel === 'save' && (
           <SaveRoutePanel device={device} day={day} range={range} maxAccuracy={accuracy} onClose={() => setPanel(null)}
+            line={snap && matchStatus !== 'failed' && lines.some(l => l.matched) ? joinedLine(lines) : undefined}
             onSaved={() => { toast.success(t('tracking.saved')); setPanel(null) }} />
         )}
       </aside>
@@ -247,10 +259,14 @@ export default function TrackingPage() {
         {devices && (
           <MapContainer center={center} zoom={13} style={{ position: 'absolute', inset: 0 }}>
             <TileLayer url={tileUrl} attribution="&copy; OpenStreetMap" />
-            {segments.map((s, i) => (
-              <Polyline key={i} positions={s.positions} pathOptions={{ color: s.color, weight: 4, opacity: 0.85 }} />
+            {lines.map((s, i) => (
+              <Polyline key={i} positions={s.positions} pathOptions={{ color: s.color, weight: s.matched ? 5 : 4, opacity: s.matched ? 0.9 : 0.75, dashArray: s.matched || !snap ? undefined : '6 6' }} />
             ))}
-            {points.length > 0 && !live && <CircleMarker center={[points[points.length - 1].lat, points[points.length - 1].lng]} radius={6} pathOptions={{ color: '#111827', fillColor: '#ffffff', fillOpacity: 1, weight: 2 }} />}
+            {/* The live dot joined to the end of the line, so the two read as one track. */}
+            {live && lastDrawn && (lastDrawn[0] !== live[0] || lastDrawn[1] !== live[1]) && (
+              <Polyline positions={[lastDrawn, live]} pathOptions={{ color: '#2563eb', weight: 3, opacity: 0.6, dashArray: '4 6' }} />
+            )}
+            {lastDrawn && !live && <CircleMarker center={lastDrawn} radius={6} pathOptions={{ color: '#111827', fillColor: '#ffffff', fillOpacity: 1, weight: 2 }} />}
             {live && <Marker position={live} icon={liveIcon} />}
             <FitTo points={points} live={live} follow={follow} />
           </MapContainer>
@@ -303,9 +319,13 @@ function SharePanel({ device, onChange, onClose }: { device: TrackingDevice; onC
 interface TripOption { id: number; title: string; start_date?: string | null; end_date?: string | null }
 interface DayOption { id: number; day_number: number; date: string | null; title?: string | null }
 
-function SaveRoutePanel({ device, day, range, maxAccuracy, onClose, onSaved }: {
-  device: TrackingDevice; day: string; range: { from: string; to: string }; maxAccuracy?: number; onClose: () => void; onSaved: () => void
+function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSaved }: {
+  device: TrackingDevice; day: string; range: { from: string; to: string }; maxAccuracy?: number
+  /** The day as drawn along the ways, when it was; saved instead of the raw fixes unless turned off. */
+  line?: [number, number][]
+  onClose: () => void; onSaved: () => void
 }) {
+  const [useLine, setUseLine] = useState(true)
   const { t } = useTranslation()
   const toast = useToast()
   const [trips, setTrips] = useState<TripOption[]>([])
@@ -338,7 +358,7 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, onClose, onSaved }: {
     if (!tripId) return
     setSaving(true)
     try {
-      await trackingApi.saveRoute(device.id, { ...range, trip_id: tripId, day_id: dayId, name, max_accuracy: maxAccuracy })
+      await trackingApi.saveRoute(device.id, { ...range, trip_id: tripId, day_id: dayId, name, max_accuracy: maxAccuracy, line: line && useLine ? line : undefined })
       onSaved()
     } catch { toast.error(t('tracking.error')) } finally { setSaving(false) }
   }
@@ -364,6 +384,12 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, onClose, onSaved }: {
             <option value="">{t('tracking.noDay')}</option>
             {tripDays.map(d => <option key={d.id} value={d.id}>{d.title || t('tracking.dayN', { n: d.day_number })}{d.date ? ` · ${d.date}` : ''}</option>)}
           </select>
+          {line && (
+            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <input type="checkbox" checked={useLine} onChange={e => setUseLine(e.target.checked)} />
+              {t('tracking.saveSnapped')}
+            </label>
+          )}
           <button type="button" onClick={() => void save()} disabled={saving || !tripId} className="w-full px-3 py-1.5 rounded-lg text-sm font-medium"
             style={{ background: 'var(--accent)', color: 'white', opacity: saving ? 0.6 : 1 }}>
             {saving ? t('tracking.saving') : t('tracking.saveRoute')}
@@ -372,4 +398,18 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, onClose, onSaved }: {
       )}
     </div>
   )
+}
+
+/** How the drawing along the ways is going: matching, done, partly, or not at all (straight lines shown). */
+function MatchBadge({ status }: { status: MatchStatus }) {
+  const { t } = useTranslation()
+  if (status === 'off') return null
+  const look: Record<Exclude<MatchStatus, 'off'>, { color: string; key: string }> = {
+    matching: { color: 'var(--text-muted)', key: 'tracking.snapMatching' },
+    matched: { color: '#16a34a', key: 'tracking.snapDone' },
+    partial: { color: '#b45309', key: 'tracking.snapPartial' },
+    failed: { color: '#dc2626', key: 'tracking.snapFailed' },
+  }
+  const l = look[status]
+  return <span data-testid="match-status" data-status={status} className="ml-auto text-[11px]" style={{ color: l.color }}>{t(l.key)}</span>
 }

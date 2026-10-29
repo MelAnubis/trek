@@ -414,9 +414,25 @@ const MOTION_TO_MODE: Record<string, string> = { cycling: 'cycling', walking: 'w
  * shows on the trip, the journey and the Studio like any uploaded GPX.
  * `saveTrack` is the GPX tab's own writer, so stats are computed the same way.
  */
+/**
+ * A drawn line (the track as matched to streets and paths, 5.7.3) given the
+ * time and altitude of the recorded fix nearest each of its points. Both run
+ * the same way along the day, so the nearest fix is found by walking forward
+ * through the fixes with the line rather than searching all of them each time.
+ */
+export function lineWithFixes(line: [number, number][], points: TrackPoint[]): { lat: number; lng: number; ele: number | null; time: string | null }[] {
+  let j = 0;
+  return line.map(([lat, lng]) => {
+    while (j < points.length - 1
+      && haversineM(lat, lng, points[j + 1].lat, points[j + 1].lng) <= haversineM(lat, lng, points[j].lat, points[j].lng)) j++;
+    const p = points[j];
+    return { lat, lng, ele: p?.altitude ?? null, time: p?.ts ?? null };
+  });
+}
+
 export function saveAsRoute(
   userId: number, deviceId: number,
-  opts: { from: string; to: string; tripId: number; dayId?: number | null; name?: string; maxAccuracy?: number },
+  opts: { from: string; to: string; tripId: number; dayId?: number | null; name?: string; maxAccuracy?: number; line?: [number, number][] },
   saveTrack: (tripId: number, userId: number, name: string, orig: string | null,
     points: { lat: number; lng: number; ele: number | null; time?: string | null }[],
     waypoints: { lat: number; lng: number; name: string }[], sortOrder: number, dayId?: number | null, mode?: any) => number,
@@ -433,9 +449,13 @@ export function saveAsRoute(
   const stats = trackStats(points);
   const name = (opts.name?.trim() || `${row.name} · ${opts.from.slice(0, 10)}`).slice(0, 120);
   const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(opts.tripId) as { n: number };
+  // The route along the ways when the map drew one, else the recorded fixes.
+  const shape = opts.line && opts.line.length > 1
+    ? lineWithFixes(opts.line, points)
+    : points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.altitude, time: p.ts }));
   const trackId = saveTrack(
     opts.tripId, userId, name, 'overland.gpx',
-    points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.altitude, time: p.ts })),
+    shape,
     [], sortRow.n, opts.dayId ?? null, stats.motion ? MOTION_TO_MODE[stats.motion] ?? null : null,
   );
   if (stats.duration_s) db.prepare('UPDATE gpx_tracks SET duration_seconds = ? WHERE id = ?').run(stats.duration_s, trackId);

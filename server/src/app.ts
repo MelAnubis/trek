@@ -209,6 +209,8 @@ export function createApp(): express.Application {
   // Overland sends up to a few thousand GeoJSON points per batch when it has
   // been offline for a while — far past the blanket 100kb.
   app.use('/api/tracking/overland', express.json({ limit: '10mb' }));
+  // "Guardar como ruta" may carry the whole day's line as drawn along the ways.
+  app.use('/api/tracking/devices', express.json({ limit: '5mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());

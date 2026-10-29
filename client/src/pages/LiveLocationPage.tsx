@@ -12,9 +12,11 @@ import L from 'leaflet'
 import { trackingApi } from '../api/client'
 import { useTranslation } from '../i18n'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
-import { formatDistance, motionSegments, type TrackPoint, type TrackStats, type TrackingPosition, type TrackingStatus } from '../components/Tracking/trackingModel'
+import { useMatchedTrack } from '../components/Tracking/useMatchedTrack'
+import { formatDistance, type TrackPoint, type TrackStats, type TrackingPosition, type TrackingStatus } from '../components/Tracking/trackingModel'
 
 const POLL_INTERVAL_MS = 15_000
+const EMPTY: TrackPoint[] = []
 
 interface PublicShare {
   label: string
@@ -50,6 +52,8 @@ export default function LiveLocationPage() {
   const { token } = useParams<{ token: string }>()
   const [data, setData] = useState<PublicShare | null>(null)
   const [notFound, setNotFound] = useState(false)
+  // Along streets and paths, as on the owner's map; a link is live, so matched again a while after it grows.
+  const { lines } = useMatchedTrack(data?.track ?? EMPTY, true, 20_000)
 
   useEffect(() => {
     if (!token) return
@@ -86,7 +90,7 @@ export default function LiveLocationPage() {
   }
 
   const pos = data.last_position
-  const segments = motionSegments(data.track)
+  const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
 
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
@@ -110,7 +114,10 @@ export default function LiveLocationPage() {
       {pos ? (
         <MapContainer center={[pos.lat, pos.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
           <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
-          {segments.map((s, i) => <Polyline key={i} positions={s.positions} pathOptions={{ color: s.color, weight: 4, opacity: 0.8 }} />)}
+          {lines.map((s, i) => <Polyline key={i} positions={s.positions} pathOptions={{ color: s.color, weight: s.matched ? 5 : 4, opacity: 0.85 }} />)}
+          {lastDrawn && (lastDrawn[0] !== pos.lat || lastDrawn[1] !== pos.lng) && (
+            <Polyline positions={[lastDrawn, [pos.lat, pos.lng]]} pathOptions={{ color: '#2563eb', weight: 3, opacity: 0.6, dashArray: '4 6' }} />
+          )}
           <Marker position={[pos.lat, pos.lng]} icon={markerIcon} />
           <Recenter lat={pos.lat} lng={pos.lng} />
         </MapContainer>
