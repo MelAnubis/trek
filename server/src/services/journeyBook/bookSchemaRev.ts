@@ -5,8 +5,9 @@
  * the two constants must stay equal (a client test checks it).
  *
  * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
+ * - 3 (5.7.2): the photo look — `border`, `shadow`, `zoom`, `flipX`, `adjust`, `duotone`, `cutout`.
  */
-export const BOOK_SCHEMA_REV = 2;
+export const BOOK_SCHEMA_REV = 3;
 
 /** The `code` a refused save carries in its body when the book is newer than the writer (or this server). */
 export const BOOK_SCHEMA_NEWER_CODE = 'book_schema_newer';

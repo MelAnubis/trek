@@ -64,7 +64,31 @@ export interface BookPhotoElement extends BookElementBase {
   filter: 'none' | 'bw' | 'warm' | 'cool' | 'fade' | 'contrast' | 'sepia' | 'vintage' | 'vivid' | 'matte' | 'noir' | 'golden' | 'dramatic';
   frameStyle: 'none' | 'polaroid' | 'white' | 'shadow' | 'film' | 'tape' | 'thin' | 'double' | 'stamp' | 'corners' | 'vignette';
   mask: BookShapeId | null;
+  /*
+   * The photo look (schema rev 3, 5.7.2; see photoLook.ts). Each part
+   * optional — absent or null is off — so a photo nobody restyled stores
+   * exactly what it stored before.
+   */
+  /** A band inside the frame edge, following the mask. */
+  border?: BookPhotoEdge | null;
+  /** A hard (unblurred) copy of the outline, offset by dx/dy mm. */
+  shadow?: BookPhotoShadow | null;
+  /** 1–4× the crop the fit gives, about the focal point. */
+  zoom?: number;
+  /** Mirrored left to right inside the frame. */
+  flipX?: boolean;
+  /** Each -1..1, 0 as shot. Drawn as filters, so prints as a raster. */
+  adjust?: BookPhotoAdjust | null;
+  /** Tones mapped from `dark` to `light`. Prints as a raster. */
+  duotone?: BookPhotoDuotone | null;
+  /** A die-cut edge grown `width` mm around the shape, behind the picture. */
+  cutout?: BookPhotoEdge | null;
 }
+
+export interface BookPhotoEdge { width: number; color: string }
+export interface BookPhotoShadow { dx: number; dy: number; color: string; alpha: number }
+export interface BookPhotoAdjust { brightness?: number; contrast?: number; saturation?: number; warmth?: number }
+export interface BookPhotoDuotone { dark: string; light: string }
 
 export interface BookTextBinding {
   source: 'journey.title' | 'journey.subtitle' | 'entry.title' | 'entry.story' | 'entry.location' | 'entry.date' | 'photo.caption';

@@ -327,3 +327,29 @@ describe('bookSpreadSchema — first and last pages', () => {
     expect(doc.spreads.map((s: any) => s.role)).toEqual(['cover', 'first', 'inner', 'last', 'back']);
   });
 });
+
+describe('bookElementSchema — photo look (rev 3)', () => {
+  const photo = (o: Record<string, unknown> = {}) => ({ id: 'p', frame: { x: 0, y: 0, w: 50, h: 40 }, rotation: 0, opacity: 1, locked: false, kind: 'photo', photoId: 1, ...o });
+
+  it('BOOKSCHEMA-LOOK-001: every part of the look round-trips', () => {
+    const look = {
+      border: { width: 4, color: '#ffffff' }, shadow: { dx: 2, dy: -3, color: '#1a1a1a', alpha: 0.35 }, zoom: 2.5, flipX: true,
+      adjust: { brightness: 0.2, contrast: -0.4, saturation: 1, warmth: -1 }, duotone: { dark: '#1e3a8a', light: '#f5e6c8' },
+      cutout: { width: 3, color: '#ffffff' },
+    };
+    expect(bookElementSchema.parse(photo(look))).toMatchObject(look);
+  });
+
+  it('BOOKSCHEMA-LOOK-002: a photo without a look stores none of it, and null means off', () => {
+    const r = bookElementSchema.parse(photo()) as any;
+    for (const k of ['border', 'shadow', 'zoom', 'flipX', 'adjust', 'duotone', 'cutout']) expect(r[k]).toBeUndefined();
+    expect((bookElementSchema.parse(photo({ border: null })) as any).border).toBeNull();
+  });
+
+  it('BOOKSCHEMA-LOOK-003: an unreadable part falls back to off instead of dropping the photo', () => {
+    const r = bookElementSchema.parse(photo({ zoom: 12, border: { width: 99, color: '#fff' }, shadow: 'big', adjust: { brightness: 3 }, flipX: 'yes' })) as any;
+    expect(r).toMatchObject({ kind: 'photo', photoId: 1 });
+    for (const k of ['zoom', 'border', 'shadow', 'adjust', 'flipX']) expect(r[k]).toBeUndefined();
+  });
+});
+

@@ -19,6 +19,7 @@ import { groupPhotosByDay, formatPhotoDayHeader } from '../../utils/groupPhotosB
 import { folioLabel, folioSettings, foliosOf } from './bookSheets'
 import { countryName } from './countryShapes'
 import { StudioLayersPanel } from './StudioLayersPanel'
+import { StudioProviderPhotos } from './StudioProviderPhotos'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -144,6 +145,8 @@ export function StudioSidebar({
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [photosDragOver, setPhotosDragOver] = useState(false)
   const [showAllPhotos, setShowAllPhotos] = useState(false)
+  /** Photos just brought in from Immich/Synology, shown on their own until the panel's filter is changed. */
+  const [recentPhotoIds, setRecentPhotoIds] = useState<Set<number> | null>(null)
   const photoFileRef = useRef<HTMLInputElement>(null)
   const toggleSection = (id: string) => setCollapsedSections(prev => {
     const next = { ...prev, [id]: !prev[id] }
@@ -282,9 +285,11 @@ export function StudioSidebar({
   const entryPhotoIds = entryId != null
     ? new Set(journeyEntries?.find(e => e.id === entryId)?.photos.map(p => p.photo_id) ?? [])
     : null
-  const visiblePhotos = entryPhotoIds && !showAllPhotos
-    ? galleryPhotos.filter(p => entryPhotoIds.has(p.photoId))
-    : galleryPhotos
+  const visiblePhotos = recentPhotoIds
+    ? galleryPhotos.filter(p => recentPhotoIds.has(p.photoId))
+    : entryPhotoIds && !showAllPhotos
+      ? galleryPhotos.filter(p => entryPhotoIds.has(p.photoId))
+      : galleryPhotos
 
   const applyLayout = (tplId: string) => {
     const tpl = layoutOptions.find(t => t.id === tplId)
@@ -508,18 +513,28 @@ export function StudioSidebar({
           </>
         }
       >
-        {entryPhotoIds && (
-          <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-            <button onClick={() => setShowAllPhotos(false)} aria-pressed={!showAllPhotos}
-              style={{ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: showAllPhotos ? '1px solid var(--border-primary)' : '1.5px solid var(--text-primary)', background: showAllPhotos ? 'none' : 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
-              {t('journey.studio.thisEntryPhotos')}
-            </button>
-            <button onClick={() => setShowAllPhotos(true)} aria-pressed={showAllPhotos}
-              style={{ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: showAllPhotos ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: showAllPhotos ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)' }}>
-              {t('journey.studio.allPhotos')}
-            </button>
-          </div>
-        )}
+        <StudioProviderPhotos journeyId={journeyId} onAdded={ids => setRecentPhotoIds(ids.length ? new Set(ids) : null)} />
+        {(entryPhotoIds || recentPhotoIds) && (() => {
+          const tab = recentPhotoIds ? 'recent' : entryPhotoIds && !showAllPhotos ? 'entry' : 'all'
+          const chip = (on: boolean) => ({ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: on ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: on ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)' })
+          return (
+            <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+              {entryPhotoIds && (
+                <button onClick={() => { setRecentPhotoIds(null); setShowAllPhotos(false) }} aria-pressed={tab === 'entry'} style={chip(tab === 'entry')}>
+                  {t('journey.studio.thisEntryPhotos')}
+                </button>
+              )}
+              <button onClick={() => { setRecentPhotoIds(null); setShowAllPhotos(true) }} aria-pressed={tab === 'all'} style={chip(tab === 'all')}>
+                {t('journey.studio.allPhotos')}
+              </button>
+              {recentPhotoIds && (
+                <button data-testid="photos-recent" aria-pressed style={chip(true)}>
+                  {t('journey.studio.photo.recent')}
+                </button>
+              )}
+            </div>
+          )
+        })()}
         <div
           data-testid="photos-dropzone"
           onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setPhotosDragOver(true) } }}

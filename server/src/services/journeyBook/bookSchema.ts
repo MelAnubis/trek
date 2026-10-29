@@ -91,7 +91,39 @@ const elementBase = {
   hidden: z.boolean().optional().catch(undefined),
 };
 
+/*
+ * The photo look (schema rev 3, 5.7.2) — ported from liketrek/TREK's
+ * shared/src/book/book-photo-look.schema.ts. Every part optional, null or
+ * absent is off, and a value that cannot be read falls back to off rather
+ * than taking the photo (or its page) down.
+ *
+ * - border: a band inside the frame edge, following the mask.
+ * - shadow: a hard (unblurred) copy of the outline, offset dx/dy mm, at alpha.
+ * - zoom: 1–4× the crop the fit gives, about the focal point.
+ * - flipX: mirrored left to right inside the frame.
+ * - adjust: brightness, contrast, saturation, warmth, each -1..1 (prints raster).
+ * - duotone: tones mapped from dark to light (prints raster).
+ * - cutout: a die-cut edge grown width mm around the shape, behind the photo.
+ */
+export const PHOTO_ZOOM_MAX = 4;
+export const PHOTO_EDGE_MAX = 30;
+export const PHOTO_SHADOW_REACH = 30;
+const photoEdge = z.object({ width: z.number().min(0.1).max(PHOTO_EDGE_MAX), color: hex });
+const photoReach = z.number().finite().min(-PHOTO_SHADOW_REACH).max(PHOTO_SHADOW_REACH);
+const signedUnit = z.number().min(-1).max(1).optional();
+const lookField = <T extends z.ZodType>(schema: T) => schema.nullable().optional().catch(undefined);
+const photoLookFields = {
+  border: lookField(photoEdge),
+  shadow: lookField(z.object({ dx: photoReach, dy: photoReach, color: hex, alpha: z.number().min(0).max(1) })),
+  zoom: z.number().min(1).max(PHOTO_ZOOM_MAX).optional().catch(undefined),
+  flipX: z.boolean().optional().catch(undefined),
+  adjust: lookField(z.object({ brightness: signedUnit, contrast: signedUnit, saturation: signedUnit, warmth: signedUnit })),
+  duotone: lookField(z.object({ dark: hex, light: hex })),
+  cutout: lookField(photoEdge),
+};
+
 export const bookPhotoElementSchema = z.object({
+  ...photoLookFields,
   ...elementBase,
   kind: z.literal('photo'),
   /** `trek_photos.id` — never a resolved URL, so the document survives a provider change. */

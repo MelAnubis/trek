@@ -287,8 +287,8 @@ describe('StudioInspector — photo focal point and mask', () => {
     useStudioStore.getState().select(['photo-1'])
     render(<StudioInspector spreadIndex={1} />)
     const sliders = screen.getAllByRole('slider')
-    // Opacity is the first slider on every element; focal X/Y follow it for a photo.
-    fireEvent.change(sliders[1], { target: { value: '0.2' } })
+    // Opacity is the first slider on every element; a photo's zoom (5.7.2) comes next, then focal X/Y.
+    fireEvent.change(sliders[2], { target: { value: '0.2' } })
     expect(selectedPhotoEl().focalX).toBe(0.2)
     expect(selectedPhotoEl().focalY).toBe(0.5)
   })
@@ -298,7 +298,7 @@ describe('StudioInspector — photo focal point and mask', () => {
     useStudioStore.getState().select(['photo-1'])
     render(<StudioInspector spreadIndex={1} />)
     const sliders = screen.getAllByRole('slider')
-    fireEvent.change(sliders[2], { target: { value: '0.8' } })
+    fireEvent.change(sliders[3], { target: { value: '0.8' } })
     expect(selectedPhotoEl().focalY).toBe(0.8)
     expect(selectedPhotoEl().focalX).toBe(0.5)
   })

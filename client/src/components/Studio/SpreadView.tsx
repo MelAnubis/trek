@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import { useId, type CSSProperties } from 'react'
 import type { BookElement, BookImageElement, BookPageSetup, BookPhotoElement, BookShapeElement, BookSpread } from '../../types/book'
 import { fontStack } from './bookFonts'
 import { filterCss, frameSpec, textEffectCss } from './bookStyles'
@@ -7,6 +7,7 @@ import { folioSettings, isNumbered } from './bookSheets'
 import { folioInk } from './folioColour'
 import { AccommodationView, BadgeView, CountriesView, IconView, ListView, MapView, PackingView, PlacesView, StatsView } from './TravelElements'
 import { HOLED_SHAPES, SHAPE_PATHS, scalePath, unitPath } from './shapes'
+import { photoLookOf, pictureFilter, silhouetteShadows, svgFilterMatrices, zoomPlacement, type PhotoLook } from './photoLook'
 
 /**
  * One spread, drawn. Ported from liketrek/trek's
@@ -119,6 +120,13 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
   const pad = round2(deco.pad * side)
   const bottom = round2(deco.bottom * side)
   const empty = el.photoId == null
+  // Per instance: the page view can draw a spread twice, and two filters with one id would cross.
+  const filterRef = `photo-look-${useId().replace(/:/g, '')}`
+  // An empty frame wears the frame style but none of the look: a border or a
+  // shadow around a hatch would read as part of the picture to come.
+  const look = photoLookOf(empty ? {} : el)
+  const matrices = svgFilterMatrices(look)
+  const filterId = matrices.length ? filterRef : null
 
   // An empty frame is a template's promise of where a picture goes — in the
   // printed book an unfilled frame is nothing at all.
@@ -195,20 +203,20 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
         </svg>
       )}
       {empty ? hatch : (
-        <BookPhotoImg
-          photoId={el.photoId!}
-          big={big}
-          print={print}
-          publicToken={publicToken}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: el.fit,
-            objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
-            filter: filterCss(el.filter),
-            display: 'block',
-          }}
-        />
+        <LookPicture el={el} look={look} big={big} print={print} publicToken={publicToken} filterId={filterId} />
+      )}
+      {!empty && (
+        <BorderBand mask={el.mask} radius={el.radius} look={look}
+          width={el.frame.w - pad * 2} height={el.frame.h - pad - (bottom || pad)} />
+      )}
+      {filterId && (
+        <svg style={{ position: 'absolute', width: 0, height: 0 }} aria-hidden>
+          <defs>
+            <filter id={filterId} colorInterpolationFilters="sRGB">
+              {matrices.map((values, i) => <feColorMatrix key={i} type="matrix" values={values} />)}
+            </filter>
+          </defs>
+        </svg>
       )}
     </div>
   )
@@ -251,17 +259,105 @@ function PhotoView({ el, big, print, dropLabel, publicToken }: {
     </>
   ) : null
 
+  // The die-cut edge and hard shadow: box shadows on the outer box when its
+  // outline is the picture's (a rectangle, rounded or an ellipse) or a card
+  // that holds it; a silhouette of the mask behind the picture otherwise.
+  const outer = deco.outer?.(side) ?? {}
+  const card = pad > 0 || bottom > 0
+  const silhouette = !card && needsClipPath
+  const looks = silhouette ? [] : silhouetteShadows(look.shadow, look.cutout)
+  const shadows = [...looks, ...(typeof outer.boxShadow === 'string' ? [outer.boxShadow] : [])]
+  const round = !card && looks.length
+    ? (el.mask === 'ellipse' ? '50%' : el.radius ? `${el.radius}mm` : undefined)
+    : undefined
+
   return (
     <div
       data-frame={el.frameStyle}
       style={{
         ...frameStyle(el),
-        ...deco.outer?.(side),
+        ...outer,
+        ...(round ? { borderRadius: round } : null),
+        boxShadow: shadows.length ? shadows.join(', ') : undefined,
       }}
     >
+      {silhouette && (look.shadow || look.cutout) && (
+        <ShapeSilhouette w={el.frame.w} h={el.frame.h} mask={el.mask!} look={look} />
+      )}
       {picture}
       {overlay}
     </div>
+  )
+}
+
+/** The picture, zoomed about its focal point and mirrored where the look says so (port of upstream's Picture). */
+function LookPicture({ el, look, big, print, publicToken, filterId }: {
+  el: BookPhotoElement; look: PhotoLook; big: boolean; print: boolean; publicToken?: string; filterId: string | null
+}) {
+  const zoom = zoomPlacement(look.zoom, el.focalX, el.focalY)
+  const img = (
+    <BookPhotoImg
+      photoId={el.photoId!}
+      big={big}
+      print={print}
+      publicToken={publicToken}
+      style={{
+        width: zoom?.size ?? '100%',
+        height: zoom?.size ?? '100%',
+        // The app's base styles cap images at their box's width; a zoomed picture is meant to overflow it.
+        maxWidth: zoom ? 'none' : undefined,
+        transform: zoom?.transform,
+        objectFit: el.fit,
+        objectPosition: `${el.focalX * 100}% ${el.focalY * 100}%`,
+        filter: pictureFilter(filterCss(el.filter), look, filterId),
+        display: 'block',
+      }}
+    />
+  )
+  if (!look.flipX) return img
+  // Mirrored inside a box the size of the frame, so the crop shows the same part and the mask is not mirrored with it.
+  return <div style={{ position: 'absolute', inset: 0, transform: 'scaleX(-1)' }}>{img}</div>
+}
+
+/** The hard shadow and die-cut edge of a shaped photo: its mask, grown by the cutout, behind the picture. */
+function ShapeSilhouette({ w, h, mask, look }: { w: number; h: number; mask: NonNullable<BookPhotoElement['mask']>; look: PhotoLook }) {
+  const d = scalePath(SHAPE_PATHS[mask] ?? SHAPE_PATHS.rect, w, h)
+  const rule = HOLED_SHAPES.has(mask) ? 'evenodd' : undefined
+  const grow = look.cutout?.width ?? 0
+  const path = (color: string, dx = 0, dy = 0) => (
+    <path d={d} transform={dx || dy ? `translate(${dx} ${dy})` : undefined} fill={color} fillRule={rule}
+      stroke={grow ? color : undefined} strokeWidth={grow ? grow * 2 : undefined} strokeLinejoin="round" />
+  )
+  return (
+    <svg aria-hidden width={`${w}mm`} height={`${h}mm`} viewBox={`0 0 ${w} ${h}`}
+      style={{ position: 'absolute', inset: 0, overflow: 'visible', display: 'block', pointerEvents: 'none' }}>
+      {look.shadow && <g opacity={look.shadow.alpha}>{path(look.shadow.color, look.shadow.dx, look.shadow.dy)}</g>}
+      {look.cutout && path(look.cutout.color)}
+    </svg>
+  )
+}
+
+/** The border: a band along the inside of the picture's edge, following its shape. */
+function BorderBand({ mask, radius, look, width, height }: {
+  mask: BookPhotoElement['mask']; radius: number | undefined; look: PhotoLook; width: number; height: number
+}) {
+  const border = look.border
+  if (!border || width <= 0 || height <= 0) return null
+  if (mask && mask !== 'rect' && mask !== 'ellipse') {
+    // Stroked twice as wide as the band and cut by the picture's own clip, so exactly the inner half shows.
+    return (
+      <svg aria-hidden viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none"
+        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', display: 'block', pointerEvents: 'none' }}>
+        <path d={scalePath(SHAPE_PATHS[mask] ?? SHAPE_PATHS.rect, width, height)} fill="none"
+          stroke={border.color} strokeWidth={border.width * 2} strokeLinejoin="round" />
+      </svg>
+    )
+  }
+  return (
+    <div aria-hidden style={{
+      position: 'absolute', inset: 0, borderStyle: 'solid', borderWidth: `${border.width}mm`, borderColor: border.color,
+      borderRadius: mask === 'ellipse' ? '50%' : radius ? `${radius}mm` : undefined, boxSizing: 'border-box', pointerEvents: 'none',
+    }} />
   )
 }
 

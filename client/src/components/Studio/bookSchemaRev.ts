@@ -24,8 +24,9 @@ import type { BookDocument } from '../../types/book'
  * bookSchemaRev.ts) — a test checks the two agree.
  *
  * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
+ * - 3 (5.7.2): the photo look — `border`, `shadow`, `zoom`, `flipX`, `adjust`, `duotone`, `cutout`.
  */
-export const BOOK_SCHEMA_REV = 2
+export const BOOK_SCHEMA_REV = 3
 
 /** The `code` a refused save carries when the stored book is newer than the writer. */
 export const BOOK_SCHEMA_NEWER_CODE = 'book_schema_newer'

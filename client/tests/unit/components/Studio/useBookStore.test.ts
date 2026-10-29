@@ -12,6 +12,7 @@ import { server } from '../../../helpers/msw/server';
 import { useBookStore } from '../../../../src/components/Studio/useBookStore';
 import { offlineDb, clearAll } from '../../../../src/db/offlineDb';
 import type { BookDocument } from '../../../../src/types/book';
+import { BOOK_SCHEMA_REV } from '../../../../src/components/Studio/bookSchemaRev';
 
 const JOURNEY_ID = 1;
 
@@ -152,7 +153,7 @@ describe('useBookStore — format revision (5.7)', () => {
     await waitFor(() => expect(result.current.loaded).toBe(true));
     act(() => { result.current.saveNow(makeDoc('Saved'), 'Saved'); });
     await waitFor(() => expect(result.current.state.status).toBe('saved'));
-    expect(sent.document?.schemaRev).toBe(2);
+    expect(sent.document?.schemaRev).toBe(BOOK_SCHEMA_REV);
   });
 
   it('opens a book saved by a newer Studio read-only, and never writes it', async () => {

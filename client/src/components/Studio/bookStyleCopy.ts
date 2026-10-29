@@ -23,7 +23,7 @@ export interface BookCopiedStyle {
 const TYPESET = ['font', 'color', 'accent']
 
 const STYLE_KEYS: Record<BookElement['kind'], readonly string[]> = {
-  photo: ['opacity', 'fit', 'radius', 'filter', 'frameStyle', 'mask'],
+  photo: ['opacity', 'fit', 'radius', 'filter', 'frameStyle', 'mask', 'border', 'shadow', 'zoom', 'flipX', 'adjust', 'duotone', 'cutout'],
   text: ['opacity', 'font', 'size', 'weight', 'italic', 'align', 'leading', 'tracking', 'color', 'effect', 'highlight', 'uppercase'],
   shape: ['opacity', 'fill', 'gradient', 'stroke', 'strokeWidth', 'strokeStyle', 'radius'],
   image: ['opacity', 'fit', 'radius'],

@@ -2,6 +2,8 @@ import { Lock, Plus, Printer, Trash2, AlertTriangle, Unlock } from 'lucide-react
 import { StudioArrangeSection } from './StudioArrangeSection'
 import { selectionTitle } from './studioLayerRows'
 import { MIN_PRINT_DPI, photoDpi, usePhotoPixels } from './photoResolution'
+import { photoZoomOf } from './photoLook'
+import { PhotoCropExtras, PhotoLookSections, usePhotoLookPatch } from './StudioPhotoLook'
 import { useEffect, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
@@ -241,6 +243,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               <option value="contain">Contain</option>
             </select>
           </div>
+          <PhotoLook el={el} spreadIndex={spreadIndex} part="crop" />
           <PrintResolution el={el} />
           <div style={FIELD}>
             <span style={LABEL}>Focal point</span>
@@ -273,6 +276,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             <span style={LABEL}>Corner radius</span>
             <input type="number" min={0} style={INPUT} value={el.radius} onChange={e => patch({ radius: Number(e.target.value) || 0 })} />
           </div>
+          <PhotoLook el={el} spreadIndex={spreadIndex} part="sections" />
         </>
       )}
 
@@ -398,11 +402,20 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
 
 type Patch = (p: Partial<BookElement>) => void
 
+/** The photo look's rows (StudioPhotoLook.tsx), each change one undo step. */
+function PhotoLook({ el, spreadIndex, part }: { el: BookPhotoElement; spreadIndex: number; part: 'crop' | 'sections' }) {
+  const { t } = useTranslation()
+  const { set, live } = usePhotoLookPatch(spreadIndex, el.id)
+  return part === 'crop'
+    ? <PhotoCropExtras el={el} set={set} live={live} t={t} />
+    : <PhotoLookSections el={el} set={set} live={live} t={t} />
+}
+
 /** What prints when the photo leaves the printer: about this many dots per inch, and a warning under the threshold. */
 function PrintResolution({ el }: { el: BookPhotoElement }) {
   const { t } = useTranslation()
   const pixels = usePhotoPixels(el.photoId)
-  const dpi = el.photoId == null ? null : photoDpi(el, pixels)
+  const dpi = el.photoId == null ? null : photoDpi(el, pixels, photoZoomOf(el))
   if (dpi === null) return null
   const low = dpi < MIN_PRINT_DPI
   return (
