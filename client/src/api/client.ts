@@ -803,6 +803,7 @@ export const trackingApi = {
   deleteDevice: (id: number) => apiClient.delete(`/tracking/devices/${id}`).then(r => r.data),
   track: (id: number, params: { from: string; to: string; max_accuracy?: number }) => apiClient.get(`/tracking/devices/${id}/track`, { params }).then(r => r.data),
   days: (id: number, offset: number) => apiClient.get(`/tracking/devices/${id}/days`, { params: { offset } }).then(r => r.data),
+  ingests: (id: number, limit = 50) => apiClient.get(`/tracking/devices/${id}/ingests`, { params: { limit } }).then(r => r.data),
   gpxUrl: (id: number, params: { from: string; to: string; max_accuracy?: number }) =>
     `/api/tracking/devices/${id}/gpx?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])).toString()}`,
   saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number; line?: [number, number][] }) =>

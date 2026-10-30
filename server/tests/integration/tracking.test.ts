@@ -316,3 +316,52 @@ describe('Public share link', () => {
     expect((await request(app).get(`/api/tracking/public/${share.body.device.share.token}`)).status).toBe(404);
   });
 });
+
+describe('Lost points (5.7.9)', () => {
+  it('TRACKING-019 — Unix timestamps (seconds, milliseconds, as text) are stored, not dropped', async () => {
+    const { user } = createUser(testDb);
+    const { token } = await newDevice(user.id);
+    const s = Math.floor(Date.now() / 1000) - 300;
+    const res = await send(token, [point(-5.84, 43.36, s as unknown as string), point(-5.83, 43.36, String(s + 60)), point(-5.82, 43.36, ((s + 120) * 1000) as unknown as string)]);
+    expect(res.body).toMatchObject({ stored: 3, invalid: 0 });
+    const rows = testDb.prepare('SELECT ts FROM tracking_points ORDER BY ts').all() as { ts: string }[];
+    expect(rows[0].ts).toBe(new Date(s * 1000).toISOString());
+  });
+
+  it('TRACKING-020 — a batch over the limit is refused whole (413) so the phone keeps it and splits it', async () => {
+    const { user } = createUser(testDb);
+    const { token } = await newDevice(user.id);
+    const t0 = Date.now() - 3_600_000;
+    const many = Array.from({ length: 5001 }, (_, i) => point(-5.8 + i * 1e-5, 43.3, new Date(t0 + i * 500).toISOString()));
+    const res = await send(token, many);
+    expect(res.status).toBe(413);
+    expect(res.body.result).not.toBe('ok');
+    expect((testDb.prepare('SELECT COUNT(*) n FROM tracking_points').get() as { n: number }).n).toBe(0);
+  });
+
+  it('TRACKING-021 — every upload is logged with what became of its points, newest first, only for the owner', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    await request(app).post('/api/tracking/overland').set('Authorization', `Bearer ${token}`).set('User-Agent', 'Colota/1.9')
+      .send({ locations: [point(-5.84, 43.36, iso(5)), point(-5.83, 43.36, iso(4)), { type: 'Feature', properties: {} }] });
+    await send(token, [point(-5.84, 43.36, iso(5))]);
+    const res = await request(app).get(`/api/tracking/devices/${device.id}/ingests`).set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.body.ingests).toHaveLength(2);
+    expect(res.body.ingests[0]).toMatchObject({ http_status: 200, received: 1, stored: 0, duplicates: 1 });
+    expect(res.body.ingests[1]).toMatchObject({ received: 3, stored: 2, invalid: 1, client: 'Colota/1.9' });
+    expect(res.body.ingests[1].oldest_ts < res.body.ingests[1].newest_ts).toBe(true);
+    expect((await request(app).get(`/api/tracking/devices/${device.id}/ingests`).set('Cookie', authCookie(other.id))).status).toBe(404);
+  });
+
+  it('TRACKING-022 — the track says how many fixes the accuracy filter hid', async () => {
+    const { user } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    await send(token, [point(-5.84, 43.36, iso(5)), point(-5.83, 43.36, iso(4), { horizontal_accuracy: 900 })]);
+    const from = new Date(Date.now() - 3_600_000).toISOString();
+    const to = new Date().toISOString();
+    const res = await request(app).get(`/api/tracking/devices/${device.id}/track`).query({ from, to, max_accuracy: 100 }).set('Cookie', authCookie(user.id));
+    expect(res.body).toMatchObject({ total: 1, hidden: 1 });
+  });
+});

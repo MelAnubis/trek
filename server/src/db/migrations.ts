@@ -2871,6 +2871,25 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_tracking_points_device_ts ON tracking_points(device_id, ts);
       `);
     },
+    // 5.7.9: what each upload carried and what became of it, so a lost point can be traced to the phone or to the server.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tracking_ingests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          device_id INTEGER NOT NULL REFERENCES tracking_devices(id) ON DELETE CASCADE,
+          at TEXT NOT NULL,
+          http_status INTEGER NOT NULL,
+          received INTEGER NOT NULL DEFAULT 0,
+          stored INTEGER NOT NULL DEFAULT 0,
+          duplicates INTEGER NOT NULL DEFAULT 0,
+          invalid INTEGER NOT NULL DEFAULT 0,
+          oldest_ts TEXT,
+          newest_ts TEXT,
+          client TEXT
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracking_ingests_device ON tracking_ingests(device_id, id);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

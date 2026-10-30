@@ -9,6 +9,7 @@
  *   POST   /api/tracking/devices/:id/token         → (auth) token nuevo (el anterior deja de valer)
  *   DELETE /api/tracking/devices/:id               → (auth) borra el dispositivo y sus puntos
  *   GET    /api/tracking/devices/:id/track         → (auth) puntos entre from y to
+ *   GET    /api/tracking/devices/:id/ingests       → (auth) últimos envíos recibidos y qué pasó con sus puntos
  *   GET    /api/tracking/devices/:id/days          → (auth) días con puntos (calendario)
  *   GET    /api/tracking/devices/:id/gpx           → (auth) descarga GPX de un rango
  *   POST   /api/tracking/devices/:id/save-route    → (auth) guarda un rango como ruta de un viaje
@@ -42,9 +43,20 @@ router.post('/tracking/overland', (req: Request, res: Response) => {
   // Anything but {"result":"ok"} keeps the batch on the phone, which is what an
   // unknown token should do: nothing is lost while the user fixes the setting.
   if (!device) return res.status(401).json({ result: 'unauthorized' });
-  if (!tracking.allowRequest(device.token_hash)) return res.status(429).json({ result: 'rate_limited' });
+  const client = typeof req.headers['user-agent'] === 'string' ? req.headers['user-agent'] : null;
+  if (!tracking.allowRequest(device.token_hash)) {
+    tracking.logIngest(device.id, 429, null, client);
+    // Colota and others wait this long before trying again rather than hammering.
+    res.setHeader('Retry-After', '30');
+    return res.status(429).json({ result: 'rate_limited' });
+  }
+  if (tracking.batchTooBig(req.body)) {
+    tracking.logIngest(device.id, 413, null, client);
+    return res.status(413).json({ result: 'too_many_points' });
+  }
 
   const result = tracking.ingestOverland(device, req.body);
+  tracking.logIngest(device.id, 200, result, client);
   if (result.stored > 0 || result.statuses > 0) {
     // The owner's open map follows the phone without polling.
     broadcastToUser(device.user_id, { type: 'tracking:update', device: tracking.getDevice(device.user_id, device.id) });
@@ -130,6 +142,14 @@ router.get('/tracking/devices/:id/track', authenticate, (req: Request, res: Resp
   const out = tracking.getTrack((req as AuthRequest).user.id, id, r.from, r.to, r.maxAccuracy);
   if (!out) return res.status(404).json({ error: 'Device not found' });
   res.json(out);
+});
+
+// The device's latest uploads (5.7.9): what reached the server and what became of it.
+router.get('/tracking/devices/:id/ingests', authenticate, (req: Request, res: Response) => {
+  const id = deviceId(req);
+  const rows = id ? tracking.listIngests((req as AuthRequest).user.id, id, Number(req.query.limit) || 50) : null;
+  if (!rows) return res.status(404).json({ error: 'Device not found' });
+  res.json({ ingests: rows });
 });
 
 router.get('/tracking/devices/:id/days', authenticate, (req: Request, res: Response) => {

@@ -204,6 +204,13 @@ const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFi
 const known = (v: unknown): number | null => { const n = num(v); return n == null || n < 0 ? null : n; };
 
 function isoTimestamp(v: unknown, now: number): string | null {
+  // Overland sends ISO 8601; some loggers send Unix time instead, in seconds or milliseconds (5.7.9).
+  const epoch = typeof v === 'number' ? v : typeof v === 'string' && /^\d{9,13}(\.\d+)?$/.test(v) ? Number(v) : null;
+  if (epoch != null && Number.isFinite(epoch)) {
+    const ms = epoch < 1e12 ? epoch * 1000 : epoch;
+    if (ms < now - MAX_AGE_MS || ms > now + MAX_FUTURE_MS) return null;
+    return new Date(Math.round(ms)).toISOString();
+  }
   if (typeof v !== 'string' || v.length > 40) return null;
   const t = Date.parse(v);
   if (!Number.isFinite(t) || t < now - MAX_AGE_MS || t > now + MAX_FUTURE_MS) return null;
@@ -216,6 +223,52 @@ export interface IngestResult {
   duplicates: number;
   invalid: number;
   statuses: number;
+  /** The span of the fixes the batch carried. */
+  oldest?: string | null;
+  newest?: string | null;
+}
+
+/**
+ * Whether a batch carries more fixes than one request may: refused whole
+ * (413) rather than cut, so the phone keeps them and sends them in smaller
+ * parts — Colota halves a refused batch, Overland sends 200 at most anyway.
+ */
+export function batchTooBig(body: unknown): boolean {
+  const raw = body && typeof body === 'object' ? (body as { locations?: unknown }).locations : null;
+  return Array.isArray(raw) && raw.length > MAX_FEATURES_PER_BATCH;
+}
+
+/** How many uploads per device the log keeps. */
+const INGEST_LOG_KEEP = 200;
+
+/**
+ * One upload in the device's log (5.7.9): when, what came back, how many
+ * fixes it carried and what became of them, and which app sent it. What
+ * makes a lost point traceable: never in a batch is the phone; in a batch but
+ * not stored is here.
+ */
+export function logIngest(deviceId: number, httpStatus: number, result: Partial<IngestResult> | null, client: string | null): void {
+  try {
+    db.prepare(`INSERT INTO tracking_ingests (device_id, at, http_status, received, stored, duplicates, invalid, oldest_ts, newest_ts, client)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(
+      deviceId, new Date().toISOString(), httpStatus, result?.received ?? 0, result?.stored ?? 0, result?.duplicates ?? 0,
+      result?.invalid ?? 0, result?.oldest ?? null, result?.newest ?? null, client ? client.slice(0, 120) : null,
+    );
+    db.prepare(`DELETE FROM tracking_ingests WHERE device_id = ? AND id <= (
+                  SELECT id FROM tracking_ingests WHERE device_id = ? ORDER BY id DESC LIMIT 1 OFFSET ?)`).run(deviceId, deviceId, INGEST_LOG_KEEP);
+  } catch { /* the log is a diagnosis aid; it never fails an upload */ }
+}
+
+export interface IngestLogRow {
+  at: string; http_status: number; received: number; stored: number; duplicates: number; invalid: number;
+  oldest_ts: string | null; newest_ts: string | null; client: string | null;
+}
+
+/** A device's latest uploads, newest first. */
+export function listIngests(userId: number, deviceId: number, limit = 50): IngestLogRow[] | null {
+  if (!deviceOf(userId, deviceId)) return null;
+  return db.prepare(`SELECT at, http_status, received, stored, duplicates, invalid, oldest_ts, newest_ts, client
+                       FROM tracking_ingests WHERE device_id = ? ORDER BY id DESC LIMIT ?`).all(deviceId, Math.min(200, Math.max(1, limit))) as IngestLogRow[];
 }
 
 /**
@@ -226,6 +279,7 @@ export interface IngestResult {
 export function ingestOverland(device: DeviceRow, body: unknown): IngestResult {
   const now = Date.now();
   const raw = (body && typeof body === 'object' ? (body as { locations?: unknown }).locations : null);
+  // The route refuses a bigger batch whole (batchTooBig) before it gets here.
   const features = Array.isArray(raw) ? raw.slice(0, MAX_FEATURES_PER_BATCH) : [];
   const result: IngestResult = { received: features.length, stored: 0, duplicates: 0, invalid: 0, statuses: 0 };
 
@@ -308,6 +362,10 @@ export function ingestOverland(device: DeviceRow, body: unknown): IngestResult {
   })();
 
   prune(device.id, device.retention_days);
+  for (const p of points) {
+    if (!result.oldest || p.ts < result.oldest) result.oldest = p.ts;
+    if (!result.newest || p.ts > result.newest) result.newest = p.ts;
+  }
   return result;
 }
 
@@ -342,7 +400,11 @@ export function parseInstant(v: unknown): string | null {
 export function getTrack(userId: number, deviceId: number, from: string, to: string, maxAccuracy?: number) {
   if (!deviceOf(userId, deviceId)) return null;
   const all = pointsBetween(deviceId, from, to, maxAccuracy);
-  return { total: all.length, points: downsample(all, MAX_POINTS_RETURNED), stats: trackStats(all) };
+  // The fixes left out as imprecise, so the map can say a hole is a filter and not a loss (5.7.9).
+  const hidden = maxAccuracy
+    ? (db.prepare('SELECT COUNT(*) AS n FROM tracking_points WHERE device_id = ? AND ts >= ? AND ts <= ? AND accuracy > ?').get(deviceId, from, to, maxAccuracy) as { n: number }).n
+    : 0;
+  return { total: all.length, hidden, points: downsample(all, MAX_POINTS_RETURNED), stats: trackStats(all) };
 }
 
 /** How many points each local day holds, for the history calendar. `offsetMinutes` is the viewer's UTC offset. */

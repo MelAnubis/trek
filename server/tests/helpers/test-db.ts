@@ -101,6 +101,7 @@ const RESET_TABLES = [
   'user_notice_dismissals',
   // Tracking en vivo (Overland)
   'tracking_points',
+  'tracking_ingests',
   'tracking_devices',
   // User data
   'settings',

@@ -67,6 +67,8 @@ export default function TrackingPage() {
   const [points, setPoints] = useState<TrackPoint[]>([])
   const [stats, setStats] = useState<TrackStats | null>(null)
   const [total, setTotal] = useState(0)
+  /** Fixes the accuracy filter left out (5.7.9): a hole that is a filter, not a loss. */
+  const [hidden, setHidden] = useState(0)
   const [hideImprecise, setHideImprecise] = useState(true)
   const [follow, setFollow] = useState(false)
   // Drawn along streets and paths (5.7.3) unless turned off; remembered per browser.
@@ -86,8 +88,8 @@ export default function TrackingPage() {
   const loadTrack = useCallback(() => {
     if (!deviceId) return
     trackingApi.track(deviceId, { ...range, max_accuracy: accuracy })
-      .then((r: { points: TrackPoint[]; stats: TrackStats; total: number }) => { setPoints(r.points); setStats(r.stats); setTotal(r.total) })
-      .catch(() => { setPoints([]); setStats(null); setTotal(0) })
+      .then((r: { points: TrackPoint[]; stats: TrackStats; total: number; hidden?: number }) => { setPoints(r.points); setStats(r.stats); setTotal(r.total); setHidden(r.hidden ?? 0) })
+      .catch(() => { setPoints([]); setStats(null); setTotal(0); setHidden(0) })
   }, [deviceId, range, accuracy])
   useEffect(() => { loadTrack() }, [loadTrack])
 
@@ -211,6 +213,9 @@ export default function TrackingPage() {
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" checked={hideImprecise} onChange={e => setHideImprecise(e.target.checked)} />
           {t('tracking.hideImprecise', { m: GOOD_ACCURACY_M })}
+          {hideImprecise && hidden > 0 && (
+            <span data-testid="hidden-count" className="ml-auto text-[11px]" style={{ color: '#b45309' }}>{t('tracking.hiddenCount', { n: hidden })}</span>
+          )}
         </label>
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
@@ -218,6 +223,7 @@ export default function TrackingPage() {
           {snap && total > 1 && <MatchBadge status={matchStatus} />}
         </label>
         <GapNotice gaps={gaps} />
+        {device && <UploadLog deviceId={device.id} refreshKey={total} />}
         {isToday && (
           <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
             <input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
@@ -405,6 +411,63 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
 }
 
 /** How the drawing along the ways is going: matching, done, partly, or not at all (straight lines shown). */
+interface IngestRow {
+  at: string; http_status: number; received: number; stored: number; duplicates: number; invalid: number
+  oldest_ts: string | null; newest_ts: string | null; client: string | null
+}
+
+/**
+ * The phone's latest uploads as the server saw them (5.7.9): when each came,
+ * how many fixes it carried and what became of them. A hole with no upload
+ * covering it is the phone not recording or not sending; fixes received but
+ * not stored (invalid) would be the server's to fix.
+ */
+function UploadLog({ deviceId, refreshKey }: { deviceId: number; refreshKey: number }) {
+  const { t, locale } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const [rows, setRows] = useState<IngestRow[] | null>(null)
+  useEffect(() => {
+    if (!open) return
+    let cancelled = false
+    trackingApi.ingests(deviceId, 40)
+      .then((r: { ingests: IngestRow[] }) => { if (!cancelled) setRows(r.ingests) })
+      .catch(() => { if (!cancelled) setRows([]) })
+    return () => { cancelled = true }
+  }, [open, deviceId, refreshKey])
+  const hm = (iso: string | null) => (iso ? new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : '–')
+  const dm = (iso: string) => new Date(iso).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  return (
+    <div className="text-xs" data-testid="upload-log">
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="font-medium" style={{ color: 'var(--text-secondary)' }}>
+        {open ? '▾' : '▸'} {t('tracking.uploads.title')}
+      </button>
+      {open && (
+        <div className="mt-1.5 space-y-1">
+          <p style={{ color: 'var(--text-muted)' }}>{t('tracking.uploads.hint')}</p>
+          {rows === null ? <p style={{ color: 'var(--text-muted)' }}>…</p> : rows.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)' }}>{t('tracking.uploads.none')}</p>
+          ) : (
+            <ul className="space-y-0.5 max-h-60 overflow-y-auto" style={{ fontVariantNumeric: 'tabular-nums' }}>
+              {rows.map((r, i) => {
+                const bad = r.http_status !== 200 || r.invalid > 0
+                return (
+                  <li key={i} data-testid="upload-row" style={{ color: bad ? '#b45309' : 'var(--text-secondary)' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>{dm(r.at)}</span>{' · '}
+                    {r.http_status !== 200
+                      ? t(`tracking.uploads.status${r.http_status === 429 ? '429' : r.http_status === 413 ? '413' : 'Other'}`, { code: r.http_status })
+                      : t('tracking.uploads.row', { received: r.received, stored: r.stored, duplicates: r.duplicates, invalid: r.invalid, from: hm(r.oldest_ts), to: hm(r.newest_ts) })}
+                    {r.client && <span style={{ color: 'var(--text-faint)' }}> · {r.client.split(' ')[0]}</span>}
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /** The holes in the day's recording, with what usually causes them on Android. */
 function GapNotice({ gaps }: { gaps: TrackGap[] }) {
   const { t, locale } = useTranslation()
