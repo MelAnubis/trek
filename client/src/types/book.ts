@@ -550,6 +550,20 @@ export interface BookDocument {
   spreads: BookSpread[];
   /** The book's theme (rev 4, bookTheme.ts). */
   theme?: BookTheme;
+  /** The book's own layouts (rev 6, designed/savedLayouts.ts). */
+  layouts?: BookLayout[];
+}
+
+/** A page somebody arranged, kept to lay other pages out the same way: the design in the millimetres it was drawn in, no pictures. */
+export interface BookLayout {
+  id: string;
+  name: string;
+  role: 'inner' | 'single';
+  pageWidth: number;
+  pageHeight: number;
+  background: string | null;
+  backgroundPaint?: BookPaint;
+  elements: BookElement[];
 }
 
 export interface BookSummary {

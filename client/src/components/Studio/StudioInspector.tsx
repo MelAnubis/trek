@@ -4,6 +4,7 @@ import { selectionTitle } from './studioLayerRows'
 import { MIN_PRINT_DPI, photoDpi, usePhotoPixels } from './photoResolution'
 import { photoZoomOf } from './photoLook'
 import { StudioTextEffects } from './text/StudioTextEffects'
+import { StickerInspector } from './stickers/StickerInspector'
 import { useJourneyStore } from '../../store/journeyStore'
 import { PhotoCropExtras, PhotoLookSections, usePhotoLookPatch, useUndoablePatch } from './StudioPhotoLook'
 import { EdgeSection, PageBackgroundSection, ShapeFillSection } from './StudioPaintSections'
@@ -23,7 +24,7 @@ import {
   BOOK_BADGES, BOOK_METRICS, type BookAccommodationElement, type BookBadgeElement, type BookBadgeVariant,
   type BookCountriesElement, type BookDocument, type BookElement, type BookIconElement, type BookListElement,
   type BookMapElement, type BookMetric, type BookPackingElement, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
-  type BookWeight, type BookTextElement, type BookSpread,
+  type BookWeight, type BookTextElement, type BookSpread, type BookStickerElement,
 } from '../../types/book'
 
 /** "star-5" -> "Star 5", "half-circle" -> "Half circle" */
@@ -240,6 +241,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       </div>
 
       {el.kind === 'line' && <LineInspector el={el} spreadIndex={spreadIndex} t={t} />}
+      {el.kind === 'sticker' && <StickerLook el={el} spreadIndex={spreadIndex} />}
 
       {el.kind === 'photo' && (
         <>
@@ -402,6 +404,13 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
 }
 
 type Patch = (p: Partial<BookElement>) => void
+
+/** A sticker's colours, mirror and turn (stickers/StickerInspector.tsx), each change one undo step. */
+function StickerLook({ el, spreadIndex }: { el: BookStickerElement; spreadIndex: number }) {
+  const { t } = useTranslation()
+  const { set } = useUndoablePatch<Partial<BookElement>>(spreadIndex, el.id)
+  return <StickerInspector el={el} set={set} t={t} />
+}
 
 /** The text's effects (text/StudioTextEffects.tsx), each change one undo step. */
 function TextEffects({ el, spread, spreadIndex }: { el: BookTextElement; spread: BookSpread | undefined; spreadIndex: number }) {

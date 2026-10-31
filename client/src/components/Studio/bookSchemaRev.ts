@@ -25,10 +25,11 @@ import type { BookDocument } from '../../types/book'
  *
  * - 2 (5.7): layers — `name`, `group`, `hidden` on elements, a spread's `groups`.
  * - 3 (5.7.2): the photo look — `border`, `shadow`, `zoom`, `flipX`, `adjust`, `duotone`, `cutout`.
+ * - 6 (5.7.12): the book's own layouts (`layouts`).
  * - 5 (5.7.10): the sticker element, text effects (`transform`, `vAlign`, `outline`, `shadow`, `highlight` as a band, `curve`, `fillPaint`, `fit`, `fitMax`), weights 100–900, the rest of the font catalogue and the second shelf of shapes.
  * - 4 (5.7.6): paint (`paint`, `backgroundPaint`), cut edges (`edge`, `edgeSize`), the `line` element, and themes (`theme`, `token`, `strokeToken`, `accentToken`, `fontRole`, `backgroundToken`).
  */
-export const BOOK_SCHEMA_REV = 5
+export const BOOK_SCHEMA_REV = 6
 
 /** The `code` a refused save carries when the stored book is newer than the writer. */
 export const BOOK_SCHEMA_NEWER_CODE = 'book_schema_newer'

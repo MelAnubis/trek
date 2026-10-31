@@ -23,6 +23,10 @@ import { StudioProviderPhotos } from './StudioProviderPhotos'
 import { StudioLineShelf } from './StudioLineShelf'
 import { StudioThemePanel } from './theme/StudioThemePanel'
 import { DesignedPagesPanel } from './designed/DesignedPagesPanel'
+import { SavedLayouts } from './designed/SavedLayouts'
+import { LockupShelf } from './lockups/LockupShelf'
+import { StickerShelf } from './stickers/StickerShelf'
+import { SidebarTabs } from './SidebarTabs'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -144,6 +148,8 @@ export function StudioSidebar({
   const toast = useToast()
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(loadCollapsedSections)
   const [showShapePicker, setShowShapePicker] = useState(false)
+  const [elementsTab, setElementsTab] = useState<'basic' | 'text' | 'stickers'>('basic')
+  const [travelTab, setTravelTab] = useState<'figures' | 'maps' | 'countries' | 'marks'>('figures')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null)
   const [photosDragOver, setPhotosDragOver] = useState(false)
@@ -350,171 +356,9 @@ export function StudioSidebar({
         </div>
       </CollapsibleSection>
 
-      {/* Layers — what is on this page, front to back (lock, hide, rename, reorder, group). */}
-      <CollapsibleSection
-        icon={<Layers size={12} color="var(--text-faint)" />}
-        title={t('journey.studio.layers')}
-        collapsed={!!collapsedSections.layers}
-        onToggle={() => toggleSection('layers')}
-        headerExtra={spread ? <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{spread.elements.length}</span> : undefined}
-      >
-        <StudioLayersPanel t={t} />
-      </CollapsibleSection>
-
-      {/* Layouts */}
-      <CollapsibleSection
-        icon={<LayoutGrid size={12} color="var(--text-faint)" />}
-        title={t('journey.studio.layoutsTab')}
-        collapsed={!!collapsedSections.layouts}
-        onToggle={() => toggleSection('layouts')}
-        disabled={readOnly}
-      >
-        <DesignedPagesPanel t={t} locale={locale}
-          onEmptyFrames={() => { if (collapsedSections.photos) toggleSection('photos') }} />
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '16px 0 6px' }}>
-          {t('journey.studio.builtInLayouts')}
-        </div>
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
-          {t('journey.studio.layoutsHint')}
-        </p>
-        {isSingle && (
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.4, padding: '6px 8px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
-            {t('journey.studio.layoutsCoverHint')}
-          </p>
-        )}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          {layoutOptions.map(tpl => (
-            <button key={tpl.id} onClick={() => applyLayout(tpl.id)} className="st-sb-layout" title={prettyId(tpl.id)}>
-              <LayoutSwatch template={tpl} single={isSingle} page={doc.page} />
-              <span>{prettyId(tpl.id)}</span>
-            </button>
-          ))}
-        </div>
-      </CollapsibleSection>
-
-      {/* Elements */}
-      <CollapsibleSection
-        title={t('journey.studio.elementsTab')}
-        collapsed={!!collapsedSections.elements}
-        onToggle={() => toggleSection('elements')}
-        disabled={readOnly}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <button onClick={() => addCentered(80, 20, (id, frame) => ({
-            id, frame, kind: 'text', rotation: 0, opacity: 1, locked: false,
-            text: '', font: 'sans', size: 14, weight: 400, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true,
-          }))} className="st-sb-add"><Type size={15} /> {t('journey.studio.addText')}</button>
-          <button onClick={() => addCentered(90, 65, (id, frame) => ({
-            id, frame, kind: 'photo', rotation: 0, opacity: 1, locked: false,
-            photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
-          }))} className="st-sb-add"><ImageIcon size={15} /> {t('journey.studio.addPhotoFrame')}</button>
-          <button onClick={() => addShape('rect')} className="st-sb-add"><Square size={15} /> {t('journey.studio.addRect')}</button>
-          <button onClick={() => addShape('ellipse')} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
-        </div>
-        <div style={{ position: 'relative', marginTop: 6 }}>
-          <button onClick={() => setShowShapePicker(v => !v)} className="st-sb-add" style={{ width: '100%', flexDirection: 'row', gap: 6, padding: '8px 10px' }}>
-            <Sparkles size={13} /> {t('journey.studio.moreShapes')}
-          </button>
-          {showShapePicker && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 260, overflowY: 'auto',
-              borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 8, zIndex: 20,
-            }}>
-              {SHAPE_GROUPS.map(group => (
-                <div key={group.id} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 4 }}>
-                    {t(`journey.studio.shapeGroup.${group.id}`)}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
-                    {group.shapes.map(s => (
-                      <button key={s} onClick={() => addShape(s)} title={s} style={{
-                        aspectRatio: '1', padding: 4, borderRadius: 6, border: '1px solid var(--border-primary)',
-                        background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <ShapeSwatch shape={s} />
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        <StudioLineShelf page={doc.page} single={doc.spreads[activeSpread]?.role !== 'inner'} t={t}
-          onAdd={el => addElement(activeSpread, el)} />
-      </CollapsibleSection>
-
-      {/* Travel */}
-      <CollapsibleSection
-        icon={<Compass size={12} color="var(--text-faint)" />}
-        title={t('journey.studio.travelTab')}
-        collapsed={!!collapsedSections.travel}
-        onToggle={() => toggleSection('travel')}
-        disabled={readOnly}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
-          <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
-          <button onClick={() => {
-            const metrics: BookMetric[] = ['days', 'photos', 'places']
-            const values: Partial<Record<BookMetric, number>> = journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {}
-            if (journeyStats?.distanceKm != null) { metrics.push('distance'); values.distance = Math.round(journeyStats.distanceKm * 1000) }
-            if (journeyStats?.elevationGainM != null) { metrics.push('elevationGain'); values.elevationGain = Math.round(journeyStats.elevationGainM) }
-            if (journeyStats?.elevationLossM != null) { metrics.push('elevationLoss'); values.elevationLoss = Math.round(journeyStats.elevationLossM) }
-            if (journeyStats?.budgetTotal) { metrics.push('budget'); values.budget = journeyStats.budgetTotal }
-            if (journeyStats?.countries) { metrics.push('countries'); values.countries = journeyStats.countries }
-            addCentered(100, 40, (id, frame) => ({
-              id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
-              font: 'sans', color: '#1a1a1a', accent: '#111111',
-              metrics, layout: 'row', showIcons: true, units: 'metric',
-              currency: journeyStats?.budgetCurrency ?? null,
-              values,
-            }))
-          }} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
-          <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
-          <button onClick={() => {
-            const codes = (journeyStats?.countryCodes ?? []).slice(0, 60)
-            const names = codes.map(c => countryName(c, locale))
-            const rows = Math.max(1, codes.length)
-            addCentered(110, Math.min(doc.page.pageHeight * 0.8, Math.max(24, rows * 16)), (id, frame) => ({
-              id, frame, kind: 'countries', rotation: 0, opacity: 1, locked: false,
-              font: 'sans', color: '#1a1a1a', accent: '#111111',
-              codes, names, layout: 'list', showOutline: true, showFlag: false, showName: true, align: 'center',
-            }))
-          }} className="st-sb-add"><Globe2 size={15} /> {t('journey.studio.addCountries')}</button>
-          <button onClick={() => addCentered(40, 24, (id, frame) => ({
-            id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
-            font: 'sans', color: '#1a1a1a', accent: '#111111',
-            variant: 'date', text: '', sub: '', code: null, style: 'plain',
-          }))} className="st-sb-add"><Award size={15} /> {t('journey.studio.addBadge')}</button>
-          <button onClick={() => addCentered(20, 20, (id, frame) => ({
-            id, frame, kind: 'icon', rotation: 0, opacity: 1, locked: false,
-            name: 'Compass', color: '#111827', lineWidth: 2,
-          }))} className="st-sb-add"><Sparkles size={15} /> {t('journey.studio.addIcon')}</button>
-          <button onClick={() => addCentered(90, 60, (id, frame) => ({
-            id, frame, kind: 'list', rotation: 0, opacity: 1, locked: false,
-            font: 'sans', color: '#1a1a1a', accent: '#111111',
-            items: [], layout: 'columns', showMarks: true, proLabel: 'Pros', conLabel: 'Cons',
-          }))} className="st-sb-add"><ListChecks size={15} /> {t('journey.studio.addList')}</button>
-          <button onClick={() => void addPacking()} className="st-sb-add"><Luggage size={15} /> {t('journey.studio.addPacking')}</button>
-          <button onClick={() => void addAccommodation()} className="st-sb-add"><Hotel size={15} /> {t('journey.studio.addAccommodation')}</button>
-        </div>
-      </CollapsibleSection>
-
-      {/* Theme (5.7.6): folded until opened, being the tallest section. */}
-      <CollapsibleSection
-        icon={<Palette size={12} color="var(--text-faint)" />}
-        title={t('studio.theme.panel')}
-        collapsed={collapsedSections.theme !== false}
-        onToggle={() => toggleSection('theme', collapsedSections.theme !== false)}
-        disabled={readOnly}
-      >
-        <StudioThemePanel />
-      </CollapsibleSection>
-
       {/* Photos */}
       <CollapsibleSection
-        title={t('journey.studio.photosTab')}
+        title={t('journey.studio.contentTab')}
         collapsed={!!collapsedSections.photos}
         onToggle={() => toggleSection('photos')}
         disabled={readOnly}
@@ -596,6 +440,191 @@ export function StudioSidebar({
             </div>
           ))}
         </div>
+      </CollapsibleSection>
+
+      {/* Layouts */}
+      <CollapsibleSection
+        icon={<LayoutGrid size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.layoutsTab')}
+        collapsed={!!collapsedSections.layouts}
+        onToggle={() => toggleSection('layouts')}
+        disabled={readOnly}
+      >
+        <DesignedPagesPanel t={t} locale={locale}
+          onEmptyFrames={() => { if (collapsedSections.photos) toggleSection('photos') }} />
+        <SavedLayouts t={t} />
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '16px 0 6px' }}>
+          {t('journey.studio.builtInLayouts')}
+        </div>
+        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
+          {t('journey.studio.layoutsHint')}
+        </p>
+        {isSingle && (
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.4, padding: '6px 8px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+            {t('journey.studio.layoutsCoverHint')}
+          </p>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          {layoutOptions.map(tpl => (
+            <button key={tpl.id} onClick={() => applyLayout(tpl.id)} className="st-sb-layout" title={prettyId(tpl.id)}>
+              <LayoutSwatch template={tpl} single={isSingle} page={doc.page} />
+              <span>{prettyId(tpl.id)}</span>
+            </button>
+          ))}
+        </div>
+      </CollapsibleSection>
+
+      {/* Elements */}
+      <CollapsibleSection
+        title={t('journey.studio.elementsTab')}
+        collapsed={!!collapsedSections.elements}
+        onToggle={() => toggleSection('elements')}
+        disabled={readOnly}
+      >
+        <SidebarTabs<typeof elementsTab> value={elementsTab} onChange={setElementsTab} label={t('journey.studio.elementsTab')} testId="elements-tabs"
+          tabs={[{ id: 'basic', label: t('journey.studio.elementsBasic') }, { id: 'text', label: t('journey.studio.elementsText') }, { id: 'stickers', label: t('journey.studio.stickers') }]} />
+        {elementsTab === 'text' && <LockupShelf t={t} photos={galleryPhotos} />}
+        {elementsTab === 'stickers' && <StickerShelf t={t} />}
+        {elementsTab === 'basic' && (<>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <button onClick={() => addCentered(80, 20, (id, frame) => ({
+            id, frame, kind: 'text', rotation: 0, opacity: 1, locked: false,
+            text: '', font: 'sans', size: 14, weight: 400, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true,
+          }))} className="st-sb-add"><Type size={15} /> {t('journey.studio.addText')}</button>
+          <button onClick={() => addCentered(90, 65, (id, frame) => ({
+            id, frame, kind: 'photo', rotation: 0, opacity: 1, locked: false,
+            photoId: null, fit: 'cover', focalX: 0.5, focalY: 0.5, radius: 0, filter: 'none', frameStyle: 'none', mask: null,
+          }))} className="st-sb-add"><ImageIcon size={15} /> {t('journey.studio.addPhotoFrame')}</button>
+          <button onClick={() => addShape('rect')} className="st-sb-add"><Square size={15} /> {t('journey.studio.addRect')}</button>
+          <button onClick={() => addShape('ellipse')} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
+        </div>
+        <div style={{ position: 'relative', marginTop: 6 }}>
+          <button onClick={() => setShowShapePicker(v => !v)} className="st-sb-add" style={{ width: '100%', flexDirection: 'row', gap: 6, padding: '8px 10px' }}>
+            <Sparkles size={13} /> {t('journey.studio.moreShapes')}
+          </button>
+          {showShapePicker && (
+            <div style={{
+              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 260, overflowY: 'auto',
+              borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 8, zIndex: 20,
+            }}>
+              {SHAPE_GROUPS.map(group => (
+                <div key={group.id} style={{ marginBottom: 8 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 4 }}>
+                    {t(`journey.studio.shapeGroup.${group.id}`)}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+                    {group.shapes.map(s => (
+                      <button key={s} onClick={() => addShape(s)} title={s} style={{
+                        aspectRatio: '1', padding: 4, borderRadius: 6, border: '1px solid var(--border-primary)',
+                        background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}>
+                        <ShapeSwatch shape={s} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        <StudioLineShelf page={doc.page} single={doc.spreads[activeSpread]?.role !== 'inner'} t={t}
+          onAdd={el => addElement(activeSpread, el)} />
+        </>)}
+      </CollapsibleSection>
+
+      {/* Travel */}
+      <CollapsibleSection
+        icon={<Compass size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.travelTab')}
+        collapsed={!!collapsedSections.travel}
+        onToggle={() => toggleSection('travel')}
+        disabled={readOnly}
+      >
+        <SidebarTabs<typeof travelTab> value={travelTab} onChange={setTravelTab} label={t('journey.studio.travelTab')} testId="travel-tabs"
+          tabs={[{ id: 'figures', label: t('journey.studio.travelFigures') }, { id: 'maps', label: t('journey.studio.travelMaps') }, { id: 'countries', label: t('journey.studio.travelCountries') }, { id: 'marks', label: t('journey.studio.travelMarks') }]} />
+        {travelTab === 'figures' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button onClick={() => {
+              const metrics: BookMetric[] = ['days', 'photos', 'places']
+              const values: Partial<Record<BookMetric, number>> = journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {}
+              if (journeyStats?.distanceKm != null) { metrics.push('distance'); values.distance = Math.round(journeyStats.distanceKm * 1000) }
+              if (journeyStats?.elevationGainM != null) { metrics.push('elevationGain'); values.elevationGain = Math.round(journeyStats.elevationGainM) }
+              if (journeyStats?.elevationLossM != null) { metrics.push('elevationLoss'); values.elevationLoss = Math.round(journeyStats.elevationLossM) }
+              if (journeyStats?.budgetTotal) { metrics.push('budget'); values.budget = journeyStats.budgetTotal }
+              if (journeyStats?.countries) { metrics.push('countries'); values.countries = journeyStats.countries }
+              addCentered(100, 40, (id, frame) => ({
+                id, frame, kind: 'stats', rotation: 0, opacity: 1, locked: false,
+                font: 'sans', color: '#1a1a1a', accent: '#111111',
+                metrics, layout: 'row', showIcons: true, units: 'metric',
+                currency: journeyStats?.budgetCurrency ?? null,
+                values,
+              }))
+            }} className="st-sb-add"><BarChart3 size={15} /> {t('journey.studio.addStats')}</button>
+            <button onClick={() => addCentered(90, 60, (id, frame) => ({
+              id, frame, kind: 'list', rotation: 0, opacity: 1, locked: false,
+              font: 'sans', color: '#1a1a1a', accent: '#111111',
+              items: [], layout: 'columns', showMarks: true, proLabel: 'Pros', conLabel: 'Cons',
+            }))} className="st-sb-add"><ListChecks size={15} /> {t('journey.studio.addList')}</button>
+            <button onClick={() => void addPacking()} className="st-sb-add"><Luggage size={15} /> {t('journey.studio.addPacking')}</button>
+            <button onClick={() => void addAccommodation()} className="st-sb-add"><Hotel size={15} /> {t('journey.studio.addAccommodation')}</button>
+            </div>
+        )}
+        {travelTab === 'maps' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
+            <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
+            </div>
+        )}
+        {travelTab === 'countries' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button onClick={() => {
+              const codes = (journeyStats?.countryCodes ?? []).slice(0, 60)
+              const names = codes.map(c => countryName(c, locale))
+              const rows = Math.max(1, codes.length)
+              addCentered(110, Math.min(doc.page.pageHeight * 0.8, Math.max(24, rows * 16)), (id, frame) => ({
+                id, frame, kind: 'countries', rotation: 0, opacity: 1, locked: false,
+                font: 'sans', color: '#1a1a1a', accent: '#111111',
+                codes, names, layout: 'list', showOutline: true, showFlag: false, showName: true, align: 'center',
+              }))
+            }} className="st-sb-add"><Globe2 size={15} /> {t('journey.studio.addCountries')}</button>
+            </div>
+        )}
+        {travelTab === 'marks' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <button onClick={() => addCentered(40, 24, (id, frame) => ({
+              id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
+              font: 'sans', color: '#1a1a1a', accent: '#111111',
+              variant: 'date', text: '', sub: '', code: null, style: 'plain',
+            }))} className="st-sb-add"><Award size={15} /> {t('journey.studio.addBadge')}</button>
+            <button onClick={() => addCentered(20, 20, (id, frame) => ({
+              id, frame, kind: 'icon', rotation: 0, opacity: 1, locked: false,
+              name: 'Compass', color: '#111827', lineWidth: 2,
+            }))} className="st-sb-add"><Sparkles size={15} /> {t('journey.studio.addIcon')}</button>
+            </div>
+        )}
+      </CollapsibleSection>
+
+      {/* Theme (5.7.6): folded until opened, being the tallest section. */}
+      <CollapsibleSection
+        icon={<Palette size={12} color="var(--text-faint)" />}
+        title={t('studio.theme.panel')}
+        collapsed={collapsedSections.theme !== false}
+        onToggle={() => toggleSection('theme', collapsedSections.theme !== false)}
+        disabled={readOnly}
+      >
+        <StudioThemePanel />
+      </CollapsibleSection>
+
+      {/* Layers — what is on this page, front to back (lock, hide, rename, reorder, group). */}
+      <CollapsibleSection
+        icon={<Layers size={12} color="var(--text-faint)" />}
+        title={t('journey.studio.layers')}
+        collapsed={!!collapsedSections.layers}
+        onToggle={() => toggleSection('layers')}
+        headerExtra={spread ? <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{spread.elements.length}</span> : undefined}
+      >
+        <StudioLayersPanel t={t} />
       </CollapsibleSection>
 
       <style>{`

@@ -8,6 +8,7 @@ import { useSpreadInteraction, type HandleId } from './useSpreadInteraction'
 import { useStudioKeys } from './useStudioKeys'
 import { selectionShape } from './studioGestures'
 import { isWholeGroup } from './bookGroups'
+import { STICKER_DRAG_TYPE, stickerDropped } from './stickers/stickerLibrary'
 import { useStudioStore } from '../../store/studioStore'
 import { useTranslation } from '../../i18n'
 import { PeerCursors } from './PeerCursors'
@@ -234,6 +235,7 @@ export function StudioCanvas({
       onPointerUp={finish}
       onPointerCancel={finish}
       onDragOver={e => {
+        if (e.dataTransfer.types.includes(STICKER_DRAG_TYPE)) { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; return }
         if (!e.dataTransfer.types.includes('application/x-trek-photo')) return
         e.preventDefault()
         e.dataTransfer.dropEffect = 'copy'
@@ -242,6 +244,14 @@ export function StudioCanvas({
       }}
       onDragLeave={() => setDropTarget(null)}
       onDrop={e => {
+        // A sticker from the Elementos panel lands centred where it was let go, selected.
+        const stickerId = e.dataTransfer.getData(STICKER_DRAG_TYPE)
+        if (stickerId) {
+          e.preventDefault()
+          const sticker = stickerDropped(stickerId, page, spread.role !== 'inner', pointInMm(e))
+          if (sticker) { addElement(spreadIndex, sticker); select([sticker.id]) }
+          return
+        }
         const raw = e.dataTransfer.getData('application/x-trek-photo')
         if (!raw) return
         e.preventDefault()

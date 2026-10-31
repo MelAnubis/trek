@@ -1,5 +1,5 @@
 // FE-COMP-STUDIOSIDEBAR-001 to FE-COMP-STUDIOSIDEBAR-030
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react'
 import { StudioSidebar } from './StudioSidebar'
 import { useStudioStore } from '../../store/studioStore'
 import { useJourneyStore } from '../../store/journeyStore'
@@ -21,6 +21,18 @@ beforeEach(() => {
   useStudioStore.setState(initialState, true)
   localStorage.clear()
 })
+
+
+/** 5.7.12: Viaje sorts its buttons into tabs; open the one that holds `label` and click it. */
+function clickTravel(label: string) {
+  const tabs = within(screen.getByTestId('travel-tabs')).getAllByRole('tab')
+  for (const tab of tabs) {
+    fireEvent.click(tab)
+    const btn = screen.queryByText(label)
+    if (btn) { fireEvent.click(btn); return }
+  }
+  throw new Error(`no travel tab holds ${label}`)
+}
 
 describe('StudioSidebar — collapsible sections', () => {
   it('FE-COMP-STUDIOSIDEBAR-001: every section starts expanded by default', () => {
@@ -101,7 +113,7 @@ describe('StudioSidebar — Travel panel', () => {
 
   it('FE-COMP-STUDIOSIDEBAR-008: adding a map inserts it immediately with no src, before the render finishes', () => {
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
-    fireEvent.click(screen.getByText('journey.studio.addMap'))
+    clickTravel('journey.studio.addMap')
     const el = lastElement()
     expect(el.kind).toBe('map')
     expect((el as any).src).toBeNull()
@@ -110,14 +122,14 @@ describe('StudioSidebar — Travel panel', () => {
   it('FE-COMP-STUDIOSIDEBAR-009: once onGenerateMap resolves, the just-added map element is patched with the src', async () => {
     const onGenerateMap = vi.fn().mockResolvedValue('data:image/png;base64,AAAA')
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
-    fireEvent.click(screen.getByText('journey.studio.addMap'))
+    clickTravel('journey.studio.addMap')
     await waitFor(() => expect((lastElement() as any).src).toBe('data:image/png;base64,AAAA'))
   })
 
   it('FE-COMP-STUDIOSIDEBAR-010: onGenerateMap rejecting leaves the map element with a null src rather than throwing', async () => {
     const onGenerateMap = vi.fn().mockRejectedValue(new Error('network'))
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGenerateMap={onGenerateMap} />)
-    fireEvent.click(screen.getByText('journey.studio.addMap'))
+    clickTravel('journey.studio.addMap')
     await waitFor(() => expect(onGenerateMap).toHaveBeenCalled())
     expect((lastElement() as any).src).toBeNull()
   })
@@ -152,13 +164,13 @@ describe('StudioSidebar — Travel panel', () => {
     ['journey.studio.addList', 'list'],
   ])('FE-COMP-STUDIOSIDEBAR-013: clicking "%s" adds an element of kind "%s"', (label, kind) => {
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
-    fireEvent.click(screen.getByText(label))
+    clickTravel(label)
     expect(lastElement().kind).toBe(kind)
   })
 
   it('FE-COMP-STUDIOSIDEBAR-019: adding places inserts it immediately with an empty list, before onGeneratePlaces resolves', () => {
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} />)
-    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    clickTravel('journey.studio.addPlaces')
     const el = lastElement()
     expect(el.kind).toBe('places')
     expect((el as any).places).toEqual([])
@@ -167,14 +179,14 @@ describe('StudioSidebar — Travel panel', () => {
   it('FE-COMP-STUDIOSIDEBAR-020: once onGeneratePlaces resolves, the just-added places element is patched with the fetched list', async () => {
     const onGeneratePlaces = vi.fn().mockResolvedValue([{ name: 'Kyoto', note: 'Bamboo grove' }])
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePlaces={onGeneratePlaces} />)
-    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    clickTravel('journey.studio.addPlaces')
     await waitFor(() => expect((lastElement() as any).places).toEqual([{ name: 'Kyoto', note: 'Bamboo grove' }]))
   })
 
   it('FE-COMP-STUDIOSIDEBAR-021: onGeneratePlaces rejecting leaves the places element with an empty list rather than throwing', async () => {
     const onGeneratePlaces = vi.fn().mockRejectedValue(new Error('network'))
     render(<StudioSidebar journeyId={1} galleryPhotos={[]} onGeneratePlaces={onGeneratePlaces} />)
-    fireEvent.click(screen.getByText('journey.studio.addPlaces'))
+    clickTravel('journey.studio.addPlaces')
     await waitFor(() => expect(onGeneratePlaces).toHaveBeenCalled())
     expect((lastElement() as any).places).toEqual([])
   })

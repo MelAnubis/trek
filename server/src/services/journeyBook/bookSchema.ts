@@ -644,6 +644,33 @@ export const bookPageSetupSchema = z.object({
 });
 export type BookPageSetup = z.infer<typeof bookPageSetupSchema>;
 
+export const MAX_BOOK_LAYOUTS = 24;
+
+/** Elements a reader can still read, one bad one dropped rather than the list. */
+const readableElements = z.array(z.unknown()).max(MAX_SPREAD_ELEMENTS).transform(list =>
+  list.flatMap(el => { const r = bookElementSchema.safeParse(el); return r.success ? [r.data] : []; }));
+
+/**
+ * A page somebody arranged, kept to lay other pages out the same way (rev 6,
+ * 5.7.12; liketrek/TREK's bookLayoutSchema). The design as drawn, in the
+ * millimetres of the page it was drawn on, the pictures taken out.
+ */
+export const bookLayoutSchema = z.object({
+  id: z.string().min(1).max(40),
+  name: z.string().trim().min(1).max(60),
+  role: z.enum(['inner', 'single']).default('inner'),
+  pageWidth: z.number().positive().max(2000),
+  pageHeight: z.number().positive().max(2000),
+  background: hex.nullable().catch(null).default(null),
+  backgroundPaint: paintField,
+  elements: readableElements.default([]),
+});
+export type BookLayout = z.infer<typeof bookLayoutSchema>;
+
+/** The book's own layouts: an unreadable one dropped, the rest kept. */
+const layoutsField = z.array(z.unknown()).transform(list =>
+  list.flatMap(l => { const r = bookLayoutSchema.safeParse(l); return r.success ? [r.data] : []; }).slice(0, MAX_BOOK_LAYOUTS)).optional().catch(undefined);
+
 export const bookDocumentSchema = z.object({
   /** In the document, not in a column: a format bump must not need a migration. */
   version: z.literal(1).catch(1).default(1),
@@ -654,6 +681,8 @@ export const bookDocumentSchema = z.object({
   spreads: z.array(bookSpreadSchema).max(MAX_SPREADS).default([]),
   /** The book's theme (rev 4): palette, faces by role, motifs. Unreadable is no theme. */
   theme: bookThemeSchema.optional().catch(undefined),
+  /** The book's own layouts (rev 6). */
+  layouts: layoutsField,
 });
 export type BookDocument = z.infer<typeof bookDocumentSchema>;
 

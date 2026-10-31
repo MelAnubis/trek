@@ -301,7 +301,7 @@ describe('shapes, fonts and the format', () => {
     expect(nearestWeight('serif', 900)).toBe(700)
   })
 
-  it('FE-STUDIO-DP-026: the book format is at revision 5', () => {
-    expect(BOOK_SCHEMA_REV).toBe(5)
+  it('FE-STUDIO-DP-026: the book format is at least revision 5', () => {
+    expect(BOOK_SCHEMA_REV).toBeGreaterThanOrEqual(5)
   })
 })

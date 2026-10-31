@@ -442,3 +442,17 @@ describe('5.7.9 — designed pages: text effects, stickers, weights, the second 
     expect(doc.spreads[0].parked[0].highlight).toMatchObject({ color: '#123456', alpha: 1 });
   });
 });
+
+describe('5.7.12 — the book\'s own layouts', () => {
+  it('BOOKSCHEMA-P6-001: a document keeps its layouts; an unreadable layout or element is dropped, not the rest', () => {
+    const layout = { id: 'ly1', name: 'Diseño 1', role: 'single', pageWidth: 210, pageHeight: 297, background: '#ffffff', elements: [textEl({ id: 'a' }), { kind: 'nonsense' }] };
+    const doc = normalizeBookDocument({ spreads: [], layouts: [layout, { id: 'bad' }] }) as any;
+    expect(doc.layouts).toHaveLength(1);
+    expect(doc.layouts[0]).toMatchObject({ id: 'ly1', name: 'Diseño 1', role: 'single' });
+    expect(doc.layouts[0].elements.map((e: any) => e.id)).toEqual(['a']);
+    expect((normalizeBookDocument({ spreads: [] }) as any).layouts).toBeUndefined();
+    expect((normalizeBookDocument({ spreads: [], layouts: 'x' }) as any).layouts).toBeUndefined();
+    const many = Array.from({ length: 30 }, (_, i) => ({ ...layout, id: `l${i}` }));
+    expect((normalizeBookDocument({ spreads: [], layouts: many }) as any).layouts).toHaveLength(24);
+  });
+});
