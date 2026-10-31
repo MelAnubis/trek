@@ -65,6 +65,9 @@ test-data
 .run
 .full-review
 data/
+# Code, not runtime data: the Studio's sticker and designed-page tables (5.7.10).
+!client/src/components/Studio/stickers/data/
+!client/src/components/Studio/designed/data/
 uploads/
 certs/
 .env
