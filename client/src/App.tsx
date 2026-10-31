@@ -1,5 +1,5 @@
 import { applyAppearance } from './theme/appearance'
-import React, { useEffect, ReactNode } from 'react'
+import React, { Suspense, lazy, useEffect, ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -16,7 +16,8 @@ import VacayPage from './pages/VacayPage'
 import AtlasPage from './pages/AtlasPage'
 import JourneyPage from './pages/JourneyPage'
 import JourneyDetailPage from './pages/JourneyDetailPage'
-import JourneyStudioPage from './pages/JourneyStudioPage'
+// The Studio is the largest part of the app (fonts, stickers, designed pages): its own chunk, loaded when opened.
+const JourneyStudioPage = lazy(() => import('./pages/JourneyStudioPage'))
 import JourneyPublicPage from './pages/JourneyPublicPage'
 import JourneyBlogPage from './pages/JourneyBlogPage'
 import BlogPublicPage from './pages/BlogPublicPage'
@@ -328,7 +329,9 @@ export default function App() {
           path="/journey/:id/studio"
           element={
             <ProtectedRoute addonId="journey">
-              <JourneyStudioPage />
+              <Suspense fallback={null}>
+                <JourneyStudioPage />
+              </Suspense>
             </ProtectedRoute>
           }
         />

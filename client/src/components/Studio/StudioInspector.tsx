@@ -3,15 +3,17 @@ import { StudioArrangeSection } from './StudioArrangeSection'
 import { selectionTitle } from './studioLayerRows'
 import { MIN_PRINT_DPI, photoDpi, usePhotoPixels } from './photoResolution'
 import { photoZoomOf } from './photoLook'
+import { StudioTextEffects } from './text/StudioTextEffects'
+import { useJourneyStore } from '../../store/journeyStore'
 import { PhotoCropExtras, PhotoLookSections, usePhotoLookPatch, useUndoablePatch } from './StudioPhotoLook'
 import { EdgeSection, PageBackgroundSection, ShapeFillSection } from './StudioPaintSections'
 import { LineInspector } from './StudioLineInspector'
 import { withThemeLinks } from './bookTheme'
 import { StudioThemeLink } from './theme/StudioThemePanel'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from '../../i18n'
 import { useStudioStore } from '../../store/studioStore'
-import { BOOK_FONT_ORDER, BOOK_FONTS } from './bookFonts'
+import { BOOK_FONT_ORDER, BOOK_FONTS, BOOK_FONT_WEIGHTS, nearestWeight } from './bookFonts'
 import { folioSettings } from './bookSheets'
 import { ColorSwatches, EffectPicker, FilterPicker, FontPicker, FramePicker, TextPresets } from './StyleControls'
 import { CURRENCIES } from '../Budget/BudgetPanel.constants'
@@ -21,6 +23,7 @@ import {
   BOOK_BADGES, BOOK_METRICS, type BookAccommodationElement, type BookBadgeElement, type BookBadgeVariant,
   type BookCountriesElement, type BookDocument, type BookElement, type BookIconElement, type BookListElement,
   type BookMapElement, type BookMetric, type BookPackingElement, type BookPhotoElement, type BookPlacesElement, type BookShapeElement, type BookShapeId, type BookStatsElement,
+  type BookWeight, type BookTextElement, type BookSpread,
 } from '../../types/book'
 
 /** "star-5" -> "Star 5", "half-circle" -> "Half circle" */
@@ -156,6 +159,9 @@ function NumberField({ value, min, max, step, onCommit }: { value: number; min: 
   )
 }
 
+/** The old marker effect's band, as it is first switched on. */
+const MARKER = { color: '#fde68a', alpha: 1, padX: 1.2, padY: 0.3, radius: 0 }
+
 export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
   const { t } = useTranslation()
   const doc = useStudioStore(s => s.doc)
@@ -290,7 +296,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
           </div>
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.style.font')}</span>
-            <FontPicker value={el.font} onPick={font => patch({ font })} t={t} />
+            <FontPicker value={el.font} onPick={font => patch({ font, weight: nearestWeight(font, el.weight) as BookWeight })} t={t} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
             <div style={FIELD}>
@@ -299,8 +305,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             </div>
             <div style={FIELD}>
               <span style={LABEL}>Weight</span>
-              <select style={INPUT} value={el.weight} onChange={e => patch({ weight: Number(e.target.value) as 400 | 500 | 600 | 700 })}>
-                {[400, 500, 600, 700].map(w => <option key={w} value={w}>{w}</option>)}
+              <select style={INPUT} value={el.weight} data-testid="text-weight" onChange={e => patch({ weight: Number(e.target.value) as BookWeight })}>
+                {[...new Set([...(BOOK_FONT_WEIGHTS[el.font] ?? [400]), el.weight])].sort((x, y) => x - y).map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
           </div>
@@ -310,20 +316,21 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               {['left', 'center', 'right', 'justify'].map(a => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
-          <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={LABEL}>{t('journey.studio.style.uppercase')}</span>
-            <ToggleSwitch on={!!el.uppercase} onToggle={() => patch({ uppercase: !el.uppercase })} />
-          </div>
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.style.effect')}</span>
-            <EffectPicker value={el.effect ?? 'none'} onPick={effect => patch({ effect })} t={t} />
+            <EffectPicker value={el.effect ?? 'none'} t={t} onPick={effect => patch({
+              effect,
+              // The marker keeps its colour in `highlight`; leaving it must not leave a band behind.
+              ...(effect === 'highlight' ? { highlight: { ...MARKER, ...el.highlight } } : el.effect === 'highlight' ? { highlight: undefined } : {}),
+            })} />
           </div>
           {el.effect === 'highlight' && (
             <div style={FIELD}>
               <span style={LABEL}>{t('journey.studio.style.highlightColor')}</span>
-              <ColorSwatches value={el.highlight ?? '#fde68a'} onPick={highlight => patch({ highlight })} label={t('journey.studio.style.highlightColor')} t={t} />
+              <ColorSwatches value={el.highlight?.color ?? '#fde68a'} onPick={color => patch({ highlight: { ...MARKER, ...el.highlight, color } })} label={t('journey.studio.style.highlightColor')} t={t} />
             </div>
           )}
+          <TextEffects el={el} spread={spread} spreadIndex={spreadIndex} />
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.style.textColor')}</span>
             <ColorSwatches value={el.color} onPick={color => patch({ color })} label={t('journey.studio.style.textColor')} t={t} />
@@ -395,6 +402,20 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
 }
 
 type Patch = (p: Partial<BookElement>) => void
+
+/** The text's effects (text/StudioTextEffects.tsx), each change one undo step. */
+function TextEffects({ el, spread, spreadIndex }: { el: BookTextElement; spread: BookSpread | undefined; spreadIndex: number }) {
+  const { t } = useTranslation()
+  const { set, live } = useUndoablePatch<Partial<BookElement>>(spreadIndex, el.id)
+  const entries = useJourneyStore(s => s.current?.entries)
+  const photos = useMemo(() => {
+    const ids = new Set<number>()
+    for (const e of spread?.elements ?? []) if (e.kind === 'photo' && e.photoId != null) ids.add(e.photoId)
+    for (const en of entries ?? []) for (const ph of en.photos) ids.add(ph.photo_id)
+    return [...ids].map(photoId => ({ photoId }))
+  }, [spread, entries])
+  return <StudioTextEffects el={el} set={set} live={live} photos={photos} spread={spread} t={t} />
+}
 
 /** The cut edge of a shape or a photo (StudioPaintSections.tsx), each change one undo step. */
 function ElementEdge({ el, spreadIndex, outline }: { el: BookShapeElement | BookPhotoElement; spreadIndex: number; outline: BookShapeId | null }) {

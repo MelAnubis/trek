@@ -11,6 +11,9 @@ import { PaintedPath, SpreadPaint } from './paint/paintRender'
 import { roundedRectPath, strokeDash } from './paint/paintGeometry'
 import { hasEdge, photoEdgeClip, photoEdgePath, shapeOutline } from './shapeOutline'
 import { LineView } from './LineView'
+import { StickerView } from './StickerView'
+import { TextEffectsView } from './text/TextEffectsView'
+import { hasTextEffects } from './text/textEffects'
 import { photoLookOf, pictureFilter, silhouetteShadows, svgFilterMatrices, zoomPlacement, type PhotoLook } from './photoLook'
 
 /**
@@ -453,6 +456,8 @@ export function ElementView({
   if (el.kind === 'packing') return <PackingView el={el} />
   if (el.kind === 'accommodation') return <AccommodationView el={el} />
   if (el.kind === 'line') return <LineView el={el} frameStyle={frameStyle(el)} />
+  if (el.kind === 'sticker') return <StickerView el={el} frameStyle={frameStyle(el)} />
+  if (hasTextEffects(el)) return <TextEffectsView el={el} frameStyle={frameStyle(el)} big={big} print={print} publicToken={publicToken} />
 
   return (
     <div
@@ -466,7 +471,7 @@ export function ElementView({
         lineHeight: el.leading,
         letterSpacing: `${el.tracking}em`,
         textAlign: el.align,
-        textTransform: el.uppercase ? 'uppercase' : undefined,
+        textTransform: el.uppercase && (!el.transform || el.transform === 'none') ? 'uppercase' : undefined,
         whiteSpace: 'pre-wrap',
         overflow: 'hidden',
         hyphens: 'auto',

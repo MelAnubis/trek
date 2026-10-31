@@ -22,6 +22,7 @@ import { StudioLayersPanel } from './StudioLayersPanel'
 import { StudioProviderPhotos } from './StudioProviderPhotos'
 import { StudioLineShelf } from './StudioLineShelf'
 import { StudioThemePanel } from './theme/StudioThemePanel'
+import { DesignedPagesPanel } from './designed/DesignedPagesPanel'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -368,6 +369,11 @@ export function StudioSidebar({
         onToggle={() => toggleSection('layouts')}
         disabled={readOnly}
       >
+        <DesignedPagesPanel t={t} locale={locale}
+          onEmptyFrames={() => { if (collapsedSections.photos) toggleSection('photos') }} />
+        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '16px 0 6px' }}>
+          {t('journey.studio.builtInLayouts')}
+        </div>
         <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
           {t('journey.studio.layoutsHint')}
         </p>
@@ -601,6 +607,12 @@ export function StudioSidebar({
         .st-sb-layout { display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 8px; border: 1px solid var(--border-primary); background: none; cursor: pointer; font-family: inherit; }
         .st-sb-layout:hover { border-color: var(--text-muted); }
         .st-sb-layout span { font-size: 9px; color: var(--text-faint); text-align: center; }
+        .st-tpl-card { display: flex; flex-direction: column; gap: 4px; padding: 0; border: none; background: none; cursor: pointer; font-family: inherit; min-width: 0; }
+        .st-tpl-art { position: relative; display: block; overflow: hidden; border-radius: 4px; border: 1px solid var(--border-primary); background: #fff; box-sizing: content-box; }
+        .st-tpl-card:hover .st-tpl-art { border-color: var(--text-muted); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+        .st-tpl-label { font-size: 9.5px; color: var(--text-muted); text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .st-tpl-chip { padding: 3px 8px; border-radius: 99px; border: 1px solid var(--border-primary); background: var(--bg-card); color: var(--text-muted); font-size: 10.5px; font-family: inherit; cursor: pointer; }
+        .st-tpl-chip.is-on { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-primary); }
       `}</style>
     </div>
   )

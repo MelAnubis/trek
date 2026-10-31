@@ -48,6 +48,8 @@ export const BOOK_SHAPES = [
   'ticket', 'wave', 'mountain', 'compass', 'pin',
   'blob-1', 'blob-2', 'blob-3', 'blob-4',
   'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+  // 5.7.10: the second shelf (liketrek/TREK's book-shapes-more.ts).
+  'arch-tall', 'arch-pointed', 'arch-double', 'arch-half', 'arch-rainbow', 'leaf-palm', 'leaf-oak', 'leaf-long', 'leaf-monstera', 'coral-1', 'coral-2', 'seaweed', 'star-organic', 'sun-cutout', 'organic-1', 'organic-2', 'organic-3', 'stamp-rect', 'stamp-circle', 'postmark', 'rosette', 'scallop-circle', 'badge-shield', 'label-tab', 'ticket-stub', 'sunburst-12', 'sunburst-24', 'ribbon-ends', 'ribbon-arc', 'wavy-band', 'torn-strip', 'bubble-shout', 'bubble-side', 'bubble-capsule', 'arrow-curve', 'arrow-circle', 'arrow-notched', 'arrow-thin', 'heart-round', 'heart-pair', 'star-rounded', 'star-twinkle', 'flower-8', 'frame-notched', 'frame-chamfer', 'frame-cushion', 'flourish-scroll', 'laurel', 'fleuron', 'corner-flourish',
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 
@@ -58,7 +60,9 @@ export type BookShapeId = (typeof BOOK_SHAPES)[number];
  * bookFonts.ts), self-hosted via @fontsource rather than a Google Fonts
  * CDN request.
  */
-export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost'] as const;
+export const BOOK_FONTS_IDS = ['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost',
+  // 5.7.10: the rest of liketrek/TREK's catalogue.
+  'fraunces', 'dmserif', 'bodoni', 'anton', 'league', 'shoulders', 'archivo', 'shrikhand', 'alfa', 'bricolage', 'abril', 'pacifico', 'vibes', 'sacramento', 'kaushan', 'allura', 'parisienne', 'satisfy', 'yellowtail', 'homemade', 'marker', 'mono'] as const;
 export type BookFontFamily = (typeof BOOK_FONTS_IDS)[number];
 
 export const bookFrameSchema = z.object({
@@ -211,8 +215,8 @@ export const bookTextElementSchema = z.object({
   kind: z.literal('text'),
   text: z.string().max(MAX_TEXT_LENGTH).default(''),
   font: z.enum(BOOK_FONTS_IDS).catch('sans').default('sans'),
-  size: z.number().min(4).max(200).default(11),
-  weight: z.union([z.literal(300), z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).default(400),
+  size: z.number().min(4).max(400).default(11),
+  weight: z.number().int().min(100).max(900).multipleOf(100).catch(400).default(400),
   italic: z.boolean().default(false),
   align: z.enum(['left', 'center', 'right', 'justify']).default('left'),
   leading: z.number().min(0.7).max(3).default(1.45),
@@ -220,9 +224,31 @@ export const bookTextElementSchema = z.object({
   color: hex.default('#1a1a1a'),
   /** Optional decoration — none on every text saved before these existed. */
   effect: z.enum(['none', 'shadow', 'outline', 'highlight']).catch('none').default('none'),
-  /** Marker colour for `highlight`. */
-  highlight: hex.catch('#fde68a').default('#fde68a'),
   uppercase: z.boolean().catch(false).default(false),
+  /*
+   * Text effects (rev 5, 5.7.10) — liketrek/TREK's book-text-effects.schema.ts.
+   * All optional, none by default; null removes one. `highlight` used to be
+   * the marker colour (a string); a book from before is read as the band of
+   * that colour when its effect was the marker, and as no band otherwise
+   * (legacyTextEffects below).
+   */
+  transform: z.enum(['none', 'upper', 'lower', 'smallcaps']).optional().catch(undefined),
+  vAlign: z.enum(['top', 'middle', 'bottom']).optional().catch(undefined),
+  outline: z.object({ color: hex, width: z.number().min(0.05).max(6) }).nullable().optional().catch(undefined),
+  shadow: z.object({ dx: z.number().min(-30).max(30), dy: z.number().min(-30).max(30), color: hex, alpha: alpha.default(1) }).nullable().optional().catch(undefined),
+  highlight: z.preprocess(
+    v => (typeof v === 'string' ? undefined : v),
+    z.object({ color: hex, alpha: alpha.default(1), padX: z.number().min(0).max(20).default(1.2), padY: z.number().min(0).max(20).default(0.3), radius: z.number().min(0).max(20).default(0) }).nullable().optional(),
+  ).catch(undefined),
+  curve: z.object({ type: z.enum(['arc', 'circle']), bend: z.number().min(-100).max(100).default(40), start: z.number().min(-180).max(180).default(0) }).nullable().optional().catch(undefined),
+  fillPaint: z.union([
+    z.object({ type: z.literal('solid'), color: hex, alpha: alpha.default(1) }),
+    z.object({ type: z.literal('photo'), photoId: z.number().int().positive(), focalX: z.number().min(0).max(1).default(0.5), focalY: z.number().min(0).max(1).default(0.5), zoom: z.number().min(1).max(4).default(1) }),
+    bookPaintSchema,
+  ]).nullable().optional().catch(undefined),
+  fit: z.enum(['none', 'shrink']).optional().catch(undefined),
+  /** The size a fitted text is set at when its frame holds it: the size the person chose. */
+  fitMax: z.number().min(4).max(400).optional().catch(undefined),
   binding: z
     .object({
       source: z.enum(['journey.title', 'journey.subtitle', 'entry.title', 'entry.story', 'entry.location', 'entry.date', 'photo.caption']),
@@ -516,6 +542,20 @@ export const bookAccommodationElementSchema = z.object({
   layout: z.enum(['list', 'cards']).default('cards'),
 });
 
+/**
+ * An illustration from the Studio's sticker library (rev 5, 5.7.10; port of
+ * liketrek/TREK's bookStickerElementSchema). Only its id is stored: the
+ * drawings ship with the app. `colors` repaints its slots in order (empty for
+ * its own colours); `flipX` mirrors it.
+ */
+export const bookStickerElementSchema = z.object({
+  ...elementBase,
+  kind: z.literal('sticker'),
+  stickerId: z.string().regex(/^[a-z][A-Za-z0-9]*$/, 'expected a sticker id').max(48),
+  colors: z.array(hex).max(4).catch([]).default([]),
+  flipX: z.boolean().catch(false).default(false),
+});
+
 export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPhotoElementSchema,
   bookTextElementSchema,
@@ -531,6 +571,7 @@ export const bookElementSchema = z.discriminatedUnion('kind', [
   bookPackingElementSchema,
   bookAccommodationElementSchema,
   bookLineElementSchema,
+  bookStickerElementSchema,
 ]);
 export type BookElement = z.infer<typeof bookElementSchema>;
 export type BookPhotoElement = z.infer<typeof bookPhotoElementSchema>;
@@ -546,6 +587,7 @@ export type BookMapElement = z.infer<typeof bookMapElementSchema>;
 export type BookPackingElement = z.infer<typeof bookPackingElementSchema>;
 export type BookAccommodationElement = z.infer<typeof bookAccommodationElementSchema>;
 export type BookLineElement = z.infer<typeof bookLineElementSchema>;
+export type BookStickerElement = z.infer<typeof bookStickerElementSchema>;
 
 export const bookSpreadSchema = z.object({
   id: z.string().min(1),
@@ -624,7 +666,30 @@ export type BookDocument = z.infer<typeof bookDocumentSchema>;
  * fails the union stripped out (so one bad decoration doesn't take the whole
  * book down); only a document that fails even then falls back to empty.
  */
-export function normalizeBookDocument(raw: unknown): BookDocument {
+/**
+ * A text from before rev 5 kept its marker colour in `highlight` as a string,
+ * drawn only when its `effect` was the marker. Read as the band of that colour
+ * when it was, and as no band when it was not, before the schema sees it.
+ */
+function legacyTextEffects(raw: unknown): unknown {
+  if (!raw || typeof raw !== 'object' || !Array.isArray((raw as { spreads?: unknown }).spreads)) return raw;
+  const fix = (list: unknown) => (Array.isArray(list) ? list.map(el => {
+    if (!el || typeof el !== 'object') return el;
+    const t = el as Record<string, unknown>;
+    if (t.kind !== 'text' || typeof t.highlight !== 'string') return el;
+    const { highlight, ...rest } = t;
+    return t.effect === 'highlight' && /^#[0-9a-fA-F]{6}$/.test(highlight as string)
+      ? { ...rest, highlight: { color: highlight, alpha: 1, padX: 1.2, padY: 0.3, radius: 0 } }
+      : rest;
+  }) : list);
+  const doc = raw as { spreads: unknown[] };
+  return { ...doc, spreads: doc.spreads.map(sp => (sp && typeof sp === 'object'
+    ? { ...(sp as object), elements: fix((sp as { elements?: unknown }).elements), parked: fix((sp as { parked?: unknown }).parked) }
+    : sp)) };
+}
+
+export function normalizeBookDocument(input: unknown): BookDocument {
+  const raw = legacyTextEffects(input);
   const parsed = bookDocumentSchema.safeParse(raw);
   if (parsed.success) return parsed.data;
 

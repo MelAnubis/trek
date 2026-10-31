@@ -9,6 +9,77 @@
  */
 
 /** Mirrors the server's own BOOK_SHAPES — see shapes.ts for the path data. */
+/** The second shelf of shapes (5.7.10); components/Studio/shapes-more.ts draws them. */
+export const BOOK_SHAPES_MORE = [
+  // Arches, the frames a Mediterranean page is built from.
+  'arch-tall',
+  'arch-pointed',
+  'arch-double',
+  'arch-half',
+  'arch-rainbow',
+
+  // Paper cut-outs: leaves, coral and weed, wonky stars and suns.
+  'leaf-palm',
+  'leaf-oak',
+  'leaf-long',
+  'leaf-monstera',
+  'coral-1',
+  'coral-2',
+  'seaweed',
+  'star-organic',
+  'sun-cutout',
+  'organic-1',
+  'organic-2',
+  'organic-3',
+
+  // Stamps, badges and the things a travel scrapbook is stuck with.
+  'stamp-rect',
+  'stamp-circle',
+  'postmark',
+  'rosette',
+  'scallop-circle',
+  'badge-shield',
+  'label-tab',
+  'ticket-stub',
+  'sunburst-12',
+  'sunburst-24',
+
+  // Ribbons and bands.
+  'ribbon-ends',
+  'ribbon-arc',
+  'wavy-band',
+  'torn-strip',
+
+  // Speech.
+  'bubble-shout',
+  'bubble-side',
+  'bubble-capsule',
+
+  // Arrows that are drawn rather than ruled.
+  'arrow-curve',
+  'arrow-circle',
+  'arrow-notched',
+  'arrow-thin',
+
+  // Hearts and stars.
+  'heart-round',
+  'heart-pair',
+  'star-rounded',
+  'star-twinkle',
+  'flower-8',
+
+  // Photo frames.
+  'frame-notched',
+  'frame-chamfer',
+  'frame-cushion',
+
+  // Ornaments.
+  'flourish-scroll',
+  'laurel',
+  'fleuron',
+  'corner-flourish',
+] as const
+
 export const BOOK_SHAPES = [
   'rect', 'ellipse', 'line', 'triangle',
   'triangle-down', 'diamond', 'parallelogram', 'trapezoid',
@@ -23,10 +94,17 @@ export const BOOK_SHAPES = [
   'ticket', 'wave', 'mountain', 'compass', 'pin',
   'blob-1', 'blob-2', 'blob-3', 'blob-4',
   'banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag',
+  // 5.7.10: the second shelf (liketrek/TREK's book-shapes-more.ts).
+  ...BOOK_SHAPES_MORE,
 ] as const;
 export type BookShapeId = (typeof BOOK_SHAPES)[number];
 export type BookFontFamily = 'sans' | 'serif' | 'display' | 'inter' | 'garamond' | 'playfair' | 'bebas'
-  | 'montserrat' | 'oswald' | 'merriweather' | 'cormorant' | 'caveat' | 'dancing' | 'typewriter' | 'jost';
+  | 'montserrat' | 'oswald' | 'merriweather' | 'cormorant' | 'caveat' | 'dancing' | 'typewriter' | 'jost'
+  // 5.7.10: the rest of liketrek/TREK's catalogue (book-fonts.data.ts).
+  | 'fraunces' | 'dmserif' | 'bodoni' | 'anton' | 'league' | 'shoulders' | 'archivo' | 'shrikhand' | 'alfa' | 'bricolage' | 'abril' | 'pacifico' | 'vibes' | 'sacramento' | 'kaushan' | 'allura' | 'parisienne' | 'satisfy' | 'yellowtail' | 'homemade' | 'marker' | 'mono';
+
+/** A text's weight: the nine CSS weights; a family without one draws the nearest it ships. */
+export type BookWeight = 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900
 
 export interface BookFrame {
   x: number;
@@ -102,13 +180,22 @@ export interface BookTextBinding {
   value?: string;
 }
 
+export type BookTextTransform = 'none' | 'upper' | 'lower' | 'smallcaps'
+export interface BookTextOutline { color: string; width: number }
+export interface BookTextShadow { dx: number; dy: number; color: string; alpha: number }
+export interface BookTextBand { color: string; alpha: number; padX: number; padY: number; radius: number }
+export interface BookTextCurve { type: 'arc' | 'circle'; bend: number; start: number }
+export interface BookTextPhotoFill { type: 'photo'; photoId: number; focalX: number; focalY: number; zoom: number }
+/** What fills the letters: a colour (alpha 0 is hollow), a photograph, or a gradient or pattern. */
+export type BookTextFill = BookPaint | BookTextPhotoFill
+
 export interface BookTextElement extends BookElementBase, BookThemedColour {
   kind: 'text';
   fontRole?: BookFontSlot;
   text: string;
   font: BookFontFamily;
   size: number;
-  weight: 300 | 400 | 500 | 600 | 700;
+  weight: BookWeight;
   italic: boolean;
   align: 'left' | 'center' | 'right' | 'justify';
   leading: number;
@@ -116,8 +203,22 @@ export interface BookTextElement extends BookElementBase, BookThemedColour {
   color: string;
   /** Optional — absent on text saved before these existed. */
   effect?: 'none' | 'shadow' | 'outline' | 'highlight';
-  highlight?: string;
   uppercase?: boolean;
+  /*
+   * Text effects (rev 5, liketrek/TREK's book-text-effects.schema.ts). All
+   * optional; null or absent is off. `highlight` is a band behind the words;
+   * when `effect` is the old marker it is that marker's colour instead.
+   */
+  transform?: BookTextTransform;
+  vAlign?: 'top' | 'middle' | 'bottom';
+  outline?: BookTextOutline | null;
+  shadow?: BookTextShadow | null;
+  highlight?: BookTextBand | null;
+  curve?: BookTextCurve | null;
+  fillPaint?: BookTextFill | null;
+  fit?: 'none' | 'shrink';
+  /** The size a fitted text is set at when its frame holds it: the size chosen. */
+  fitMax?: number;
   binding: BookTextBinding | null;
   overridden: boolean;
 }
@@ -380,7 +481,16 @@ export interface BookAccommodationElement extends BookElementBase, BookTypeset {
 export type BookElement =
   | BookPhotoElement | BookTextElement | BookShapeElement | BookImageElement
   | BookStatsElement | BookPlacesElement | BookCountriesElement | BookBadgeElement | BookIconElement | BookListElement | BookMapElement
-  | BookPackingElement | BookAccommodationElement | BookLineElement;
+  | BookPackingElement | BookAccommodationElement | BookLineElement | BookStickerElement;
+
+/** An illustration from the sticker library (rev 5, 5.7.10; stickers/catalogue.ts). */
+export interface BookStickerElement extends BookElementBase {
+  kind: 'sticker'
+  stickerId: string
+  /** Its colour slots repainted in order; empty for its own colours. */
+  colors: string[]
+  flipX: boolean
+}
 
 /** A group's name; membership lives on the elements' own `group`. */
 export interface BookGroup {

@@ -59,7 +59,7 @@ function textEl(overrides: Record<string, unknown> = {}) {
 
 describe('bookElementSchema — text kind — self-hosted font library', () => {
   it('BOOKSCHEMA-024: accepts every font id in the self-hosted @fontsource library, not just the original 3 back-compat slots', () => {
-    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost']);
+    expect(BOOK_FONTS_IDS).toEqual(['sans', 'serif', 'display', 'inter', 'garamond', 'playfair', 'bebas', 'montserrat', 'oswald', 'merriweather', 'cormorant', 'caveat', 'dancing', 'typewriter', 'jost', 'fraunces', 'dmserif', 'bodoni', 'anton', 'league', 'shoulders', 'archivo', 'shrikhand', 'alfa', 'bricolage', 'abril', 'pacifico', 'vibes', 'sacramento', 'kaushan', 'allura', 'parisienne', 'satisfy', 'yellowtail', 'homemade', 'marker', 'mono']);
     for (const font of BOOK_FONTS_IDS) {
       const parsed = bookElementSchema.safeParse(textEl({ font }));
       expect(parsed.success, font).toBe(true);
@@ -312,9 +312,12 @@ describe('bookElementSchema — Studio styles', () => {
 
   it('BOOKSCHEMA-STYLE-004: text effects default off for old text, and round-trip when set', () => {
     const old = bookElementSchema.parse(textEl()) as any;
-    expect(old).toMatchObject({ effect: 'none', uppercase: false, highlight: '#fde68a' });
-    const set = bookElementSchema.parse(textEl({ effect: 'highlight', highlight: '#a1b2c3', uppercase: true })) as any;
-    expect(set).toMatchObject({ effect: 'highlight', highlight: '#a1b2c3', uppercase: true });
+    expect(old).toMatchObject({ effect: 'none', uppercase: false });
+    expect(old.highlight).toBeUndefined();
+    // Rev 5: a marker colour stored as a string becomes the band of that colour (normalizeBookDocument).
+    const doc = normalizeBookDocument({ spreads: [{ id: 's', elements: [textEl({ effect: 'highlight', highlight: '#a1b2c3', uppercase: true }), textEl({ id: 't2', highlight: '#fde68a' })] }] }) as any;
+    expect(doc.spreads[0].elements[0]).toMatchObject({ effect: 'highlight', highlight: { color: '#a1b2c3' }, uppercase: true });
+    expect(doc.spreads[0].elements[1].highlight).toBeUndefined();
     expect((bookElementSchema.parse(textEl({ effect: 'glow' })) as any).effect).toBe('none');
   });
 });
@@ -394,5 +397,48 @@ describe('bookSchema — rev 4 (5.7.6): paint, edges, lines, themes', () => {
     expect(doc.spreads[0]).toMatchObject({ backgroundToken: 'paper', backgroundPaint: { type: 'solid', alpha: 0.5 } });
     expect(doc.spreads[0].elements[0]).toMatchObject({ token: 'ink', fontRole: 'body' });
     expect((normalizeBookDocument({ theme: { palette: 'red' } }) as any).theme).toBeUndefined();
+  });
+});
+
+describe('5.7.9 — designed pages: text effects, stickers, weights, the second shelf of shapes', () => {
+  it('BOOKSCHEMA-P5-001: a text keeps its effects, an unreadable one is dropped, and nothing is added to a plain text', () => {
+    const fx = {
+      transform: 'upper', vAlign: 'middle', outline: { color: '#ffffff', width: 0.4 }, shadow: { dx: 1, dy: 1, color: '#000000', alpha: 0.5 },
+      highlight: { color: '#ff0000', alpha: 1, padX: 1, padY: 0.3, radius: 0 }, curve: { type: 'arc', bend: 40, start: 0 },
+      fillPaint: { type: 'photo', photoId: 9, focalX: 0.2, focalY: 0.8, zoom: 1.5 }, fit: 'shrink', fitMax: 48, size: 300,
+    };
+    expect(bookElementSchema.parse(textEl(fx))).toMatchObject(fx);
+    const bad = bookElementSchema.parse(textEl({ outline: { color: 'red', width: 99 }, curve: { type: 'spiral' }, vAlign: 'side', transform: 'title' })) as any;
+    expect(bad.outline).toBeUndefined();
+    expect(bad.curve).toBeUndefined();
+    expect(bad.vAlign).toBeUndefined();
+    expect(bad.transform).toBeUndefined();
+    const plain = bookElementSchema.parse(textEl()) as any;
+    for (const k of ['transform', 'vAlign', 'outline', 'shadow', 'highlight', 'curve', 'fillPaint', 'fit', 'fitMax']) expect(k in plain && plain[k] !== undefined).toBe(false);
+    expect((bookElementSchema.parse(textEl({ outline: null })) as any).outline).toBeNull();
+  });
+
+  it('BOOKSCHEMA-P5-002: weights run 100 to 900 in hundreds; anything else reads as 400', () => {
+    expect((bookElementSchema.parse(textEl({ weight: 800 })) as any).weight).toBe(800);
+    expect((bookElementSchema.parse(textEl({ weight: 450 })) as any).weight).toBe(400);
+    expect((bookElementSchema.parse(textEl({ weight: 1000 })) as any).weight).toBe(400);
+  });
+
+  it('BOOKSCHEMA-P5-003: a sticker keeps its id, up to four slot colours and its mirroring', () => {
+    const st = bookElementSchema.parse({ ...base, kind: 'sticker', stickerId: 'palmLeaf', colors: ['#112233', '#445566'], flipX: true }) as any;
+    expect(st).toMatchObject({ kind: 'sticker', stickerId: 'palmLeaf', colors: ['#112233', '#445566'], flipX: true });
+    expect((bookElementSchema.parse({ ...base, kind: 'sticker', stickerId: 'sun', colors: ['nope'] }) as any).colors).toEqual([]);
+    expect(bookElementSchema.safeParse({ ...base, kind: 'sticker', stickerId: '../evil' }).success).toBe(false);
+  });
+
+  it('BOOKSCHEMA-P5-004: the second shelf of shapes is a shape and a mask', () => {
+    expect(bookElementSchema.parse({ ...base, kind: 'shape', shape: 'leaf-monstera', fill: '#000000' })).toMatchObject({ shape: 'leaf-monstera' });
+    const p = bookElementSchema.parse({ ...base, kind: 'photo', photoId: 1, mask: 'arch-tall' }) as any;
+    expect(p.mask).toBe('arch-tall');
+  });
+
+  it('BOOKSCHEMA-P5-005: a pre-rev-5 marker colour becomes a band only on texts whose effect was the marker, also when parked', () => {
+    const doc = normalizeBookDocument({ spreads: [{ id: 's', elements: [], parked: [textEl({ id: 'pk', effect: 'highlight', highlight: '#123456' })] }] }) as any;
+    expect(doc.spreads[0].parked[0].highlight).toMatchObject({ color: '#123456', alpha: 1 });
   });
 });

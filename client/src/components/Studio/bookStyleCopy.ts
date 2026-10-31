@@ -36,6 +36,7 @@ const STYLE_KEYS: Record<BookElement['kind'], readonly string[]> = {
   list: ['opacity', ...TYPESET, 'layout', 'showMarks'],
   packing: ['opacity', ...TYPESET, 'groupByCategory', 'showQuantity', 'columns'],
   accommodation: ['opacity', ...TYPESET, 'showConfirmation', 'layout'],
+  sticker: ['opacity', 'colors', 'flipX'],
   line: ['opacity', 'stroke', 'strokeWidth', 'dash', 'curve', 'squiggle', 'startCap', 'endCap', 'wobble', 'ornament'],
 }
 

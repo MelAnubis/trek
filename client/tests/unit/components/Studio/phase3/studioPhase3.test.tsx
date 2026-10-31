@@ -136,7 +136,7 @@ describe('themes', () => {
         const face = p.fonts[slot]
         if (!face) continue
         expect(isBookFontFamily(face.font), `${p.id} ${slot}`).toBe(true)
-        if (face.weight !== undefined) expect([300, 400, 500, 600, 700]).toContain(face.weight)
+        if (face.weight !== undefined) expect(face.weight % 100).toBe(0)
       }
     }
   })

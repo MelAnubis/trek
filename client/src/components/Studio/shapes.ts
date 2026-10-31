@@ -1,4 +1,5 @@
 import type { BookShapeId } from '../../types/book'
+import { MORE_SHAPE_PATHS } from './shapes-more'
 
 /**
  * Every shape Studio can draw, as a path on a 0..100 square. Ported from
@@ -286,6 +287,9 @@ export const SHAPE_PATHS: Record<BookShapeId, string> = {
   'banner-pennant': 'M0 0L100 0L100 62L50 100L0 62Z',
   'banner-bookmark': 'M0 0L100 0L100 100L50 68L0 100Z',
   'banner-flag': 'M0 0L100 0L86 30L100 60L0 60Z',
+
+  // ── The second shelf (5.7.10, shapes-more.ts) ────────────────────────────
+  ...MORE_SHAPE_PATHS,
 }
 
 /**
@@ -432,7 +436,7 @@ export function unitPath(path: string): string {
  * subpaths too, and under `evenodd` any overlap between them and the body
  * would knock a hole in it.
  */
-export const HOLED_SHAPES = new Set<BookShapeId>(['gear'])
+export const HOLED_SHAPES = new Set<BookShapeId>(['gear', 'postmark', 'label-tab'])
 
 export interface ShapeGroup {
   /** i18n key under `journey.studio.shapeGroup`. */
@@ -482,8 +486,15 @@ export const SHAPE_GROUPS: ShapeGroup[] = [
   },
   {
     id: 'banners',
-    shapes: ['banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag'],
+    shapes: ['banner-ribbon', 'banner-pennant', 'banner-bookmark', 'banner-flag', 'ribbon-ends', 'ribbon-arc', 'wavy-band', 'torn-strip'],
   },
+  // The second shelf (5.7.10).
+  { id: 'arches', shapes: ['arch-tall', 'arch-pointed', 'arch-double', 'arch-half', 'arch-rainbow'] },
+  { id: 'cutouts', shapes: ['leaf-palm', 'leaf-oak', 'leaf-long', 'leaf-monstera', 'coral-1', 'coral-2', 'seaweed', 'star-organic', 'sun-cutout', 'organic-1', 'organic-2', 'organic-3'] },
+  { id: 'stamps', shapes: ['stamp-rect', 'stamp-circle', 'postmark', 'rosette', 'scallop-circle', 'badge-shield', 'label-tab', 'ticket-stub', 'sunburst-12', 'sunburst-24'] },
+  { id: 'more', shapes: ['bubble-shout', 'bubble-side', 'bubble-capsule', 'arrow-curve', 'arrow-circle', 'arrow-notched', 'arrow-thin', 'heart-round', 'heart-pair', 'star-rounded', 'star-twinkle', 'flower-8'] },
+  { id: 'frames', shapes: ['frame-notched', 'frame-chamfer', 'frame-cushion'] },
+  { id: 'ornaments', shapes: ['flourish-scroll', 'laurel', 'fleuron', 'corner-flourish'] },
 ]
 
 /**
@@ -499,4 +510,8 @@ export const FRAME_SHAPES: BookShapeId[] = [
   'heart', 'star-5', 'star-6', 'seal', 'flower-5', 'flower-6',
   'blob-1', 'blob-2', 'blob-3', 'blob-4',
   'shield', 'drop', 'leaf', 'pin', 'banner-pennant', 'banner-bookmark',
+  // 5.7.10: arches, stamps and the frames cut for photographs.
+  'arch-tall', 'arch-pointed', 'arch-double', 'arch-half', 'stamp-rect', 'stamp-circle', 'scallop-circle',
+  'badge-shield', 'ticket-stub', 'heart-round', 'star-rounded', 'flower-8', 'frame-notched', 'frame-chamfer',
+  'frame-cushion', 'organic-1', 'organic-2', 'organic-3', 'star-organic', 'sun-cutout', 'bubble-side', 'bubble-capsule',
 ]

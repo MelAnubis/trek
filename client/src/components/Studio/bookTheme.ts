@@ -18,8 +18,8 @@ import { BOOK_FONTS } from './bookFonts'
  * what is linked and leaves the rest alone, and with "adopt" links first what
  * a book made before themes (or by hand) never linked.
  *
- * The faces are Trek's own catalogue (bookFonts.ts): upstream's presets name
- * families Trek does not ship yet, so each is mapped to the nearest one here.
+ * The faces are the families upstream names, all shipped by Trek since 5.7.10
+ * (bookFonts.ts).
  */
 
 export interface BookThemeFontPick { font: BookFontFamily; weight?: number }
@@ -48,10 +48,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
       'Loud travel poster: cream paper, hot coral and sunflower blocks, heavy condensed titles, tropical stickers.',
     palette: { paper: '#fbf1de', ink: '#1d1a2f', accent: '#ef4e45', accent2: '#ffbf3c', accent3: '#13807b' },
     fonts: {
-      display: { font: 'montserrat', weight: 400 },
-      heading: { font: 'bebas', weight: 400 },
+      display: { font: 'archivo', weight: 400 },
+      heading: { font: 'anton', weight: 400 },
       body: { font: 'inter' },
-      script: { font: 'caveat', weight: 400 },
+      script: { font: 'kaushan', weight: 400 },
     },
     motifs: ['tropical', 'doodles'],
     decoration: 'rich',
@@ -65,7 +65,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Matisse cut-outs: cobalt paper, coral and sand shapes, white type, spaced condensed caps.',
     palette: { paper: '#2445b8', ink: '#fdf8ef', accent: '#ff7a59', accent2: '#f1d9b5', accent3: '#9fd3ff' },
     fonts: {
-      display: { font: 'oswald', weight: 700 },
+      display: { font: 'shoulders', weight: 800 },
       heading: { font: 'oswald', weight: 500 },
       body: { font: 'inter' },
       script: { font: 'caveat', weight: 400 },
@@ -83,7 +83,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
       'Illustrated postcard: pastel mint paper, navy ink, stamp red and peach, a display serif with a script subtitle.',
     palette: { paper: '#e3f1e8', ink: '#1f2d4d', accent: '#c8453d', accent2: '#ec8f6a', accent3: '#f3d58a' },
     fonts: {
-      display: { font: 'playfair', weight: 400 },
+      display: { font: 'dmserif', weight: 400 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'inter' },
       script: { font: 'dancing', weight: 400 },
@@ -100,10 +100,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Mediterranean summer: warm white paper, azure, olive and lemon yellow, a soft serif with a flowing script.',
     palette: { paper: '#fffaf0', ink: '#22324a', accent: '#2a78bd', accent2: '#6f7f34', accent3: '#e9b824' },
     fonts: {
-      display: { font: 'playfair', weight: 600 },
+      display: { font: 'fraunces', weight: 600 },
       heading: { font: 'montserrat', weight: 500 },
       body: { font: 'serif' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'vibes', weight: 400 },
     },
     motifs: ['mediterranean', 'sea'],
     decoration: 'light',
@@ -121,7 +121,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
       display: { font: 'cormorant', weight: 500 },
       heading: { font: 'montserrat', weight: 500 },
       body: { font: 'garamond' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'sacramento', weight: 400 },
     },
     motifs: ['nordic', 'ornaments'],
     decoration: 'light',
@@ -153,10 +153,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Photo grid with a badge: white paper, black ink, one red accent, heavy geometric caps, travel ephemera.',
     palette: { paper: '#ffffff', ink: '#141414', accent: '#e2412f', accent2: '#f2eee7', accent3: '#6f6f6f' },
     fonts: {
-      display: { font: 'montserrat', weight: 700 },
+      display: { font: 'montserrat', weight: 800 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'inter' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'allura', weight: 400 },
     },
     motifs: ['ephemera'],
     decoration: 'light',
@@ -170,10 +170,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Handmade scrapbook: kraft paper, cream and red, marker titles, handwriting, tape, doodles and tickets.',
     palette: { paper: '#dcc6a2', ink: '#2b2118', accent: '#c2342a', accent2: '#f8f1e1', accent3: '#2f4f7a' },
     fonts: {
-      display: { font: 'caveat', weight: 400 },
+      display: { font: 'marker', weight: 400 },
       heading: { font: 'caveat', weight: 700 },
       body: { font: 'serif' },
-      script: { font: 'caveat', weight: 400 },
+      script: { font: 'homemade', weight: 400 },
     },
     motifs: ['paper', 'doodles', 'ephemera'],
     decoration: 'rich',
@@ -187,10 +187,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Tropical holiday: cream paper, jungle green, hibiscus red and mango, a fat retro title and a beach script.',
     palette: { paper: '#fbf5e6', ink: '#13382a', accent: '#1d7a4c', accent2: '#dc3446', accent3: '#f29d34' },
     fonts: {
-      display: { font: 'display', weight: 400 },
+      display: { font: 'shrikhand', weight: 400 },
       heading: { font: 'oswald', weight: 500 },
       body: { font: 'sans' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'pacifico', weight: 400 },
     },
     motifs: ['tropical'],
     decoration: 'rich',
@@ -204,10 +204,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Nordic calm: pale grey paper, slate ink, ochre and rose, a friendly grotesque, row houses and pines.',
     palette: { paper: '#f3f1ec', ink: '#2e3a45', accent: '#a8741c', accent2: '#cf7d7d', accent3: '#566d83' },
     fonts: {
-      display: { font: 'jost', weight: 700 },
+      display: { font: 'bricolage', weight: 700 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'inter' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'satisfy', weight: 400 },
     },
     motifs: ['nordic', 'mountains'],
     decoration: 'light',
@@ -221,7 +221,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Alpine lodge: snow white paper, forest green ink, rust and sky blue, a slab title over condensed caps.',
     palette: { paper: '#f7f7f2', ink: '#1e3a2c', accent: '#b0502a', accent2: '#2f5d46', accent3: '#6f9cbd' },
     fonts: {
-      display: { font: 'merriweather', weight: 400 },
+      display: { font: 'alfa', weight: 400 },
       heading: { font: 'oswald', weight: 500 },
       body: { font: 'inter' },
       script: { font: 'caveat', weight: 400 },
@@ -238,10 +238,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Stamp collage: warm paper, magenta, saffron and teal, a high-contrast display serif, stamps and postmarks.',
     palette: { paper: '#fbf2e2', ink: '#2a1b2e', accent: '#bd2275', accent2: '#e9801a', accent3: '#12807f' },
     fonts: {
-      display: { font: 'playfair', weight: 400 },
+      display: { font: 'abril', weight: 400 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'serif' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'parisienne', weight: 400 },
     },
     motifs: ['asia', 'ephemera'],
     decoration: 'rich',
@@ -255,10 +255,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Riso print: cream paper, riso blue, fluo pink, yellow and teal inks overprinted, a bold grotesque.',
     palette: { paper: '#f4efe4', ink: '#23306b', accent: '#ed4981', accent2: '#ffd23f', accent3: '#00a39a' },
     fonts: {
-      display: { font: 'jost', weight: 700 },
+      display: { font: 'bricolage', weight: 800 },
       heading: { font: 'montserrat', weight: 700 },
       body: { font: 'inter' },
-      script: { font: 'caveat', weight: 400 },
+      script: { font: 'marker', weight: 400 },
     },
     motifs: ['doodles', 'paper'],
     decoration: 'rich',
@@ -272,7 +272,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Travel magazine: off white paper, black ink, one signal red, a huge Bodoni masthead over Garamond.',
     palette: { paper: '#f7f4ee', ink: '#111111', accent: '#d7261e', accent2: '#e9e2d6', accent3: '#6b6b6b' },
     fonts: {
-      display: { font: 'playfair', weight: 700 },
+      display: { font: 'bodoni', weight: 800 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'garamond' },
       script: null,
@@ -290,10 +290,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
       'Retro travel poster: aged cream paper, brown ink, orange, teal and mustard, a slab title over condensed caps.',
     palette: { paper: '#f3e7cf', ink: '#3b2a1e', accent: '#d56129', accent2: '#2f7f7a', accent3: '#f2b33d' },
     fonts: {
-      display: { font: 'merriweather', weight: 400 },
+      display: { font: 'alfa', weight: 400 },
       heading: { font: 'oswald', weight: 500 },
       body: { font: 'serif' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'yellowtail', weight: 400 },
     },
     motifs: ['mountains', 'mediterranean', 'landmarks'],
     decoration: 'rich',
@@ -307,10 +307,10 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Midnight film: near black paper, warm white ink, neon orange and cyan, tall condensed capitals.',
     palette: { paper: '#121417', ink: '#f2efe8', accent: '#ff6b3d', accent2: '#39d0c4', accent3: '#8a8f98' },
     fonts: {
-      display: { font: 'bebas', weight: 400 },
+      display: { font: 'league', weight: 400 },
       heading: { font: 'oswald', weight: 500 },
       body: { font: 'inter' },
-      script: { font: 'dancing', weight: 400 },
+      script: { font: 'satisfy', weight: 400 },
     },
     motifs: ['doodles'],
     decoration: 'light',
@@ -324,7 +324,7 @@ export const BOOK_THEME_PRESETS: readonly BookThemePreset[] = [
     descr: 'Field notes: kraft paper, moss green ink, rust and sage, a soft serif title, handwriting, tape and leaves.',
     palette: { paper: '#e9dcc3', ink: '#2f3a2b', accent: '#b5532c', accent2: '#f8f2e4', accent3: '#6f8a5a' },
     fonts: {
-      display: { font: 'playfair', weight: 700 },
+      display: { font: 'fraunces', weight: 700 },
       heading: { font: 'montserrat', weight: 600 },
       body: { font: 'serif' },
       script: { font: 'caveat', weight: 400 },
@@ -403,7 +403,7 @@ export const themePaperBackground = (theme: BookTheme): string | null =>
 
 /* ── Applying (book-theme-apply.ts) ─────────────────────────────────────── */
 
-const TEXT_WEIGHTS = [300, 400, 500, 600, 700] as const
+const TEXT_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900] as const
 
 /** The weight a face asks for, onto the nearest one Trek's text takes; none keeps the element's own. */
 function weightOf(face: BookThemeFont): Partial<Pick<BookTextElement, 'weight'>> {
@@ -438,6 +438,7 @@ export function themedElement<E extends BookElement>(el: E, theme: BookTheme): E
     case 'image':
     case 'map':
     case 'line':
+    case 'sticker':
       return el
     case 'text':
       tokenColour(next, theme, 'color', el.token)
@@ -535,7 +536,7 @@ function previousToken(hex: string, prev: BookTheme | null): BookColorToken | un
 /** The coloured inks an element is drawn in, as adoption would read them. */
 function chromaticInks(el: BookElement): string[] {
   switch (el.kind) {
-    case 'photo': case 'image': case 'map': case 'line':
+    case 'photo': case 'image': case 'map': case 'line': case 'sticker':
       return []
     case 'text': case 'icon':
       return [el.color]
@@ -608,7 +609,7 @@ function backgroundToken(spread: BookSpread, map: BookAdoptionMap, prev: BookThe
 function adoptElement(el: BookElement, ground: string, cover: boolean, map: BookAdoptionMap, prev: BookTheme | null): BookElement {
   if (el.locked) return el
   switch (el.kind) {
-    case 'photo': case 'image': case 'map': case 'line':
+    case 'photo': case 'image': case 'map': case 'line': case 'sticker':
       return el
     case 'text': {
       const token = el.token ?? inkToken(el.color, ground, map, prev, el.size <= 9)
@@ -665,7 +666,7 @@ export function adoptSpread(spread: BookSpread, map: BookAdoptionMap, prev: Book
 const LINKS: Record<string, readonly (readonly [field: string, link: string])[]> = {
   text: [['color', 'token'], ['font', 'fontRole']],
   icon: [['color', 'token']],
-  photo: [], image: [], map: [], line: [],
+  photo: [], image: [], map: [], line: [], sticker: [],
   shape: [['fill', 'token'], ['paint', 'token'], ['stroke', 'strokeToken']],
   typeset: [['color', 'token'], ['accent', 'accentToken'], ['font', 'fontRole']],
 }

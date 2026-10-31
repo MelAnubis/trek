@@ -188,7 +188,7 @@ describe('SpreadView — styles', () => {
   it('FE-SPREADVIEW-023: text effects and uppercase render', () => {
     const shadow = render(<ElementView el={textEl({ effect: 'shadow' })} big />)
     expect((shadow.container.querySelector('span') as HTMLElement).style.textShadow).not.toBe('')
-    const hl = render(<ElementView el={textEl({ effect: 'highlight', highlight: '#00ff00' })} big />)
+    const hl = render(<ElementView el={textEl({ effect: 'highlight', highlight: { color: '#00ff00', alpha: 1, padX: 1.2, padY: 0.3, radius: 0 } })} big />)
     expect((hl.container.querySelector('span') as HTMLElement).style.backgroundImage).toContain('rgb(0, 255, 0)')
     const up = render(<ElementView el={textEl({ uppercase: true })} big />)
     expect((up.container.firstElementChild as HTMLElement).style.textTransform).toBe('uppercase')

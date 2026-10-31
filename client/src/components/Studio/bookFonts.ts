@@ -76,6 +76,86 @@ import '@fontsource/jost/300.css'
 import '@fontsource/jost/400.css'
 import '@fontsource/jost/600.css'
 
+// 5.7.10: the rest of liketrek/TREK's catalogue (its bookFontFaces.ts). A rule is not a
+// download: the browser fetches a face only when text on the page is set in it.
+import '@fontsource/fraunces/100.css'
+import '@fontsource/fraunces/200.css'
+import '@fontsource/fraunces/300.css'
+import '@fontsource/fraunces/400.css'
+import '@fontsource/fraunces/500.css'
+import '@fontsource/fraunces/600.css'
+import '@fontsource/fraunces/700.css'
+import '@fontsource/fraunces/800.css'
+import '@fontsource/fraunces/900.css'
+import '@fontsource/fraunces/100-italic.css'
+import '@fontsource/fraunces/200-italic.css'
+import '@fontsource/fraunces/300-italic.css'
+import '@fontsource/fraunces/400-italic.css'
+import '@fontsource/fraunces/500-italic.css'
+import '@fontsource/fraunces/600-italic.css'
+import '@fontsource/fraunces/700-italic.css'
+import '@fontsource/fraunces/800-italic.css'
+import '@fontsource/fraunces/900-italic.css'
+import '@fontsource/dm-serif-display/400.css'
+import '@fontsource/dm-serif-display/400-italic.css'
+import '@fontsource/bodoni-moda/400.css'
+import '@fontsource/bodoni-moda/500.css'
+import '@fontsource/bodoni-moda/600.css'
+import '@fontsource/bodoni-moda/700.css'
+import '@fontsource/bodoni-moda/800.css'
+import '@fontsource/bodoni-moda/900.css'
+import '@fontsource/bodoni-moda/400-italic.css'
+import '@fontsource/bodoni-moda/500-italic.css'
+import '@fontsource/bodoni-moda/600-italic.css'
+import '@fontsource/bodoni-moda/700-italic.css'
+import '@fontsource/bodoni-moda/800-italic.css'
+import '@fontsource/bodoni-moda/900-italic.css'
+import '@fontsource/anton/400.css'
+import '@fontsource/league-gothic/400.css'
+import '@fontsource/big-shoulders-display/100'
+import '@fontsource/big-shoulders-display/200'
+import '@fontsource/big-shoulders-display/300'
+import '@fontsource/big-shoulders-display/400'
+import '@fontsource/big-shoulders-display/500'
+import '@fontsource/big-shoulders-display/600'
+import '@fontsource/big-shoulders-display/700'
+import '@fontsource/big-shoulders-display/800'
+import '@fontsource/big-shoulders-display/900'
+import '@fontsource/archivo-black/400.css'
+import '@fontsource/shrikhand/400.css'
+import '@fontsource/alfa-slab-one/400.css'
+import '@fontsource/bricolage-grotesque/200.css'
+import '@fontsource/bricolage-grotesque/300.css'
+import '@fontsource/bricolage-grotesque/400.css'
+import '@fontsource/bricolage-grotesque/500.css'
+import '@fontsource/bricolage-grotesque/600.css'
+import '@fontsource/bricolage-grotesque/700.css'
+import '@fontsource/bricolage-grotesque/800.css'
+import '@fontsource/abril-fatface/400.css'
+import '@fontsource/pacifico/400.css'
+import '@fontsource/great-vibes/400.css'
+import '@fontsource/sacramento/400.css'
+import '@fontsource/kaushan-script/400.css'
+import '@fontsource/allura/400.css'
+import '@fontsource/parisienne/400.css'
+import '@fontsource/satisfy/400.css'
+import '@fontsource/yellowtail/400.css'
+import '@fontsource/homemade-apple/400.css'
+import '@fontsource/permanent-marker/400.css'
+import '@fontsource/dm-mono/300.css'
+import '@fontsource/dm-mono/400.css'
+import '@fontsource/dm-mono/500.css'
+// 5.7.10: the lighter and heavier cuts the designed pages and themes set.
+import '@fontsource/montserrat/300.css'
+import '@fontsource/montserrat/800.css'
+import '@fontsource/montserrat/900.css'
+import '@fontsource/cormorant-garamond/300.css'
+import '@fontsource/poppins/300.css'
+import '@fontsource/poppins/800.css'
+import '@fontsource/inter/300.css'
+import '@fontsource/inter/800.css'
+import '@fontsource/oswald/300.css'
+
 import type { BookFontFamily } from '../../types/book'
 
 export const BOOK_FONTS: Record<BookFontFamily, { name: string; stack: string }> = {
@@ -95,14 +175,39 @@ export const BOOK_FONTS: Record<BookFontFamily, { name: string; stack: string }>
   typewriter: { name: 'Special Elite', stack: '"Special Elite", "Courier New", monospace' },
   // The #ESTODOBAJADA sticker's face — the magazine masthead uses it.
   jost: { name: 'Jost', stack: '"Jost", Futura, "Century Gothic", sans-serif' },
+  fraunces: { name: 'Fraunces', stack: '"Fraunces", Georgia, serif' },
+  dmserif: { name: 'DM Serif Display', stack: '"DM Serif Display", Georgia, serif' },
+  bodoni: { name: 'Bodoni Moda', stack: '"Bodoni Moda", Georgia, serif' },
+  anton: { name: 'Anton', stack: '"Anton", Impact, sans-serif' },
+  league: { name: 'League Gothic', stack: '"League Gothic", Impact, sans-serif' },
+  shoulders: { name: 'Big Shoulders Display', stack: '"Big Shoulders Display", Impact, sans-serif' },
+  archivo: { name: 'Archivo Black', stack: '"Archivo Black", Impact, sans-serif' },
+  shrikhand: { name: 'Shrikhand', stack: '"Shrikhand", system-ui, sans-serif' },
+  alfa: { name: 'Alfa Slab One', stack: '"Alfa Slab One", Georgia, serif' },
+  bricolage: { name: 'Bricolage Grotesque', stack: '"Bricolage Grotesque", system-ui, sans-serif' },
+  abril: { name: 'Abril Fatface', stack: '"Abril Fatface", Georgia, serif' },
+  pacifico: { name: 'Pacifico', stack: '"Pacifico", cursive' },
+  vibes: { name: 'Great Vibes', stack: '"Great Vibes", cursive' },
+  sacramento: { name: 'Sacramento', stack: '"Sacramento", cursive' },
+  kaushan: { name: 'Kaushan Script', stack: '"Kaushan Script", cursive' },
+  allura: { name: 'Allura', stack: '"Allura", cursive' },
+  parisienne: { name: 'Parisienne', stack: '"Parisienne", cursive' },
+  satisfy: { name: 'Satisfy', stack: '"Satisfy", cursive' },
+  yellowtail: { name: 'Yellowtail', stack: '"Yellowtail", cursive' },
+  homemade: { name: 'Homemade Apple', stack: '"Homemade Apple", cursive' },
+  marker: { name: 'Permanent Marker', stack: '"Permanent Marker", cursive' },
+  mono: { name: 'DM Mono', stack: '"DM Mono", ui-monospace, monospace' },
 }
 
 /** How the picker groups the faces. */
-export const BOOK_FONT_GROUPS: { id: 'sans' | 'serif' | 'display' | 'hand'; fonts: BookFontFamily[] }[] = [
-  { id: 'sans', fonts: ['sans', 'inter', 'montserrat'] },
-  { id: 'serif', fonts: ['serif', 'garamond', 'merriweather', 'cormorant', 'playfair'] },
-  { id: 'display', fonts: ['display', 'jost', 'bebas', 'oswald', 'typewriter'] },
-  { id: 'hand', fonts: ['caveat', 'dancing'] },
+export const BOOK_FONT_GROUPS: { id: 'sans' | 'serif' | 'elegant' | 'condensed' | 'retro' | 'script' | 'mono'; fonts: BookFontFamily[] }[] = [
+  { id: 'sans', fonts: ['sans', 'inter', 'montserrat', 'jost'] },
+  { id: 'serif', fonts: ['serif', 'garamond', 'merriweather', 'playfair'] },
+  { id: 'elegant', fonts: ['cormorant', 'fraunces', 'dmserif', 'bodoni'] },
+  { id: 'condensed', fonts: ['bebas', 'oswald', 'anton', 'league', 'shoulders', 'archivo'] },
+  { id: 'retro', fonts: ['display', 'shrikhand', 'alfa', 'bricolage', 'abril'] },
+  { id: 'script', fonts: ['caveat', 'dancing', 'pacifico', 'vibes', 'sacramento', 'kaushan', 'allura', 'parisienne', 'satisfy', 'yellowtail', 'homemade', 'marker'] },
+  { id: 'mono', fonts: ['typewriter', 'mono'] },
 ]
 
 export const BOOK_FONT_ORDER: BookFontFamily[] = BOOK_FONT_GROUPS.flatMap(g => g.fonts)
@@ -110,4 +215,51 @@ export const BOOK_FONT_ORDER: BookFontFamily[] = BOOK_FONT_GROUPS.flatMap(g => g
 /** Falls back to Poppins rather than a generic, so the renderer always has *something* bundled. */
 export function fontStack(id: string): string {
   return BOOK_FONTS[id as BookFontFamily]?.stack ?? BOOK_FONTS.sans.stack
+}
+
+/** The weights each face is bundled in: the only ones the inspector offers, so a weight is never a synthetic bold. */
+export const BOOK_FONT_WEIGHTS: Record<BookFontFamily, readonly number[]> = {
+  sans: [300, 400, 500, 600, 700, 800],
+  serif: [400, 500, 600, 700],
+  display: [400, 500, 600, 700],
+  inter: [300, 400, 500, 600, 700, 800],
+  garamond: [400, 500, 600, 700],
+  playfair: [400, 500, 600, 700],
+  bebas: [400],
+  montserrat: [300, 400, 500, 600, 700, 800, 900],
+  oswald: [300, 400, 500, 600, 700],
+  merriweather: [400, 700],
+  cormorant: [300, 400, 500, 600, 700],
+  caveat: [400, 600, 700],
+  dancing: [400, 600, 700],
+  typewriter: [400],
+  jost: [300, 400, 600],
+  fraunces: [100, 200, 300, 400, 500, 600, 700, 800, 900],
+  dmserif: [400],
+  bodoni: [400, 500, 600, 700, 800, 900],
+  anton: [400],
+  league: [400],
+  shoulders: [100, 200, 300, 400, 500, 600, 700, 800, 900],
+  archivo: [400],
+  shrikhand: [400],
+  alfa: [400],
+  bricolage: [200, 300, 400, 500, 600, 700, 800],
+  abril: [400],
+  pacifico: [400],
+  vibes: [400],
+  sacramento: [400],
+  kaushan: [400],
+  allura: [400],
+  parisienne: [400],
+  satisfy: [400],
+  yellowtail: [400],
+  homemade: [400],
+  marker: [400],
+  mono: [300, 400, 500],
+}
+
+/** The bundled weight of a face nearest to `weight`. */
+export function nearestWeight(font: string, weight: number): number {
+  const ws = BOOK_FONT_WEIGHTS[font as BookFontFamily] ?? [400]
+  return ws.reduce((best, w) => (Math.abs(w - weight) < Math.abs(best - weight) ? w : best), ws[0] ?? 400)
 }

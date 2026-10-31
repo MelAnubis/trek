@@ -19,6 +19,7 @@ export const DEFAULT_EDGE_SIZE = 3
 export const EDGE_SHAPES: ReadonlySet<string> = new Set<BookShapeId>([
   'rect', 'squircle', 'ellipse', 'capsule', 'arch', 'half-circle', 'triangle', 'triangle-down', 'diamond',
   'pentagon', 'hexagon', 'hexagon-flat', 'heptagon', 'octagon', 'shield', 'parallelogram', 'trapezoid',
+  'arch-tall', 'frame-chamfer', 'frame-cushion', 'organic-1', 'organic-2', 'organic-3',
 ])
 
 /** Whether an edge is cut along this shape; null is a photo's plain rectangle. */

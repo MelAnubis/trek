@@ -26,15 +26,26 @@ import { fetchImageAsBlob } from '../../api/authUrl'
  * visitor to carry, and the proxy needs none.
  */
 export function BookPhotoImg({ photoId, big, print, publicToken, style }: { photoId: number; big: boolean; print?: boolean; publicToken?: string; style?: React.CSSProperties }) {
+  const src = useBookPhotoSrc(photoId, big, print, publicToken)
+  if (print || publicToken) return <img src={src} alt="" draggable={false} loading={publicToken ? 'lazy' : undefined} style={style} />
+  return src ? <img src={src} alt="" draggable={false} loading="lazy" style={style} /> : null
+}
+
+/**
+ * The address a photo is drawn from, by the same rules as BookPhotoImg: a
+ * plain URL in print and on a public share, an authenticated blob while
+ * editing ('' until it arrives). A photo-filled text's SVG `<image>` uses it.
+ */
+export function useBookPhotoSrc(photoId: number | null, big: boolean, print?: boolean, publicToken?: string): string {
   const kind = big ? 'original' : 'thumbnail'
-  const url = publicToken
+  const url = photoId == null ? '' : publicToken
     ? `/api/public/journey/${publicToken}/photos/${photoId}/${kind}`
     : `/api/photos/${photoId}/${kind}`
   const plain = print || !!publicToken
   const [src, setSrc] = useState('')
 
   useEffect(() => {
-    if (plain) return
+    if (plain || !url) return
     let revoke = ''
     let cancelled = false
     fetchImageAsBlob(url).then(blobUrl => {
@@ -48,6 +59,5 @@ export function BookPhotoImg({ photoId, big, print, publicToken, style }: { phot
     return () => { cancelled = true; if (revoke) URL.revokeObjectURL(revoke) }
   }, [url, plain])
 
-  if (plain) return <img src={url} alt="" draggable={false} loading={publicToken ? 'lazy' : undefined} style={style} />
-  return src ? <img src={src} alt="" draggable={false} loading="lazy" style={style} /> : null
+  return plain ? url : src
 }

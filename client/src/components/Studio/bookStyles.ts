@@ -134,7 +134,7 @@ export function textEffectCss(el: Pick<BookTextElement, 'effect' | 'highlight' |
       return { WebkitTextStroke: `${pt(w)} ${stroke}`, paintOrder: 'stroke fill' } as CSSProperties
     }
     case 'highlight': {
-      const c = el.highlight || '#fde68a'
+      const c = el.highlight?.color || '#fde68a'
       // A marker stroke behind the lower part of each line.
       return { backgroundImage: `linear-gradient(transparent 52%, ${c} 52%, ${c} 92%, transparent 92%)`, boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' } as CSSProperties
     }

@@ -5,6 +5,7 @@ import { PAGE_PRESETS, clampPageEdge, clampPageSize, presetMatching, reflowDocum
 import { regroupCopies, tidyGroups, withCopies } from '../components/Studio/bookGroups'
 import type { BookAlignTo } from '../components/Studio/bookArrange'
 import { studioLayerActions, type StudioLayerActions } from './studioLayers'
+import { fitBookTexts } from '../components/Studio/text/textMeasure'
 
 /**
  * The book being edited. Ported from liketrek/trek's
@@ -153,12 +154,13 @@ export const useStudioStore = create<StudioState>((set, get) => ({
 
   commit: fn => set(s => {
     if (!s.doc || s.readOnly) return {}
-    const next = fn(s.doc)
+    // A text set to fit its frame is refitted to whatever the edit changed (text/textMeasure.ts).
+    const next = fitBookTexts(fn(s.doc), s.doc)
     if (next === s.doc) return {}
     return { doc: next, past: [...s.past, s.doc].slice(-HISTORY_LIMIT), future: [] }
   }),
 
-  apply: fn => set(s => (s.doc && !s.readOnly ? { doc: fn(s.doc) } : {})),
+  apply: fn => set(s => (s.doc && !s.readOnly ? { doc: fitBookTexts(fn(s.doc), s.doc) } : {})),
 
   updateElement: (spreadIndex, id, patch) => get().apply(doc =>
     replaceSpread(doc, spreadIndex, sp => ({

@@ -8,7 +8,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 12 * 1024 * 1024,
         globPatterns: ['**/*.{js,css,html,svg,png,woff,woff2,ttf}'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/, /^\/uploads/, /^\/mcp/, /^\/oauth\//, /^\/.well-known\//],
