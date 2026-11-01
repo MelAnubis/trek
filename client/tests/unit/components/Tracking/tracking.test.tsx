@@ -13,6 +13,7 @@ import {
   type TrackingDevice,
 } from '../../../../src/components/Tracking/trackingModel'
 import { resolveMobileNav } from '../../../../src/components/Layout/mobileNav'
+import { bearing, headingOf } from '../../../../src/components/Tracking/LiveMap'
 
 const device = (over: Partial<TrackingDevice> = {}): TrackingDevice => ({
   id: 1, name: 'Pixel', token_hint: 'Ab12', overland_device_id: 'android-pixel', created_at: '2026-10-29T10:00:00Z',
@@ -105,5 +106,50 @@ describe('Public live page', () => {
     server.use(http.get('/api/tracking/public/old', () => HttpResponse.json({ error: 'x' }, { status: 404 })))
     render(<Routes><Route path="/live/:token" element={<LiveLocationPage />} /></Routes>, { initialEntries: ['/live/old'] })
     await waitFor(() => expect(screen.getByText('This link is no longer active')).toBeInTheDocument())
+  })
+
+  const share = {
+    label: 'Juanma', expires_at: null, status: 'tracking', status_at: null, battery_level: 0.5,
+    last_position: device().last_position, track: [], stats: { distance_m: 0, start: null, end: null, duration_s: 0, motion: null },
+  }
+
+  it('a network error keeps the map and retries instead of calling the link gone', async () => {
+    let calls = 0
+    server.use(http.get('/api/tracking/public/blip', () => {
+      calls++
+      return calls === 1 ? HttpResponse.json(share) : HttpResponse.error()
+    }))
+    render(<Routes><Route path="/live/:token" element={<LiveLocationPage />} /></Routes>, { initialEntries: ['/live/blip'] })
+    await waitFor(() => expect(screen.getByText('Juanma')).toBeInTheDocument())
+    // The network back (or an installed PWA brought to the front): asks again at once.
+    await new Promise(r => setTimeout(r, 1600))
+    window.dispatchEvent(new Event('online'))
+    await waitFor(() => expect(screen.getByTestId('live-badge').textContent).toContain('No connection'))
+    expect(calls).toBe(2)
+    expect(screen.queryByText('This link is no longer active')).not.toBeInTheDocument()
+    expect(screen.getByText('Juanma')).toBeInTheDocument()
+  })
+
+  it('refreshes by itself when the page is shown again', async () => {
+    let calls = 0
+    server.use(http.get('/api/tracking/public/vis', () => { calls++; return HttpResponse.json(share) }))
+    render(<Routes><Route path="/live/:token" element={<LiveLocationPage />} /></Routes>, { initialEntries: ['/live/vis'] })
+    await waitFor(() => expect(screen.getByText('Juanma')).toBeInTheDocument())
+    expect(calls).toBe(1)
+    await new Promise(r => setTimeout(r, 1600))
+    document.dispatchEvent(new Event('visibilitychange'))
+    await waitFor(() => expect(calls).toBe(2))
+    expect(screen.getByTestId('live-recenter')).toBeInTheDocument()
+  })
+})
+
+describe('live marker heading', () => {
+  it('points where the phone went, and not while it is still', () => {
+    expect(Math.round(bearing([0, 0], [1, 0]))).toBe(0)
+    expect(Math.round(bearing([0, 0], [0, 1]))).toBe(90)
+    const track = [{ ts: '1', lat: 43.0, lng: -5.0, motion: 'walking' }]
+    expect(Math.round(headingOf(track, [43.0, -4.99], 1.4)!)).toBe(90)
+    expect(headingOf(track, [43.0, -4.99], 0.1)).toBeNull()
+    expect(headingOf(track, [43.00001, -5.0], 1.4)).toBeNull()
   })
 })

@@ -44,6 +44,12 @@ export default defineConfig({
             },
           },
           {
+            // Tracking en vivo: always the network. A cached answer would show
+            // an old position as if it were live (NetworkFirst falls back after 5 s).
+            urlPattern: /\/api\/tracking\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          {
             // API calls — prefer network, fall back to cache
             // Exclude sensitive endpoints (auth, admin, backup, settings)
             urlPattern: /\/api\/(?!auth|admin|backup|settings|health).*/i,
