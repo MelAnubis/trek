@@ -7,20 +7,21 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MapContainer, TileLayer, Polyline, Marker, CircleMarker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { ArrowLeft, Download, Link2, Radio, RefreshCw, Save, Settings, Share2, X } from 'lucide-react'
+import { ArrowLeft, ChevronUp, Crosshair, Download, Link2, Maximize2, Minimize2, Radio, RefreshCw, Save, Settings, Share2, X } from 'lucide-react'
 import { daysApi, trackingApi, tripsApi } from '../api/client'
 import { addListener, removeListener } from '../api/websocket'
 import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToast } from '../components/shared/Toast'
 import { CopyField } from '../components/Tracking/CopyField'
-import { joinedLine, lineStyle, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
+import { joinedLine, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
+import { AutoResize, FollowLive, LiveMapStyles, LiveMarker, LiveTrail, headingOf, useLiveRefresh } from '../components/Tracking/LiveMap'
 import { gapsOf, type TrackGap } from '../components/Tracking/mapMatch'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
 import {
-  MOTION_COLORS, formatDistance, formatDuration, localDayRange, localToday, shareUrl, utcOffsetMinutes,
+  MOTION_COLORS, formatDistance, formatDuration, isFresh, localDayRange, localToday, shareUrl, utcOffsetMinutes,
   type TrackPoint, type TrackStats, type TrackingDevice,
 } from '../components/Tracking/trackingModel'
 
@@ -28,12 +29,8 @@ const OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 /** Points worse than this are left out when "Hide imprecise points" is on. */
 const GOOD_ACCURACY_M = 100
 
-const liveIcon = L.divIcon({
-  className: '',
-  iconSize: [22, 22],
-  iconAnchor: [11, 11],
-  html: '<div style="width:22px;height:22px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>',
-})
+/** How often the open map asks again even without websocket news (a PWA whose socket died in the background). */
+const FALLBACK_POLL_MS = 30_000
 
 function FitTo({ points, live, follow }: { points: TrackPoint[]; live: [number, number] | null; follow: boolean }) {
   const map = useMap()
@@ -41,7 +38,7 @@ function FitTo({ points, live, follow }: { points: TrackPoint[]; live: [number, 
   useEffect(() => {
     // Fitted once per day shown (its first point), not on every new point of today.
     const key = points.length ? points[0].ts : live ? 'live' : ''
-    if (follow && live) { map.setView(live, Math.max(map.getZoom(), 14)); return }
+    if (follow && live) return // FollowLive keeps the phone in view.
     if (key === fittedFor.current) return
     fittedFor.current = key
     if (points.length > 1) map.fitBounds(L.latLngBounds(points.map(p => [p.lat, p.lng] as [number, number])), { padding: [30, 30] })
@@ -75,6 +72,8 @@ export default function TrackingPage() {
   const [snap, setSnapState] = useState(() => { try { return localStorage.getItem('trek-tracking-snap') !== '0' } catch { return true } })
   const setSnap = (v: boolean) => { setSnapState(v); try { localStorage.setItem('trek-tracking-snap', v ? '1' : '0') } catch { /* private mode */ } }
   const [panel, setPanel] = useState<'share' | 'save' | null>(null)
+  /** On a phone: the map alone, the panel folded away. */
+  const [mapOnly, setMapOnly] = useState(false)
   const isToday = day === localToday()
 
   const loadDevices = useCallback(() => trackingApi.devices()
@@ -115,13 +114,20 @@ export default function TrackingPage() {
     return () => { removeListener(handler); if (refetchTimer.current) { clearTimeout(refetchTimer.current); refetchTimer.current = null } }
   }, [deviceId, isToday, loadTrack])
 
+  // Refreshes by itself: at once when the app comes back to the front (an
+  // installed PWA, a tab shown again, the network back) and every half minute
+  // while visible, in case the websocket died while it was in the background.
+  useLiveRefresh(() => { void loadDevices(); if (isToday) loadTrack() }, FALLBACK_POLL_MS, !!deviceId, false)
+
   // A live day is matched again a quarter of a minute after its last new point, only its last stretch asked for.
   const { lines, status: matchStatus } = useMatchedTrack(points, snap, isToday ? 15_000 : 0)
   const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
+  const fresh = device ? isFresh(device) : false
   // Where the phone recorded nothing (5.7.7): listed, so a hole is seen as one rather than as a wrong line.
   const gaps = useMemo(() => gapsOf(points), [points])
   const live = isToday && device?.last_position ? [device.last_position.lat, device.last_position.lng] as [number, number] : null
   const center: [number, number] = live ?? (points[0] ? [points[0].lat, points[0].lng] : [40.4, -3.7])
+  const heading = headingOf(points, live, device?.last_position?.speed)
 
   if (devices && devices.length === 0) {
     return (
@@ -141,9 +147,11 @@ export default function TrackingPage() {
   const dayLabel = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
 
   return (
-    <div className="flex flex-col md:flex-row" style={{ height: '100dvh', background: 'var(--bg-primary)' }}>
-      <aside className="md:w-80 flex-shrink-0 overflow-y-auto p-4 space-y-4 order-2 md:order-1"
-        style={{ borderRight: '1px solid var(--border-secondary)', maxHeight: '100dvh' }}>
+    <div className="flex flex-col md:flex-row" style={{ height: 'calc(100dvh - var(--bottom-nav-h, 0px))', background: 'var(--bg-primary)' }}>
+      <LiveMapStyles />
+      {/* On a phone the map takes most of the screen and the panel scrolls under it; it can be folded away. */}
+      <aside className={`${mapOnly ? 'hidden md:block' : ''} flex-1 min-h-0 md:flex-none md:w-80 md:max-h-full overflow-y-auto p-4 space-y-4 order-2 md:order-1`}
+        style={{ borderRight: '1px solid var(--border-secondary)' }}>
         <div className="flex items-center gap-2">
           <Link to="/dashboard" aria-label={t('common.back')} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}><ArrowLeft className="w-4 h-4" /></Link>
           <h1 className="text-base font-bold flex-1" style={{ color: 'var(--text-primary)' }}>{t('tracking.title')}</h1>
@@ -265,21 +273,49 @@ export default function TrackingPage() {
         )}
       </aside>
 
-      <main className="flex-1 relative order-1 md:order-2" style={{ minHeight: 320 }}>
+      <main className={`${mapOnly ? 'flex-1' : 'flex-shrink-0'} md:flex-1 relative order-1 md:order-2`}
+        style={mapOnly ? undefined : { height: 'max(58dvh, 320px)' }} data-testid="tracking-map">
         {devices && (
           <MapContainer center={center} zoom={13} style={{ position: 'absolute', inset: 0 }}>
             <TileLayer url={tileUrl} attribution="&copy; OpenStreetMap" />
-            {lines.map((s, i) => (
-              <Polyline key={i} positions={s.positions} pathOptions={{ ...lineStyle(s, snap), lineCap: s.inferred ? 'round' : undefined }} />
-            ))}
-            {/* The live dot joined to the end of the line, so the two read as one track. */}
-            {live && lastDrawn && (lastDrawn[0] !== live[0] || lastDrawn[1] !== live[1]) && (
-              <Polyline positions={[lastDrawn, live]} pathOptions={{ color: '#2563eb', weight: 3, opacity: 0.6, dashArray: '4 6' }} />
+            {/* The live position joined to the end of the line, so the two read as one track. */}
+            <LiveTrail lines={lines} snap={snap} live={live} />
+            {lastDrawn && !live && <CircleMarker center={lastDrawn} radius={7} pathOptions={{ color: '#111827', fillColor: '#ffffff', fillOpacity: 1, weight: 3 }} />}
+            {live && device && (
+              <LiveMarker position={live} name={device.name} fresh={fresh} accuracy={device.last_position?.accuracy} heading={heading} onClick={() => setFollow(true)} />
             )}
-            {lastDrawn && !live && <CircleMarker center={lastDrawn} radius={6} pathOptions={{ color: '#111827', fillColor: '#ffffff', fillOpacity: 1, weight: 2 }} />}
-            {live && <Marker position={live} icon={liveIcon} />}
             <FitTo points={points} live={live} follow={follow} />
+            <FollowLive position={live} follow={follow && !!live} onUserMove={() => setFollow(false)} minZoom={14} />
+            <AutoResize />
           </MapContainer>
+        )}
+        <div className="absolute right-3 bottom-6 flex flex-col gap-2" style={{ zIndex: 1000 }}>
+          <button type="button" onClick={() => setMapOnly(v => !v)} className="md:hidden w-11 h-11 rounded-full flex items-center justify-center shadow-lg"
+            aria-label={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')} title={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')}
+            style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+            {mapOnly ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+          </button>
+          {live && (
+            <button type="button" data-testid="tracking-recenter" onClick={() => setFollow(true)} aria-pressed={follow}
+              aria-label={t('tracking.live.recenter')} title={t('tracking.live.recenter')}
+              className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg"
+              style={{ background: 'var(--bg-card)', color: follow ? '#2563eb' : 'var(--text-primary)' }}>
+              <Crosshair className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {mapOnly && device && (
+          <button type="button" onClick={() => setMapOnly(false)} className="md:hidden absolute left-3 right-16 bottom-6 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg text-left"
+            style={{ zIndex: 1000, background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+            <span className="flex-1 min-w-0">
+              <span className="block text-sm font-semibold truncate">{device.name}</span>
+              <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>
+                {ago(device.last_position?.recorded_at)}{stats && total > 0 ? ` · ${formatDistance(stats.distance_m)}` : ''}
+              </span>
+            </span>
+            <BatteryBadge level={device.battery_level} state={device.battery_state} />
+            <ChevronUp className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+          </button>
         )}
       </main>
     </div>

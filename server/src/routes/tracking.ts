@@ -66,6 +66,8 @@ router.post('/tracking/overland', (req: Request, res: Response) => {
 
 // ── Public share ───────────────────────────────────────────────────────────
 router.get('/tracking/public/:token', (req: Request, res: Response) => {
+  // Live by nature: no browser, proxy or service worker should keep an answer.
+  res.setHeader('Cache-Control', 'no-store');
   const data = tracking.getPublicShare(req.params.token);
   if (!data) return res.status(404).json({ error: 'Invalid or expired link' });
   res.json(data);
@@ -92,6 +94,7 @@ function range(req: Request): { from: string; to: string; maxAccuracy?: number }
 }
 
 router.get('/tracking/devices', authenticate, (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
   res.json({ devices: tracking.listDevices((req as AuthRequest).user.id) });
 });
 
@@ -140,6 +143,7 @@ router.get('/tracking/devices/:id/track', authenticate, (req: Request, res: Resp
   const r = range(req);
   if (!id || !r) return res.status(400).json({ error: 'from/to required (ISO)' });
   const out = tracking.getTrack((req as AuthRequest).user.id, id, r.from, r.to, r.maxAccuracy);
+  res.setHeader('Cache-Control', 'no-store');
   if (!out) return res.status(404).json({ error: 'Device not found' });
   res.json(out);
 });
