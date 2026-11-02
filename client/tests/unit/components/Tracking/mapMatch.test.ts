@@ -38,8 +38,9 @@ describe('cleanTrack', () => {
 
 describe('stretches', () => {
   it('cut where the way of travelling changes, sharing the cut point; coloured by most of it', () => {
-    const pts = [pt(0, 40, -3), pt(1, 40.001, -3), pt(2, 40.002, -3, 'stationary'), pt(3, 40.003, -3),
-      pt(4, 40.01, -3, 'cycling'), pt(5, 40.02, -3, 'cycling'), pt(6, 40.03, -3, 'cycling')]
+    // A walk of six minutes, a stop in it, then a ride.
+    const walkPart = Array.from({ length: 12 }, (_, i) => pt(i, 40 + i * 0.0003, -3, i === 5 ? 'stationary' : 'walking'))
+    const pts = [...walkPart, pt(12, 40.01, -3, 'cycling'), pt(13, 40.02, -3, 'cycling'), pt(14, 40.03, -3, 'cycling')]
     const s = stretches(pts)
     expect(s.map(x => x.costing)).toEqual(['pedestrian', 'bicycle'])
     expect(s[0].motion).toBe('walking')
@@ -173,3 +174,55 @@ describe('holes in the recording (5.7.7)', () => {
   })
 })
 
+
+/**
+ * 5.7.15 — a real ride (2 Nov 2026, El Boalo – Becerril – Mataelpino) the phone
+ * called "in a vehicle" on every descent and "still" at every junction: one ride
+ * cut into a dozen stretches, the fast ones matched as a car on dirt tracks.
+ */
+describe('the phone\'s motion, steadied (5.7.15)', () => {
+  const at = (i: number, lat: number, lng: number, motion: string, sec = 10) =>
+    ({ ts: new Date(t0 + i * sec * 1000).toISOString(), lat, lng, motion, accuracy: 8 }) as TrackPoint
+  // ~55 m a fix every 10 s: 20 km/h.
+  const ride = (from: number, n: number, motion: (i: number) => string) =>
+    Array.from({ length: n }, (_, k) => at(from + k, 40.72 + (from + k) * 0.0005, -3.92, motion(from + k)))
+
+  it('a stop at a junction and a short "car" burst stay part of the ride', async () => {
+    const { effectiveMotions } = await import('../../../../src/components/Tracking/mapMatch')
+    const pts = ride(0, 60, i => (i >= 20 && i < 24 ? 'stationary' : i >= 40 && i < 44 ? 'automotive' : 'cycling'))
+    expect(new Set(effectiveMotions(pts))).toEqual(new Set(['cycling']))
+    const s = stretches(pts)
+    expect(s).toHaveLength(1)
+    expect(s[0]).toMatchObject({ costing: 'bicycle', motion: 'cycling' })
+  })
+
+  it('a long fast descent read as a car between two rides is ridden; a real drive after the ride is not', async () => {
+    const { effectiveMotions } = await import('../../../../src/components/Tracking/mapMatch')
+    // 30 fixes (~1.6 km, 5 min) "in a vehicle" at riding speed, between two rides.
+    const descent = ride(0, 100, i => (i >= 30 && i < 60 ? 'automotive' : 'cycling'))
+    expect(effectiveMotions(descent).filter(m => m !== 'cycling')).toEqual([])
+    // A drive home: 60 fixes 300 m apart every 10 s (108 km/h), after the ride.
+    const drive = [...ride(0, 40, () => 'cycling'),
+      ...Array.from({ length: 60 }, (_, k) => at(40 + k, 40.74 + k * 0.0027, -3.92, 'automotive'))]
+    const m = effectiveMotions(drive)
+    expect(m.slice(45)).toEqual(Array(55).fill('automotive'))
+    expect(stretches(drive).map(s => s.costing)).toEqual(['bicycle', 'auto'])
+  })
+
+  it('a stretch the bike cannot be matched on is matched on foot before it is left as fixes', async () => {
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    resetValhallaTurns()
+    const road = encode([[40.72, -3.92], [40.721, -3.92], [40.7225, -3.92]])
+    fetchMock
+      .mockResolvedValueOnce(new Response('{"error_code":442}', { status: 400 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ trip: { legs: [{ shape: road }] } }), { status: 200 }))
+    const pts = ride(0, 6, () => 'cycling')
+    const lines = await matchTrack(pts)
+    const costings = fetchMock.mock.calls.map(c => JSON.parse((c[1] as RequestInit).body as string).costing)
+    expect(costings).toEqual(['bicycle', 'pedestrian'])
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).costing_options.bicycle).toMatchObject({ avoid_bad_surfaces: 0 })
+    expect(lines[0].matched).toBe(true)
+    vi.unstubAllGlobals()
+  })
+})

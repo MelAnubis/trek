@@ -443,10 +443,83 @@ export function trackStats(points: TrackPoint[]) {
   };
 }
 
+/**
+ * The day a range is, as its name says it (5.7.15): the date at the middle
+ * of the range. The range is the viewer's local midnight to midnight, which
+ * in UTC starts the evening before, so its start date named every Spanish day
+ * after the one before it.
+ */
+export function rangeDay(from: string, to: string): string {
+  const a = Date.parse(from);
+  const b = Date.parse(to);
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return from.slice(0, 10);
+  return new Date((a + b) / 2).toISOString().slice(0, 10);
+}
+
+/** Climbing or dropping faster than this, m/s, is a bad altitude, not a hill: a car up a mountain road climbs about 1.4. */
+const MAX_CLIMB_MS = 1.5;
+/** The slack every altitude gets on top of that, for the fixes' own noise. */
+const ALT_SLACK_M = 40;
+
+/**
+ * The altitudes a track can be trusted with (5.7.15). A phone reports 0 or a
+ * height hundreds of metres off when it has no vertical fix, sometimes for a
+ * minute at a time, and a profile drawn from those falls off a cliff and
+ * climbs back. Each altitude is held against the last one kept: further from
+ * it than the time between them allows is dropped (the GPX leaves it out and
+ * every viewer joins the profile across). The first one kept is the first
+ * near the day's median, so a bad start does not throw out the good ones.
+ */
+export function steadyAltitudes(points: Pick<TrackPoint, 'ts' | 'altitude'>[]): (number | null)[] {
+  const out: (number | null)[] = points.map(p => (p.altitude != null && Number.isFinite(p.altitude) && p.altitude !== 0 ? p.altitude : null));
+  const known = out.filter((v): v is number => v != null).sort((x, y) => x - y);
+  if (!known.length) return out;
+  const median = known[Math.floor(known.length / 2)];
+  const anchor = out.findIndex(v => v != null && Math.abs(v - median) <= 150);
+  if (anchor < 0) return out.map(() => null);
+  const walk = (from: number, step: 1 | -1) => {
+    let ref = out[from] as number;
+    let refT = Date.parse(points[from].ts);
+    for (let i = from + step; i >= 0 && i < out.length; i += step) {
+      const v = out[i];
+      if (v == null) continue;
+      const dt = Math.abs(Date.parse(points[i].ts) - refT) / 1000;
+      if (Math.abs(v - ref) > ALT_SLACK_M + MAX_CLIMB_MS * (Number.isFinite(dt) ? dt : 0)) { out[i] = null; continue; }
+      ref = v;
+      refT = Date.parse(points[i].ts);
+    }
+  };
+  walk(anchor, 1);
+  walk(anchor, -1);
+  return out;
+}
+
+/**
+ * The fixes without the obvious bad ones: a fix that jumps out and straight
+ * back (further than its accuracy, and than the two either side are apart),
+ * as the map's own cleaning drops it (client mapMatch.ts cleanTrack).
+ */
+export function withoutSpikes<T extends Pick<TrackPoint, 'lat' | 'lng' | 'accuracy'>>(points: T[]): T[] {
+  if (points.length < 3) return points.slice();
+  const out: T[] = [points[0]];
+  for (let i = 1; i < points.length - 1; i++) {
+    const a = out[out.length - 1];
+    const b = points[i];
+    const c = points[i + 1];
+    const away = Math.min(haversineM(a.lat, a.lng, b.lat, b.lng), haversineM(b.lat, b.lng, c.lat, c.lng));
+    const acc = b.accuracy != null && b.accuracy > 0 ? b.accuracy : 15;
+    if (away > Math.max(40, 2 * acc) && away > 3 * haversineM(a.lat, a.lng, c.lat, c.lng)) continue;
+    out.push(b);
+  }
+  out.push(points[points.length - 1]);
+  return out;
+}
+
 /** The points as a GPX 1.1 track, for download or for saving as a trip route. */
 export function toGpx(name: string, points: TrackPoint[]): string {
-  const pts = points.map(p => {
-    const ele = p.altitude != null ? `<ele>${p.altitude}</ele>` : '';
+  const alts = steadyAltitudes(points);
+  const pts = points.map((p, i) => {
+    const ele = alts[i] != null ? `<ele>${alts[i]}</ele>` : '';
     return `      <trkpt lat="${p.lat}" lon="${p.lng}">${ele}<time>${p.ts}</time></trkpt>`;
   }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -465,8 +538,9 @@ ${pts}
 export function exportGpx(userId: number, deviceId: number, from: string, to: string, maxAccuracy?: number) {
   const row = deviceOf(userId, deviceId);
   if (!row) return null;
-  const points = pointsBetween(deviceId, from, to, maxAccuracy);
-  return { name: `${row.name} ${from.slice(0, 10)}`, xml: toGpx(`${row.name} ${from.slice(0, 10)}`, points), count: points.length };
+  const points = withoutSpikes(pointsBetween(deviceId, from, to, maxAccuracy));
+  const name = `${row.name} ${rangeDay(from, to)}`;
+  return { name, xml: toGpx(name, points), count: points.length };
 }
 
 const MOTION_TO_MODE: Record<string, string> = { cycling: 'cycling', walking: 'walking', running: 'running', driving: 'driving', automotive: 'driving' };
@@ -484,11 +558,12 @@ const MOTION_TO_MODE: Record<string, string> = { cycling: 'cycling', walking: 'w
  */
 export function lineWithFixes(line: [number, number][], points: TrackPoint[]): { lat: number; lng: number; ele: number | null; time: string | null }[] {
   let j = 0;
+  const alts = steadyAltitudes(points);
   return line.map(([lat, lng]) => {
     while (j < points.length - 1
       && haversineM(lat, lng, points[j + 1].lat, points[j + 1].lng) <= haversineM(lat, lng, points[j].lat, points[j].lng)) j++;
     const p = points[j];
-    return { lat, lng, ele: p?.altitude ?? null, time: p?.ts ?? null };
+    return { lat, lng, ele: alts[j] ?? null, time: p?.ts ?? null };
   });
 }
 
@@ -509,12 +584,12 @@ export function saveAsRoute(
   const points = pointsBetween(deviceId, opts.from, opts.to, opts.maxAccuracy);
   if (points.length < 2) return { error: 'Not enough points in that range', status: 400 };
   const stats = trackStats(points);
-  const name = (opts.name?.trim() || `${row.name} · ${opts.from.slice(0, 10)}`).slice(0, 120);
+  const name = (opts.name?.trim() || `${row.name} · ${rangeDay(opts.from, opts.to)}`).slice(0, 120);
   const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(opts.tripId) as { n: number };
   // The route along the ways when the map drew one, else the recorded fixes.
   const shape = opts.line && opts.line.length > 1
     ? lineWithFixes(opts.line, points)
-    : points.map(p => ({ lat: p.lat, lng: p.lng, ele: p.altitude, time: p.ts }));
+    : (() => { const kept = withoutSpikes(points); const alts = steadyAltitudes(kept); return kept.map((p, i) => ({ lat: p.lat, lng: p.lng, ele: alts[i], time: p.ts })); })();
   const trackId = saveTrack(
     opts.tripId, userId, name, 'overland.gpx',
     shape,

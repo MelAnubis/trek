@@ -364,4 +364,30 @@ describe('Lost points (5.7.9)', () => {
     const res = await request(app).get(`/api/tracking/devices/${device.id}/track`).query({ from, to, max_accuracy: 100 }).set('Cookie', authCookie(user.id));
     expect(res.body).toMatchObject({ total: 1, hidden: 1 });
   });
+
+  it('TRACKING-023 — the GPX of a local day is named after that day, without spikes or bad altitudes', async () => {
+    const { user } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    // A ride on 2 Nov 2026 in Madrid: 12:00–12:06 local (11:00Z…), a fix a minute.
+    const at = (m: number) => `2026-11-02T11:0${m}:00Z`;
+    await send(token, [
+      point(-3.9200, 40.7200, at(0), { altitude: 946 }),
+      point(-3.9195, 40.7203, at(1), { altitude: 950 }),
+      point(-3.9000, 40.7400, at(2), { altitude: 955 }),   // a spike: out ~2.5 km and straight back
+      point(-3.9190, 40.7206, at(3), { altitude: 0 }),     // no vertical fix
+      point(-3.9185, 40.7209, at(4), { altitude: 512 }),   // the profile's cliff
+      point(-3.9180, 40.7212, at(5), { altitude: 962 }),
+      point(-3.9175, 40.7215, at(6), { altitude: 965 }),
+    ]);
+    // The viewer's local day, midnight to midnight in Madrid (UTC+1).
+    const res = await request(app).get(`/api/tracking/devices/${device.id}/gpx`)
+      .query({ from: '2026-11-01T23:00:00.000Z', to: '2026-11-02T22:59:59.999Z' }).set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(200);
+    expect(res.headers['content-disposition']).toContain('2026-11-02');
+    expect(res.text).toContain('<name>Pixel 2026-11-02</name>');
+    expect(res.text).not.toContain('lat="40.74"');
+    expect((res.text.match(/<trkpt/g) ?? []).length).toBe(6);
+    const eles = [...res.text.matchAll(/<ele>([\d.]+)<\/ele>/g)].map(m => Number(m[1]));
+    expect(eles).toEqual([946, 950, 962, 965]);
+  });
 });

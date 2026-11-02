@@ -69,7 +69,7 @@ const VIA_MIN_M = 120
 /** The most points one matching request carries; a longer stretch goes in windows. */
 const WINDOW = 1500
 /** The most requests one track may take; past that the rest is drawn unmatched. */
-const MAX_REQUESTS = 15
+const MAX_REQUESTS = 40
 const TIMEOUT_MS = 20_000
 
 function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -119,6 +119,72 @@ export function cleanTrack(points: TrackPoint[]): TrackPoint[] {
   return out
 }
 
+/** Motions that say nothing about the way travelled: a stop at a junction is not a change of vehicle. */
+const NEUTRAL = new Set<string | null>([null, 'stationary', 'unknown'])
+/** A run of another motion shorter than both of these is the phone guessing wrong, not a change of vehicle. */
+const BLIP_M = 1500
+const BLIP_MS = 5 * 60 * 1000
+/** Faster than this on average, a "car" run between two rides is a car after all. */
+const RIDE_KMH = 45
+
+const isRide = (m: string | null) => m === 'cycling'
+const isCar = (m: string | null) => m === 'driving' || m === 'automotive'
+
+/**
+ * How each fix was travelled, as the track is drawn and matched (5.7.15).
+ *
+ * The phone's own activity guess flickers: a bike ride is "in a vehicle" on
+ * every fast descent and "still" at every junction, and taken fix by fix that
+ * cut one ride into dozens of stretches, the fast ones matched as a car (which
+ * may use no track or path) and the request budget spent long before the end.
+ * So: a fix with no motion (still, unknown) takes the motion around it; a run
+ * of another motion too short to be a change of vehicle (under 1.5 km or 5
+ * minutes both) takes its neighbours'; and a "car" run between two rides at riding
+ * speed is ridden. The stored points keep what the phone said.
+ */
+export function effectiveMotions(points: TrackPoint[]): (string | null)[] {
+  const raw = points.map(p => mainMotion(p.motion))
+  const out = raw.map(m => (NEUTRAL.has(m) ? null : m))
+  // Still and unknown take the motion before them, or after them at the start.
+  let last: string | null = null
+  for (let i = 0; i < out.length; i++) { if (out[i]) last = out[i]; else out[i] = last }
+  let next: string | null = null
+  for (let i = out.length - 1; i >= 0; i--) { if (raw[i] && !NEUTRAL.has(raw[i])) next = out[i]; if (!out[i]) out[i] = next }
+
+  type Run = { m: string | null; from: number; to: number }
+  const runsOf = (): Run[] => {
+    const runs: Run[] = []
+    out.forEach((m, i) => { const r = runs[runs.length - 1]; if (r && r.m === m) r.to = i; else runs.push({ m, from: i, to: i }) })
+    return runs
+  }
+  const length = (r: Run) => { let d = 0; for (let i = r.from + 1; i <= r.to + (r.to + 1 < points.length ? 1 : 0); i++) d += distM(points[i - 1], points[i]); return d }
+  const lasting = (r: Run) => Date.parse(points[Math.min(r.to + 1, points.length - 1)].ts) - Date.parse(points[r.from].ts)
+  for (let guard = 0; guard < 50; guard++) {
+    const runs = runsOf()
+    if (runs.length < 2) break
+    // The shortest blip first, so two blips side by side settle on the ride around them.
+    const blips = runs
+      .map((r, k) => ({ r, k, d: length(r), t: lasting(r) }))
+      .filter(({ r, k, d, t }) => {
+        const before = runs[k - 1]?.m ?? null
+        const after = runs[k + 1]?.m ?? null
+        if (d < BLIP_M && t < BLIP_MS) return true
+        // A "car" between two rides at the speed of a ride.
+        const kmh = t > 0 ? (d / 1000) / (t / 3_600_000) : Infinity
+        return isCar(r.m) && isRide(before) && isRide(after) && kmh <= RIDE_KMH
+      })
+      .sort((a, b) => a.d - b.d)
+    const blip = blips[0]
+    if (!blip) break
+    const before = runs[blip.k - 1]
+    const after = runs[blip.k + 1]
+    // The neighbour that lasts longest takes it.
+    const into = !before ? after : !after ? before : (length(before) >= length(after) ? before : after)
+    for (let i = blip.r.from; i <= blip.r.to; i++) out[i] = into.m
+  }
+  return out
+}
+
 /** How a stretch is matched, from how it was travelled. Unknown and still count as on foot, the costing that refuses the fewest ways. */
 export function costingFor(motion: string | null): Costing {
   if (motion === 'driving' || motion === 'automotive') return 'auto'
@@ -140,9 +206,10 @@ export interface Stretch {
  */
 export function stretches(points: TrackPoint[]): Stretch[] {
   const out: Stretch[] = []
+  const motions = effectiveMotions(points)
   for (let i = 0; i < points.length; i++) {
     const p = points[i]
-    const motion = mainMotion(p.motion)
+    const motion = motions[i]
     const costing = costingFor(motion)
     const last = out[out.length - 1]
     const prev = points[i - 1]
@@ -155,9 +222,10 @@ export function stretches(points: TrackPoint[]): Stretch[] {
     out.push({ costing, motion, points: last && !gap ? [last.points[last.points.length - 1], p] : [p] })
   }
   // A stretch is coloured by how most of it was travelled, standing still aside.
+  const motionOf = new Map(points.map((p, i) => [p, motions[i]]))
   for (const st of out) {
     const count = new Map<string, number>()
-    for (const p of st.points) { const m = mainMotion(p.motion); if (m && m !== 'stationary') count.set(m, (count.get(m) ?? 0) + 1) }
+    for (const p of st.points) { const m = motionOf.get(p) ?? null; if (m && m !== 'stationary') count.set(m, (count.get(m) ?? 0) + 1) }
     st.motion = [...count].sort((a, b) => b[1] - a[1])[0]?.[0] ?? (st.points.some(p => mainMotion(p.motion) === 'stationary') ? 'stationary' : null)
   }
   return out
@@ -165,7 +233,8 @@ export function stretches(points: TrackPoint[]): Stretch[] {
 
 const COSTING_OPTIONS: Record<Costing, Record<string, unknown>> = {
   pedestrian: { pedestrian: { max_hiking_difficulty: 6 } },
-  bicycle: { bicycle: { bicycle_type: 'Hybrid' } },
+  // Gravel and dirt tracks are where most rides in the country go: no penalty for them when matching.
+  bicycle: { bicycle: { bicycle_type: 'Hybrid', avoid_bad_surfaces: 0 } },
   auto: {},
 }
 
@@ -385,19 +454,29 @@ export async function matchTrack(points: TrackPoint[], opts: {
     }
     const s = item.stretch
     if (s.points.length < 2) continue
-    const pieces: [number, number][] = []
-    let ok = !sparse(s.points)
-    if (ok) {
-      for (const w of windows(s.points)) {
-        if (requests >= MAX_REQUESTS) { ok = false; break }
-        requests++
-        const matched = await matchPoints(w, s.costing, opts.signal)
-        if (!matched) { ok = false; break }
-        pieces.push(...(pieces.length ? matched.slice(1) : matched))
+    if (!sparse(s.points)) {
+      /*
+       * Matched with the costing of how it was travelled, then on foot, the
+       * costing that refuses the fewest ways (a footpath, a track a bike may
+       * not take on paper). A stretch neither matches is drawn from its fixes:
+       * routing through them instead invents detours where a fix sits off the map's ways.
+       */
+      const tries: Costing[] = s.costing === 'pedestrian' ? ['pedestrian'] : [s.costing, 'pedestrian']
+      for (const costing of tries) {
+        const pieces: [number, number][] = []
+        let ok = true
+        for (const w of windows(s.points)) {
+          if (requests >= MAX_REQUESTS || opts.signal?.aborted) { ok = false; break }
+          requests++
+          const matched = await matchPoints(w, costing, opts.signal)
+          if (!matched) { ok = false; break }
+          pieces.push(...(pieces.length ? matched.slice(1) : matched))
+        }
+        if (ok && pieces.length > 1) { keep(i, item.key, pieces); break }
       }
+      continue
     }
-    if (ok && pieces.length > 1) { keep(i, item.key, pieces); continue }
-    // Too sparse to match, or the matcher gave up: routed through its fixes instead, which follows the roads too.
+    // Too sparse to trace (a fix every km or so): routed through its fixes, which follows the roads too.
     if (requests >= MAX_REQUESTS || opts.signal?.aborted) continue
     requests++
     const routed = await routeVia(s.points, s.costing, opts.signal)
