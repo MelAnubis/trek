@@ -67,9 +67,9 @@ const VIA_MAX = 20
 /** Waypoints closer than this add nothing to a routed line. */
 const VIA_MIN_M = 120
 /** The most points one matching request carries; a longer stretch goes in windows. */
-const WINDOW = 1500
+const WINDOW = 100
 /** The most requests one track may take; past that the rest is drawn unmatched. */
-const MAX_REQUESTS = 40
+const MAX_REQUESTS = 60
 const TIMEOUT_MS = 20_000
 
 function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -124,8 +124,11 @@ const NEUTRAL = new Set<string | null>([null, 'stationary', 'unknown'])
 /** A run of another motion shorter than both of these is the phone guessing wrong, not a change of vehicle. */
 const BLIP_M = 1500
 const BLIP_MS = 5 * 60 * 1000
-/** Faster than this on average, a "car" run between two rides is a car after all. */
-const RIDE_KMH = 45
+/** Faster than this on average, a "car" run in a day of riding is a car after all. */
+const RIDE_KMH = 40
+/** Faster than these on average, "walking" and "running" are riding. */
+const WALK_MAX_KMH = 12
+const RUN_MAX_KMH = 18
 
 const isRide = (m: string | null) => m === 'cycling'
 const isCar = (m: string | null) => m === 'driving' || m === 'automotive'
@@ -152,6 +155,32 @@ export function effectiveMotions(points: TrackPoint[]): (string | null)[] {
   for (let i = out.length - 1; i >= 0; i--) { if (raw[i] && !NEUTRAL.has(raw[i])) next = out[i]; if (!out[i]) out[i] = next }
 
   type Run = { m: string | null; from: number; to: number }
+  const speedRuns = (): Run[] => {
+    const runs: Run[] = []
+    out.forEach((m, i) => { const r = runs[runs.length - 1]; if (r && r.m === m) r.to = i; else runs.push({ m, from: i, to: i }) })
+    return runs
+  }
+  const kmhOf = (r: Run) => {
+    const end = Math.min(r.to + 1, points.length - 1)
+    let d = 0
+    for (let i = r.from + 1; i <= end; i++) d += distM(points[i - 1], points[i])
+    const t = Date.parse(points[end].ts) - Date.parse(points[r.from].ts)
+    return { d, kmh: t > 0 ? (d / 1000) / (t / 3_600_000) : 0 }
+  }
+  // "On foot" at the speed of a bike is a bike: an iPhone called a whole ride a walk.
+  for (const r of speedRuns()) {
+    const { d, kmh } = kmhOf(r)
+    if (d < 300) continue
+    if ((r.m === 'walking' && kmh > WALK_MAX_KMH) || (r.m === 'running' && kmh > RUN_MAX_KMH)) for (let i = r.from; i <= r.to; i++) out[i] = 'cycling'
+  }
+  // A day ridden mostly by bike: a "car" run at riding speed is ridden too, at the start or the end as well as between rides.
+  {
+    const by = new Map<string, number>()
+    for (const r of speedRuns()) if (r.m) by.set(r.m, (by.get(r.m) ?? 0) + kmhOf(r).d)
+    const dominant = [...by].sort((x, y) => y[1] - x[1])[0]?.[0] ?? null
+    if (isRide(dominant)) for (const r of speedRuns()) if (isCar(r.m) && kmhOf(r).kmh <= RIDE_KMH) for (let i = r.from; i <= r.to; i++) out[i] = 'cycling'
+  }
+
   const runsOf = (): Run[] => {
     const runs: Run[] = []
     out.forEach((m, i) => { const r = runs[runs.length - 1]; if (r && r.m === m) r.to = i; else runs.push({ m, from: i, to: i }) })
@@ -361,8 +390,49 @@ function sparse(points: TrackPoint[]): boolean {
   return total / (points.length - 1) > 400
 }
 
+/** Metres from a point to the segment a–b, on a local flat projection (fine at these distances). */
+function toSegmentM(p: { lat: number; lng: number }, a: [number, number], b: [number, number]): number {
+  const k = Math.cos(p.lat * Math.PI / 180) * 111_320
+  const ax = (a[1] - p.lng) * k, ay = (a[0] - p.lat) * 110_540
+  const bx = (b[1] - p.lng) * k, by = (b[0] - p.lat) * 110_540
+  const dx = bx - ax, dy = by - ay
+  const len = dx * dx + dy * dy
+  const t = len > 0 ? Math.max(0, Math.min(1, -(ax * dx + ay * dy) / len)) : 0
+  return Math.hypot(ax + t * dx, ay + t * dy)
+}
+
+function lineLengthM(line: [number, number][]): number {
+  let m = 0
+  for (let i = 1; i < line.length; i++) m += distM({ lat: line[i - 1][0], lng: line[i - 1][1] }, { lat: line[i][0], lng: line[i][1] })
+  return m
+}
+
+/**
+ * Whether a matched (or routed) line really is these points along the ways
+ * (5.7.17). The public matcher answers "ok" with only the part it could
+ * match when part of a trace is off its map, and taken at its word that drew
+ * a ride as a few hundred metres. So the line must pass near nearly every
+ * fix (within their spread, 50 m at least), and be neither much shorter nor
+ * much longer than the fixes joined.
+ */
+export function covers(line: [number, number][], points: TrackPoint[]): boolean {
+  if (line.length < 2 || points.length < 2) return false
+  let near = 0
+  for (const p of points) {
+    const tol = Math.min(120, Math.max(50, 2.5 * acc(p)))
+    let best = Infinity
+    for (let i = 1; i < line.length && best > tol; i++) best = Math.min(best, toSegmentM(p, line[i - 1], line[i]))
+    if (best <= tol) near++
+  }
+  const raw = lineLengthM(points.map(p => [p.lat, p.lng] as [number, number]))
+  const got = lineLengthM(line)
+  const ends = distM(points[0], { lat: line[0][0], lng: line[0][1] }) <= 150
+    && distM(points[points.length - 1], { lat: line[line.length - 1][0], lng: line[line.length - 1][1] }) <= 150
+  return ends && near / points.length >= 0.85 && (raw < 50 || (got >= raw * 0.6 && got <= raw * 2 + 300))
+}
+
 /** Stretches split into request-sized windows that overlap by one point. */
-function windows(points: TrackPoint[]): TrackPoint[][] {
+export function windows(points: TrackPoint[]): TrackPoint[][] {
   if (points.length <= WINDOW) return [points]
   const out: TrackPoint[][] = []
   for (let i = 0; i < points.length - 1; i += WINDOW - 1) out.push(points.slice(i, i + WINDOW))
@@ -454,33 +524,32 @@ export async function matchTrack(points: TrackPoint[], opts: {
     }
     const s = item.stretch
     if (s.points.length < 2) continue
-    if (!sparse(s.points)) {
-      /*
-       * Matched with the costing of how it was travelled, then on foot, the
-       * costing that refuses the fewest ways (a footpath, a track a bike may
-       * not take on paper). A stretch neither matches is drawn from its fixes:
-       * routing through them instead invents detours where a fix sits off the map's ways.
-       */
-      const tries: Costing[] = s.costing === 'pedestrian' ? ['pedestrian'] : [s.costing, 'pedestrian']
+    /*
+     * In windows of about a hundred fixes, each matched on its own (5.7.17):
+     * with the costing of how it was travelled, then on foot, the costing
+     * that refuses the fewest ways; a window too sparse to trace is routed
+     * through its fixes instead. A line is only taken when it covers the
+     * window's fixes (`covers`); a window nothing covers is drawn from its
+     * fixes, so a ride is never cut short by the part the matcher missed.
+     */
+    const tries: Costing[] = s.costing === 'pedestrian' ? ['pedestrian'] : [s.costing, 'pedestrian']
+    const pieces: [number, number][] = []
+    let good = 0
+    const parts = windows(s.points)
+    for (const w of parts) {
+      let line: [number, number][] | null = null
       for (const costing of tries) {
-        const pieces: [number, number][] = []
-        let ok = true
-        for (const w of windows(s.points)) {
-          if (requests >= MAX_REQUESTS || opts.signal?.aborted) { ok = false; break }
-          requests++
-          const matched = await matchPoints(w, costing, opts.signal)
-          if (!matched) { ok = false; break }
-          pieces.push(...(pieces.length ? matched.slice(1) : matched))
-        }
-        if (ok && pieces.length > 1) { keep(i, item.key, pieces); break }
+        if (requests >= MAX_REQUESTS || opts.signal?.aborted) break
+        requests++
+        const got = sparse(w) ? await routeVia(w, costing, opts.signal) : await matchPoints(w, costing, opts.signal)
+        if (got && covers(got, w)) { line = got; break }
       }
-      continue
+      if (line) good++
+      const piece = line ?? w.map(p => [p.lat, p.lng] as [number, number])
+      pieces.push(...(pieces.length ? piece.slice(1) : piece))
     }
-    // Too sparse to trace (a fix every km or so): routed through its fixes, which follows the roads too.
-    if (requests >= MAX_REQUESTS || opts.signal?.aborted) continue
-    requests++
-    const routed = await routeVia(s.points, s.costing, opts.signal)
-    if (routed) keep(i, item.key, routed)
+    // Drawn as matched when most of it is; the windows left as fixes are still where they were recorded.
+    if (good > 0 && good * 2 >= parts.length && pieces.length > 1) keep(i, item.key, pieces)
   }
   return lines
 }

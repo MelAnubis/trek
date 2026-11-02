@@ -67,10 +67,11 @@ describe('matchTrack', () => {
   beforeEach(() => { resetValhallaTurns(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockReset() })
   afterEach(() => { vi.unstubAllGlobals() })
 
-  const walk = [pt(0, 40, -3), pt(1, 40.001, -3), pt(2, 40.002, -3.001), pt(3, 40.003, -3.001)]
+  // A walk: ~55 m every 30 s.
+  const walk = [pt(0, 40, -3), pt(1, 40.0005, -3), pt(2, 40.001, -3.0005), pt(3, 40.0015, -3.0005)]
 
   it('asks Valhalla trace_route with map_snap and the stretch costing, and draws its shape', async () => {
-    const road: [number, number][] = [[40, -3], [40.0004, -3.0002], [40.001, -3], [40.002, -3.001], [40.003, -3.001]]
+    const road: [number, number][] = [[40, -3], [40.0002, -3.0001], [40.0005, -3], [40.001, -3.0005], [40.0015, -3.0005]]
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode(road) }] } }), { status: 200 }))
     const lines = await matchTrack(walk)
     expect(fetchMock).toHaveBeenCalledTimes(1)
@@ -93,7 +94,7 @@ describe('matchTrack', () => {
 
   it('cached stretches are drawn at once and not asked again', async () => {
     const cache = new Map<string, [number, number][]>()
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode([[40, -3], [40.003, -3.001]]) }] } }), { status: 200 }))
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode([[40, -3], [40.0005, -3], [40.001, -3.0005], [40.0015, -3.0005]]) }] } }), { status: 200 }))
     await matchTrack(walk, { cache })
     expect(linesNow(walk, cache)[0].matched).toBe(true)
     await matchTrack(walk, { cache })
@@ -224,5 +225,62 @@ describe('the phone\'s motion, steadied (5.7.15)', () => {
     expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).costing_options.bicycle).toMatchObject({ avoid_bad_surfaces: 0 })
     expect(lines[0].matched).toBe(true)
     vi.unstubAllGlobals()
+  })
+})
+
+/**
+ * 5.7.17 — the same ride on 2 Nov, matched: the public matcher answered "ok"
+ * with only a few hundred metres of it, and an iPhone called the ride a walk.
+ */
+describe('a match is only taken when it covers the fixes (5.7.17)', () => {
+  const at = (i: number, lat: number, lng: number, motion = 'cycling') =>
+    ({ ts: new Date(t0 + i * 10_000).toISOString(), lat, lng, motion, accuracy: 8 }) as TrackPoint
+  // North at ~55 m every 10 s (20 km/h).
+  const ride = (n: number, motion = 'cycling') => Array.from({ length: n }, (_, i) => at(i, 40.72 + i * 0.0005, -3.92, motion))
+  const along = (pts: TrackPoint[]) => pts.map(p => [p.lat, p.lng + 0.0001] as [number, number])
+  const fetchMock = vi.fn()
+  beforeEach(() => { resetValhallaTurns(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockReset() })
+  afterEach(() => { vi.unstubAllGlobals() })
+  const ok = (line: [number, number][]) => new Response(JSON.stringify({ trip: { legs: [{ shape: encode(line) }] } }), { status: 200 })
+
+  it('a line that covers only the start of the fixes is refused, and the fixes are drawn', async () => {
+    const { covers } = await import('../../../../src/components/Tracking/mapMatch')
+    const pts = ride(40)
+    expect(covers(along(pts), pts)).toBe(true)
+    expect(covers(along(pts.slice(0, 5)), pts)).toBe(false)
+    fetchMock.mockImplementation(async () => ok(along(pts.slice(0, 5))))
+    const lines = await matchTrack(pts)
+    expect(lines[0].matched).toBe(false)
+    expect(lines[0].positions).toHaveLength(40)
+  })
+
+  it('matched in windows of about a hundred fixes; a window nothing covers is drawn from its fixes, the rest along the ways', async () => {
+    const { windows } = await import('../../../../src/components/Tracking/mapMatch')
+    const pts = ride(250)
+    const parts = windows(pts)
+    expect(parts.length).toBe(3)
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as { shape: { lat: number; lon: number }[] }
+      const first = body.shape[0].lat
+      // The middle window is off the matcher's map: it answers with a scrap.
+      if (Math.abs(first - parts[1][0].lat) < 1e-9) return ok(along(parts[1].slice(0, 3)))
+      return ok(along(body.shape.map(p => ({ lat: p.lat, lng: p.lon }) as TrackPoint)))
+    })
+    const lines = await matchTrack(pts)
+    expect(lines[0].matched).toBe(true)
+    const drawn = lines[0].positions
+    // The middle window's own fixes are in the line, the other two moved onto the "road".
+    expect(drawn.some(([lat, lng]) => lat === parts[1][50].lat && lng === parts[1][50].lng)).toBe(true)
+    expect(drawn.some(([lat, lng]) => lat === parts[0][50].lat && lng === parts[0][50].lng)).toBe(false)
+    expect(drawn.length).toBeGreaterThan(240)
+  })
+
+  it('"walking" at the speed of a bike is ridden, and so is a "car" at the start of a day ridden', async () => {
+    const { effectiveMotions } = await import('../../../../src/components/Tracking/mapMatch')
+    expect(new Set(effectiveMotions(ride(60, 'walking')))).toEqual(new Set(['cycling']))
+    const slowWalk = Array.from({ length: 60 }, (_, i) => at(i, 40.72 + i * 0.0001, -3.92, 'walking'))
+    expect(new Set(effectiveMotions(slowWalk))).toEqual(new Set(['walking']))
+    const day = [...ride(40, 'automotive'), ...ride(200).map((p, i) => ({ ...p, ts: new Date(t0 + (40 + i) * 10_000).toISOString(), lat: 40.74 + i * 0.0005 }))]
+    expect(new Set(effectiveMotions(day))).toEqual(new Set(['cycling']))
   })
 })
