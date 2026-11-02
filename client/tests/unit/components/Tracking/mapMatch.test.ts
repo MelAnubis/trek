@@ -162,13 +162,15 @@ describe('holes in the recording (5.7.7)', () => {
     expect(lines[1].positions).toHaveLength(2)
   })
 
-  it('a stretch too sparse to trace (a fix every km) is routed through its fixes instead', async () => {
+  it('a stretch too sparse to trace (a fix every km) is routed through its fixes when the trace fails (5.7.19: traced first)', async () => {
     const car = [at(0, 40.50, -3.50, 'driving'), at(1, 40.51, -3.50, 'driving'), at(2, 40.52, -3.50, 'driving'), at(3, 40.53, -3.50, 'driving')]
     const road: [number, number][] = [[40.50, -3.50], [40.505, -3.501], [40.51, -3.50], [40.52, -3.50], [40.53, -3.50]]
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode(road) }] } }), { status: 200 }))
+    fetchMock
+      .mockResolvedValueOnce(new Response('{"error_code":442}', { status: 400 }))
+      .mockResolvedValue(new Response(JSON.stringify({ trip: { legs: [{ shape: encode(road) }] } }), { status: 200 }))
     const lines = await matchTrack(car)
-    expect(fetchMock.mock.calls.map(c => String(c[0]).split('/').pop())).toEqual(['route'])
-    const body = JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string)
+    expect(fetchMock.mock.calls.map(c => String(c[0]).split('/').pop())).toEqual(['trace_route', 'route'])
+    const body = JSON.parse((fetchMock.mock.calls[1][1] as RequestInit).body as string)
     expect(body.locations.map((l: { type: string }) => l.type)).toEqual(['break', 'through', 'through', 'break'])
     expect(lines[0]).toMatchObject({ matched: true })
     expect(lines[0].inferred).toBeUndefined()
@@ -282,5 +284,38 @@ describe('a match is only taken when it covers the fixes (5.7.17)', () => {
     expect(new Set(effectiveMotions(slowWalk))).toEqual(new Set(['walking']))
     const day = [...ride(40, 'automotive'), ...ride(200).map((p, i) => ({ ...p, ts: new Date(t0 + (40 + i) * 10_000).toISOString(), lat: 40.74 + i * 0.0005 }))]
     expect(new Set(effectiveMotions(day))).toEqual(new Set(['cycling']))
+  })
+})
+
+/** 5.7.19 — the iPhone's ride: a fix every few hundred metres, 50–100 m off, stops counted in its "walk". */
+describe('a sparse, rough recording (5.7.19)', () => {
+  const at = (sec: number, lat: number, lng: number, motion: string, accuracy = 8) =>
+    ({ ts: new Date(t0 + sec * 1000).toISOString(), lat, lng, motion, accuracy }) as TrackPoint
+
+  it('a "walk" at riding speed with long stops in it is still ridden', async () => {
+    const { effectiveMotions } = await import('../../../../src/components/Tracking/mapMatch')
+    const pts: TrackPoint[] = []
+    let sec = 0
+    for (let i = 0; i < 40; i++) {
+      pts.push(at(sec, 40.72 + i * 0.0005, -3.92, 'walking'))
+      // 55 m in 10 s (20 km/h), and every tenth fix a three-minute stop.
+      sec += i % 10 === 9 ? 180 : 10
+    }
+    expect(new Set(effectiveMotions(pts))).toEqual(new Set(['cycling']))
+  })
+
+  it('the matcher looks as far as the fixes are rough, and a sparse window is traced before it is routed', async () => {
+    const { traceOptions } = await import('../../../../src/components/Tracking/mapMatch')
+    expect(traceOptions([at(0, 40, -3, 'cycling', 8), at(10, 40.001, -3, 'cycling', 8)])).toMatchObject({ search_radius: 60, gps_accuracy: 10 })
+    const rough = Array.from({ length: 10 }, (_, i) => at(i * 60, 40.72 + i * 0.005, -3.92, 'cycling', 80))
+    expect(traceOptions(rough)).toMatchObject({ search_radius: 120, gps_accuracy: 80 })
+    const fetchMock = vi.fn()
+    vi.stubGlobal('fetch', fetchMock)
+    resetValhallaTurns()
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ trip: { legs: [{ shape: encode(rough.map(p => [p.lat, p.lng + 0.0003] as [number, number])) }] } }), { status: 200 }))
+    const lines = await matchTrack(rough)
+    expect(String(fetchMock.mock.calls[0][0])).toMatch(/trace_route$/)
+    expect(lines[0].matched).toBe(true)
+    vi.unstubAllGlobals()
   })
 })

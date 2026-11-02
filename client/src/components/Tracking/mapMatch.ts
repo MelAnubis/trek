@@ -69,7 +69,7 @@ const VIA_MIN_M = 120
 /** The most points one matching request carries; a longer stretch goes in windows. */
 const WINDOW = 100
 /** The most requests one track may take; past that the rest is drawn unmatched. */
-const MAX_REQUESTS = 60
+const MAX_REQUESTS = 80
 const TIMEOUT_MS = 20_000
 
 function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -125,7 +125,9 @@ const NEUTRAL = new Set<string | null>([null, 'stationary', 'unknown'])
 const BLIP_M = 1500
 const BLIP_MS = 5 * 60 * 1000
 /** Faster than this on average, a "car" run in a day of riding is a car after all. */
-const RIDE_KMH = 40
+const RIDE_KMH = 50
+/** Slower than this between two fixes is standing, and left out of a run's speed. */
+const MOVING_KMH = 3
 /** Faster than these on average, "walking" and "running" are riding. */
 const WALK_MAX_KMH = 12
 const RUN_MAX_KMH = 18
@@ -160,12 +162,17 @@ export function effectiveMotions(points: TrackPoint[]): (string | null)[] {
     out.forEach((m, i) => { const r = runs[runs.length - 1]; if (r && r.m === m) r.to = i; else runs.push({ m, from: i, to: i }) })
     return runs
   }
+  /** A run's length and its speed while moving: the stops (a café, a junction) are left out of the average. */
   const kmhOf = (r: Run) => {
     const end = Math.min(r.to + 1, points.length - 1)
-    let d = 0
-    for (let i = r.from + 1; i <= end; i++) d += distM(points[i - 1], points[i])
-    const t = Date.parse(points[end].ts) - Date.parse(points[r.from].ts)
-    return { d, kmh: t > 0 ? (d / 1000) / (t / 3_600_000) : 0 }
+    let d = 0, movingM = 0, movingMs = 0
+    for (let i = r.from + 1; i <= end; i++) {
+      const seg = distM(points[i - 1], points[i])
+      const ms = Date.parse(points[i].ts) - Date.parse(points[i - 1].ts)
+      d += seg
+      if (ms > 0 && (seg / 1000) / (ms / 3_600_000) >= MOVING_KMH) { movingM += seg; movingMs += ms }
+    }
+    return { d, kmh: movingMs > 0 ? (movingM / 1000) / (movingMs / 3_600_000) : 0 }
   }
   // "On foot" at the speed of a bike is a bike: an iPhone called a whole ride a walk.
   for (const r of speedRuns()) {
@@ -267,6 +274,23 @@ const COSTING_OPTIONS: Record<Costing, Record<string, unknown>> = {
   auto: {},
 }
 
+/**
+ * How far from its fixes the matcher may look for the way, from how good the
+ * fixes are (5.7.19): a phone in low power (an iPhone) logs every few hundred
+ * metres and 50–100 m off, and a 60 m search found no road under it at all.
+ */
+export function traceOptions(points: TrackPoint[]) {
+  const accs = points.map(acc).sort((x, y) => x - y)
+  const median = accs[Math.floor(accs.length / 2)] ?? 15
+  const worst = accs[Math.floor(accs.length * 0.9)] ?? median
+  return {
+    search_radius: Math.round(Math.min(150, Math.max(60, worst * 1.5))),
+    gps_accuracy: Math.round(Math.min(80, Math.max(10, median))),
+    breakage_distance: GAP_M,
+    turn_penalty_factor: 200,
+  }
+}
+
 /** One stretch's points as Valhalla matched them to the network, or null. */
 export async function matchPoints(points: TrackPoint[], costing: Costing, signal?: AbortSignal): Promise<[number, number][] | null> {
   const base = valhallaBase()
@@ -284,7 +308,7 @@ export async function matchPoints(points: TrackPoint[], costing: Costing, signal
         costing_options: COSTING_OPTIONS[costing],
         shape_match: 'map_snap',
         // The fixes' own spread decides how far a point may be from its road.
-        trace_options: { search_radius: 60, gps_accuracy: 20, breakage_distance: GAP_M, turn_penalty_factor: 200 },
+        trace_options: traceOptions(points),
         use_timestamps: true,
         directions_options: { units: 'kilometers', directions_type: 'none' },
       }),
@@ -354,7 +378,7 @@ export async function routeVia(points: { lat: number; lng: number }[], costing: 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
         body: JSON.stringify({
-          locations: win.map((p, k) => ({ lat: p.lat, lon: p.lng, type: k === 0 || k === win.length - 1 ? 'break' : 'through', radius: 50 })),
+          locations: win.map((p, k) => ({ lat: p.lat, lon: p.lng, type: k === 0 || k === win.length - 1 ? 'break' : 'through', radius: Math.round(Math.min(150, Math.max(50, 1.5 * acc(p as TrackPoint)))) })),
           costing,
           costing_options: COSTING_OPTIONS[costing],
           directions_options: { units: 'kilometers', directions_type: 'none' },
@@ -538,11 +562,16 @@ export async function matchTrack(points: TrackPoint[], opts: {
     const parts = windows(s.points)
     for (const w of parts) {
       let line: [number, number][] | null = null
+      // A sparse window is traced too (the matcher routes between far fixes), then routed through them.
+      const ways: ('trace' | 'route')[] = sparse(w) ? ['trace', 'route'] : ['trace']
       for (const costing of tries) {
-        if (requests >= MAX_REQUESTS || opts.signal?.aborted) break
-        requests++
-        const got = sparse(w) ? await routeVia(w, costing, opts.signal) : await matchPoints(w, costing, opts.signal)
-        if (got && covers(got, w)) { line = got; break }
+        for (const way of ways) {
+          if (line || requests >= MAX_REQUESTS || opts.signal?.aborted) break
+          requests++
+          const got = way === 'trace' ? await matchPoints(w, costing, opts.signal) : await routeVia(w, costing, opts.signal)
+          if (got && covers(got, w)) line = got
+        }
+        if (line) break
       }
       if (line) good++
       const piece = line ?? w.map(p => [p.lat, p.lng] as [number, number])
