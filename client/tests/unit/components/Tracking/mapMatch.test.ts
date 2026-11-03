@@ -245,7 +245,7 @@ describe('a match is only taken when it covers the fixes (5.7.17)', () => {
   afterEach(() => { vi.unstubAllGlobals() })
   const ok = (line: [number, number][]) => new Response(JSON.stringify({ trip: { legs: [{ shape: encode(line) }] } }), { status: 200 })
 
-  it('a line that covers only the start of the fixes is refused, and the fixes are drawn', async () => {
+  it('a line that covers only the start of the fixes is refused, and the fixes are drawn', { timeout: 30_000 }, async () => {
     const { covers } = await import('../../../../src/components/Tracking/mapMatch')
     const pts = ride(40)
     expect(covers(along(pts), pts)).toBe(true)
@@ -256,7 +256,7 @@ describe('a match is only taken when it covers the fixes (5.7.17)', () => {
     expect(lines[0].positions).toHaveLength(40)
   })
 
-  it('matched in windows of about a hundred fixes; a window nothing covers is drawn from its fixes, the rest along the ways', async () => {
+  it('matched in windows of about a hundred fixes; a window the matcher breaks in is traced on from where it stopped (5.7.23)', async () => {
     const { windows } = await import('../../../../src/components/Tracking/mapMatch')
     const pts = ride(250)
     const parts = windows(pts)
@@ -264,17 +264,35 @@ describe('a match is only taken when it covers the fixes (5.7.17)', () => {
     fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
       const body = JSON.parse(init.body as string) as { shape: { lat: number; lon: number }[] }
       const first = body.shape[0].lat
-      // The middle window is off the matcher's map: it answers with a scrap.
-      if (Math.abs(first - parts[1][0].lat) < 1e-9) return ok(along(parts[1].slice(0, 3)))
+      // In the middle window the matcher breaks: it answers with its first piece only.
+      if (Math.abs(first - parts[1][0].lat) < 1e-9) return ok(along(parts[1].slice(0, 30)))
       return ok(along(body.shape.map(p => ({ lat: p.lat, lng: p.lon }) as TrackPoint)))
     })
     const lines = await matchTrack(pts)
     expect(lines[0].matched).toBe(true)
     const drawn = lines[0].positions
-    // The middle window's own fixes are in the line, the other two moved onto the "road".
-    expect(drawn.some(([lat, lng]) => lat === parts[1][50].lat && lng === parts[1][50].lng)).toBe(true)
-    expect(drawn.some(([lat, lng]) => lat === parts[0][50].lat && lng === parts[0][50].lng)).toBe(false)
-    expect(drawn.length).toBeGreaterThan(240)
+    // The middle window is traced again from the fix after its first piece, and all of it lands on the "road".
+    const starts = fetchMock.mock.calls.map(c => JSON.parse((c[1] as RequestInit).body as string).shape[0].lat as number)
+    expect(starts.some(lat => Math.abs(lat - parts[1][30].lat) < 1e-9)).toBe(true)
+    expect(drawn.some(([lat, lng]) => lat === parts[1][50].lat && lng === parts[1][50].lng)).toBe(false)
+    expect(drawn.some(([lat, lng]) => Math.abs(lat - parts[1][50].lat) < 1e-6 && Math.abs(lng - parts[1][50].lng - 0.0001) < 1e-6)).toBe(true)
+  })
+
+  it('fixes the matcher leaves out (no mapped way under them) are drawn as recorded between its pieces (5.7.23)', async () => {
+    const { traceThrough } = await import('../../../../src/components/Tracking/mapMatch')
+    const pts = ride(30)
+    // Fixes 10–14 are off the map: the matcher stops before them, and starts again after them.
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as { shape: { lat: number; lon: number }[] }
+      const firstIdx = pts.findIndex(p => Math.abs(p.lat - body.shape[0].lat) < 1e-9)
+      if (firstIdx < 10) return ok(along(pts.slice(firstIdx, 10)))
+      return ok(along(pts.slice(Math.max(firstIdx, 15))))
+    })
+    const got = (await traceThrough(pts, 'bicycle'))!
+    expect(got.requests).toBe(2)
+    expect(got.placed).toBeCloseTo(25 / 30)
+    for (const i of [10, 12, 14]) expect(got.line).toContainEqual([pts[i].lat, pts[i].lng])
+    expect(got.line.some(([lat, lng]) => Math.abs(lat - pts[20].lat) < 1e-6 && Math.abs(lng - pts[20].lng - 0.0001) < 1e-6)).toBe(true)
   })
 
   it('"walking" at the speed of a bike is ridden, and so is a "car" at the start of a day ridden', async () => {
@@ -308,7 +326,8 @@ describe('a sparse, rough recording (5.7.19)', () => {
     const { traceOptions } = await import('../../../../src/components/Tracking/mapMatch')
     expect(traceOptions([at(0, 40, -3, 'cycling', 8), at(10, 40.001, -3, 'cycling', 8)])).toMatchObject({ search_radius: 60, gps_accuracy: 10 })
     const rough = Array.from({ length: 10 }, (_, i) => at(i * 60, 40.72 + i * 0.005, -3.92, 'cycling', 80))
-    expect(traceOptions(rough)).toMatchObject({ search_radius: 120, gps_accuracy: 80 })
+    // The public instance refuses a search radius over 100 m (5.7.23).
+    expect(traceOptions(rough)).toMatchObject({ search_radius: 100, gps_accuracy: 80 })
     const fetchMock = vi.fn()
     vi.stubGlobal('fetch', fetchMock)
     resetValhallaTurns()

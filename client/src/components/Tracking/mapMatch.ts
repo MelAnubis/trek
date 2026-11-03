@@ -62,14 +62,22 @@ const BRIDGE_MIN_M = 150
 /** A hole longer than this (an overnight, a flight) is not bridged: the guess would be fiction. */
 const BRIDGE_MAX_MS = 3 * 60 * 60 * 1000
 const BRIDGE_MAX_M = 150_000
-/** The most waypoints one routed request carries (the public instance's limit is 20). */
-const VIA_MAX = 20
+/** The most waypoints one routed request carries (the public instance refuses more than 10, 5.7.23). */
+const VIA_MAX = 10
 /** Waypoints closer than this add nothing to a routed line. */
 const VIA_MIN_M = 120
 /** The most points one matching request carries; a longer stretch goes in windows. */
 const WINDOW = 100
 /** The most requests one track may take; past that the rest is drawn unmatched. */
-const MAX_REQUESTS = 80
+const MAX_REQUESTS = 120
+/** The most traces one window may take to get past the fixes the matcher breaks at. */
+const MAX_PIECES = 10
+/** Pieces of a trace further apart than this are joined along the network, not straight. */
+const JOIN_M = 60
+/** The share of a window's fixes the matcher must have placed for its trace to be taken. */
+const MIN_PLACED = 0.5
+/** The most fixes, in metres along them, a trace may leave out before it starts again. */
+const SKIP_MAX_M = 5000
 const TIMEOUT_MS = 20_000
 
 function distM(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
@@ -284,7 +292,8 @@ export function traceOptions(points: TrackPoint[]) {
   const median = accs[Math.floor(accs.length / 2)] ?? 15
   const worst = accs[Math.floor(accs.length * 0.9)] ?? median
   return {
-    search_radius: Math.round(Math.min(150, Math.max(60, worst * 1.5))),
+    // The public instance refuses a search radius over 100 m (5.7.23: an iPhone's trace was refused outright).
+    search_radius: Math.round(Math.min(100, Math.max(60, worst * 1.5))),
     gps_accuracy: Math.round(Math.min(80, Math.max(10, median))),
     breakage_distance: GAP_M,
     turn_penalty_factor: 200,
@@ -321,6 +330,99 @@ export async function matchPoints(points: TrackPoint[], costing: Costing, signal
   } catch {
     return null
   }
+}
+
+/**
+ * One window traced to its end (5.7.23). Where the matcher cannot place a fix
+ * (a dual carriageway, a fix off the road) it breaks the trace and the public
+ * instance answers with the first piece only: a 9 km drive came back as 700 m.
+ * So the trace goes on from the first fix past the piece, and the pieces are
+ * joined; null when the first trace gets nothing.
+ */
+export async function traceThrough(points: TrackPoint[], costing: Costing, signal?: AbortSignal, budget = MAX_PIECES): Promise<{ line: [number, number][]; requests: number; placed: number } | null> {
+  const raw = (ps: TrackPoint[]) => ps.map(p => [p.lat, p.lng] as [number, number])
+  const out: [number, number][] = []
+  let start = 0
+  let requests = 0
+  let placed = 0
+  while (start < points.length - 1 && requests < budget && !signal?.aborted) {
+    const rest = points.slice(start)
+    requests++
+    const line = await matchPoints(rest, costing, signal)
+    const first = line ? firstIndex(line, rest) : 0
+    const reached = line ? reachedIndex(line, rest, first) : -1
+    // No piece, or one that gets no further than a fix: nothing more is matched from here.
+    if (!line || reached <= first) break
+    /*
+     * The matcher starts a piece at the first fix it could place. The fixes it
+     * left out are where no mapped way explains them (a road missing from the
+     * map, fixes 100 m off it): they are drawn as recorded. With none left out
+     * a jump between pieces is routed, or joined straight when the route is a
+     * detour.
+     */
+    const from = out.length ? { lat: out[out.length - 1][0], lng: out[out.length - 1][1] } : rest[0]
+    const to = { lat: line[0][0], lng: line[0][1] }
+    if (first > 0) {
+      out.push(...raw(rest.slice(0, first)))
+    } else if (distM(from, to) > JOIN_M && requests < budget) {
+      requests++
+      const bridge = await routeVia([from, to], costing, signal)
+      if (bridge && lineLengthM(bridge) <= Math.max(3 * distM(from, to), distM(from, to) + 1000)) out.push(...bridge)
+      else if (!out.length) out.push([from.lat, from.lng])
+    }
+    out.push(...line)
+    placed += reached - first + 1
+    // On from the fix after the last one the piece reached.
+    start += reached + 1
+  }
+  if (!placed) return null
+  // The fixes after the last piece (a last fix off the road, where the car was parked) are drawn as recorded.
+  const last = out[out.length - 1]
+  if (start < points.length - 1 || (start === points.length - 1 && distM(points[start], { lat: last[0], lng: last[1] }) > JOIN_M)) {
+    out.push(...raw(points.slice(start)))
+  }
+  return { line: out, requests, placed: placed / points.length }
+}
+
+/**
+ * The first of `points` a traced piece starts at: the fix nearest where it
+ * begins (of fixes as near, the first), within the first few kilometres of
+ * fixes the matcher may have left out.
+ */
+function firstIndex(line: [number, number][], points: TrackPoint[]): number {
+  const begin = { lat: line[0][0], lng: line[0][1] }
+  let best = 0
+  let bestD = Infinity
+  let along = 0
+  for (let i = 0; i < points.length; i++) {
+    if (i > 0) along += distM(points[i - 1], points[i])
+    if (along > SKIP_MAX_M) break
+    const d = distM(points[i], begin)
+    if (d < bestD - 5) { best = i; bestD = d }
+  }
+  return best
+}
+
+/**
+ * The last of `points` a traced piece got to, from the fix it starts at: the
+ * fix nearest where it ends, no further along the fixes than the piece is long
+ * (a loop comes back past its start: that is not where a piece of its first
+ * kilometre ends). -1 when no fix is near its end.
+ */
+function reachedIndex(line: [number, number][], points: TrackPoint[], from: number): number {
+  const end = { lat: line[line.length - 1][0], lng: line[line.length - 1][1] }
+  const reach = lineLengthM(line) * 1.5 + 300
+  let best = -1
+  let bestD = Infinity
+  let along = 0
+  for (let i = from; i < points.length; i++) {
+    if (i > from) along += distM(points[i - 1], points[i])
+    if (along > reach) break
+    const d = distM(points[i], end)
+    // The nearest fix to the end; of fixes as near (standing at the end), the last.
+    if (d <= Math.max(150, 3 * acc(points[i])) && d <= bestD + 5) { best = i; bestD = Math.min(bestD, d) }
+  }
+  return best
 }
 
 /** The costing a hole is guessed with: the speed it implies, or the way the stretches either side were travelled. */
@@ -380,7 +482,17 @@ export async function routeVia(points: { lat: number; lng: number }[], costing: 
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Client-Id': 'trek' },
         body: JSON.stringify({
-          locations: win.map((p, k) => ({ lat: p.lat, lon: p.lng, type: k === 0 || k === win.length - 1 ? 'break' : 'through', radius: Math.round(Math.min(150, Math.max(50, 1.5 * acc(p as TrackPoint)))) })),
+          locations: win.map((p, k) => {
+            const loc: Record<string, unknown> = { lat: p.lat, lon: p.lng, type: k === 0 || k === win.length - 1 ? 'break' : 'through', radius: Math.round(Math.min(150, Math.max(50, 1.5 * acc(p as TrackPoint)))) }
+            /*
+             * The way it was going (5.7.23): without it a waypoint on a dual
+             * carriageway lands on the other side, and the route turns round at
+             * every one of them (a 9 km drive came back as 27 km).
+             */
+            const heading = headingAt(win, k)
+            if (heading != null) { loc.heading = heading; loc.heading_tolerance = 60 }
+            return loc
+          }),
           costing,
           costing_options: COSTING_OPTIONS[costing],
           directions_options: { units: 'kilometers', directions_type: 'none' },
@@ -399,6 +511,17 @@ export async function routeVia(points: { lat: number; lng: number }[], costing: 
   return out.length > 1 ? out : null
 }
 
+/** The bearing of travel at `points[k]` (degrees from north), from its neighbours; null when they are too close to tell. */
+function headingAt(points: { lat: number; lng: number }[], k: number): number | null {
+  const a = points[Math.max(0, k - 1)]
+  const b = points[Math.min(points.length - 1, k + 1)]
+  if (a === b || distM(a, b) < 80) return null
+  const f1 = a.lat * Math.PI / 180, f2 = b.lat * Math.PI / 180, dl = (b.lng - a.lng) * Math.PI / 180
+  const y = Math.sin(dl) * Math.cos(f2)
+  const x = Math.cos(f1) * Math.sin(f2) - Math.sin(f1) * Math.cos(f2) * Math.cos(dl)
+  return Math.round((Math.atan2(y, x) * 180 / Math.PI + 360) % 360)
+}
+
 /** Whether a routed guess is believable for the time the hole lasted: no faster than a motorway allows. */
 function plausible(line: [number, number][], gap: TrackGap): boolean {
   let m = 0
@@ -406,14 +529,6 @@ function plausible(line: [number, number][], gap: TrackGap): boolean {
   // A detour more than three times the straight distance is a router that found another way round.
   if (m > Math.max(gap.distanceM * 3, gap.distanceM + 2000)) return false
   return gap.durationMs <= 0 || (m / 1000) / (gap.durationMs / 3_600_000) < 150
-}
-
-/** Whether a stretch's fixes are too far apart to be matched as a trace (a car with the screen off logs every km or so). */
-function sparse(points: TrackPoint[]): boolean {
-  if (points.length < 2) return false
-  let total = 0
-  for (let i = 1; i < points.length; i++) total += distM(points[i - 1], points[i])
-  return total / (points.length - 1) > 400
 }
 
 /** Metres from a point to the segment a–b, on a local flat projection (fine at these distances). */
@@ -445,7 +560,7 @@ export function covers(line: [number, number][], points: TrackPoint[]): boolean 
   if (line.length < 2 || points.length < 2) return false
   let near = 0
   for (const p of points) {
-    const tol = Math.min(120, Math.max(50, 2.5 * acc(p)))
+    const tol = Math.min(120, Math.max(60, 2.5 * acc(p)))
     let best = Infinity
     for (let i = 1; i < line.length && best > tol; i++) best = Math.min(best, toSegmentM(p, line[i - 1], line[i]))
     if (best <= tol) near++
@@ -558,22 +673,34 @@ export async function matchTrack(points: TrackPoint[], opts: {
      * window's fixes (`covers`); a window nothing covers is drawn from its
      * fixes, so a ride is never cut short by the part the matcher missed.
      */
-    const tries: Costing[] = s.costing === 'pedestrian' ? ['pedestrian'] : [s.costing, 'pedestrian']
+    const tries: [Costing, 'trace' | 'route'][] = s.costing === 'auto'
+      ? [['auto', 'trace'], ['auto', 'route']]
+      : s.costing === 'bicycle'
+        ? [['bicycle', 'trace'], ['pedestrian', 'trace'], ['bicycle', 'route']]
+        : [['pedestrian', 'trace'], ['pedestrian', 'route']]
     const pieces: [number, number][] = []
     let good = 0
     const parts = windows(s.points)
     for (const w of parts) {
       let line: [number, number][] | null = null
-      // A sparse window is traced too (the matcher routes between far fixes), then routed through them.
-      const ways: ('trace' | 'route')[] = sparse(w) ? ['trace', 'route'] : ['trace']
-      for (const costing of tries) {
-        for (const way of ways) {
-          if (line || requests >= MAX_REQUESTS || opts.signal?.aborted) break
-          requests++
-          const got = way === 'trace' ? await matchPoints(w, costing, opts.signal) : await routeVia(w, costing, opts.signal)
-          if (got && covers(got, w)) line = got
+      /*
+       * Traced to its end first; a window no trace covers is routed through
+       * its fixes (5.7.23: before, only a sparse one was, and the routed
+       * requests carried more waypoints than the public instance takes).
+       */
+      for (const [costing, way] of tries) {
+        if (line || requests >= MAX_REQUESTS || opts.signal?.aborted) break
+        let got: [number, number][] | null
+        if (way === 'trace') {
+          const traced = await traceThrough(w, costing, opts.signal, Math.min(MAX_PIECES, MAX_REQUESTS - requests))
+          requests += traced?.requests ?? 1
+          // Taken when the matcher placed most of the window itself, not just a few of its fixes.
+          got = traced && traced.placed >= MIN_PLACED ? traced.line : null
+        } else {
+          requests += Math.ceil(w.length / (VIA_MAX - 1))
+          got = await routeVia(w, costing, opts.signal)
         }
-        if (line) break
+        if (got && covers(got, w)) line = got
       }
       if (line) good++
       const piece = line ?? w.map(p => [p.lat, p.lng] as [number, number])

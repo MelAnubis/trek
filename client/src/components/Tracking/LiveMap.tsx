@@ -8,7 +8,7 @@
  * refreshes itself — also when an installed PWA comes back to the front.
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Circle, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet'
+import { Circle, Marker, Pane, Polyline, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import type { MatchedLine } from './mapMatch'
 import { lineStyle } from './useMatchedTrack'
@@ -153,16 +153,25 @@ export function LiveTrail({ lines, snap, live, showStart = true }: {
   const first = lines.find(l => l.positions.length)?.positions[0] ?? null
   const lastLine = lines[lines.length - 1]
   const lastDrawn = lastLine?.positions.length ? lastLine.positions[lastLine.positions.length - 1] : null
+  /*
+   * The white casing and the coloured line in panes of their own (5.7.23):
+   * in one pane, a casing added after its line (a stretch matched, a trip
+   * picked) was painted over it, and the day showed as a pale ghost.
+   */
   return (
     <>
-      {lines.map((s, i) => !s.inferred && s.positions.length > 1 && (
-        <Polyline key={`c${i}`} positions={s.positions} interactive={false}
-          pathOptions={{ color: '#ffffff', weight: (s.matched ? 5 : 4) + 4, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }} />
-      ))}
-      {lines.map((s, i) => (
-        <Polyline key={i} positions={s.positions}
-          pathOptions={{ ...lineStyle(s, snap), lineCap: 'round', lineJoin: 'round' }} />
-      ))}
+      <Pane name="trek-trail-casing" style={{ zIndex: 395 }}>
+        {lines.map((s, i) => !s.inferred && s.positions.length > 1 && (
+          <Polyline key={`c${i}`} positions={s.positions} interactive={false}
+            pathOptions={{ color: '#ffffff', weight: (s.matched ? 5 : 4) + 4, opacity: 0.85, lineCap: 'round', lineJoin: 'round' }} />
+        ))}
+      </Pane>
+      <Pane name="trek-trail-line" style={{ zIndex: 405 }}>
+        {lines.map((s, i) => (
+          <Polyline key={i} positions={s.positions}
+            pathOptions={{ ...lineStyle(s, snap), lineCap: 'round', lineJoin: 'round' }} />
+        ))}
+      </Pane>
       {live && lastDrawn && (lastDrawn[0] !== live[0] || lastDrawn[1] !== live[1]) && (
         <Polyline positions={[lastDrawn, live]} interactive={false} pathOptions={{ color: LIVE_COLOR, weight: 4, opacity: 0.7, dashArray: '2 8', lineCap: 'round' }} />
       )}
