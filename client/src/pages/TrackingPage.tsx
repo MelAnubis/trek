@@ -7,7 +7,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, CircleMarker, Marker, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { ArrowLeft, ChevronUp, Crosshair, Download, Link2, Maximize2, Minimize2, Radio, RefreshCw, Save, Settings, Share2, X } from 'lucide-react'
 import { daysApi, trackingApi, tripsApi } from '../api/client'
@@ -21,11 +21,27 @@ import { AutoResize, FollowLive, LiveMapStyles, LiveMarker, LiveTrail, headingOf
 import { gapsOf, type TrackGap } from '../components/Tracking/mapMatch'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
 import {
-  MOTION_COLORS, formatDistance, formatDuration, isFresh, localDayRange, localToday, shareUrl, utcOffsetMinutes,
-  type TrackPoint, type TrackStats, type TrackingDevice,
+  MOTION_COLORS, formatDistance, formatDuration, isFresh, localDayRange, localToday, motionColor, shareUrl, splitTrips, utcOffsetMinutes,
+  type DayTrip, type TrackPoint, type TrackStats, type TrackingDevice,
 } from '../components/Tracking/trackingModel'
 
 const OSM = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+
+/** A trip's start on the map: its number in the colour of how it was travelled. */
+function tripIcon(n: number, color: string) {
+  return L.divIcon({
+    className: '',
+    html: `<span style="display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${color};color:#fff;font:700 11px system-ui;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)">${n}</span>`,
+    iconSize: [22, 22], iconAnchor: [11, 11],
+  })
+}
+
+const clock = (iso: string) => new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+
+const tripStyle = (on: boolean): React.CSSProperties => ({
+  border: on ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
+  background: on ? 'var(--bg-tertiary)' : 'var(--bg-card)', color: 'var(--text-primary)',
+})
 /** Points worse than this are left out when "Hide imprecise points" is on. */
 const GOOD_ACCURACY_M = 100
 
@@ -72,6 +88,8 @@ export default function TrackingPage() {
   const [snap, setSnapState] = useState(() => { try { return localStorage.getItem('trek-tracking-snap') !== '0' } catch { return true } })
   const setSnap = (v: boolean) => { setSnapState(v); try { localStorage.setItem('trek-tracking-snap', v ? '1' : '0') } catch { /* private mode */ } }
   const [panel, setPanel] = useState<'share' | 'save' | null>(null)
+  /** The trip of the day shown on its own (5.7.21), by its number; null shows them all. */
+  const [tripSel, setTripSel] = useState<number | null>(null)
   /** On a phone: the map alone, the panel folded away. */
   const [mapOnly, setMapOnly] = useState(false)
   const isToday = day === localToday()
@@ -119,12 +137,18 @@ export default function TrackingPage() {
   // while visible, in case the websocket died while it was in the background.
   useLiveRefresh(() => { void loadDevices(); if (isToday) loadTrack() }, FALLBACK_POLL_MS, !!deviceId, false)
 
+  // The day's trips (5.7.21): shown all together or one at a time, and saved one by one or as one.
+  const trips = useMemo(() => splitTrips(points), [points])
+  useEffect(() => { setTripSel(null) }, [deviceId, day])
+  const trip = tripSel != null ? trips.find(x => x.n === tripSel) ?? null : null
+  const shown = trip ? trip.points : points
+  const shownRange = useMemo(() => (trip ? { from: trip.from, to: trip.to } : range), [trip, range])
   // A live day is matched again a quarter of a minute after its last new point, only its last stretch asked for.
-  const { lines, status: matchStatus } = useMatchedTrack(points, snap, isToday ? 15_000 : 0)
+  const { lines, status: matchStatus } = useMatchedTrack(shown, snap, isToday && !trip ? 15_000 : 0)
   const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
   const fresh = device ? isFresh(device) : false
   // Where the phone recorded nothing (5.7.7): listed, so a hole is seen as one rather than as a wrong line.
-  const gaps = useMemo(() => gapsOf(points), [points])
+  const gaps = useMemo(() => gapsOf(shown), [shown])
   const live = isToday && device?.last_position ? [device.last_position.lat, device.last_position.lng] as [number, number] : null
   const center: [number, number] = live ?? (points[0] ? [points[0].lat, points[0].lng] : [40.4, -3.7])
   const heading = headingOf(points, live, device?.last_position?.speed)
@@ -205,7 +229,14 @@ export default function TrackingPage() {
         </div>
 
         <div className="rounded-xl p-3 space-y-1" style={{ background: 'var(--bg-tertiary)' }} data-testid="day-stats">
-          {total > 0 && stats ? (
+          {trip ? (
+            <>
+              <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('tracking.trips.one', { n: trip.n })} · {formatDistance(trip.distanceM)} · {formatDuration(trip.durationS)}</div>
+              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+                {t('tracking.pointsCount', { n: trip.points.length })} · {clock(trip.from)}–{clock(trip.to)}
+              </div>
+            </>
+          ) : total > 0 && stats ? (
             <>
               <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{formatDistance(stats.distance_m)} · {formatDuration(stats.duration_s)}</div>
               <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
@@ -217,6 +248,24 @@ export default function TrackingPage() {
             <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracking.noPointsDay')}</div>
           )}
         </div>
+
+        {trips.length > 1 && (
+          <div className="space-y-1" data-testid="day-trips">
+            <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('tracking.trips.title', { count: trips.length })}</div>
+            <button type="button" onClick={() => setTripSel(null)} aria-pressed={tripSel == null} data-trip="all"
+              className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs" style={tripStyle(tripSel == null)}>
+              {t('tracking.trips.all')}
+            </button>
+            {trips.map(x => (
+              <button key={x.n} type="button" onClick={() => setTripSel(x.n)} aria-pressed={tripSel === x.n} data-trip={x.n}
+                className="w-full flex items-center gap-2 text-left px-2.5 py-1.5 rounded-lg text-xs" style={tripStyle(tripSel === x.n)}>
+                <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white flex-shrink-0" style={{ background: motionColor(x.motion) }}>{x.n}</span>
+                <span className="flex-1">{clock(x.from)}–{clock(x.to)}</span>
+                <span style={{ color: 'var(--text-muted)' }}>{formatDistance(x.distanceM)}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
           <input type="checkbox" checked={hideImprecise} onChange={e => setHideImprecise(e.target.checked)} />
@@ -247,7 +296,7 @@ export default function TrackingPage() {
 
         {device && (
           <div className="grid grid-cols-3 gap-1.5">
-            <a href={trackingApi.gpxUrl(device.id, { ...range, max_accuracy: accuracy })} download
+            <a href={trackingApi.gpxUrl(device.id, { ...shownRange, max_accuracy: accuracy })} download
               className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-[11px]"
               style={{ border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', pointerEvents: total ? 'auto' : 'none', opacity: total ? 1 : 0.4 }}>
               <Download className="w-4 h-4" /> GPX
@@ -267,9 +316,10 @@ export default function TrackingPage() {
 
         {device && panel === 'share' && <SharePanel device={device} onChange={next => setDevices(list => list?.map(d => (d.id === next.id ? next : d)) ?? list)} onClose={() => setPanel(null)} />}
         {device && panel === 'save' && (
-          <SaveRoutePanel device={device} day={day} range={range} maxAccuracy={accuracy} onClose={() => setPanel(null)}
+          <SaveRoutePanel device={device} day={day} range={shownRange} maxAccuracy={accuracy} onClose={() => setPanel(null)}
+            trip={trip} trips={trip ? [] : trips}
             line={snap && matchStatus !== 'failed' && lines.some(l => l.matched) ? joinedLine(lines) : undefined}
-            onSaved={() => { toast.success(t('tracking.saved')); setPanel(null) }} />
+            onSaved={where => { toast.success(t(where === 'planner' ? 'tracking.savedPlanner' : 'tracking.saved')); setPanel(null) }} />
         )}
       </aside>
 
@@ -284,7 +334,12 @@ export default function TrackingPage() {
             {live && device && (
               <LiveMarker position={live} name={device.name} fresh={fresh} accuracy={device.last_position?.accuracy} heading={heading} onClick={() => setFollow(true)} />
             )}
-            <FitTo points={points} live={live} follow={follow} />
+            <FitTo points={shown} live={live} follow={follow} />
+            {/* Each trip's start numbered, so trips on top of each other can be told apart and picked from the list. */}
+            {!trip && trips.length > 1 && trips.map(x => (
+              <Marker key={x.n} position={[x.points[0].lat, x.points[0].lng]} icon={tripIcon(x.n, motionColor(x.motion))}
+                eventHandlers={{ click: () => setTripSel(x.n) }} />
+            ))}
             <FollowLive position={live} follow={follow && !!live} onUserMove={() => setFollow(false)} minZoom={14} />
             <AutoResize />
           </MapContainer>
@@ -365,30 +420,37 @@ function SharePanel({ device, onChange, onClose }: { device: TrackingDevice; onC
 interface TripOption { id: number; title: string; start_date?: string | null; end_date?: string | null }
 interface DayOption { id: number; day_number: number; date: string | null; title?: string | null }
 
-function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSaved }: {
+function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSaved, trip, trips }: {
   device: TrackingDevice; day: string; range: { from: string; to: string }; maxAccuracy?: number
+  /** The trip shown on its own, when one is: saved under its own number. */
+  trip?: DayTrip | null
+  /** The day's trips when all are shown: they can be saved one route each instead of one for the day. */
+  trips?: DayTrip[]
   /** The day as drawn along the ways, when it was; saved instead of the raw fixes unless turned off. */
   line?: [number, number][]
-  onClose: () => void; onSaved: () => void
+  onClose: () => void; onSaved: (where: 'planner' | 'trip') => void
 }) {
   const [useLine, setUseLine] = useState(true)
+  /** Where it goes (5.7.21): the route planner, a person's own routes, by default; or a trip, as a GPX of it. */
+  const [dest, setDest] = useState<'planner' | 'trip'>('planner')
+  const [separate, setSeparate] = useState(false)
   const { t } = useTranslation()
   const toast = useToast()
-  const [trips, setTrips] = useState<TripOption[]>([])
+  const [tripOptions, setTripOptions] = useState<TripOption[]>([])
   const [tripId, setTripId] = useState<number | null>(null)
   const [tripDays, setTripDays] = useState<DayOption[]>([])
   const [dayId, setDayId] = useState<number | null>(null)
-  const [name, setName] = useState(`${device.name} · ${day}`)
+  const [name, setName] = useState(`${device.name} · ${day}${trip ? ` · ${trip.n}` : ''}`)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     tripsApi.list().then((r: { trips: TripOption[] }) => {
       const list = r.trips ?? []
-      setTrips(list)
+      setTripOptions(list)
       // The trip whose dates hold this day, if one does.
       const match = list.find(tr => tr.start_date && tr.end_date && tr.start_date <= day && day <= tr.end_date)
       setTripId(match?.id ?? list[0]?.id ?? null)
-    }).catch(() => setTrips([]))
+    }).catch(() => setTripOptions([]))
   }, [day])
 
   useEffect(() => {
@@ -400,12 +462,20 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
     }).catch(() => setTripDays([]))
   }, [tripId, day])
 
+  const many = !!trips && trips.length > 1 && separate
   const save = async () => {
-    if (!tripId) return
+    if (dest === 'trip' && !tripId) return
     setSaving(true)
     try {
-      await trackingApi.saveRoute(device.id, { ...range, trip_id: tripId, day_id: dayId, name, max_accuracy: maxAccuracy, line: line && useLine ? line : undefined })
-      onSaved()
+      // One route for each trip, from its own fixes; or one for what is shown, along the ways when it was drawn so.
+      const jobs = many
+        ? trips!.map(x => ({ from: x.from, to: x.to, name: `${name} · ${x.n}`, line: undefined }))
+        : [{ ...range, name, line: line && useLine ? line : undefined }]
+      for (const job of jobs) {
+        if (dest === 'planner') await trackingApi.saveToPlanner(device.id, { ...job, max_accuracy: maxAccuracy })
+        else await trackingApi.saveRoute(device.id, { ...job, trip_id: tripId!, day_id: dayId, max_accuracy: maxAccuracy })
+      }
+      onSaved(dest)
     } catch { toast.error(t('tracking.error')) } finally { setSaving(false) }
   }
 
@@ -417,26 +487,43 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
         <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('tracking.saveRouteTitle')}</span>
         <button type="button" onClick={onClose} aria-label={t('common.close')} style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
       </div>
-      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracking.saveRouteHint')}</p>
-      {trips.length === 0 ? (
+      <div role="radiogroup" aria-label={t('tracking.saveWhere')} className="grid grid-cols-2 gap-1" data-testid="save-dest">
+        {(['planner', 'trip'] as const).map(d => (
+          <button key={d} type="button" role="radio" aria-checked={dest === d} data-value={d} onClick={() => setDest(d)}
+            className="px-2 py-1.5 rounded-lg text-xs font-medium" style={{ ...field, border: dest === d ? '1.5px solid var(--text-primary)' : field.border }}>
+            {t(d === 'planner' ? 'tracking.toPlanner' : 'tracking.toTrip')}
+          </button>
+        ))}
+      </div>
+      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t(dest === 'planner' ? 'tracking.savePlannerHint' : 'tracking.saveRouteHint')}</p>
+      <input value={name} onChange={e => setName(e.target.value)} maxLength={120} aria-label={t('tracking.routeName')} className="w-full px-3 py-1.5 rounded-lg text-sm" style={field} />
+      {trips && trips.length > 1 && (
+        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <input type="checkbox" checked={separate} onChange={e => setSeparate(e.target.checked)} data-testid="save-separate" />
+          {t('tracking.trips.saveEach', { count: trips.length })}
+        </label>
+      )}
+      {dest === 'trip' && tripOptions.length === 0 ? (
         <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('tracking.noTrips')}</p>
       ) : (
         <>
-          <input value={name} onChange={e => setName(e.target.value)} maxLength={120} aria-label={t('tracking.routeName')} className="w-full px-3 py-1.5 rounded-lg text-sm" style={field} />
+          {dest === 'trip' && (<>
           <select value={tripId ?? ''} onChange={e => setTripId(Number(e.target.value))} aria-label={t('tracking.trip')} className="w-full px-2 py-1.5 rounded-lg text-sm" style={field}>
-            {trips.map(tr => <option key={tr.id} value={tr.id}>{tr.title}</option>)}
+            {tripOptions.map(tr => <option key={tr.id} value={tr.id}>{tr.title}</option>)}
           </select>
           <select value={dayId ?? ''} onChange={e => setDayId(e.target.value ? Number(e.target.value) : null)} aria-label={t('tracking.tripDay')} className="w-full px-2 py-1.5 rounded-lg text-sm" style={field}>
             <option value="">{t('tracking.noDay')}</option>
             {tripDays.map(d => <option key={d.id} value={d.id}>{d.title || t('tracking.dayN', { n: d.day_number })}{d.date ? ` · ${d.date}` : ''}</option>)}
           </select>
-          {line && (
+          <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('tracking.tripListHint')}</p>
+          </>)}
+          {line && !many && (
             <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
               <input type="checkbox" checked={useLine} onChange={e => setUseLine(e.target.checked)} />
               {t('tracking.saveSnapped')}
             </label>
           )}
-          <button type="button" onClick={() => void save()} disabled={saving || !tripId} className="w-full px-3 py-1.5 rounded-lg text-sm font-medium"
+          <button type="button" onClick={() => void save()} disabled={saving || (dest === 'trip' && !tripId)} data-testid="save-go" className="w-full px-3 py-1.5 rounded-lg text-sm font-medium"
             style={{ background: 'var(--accent)', color: 'white', opacity: saving ? 0.6 : 1 }}>
             {saving ? t('tracking.saving') : t('tracking.saveRoute')}
           </button>

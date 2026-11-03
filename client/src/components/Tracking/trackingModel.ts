@@ -139,3 +139,84 @@ export function formatDuration(s: number): string {
   const min = Math.round((s % 3600) / 60)
   return h ? `${h} h ${String(min).padStart(2, '0')} min` : `${min} min`
 }
+
+/** One trip of a day (5.7.21): from setting off to stopping for a while. */
+export interface DayTrip {
+  /** 1, 2, … in the order they were made. */
+  n: number
+  from: string
+  to: string
+  points: TrackPoint[]
+  distanceM: number
+  durationS: number
+  /** How most of it was travelled, by fixes, standing aside. */
+  motion: string | null
+}
+
+/** A stop this long (staying within `STAY_M`) ends one trip and the next starts when the phone moves on. */
+export const TRIP_STOP_MS = 20 * 60 * 1000
+const STAY_M = 200
+/**
+ * Whether the time between two fixes is a stop (the end of one trip) rather
+ * than a hole in a recording on the move: 20 minutes or more, at walking pace
+ * at most between them. A phone that stopped recording during a ride has
+ * covered kilometres in that time, and the map bridges that hole instead.
+ */
+export function isStopBetween(a: { ts: string; lat: number; lng: number }, b: { ts: string; lat: number; lng: number }): boolean {
+  const ms = Date.parse(b.ts) - Date.parse(a.ts)
+  if (ms < TRIP_STOP_MS) return false
+  const m = metres(a, b)
+  return m < 500 || (m / 1000) / (ms / 3_600_000) < 3
+}
+
+/** Shorter than this, a "trip" is the phone settling down, not a trip. */
+const MIN_TRIP_M = 300
+
+export function metres(a: { lat: number; lng: number }, b: { lat: number; lng: number }): number {
+  const R = 6371000
+  const dLa = (b.lat - a.lat) * Math.PI / 180
+  const dLo = (b.lng - a.lng) * Math.PI / 180
+  const s = Math.sin(dLa / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLo / 2) ** 2
+  return R * 2 * Math.atan2(Math.sqrt(s), Math.sqrt(1 - s))
+}
+
+/**
+ * A day's fixes as the trips it holds (5.7.21): a morning ride, lunch, the
+ * drive home. A trip ends where the phone stays within 200 m for 20 minutes
+ * or more, or records nothing for that long, and the next one starts where it
+ * moves on; the stop itself belongs to neither. Trips under 300 m are left
+ * out (a phone settling on a table). A day with one trip answers that one.
+ */
+export function splitTrips(points: TrackPoint[]): DayTrip[] {
+  const t = (p: TrackPoint) => Date.parse(p.ts)
+  const cuts: { end: number; start: number }[] = []
+  let i = 0
+  while (i < points.length - 1) {
+    // A long hole at walking pace at most is a stop too; one covered at riding speed is a recording that dropped out.
+    if (isStopBetween(points[i], points[i + 1])) { cuts.push({ end: i, start: i + 1 }); i++; continue }
+    let j = i + 1
+    while (j < points.length && metres(points[i], points[j]) <= STAY_M) j++
+    // Fixes i … j-1 stayed within reach of i: a stop when they lasted long enough.
+    if (j - 1 > i && t(points[j - 1]) - t(points[i]) >= TRIP_STOP_MS) { cuts.push({ end: i, start: j - 1 }); i = j - 1; continue }
+    i++
+  }
+  const pieces: TrackPoint[][] = []
+  let from = 0
+  for (const c of cuts) { pieces.push(points.slice(from, c.end + 1)); from = c.start }
+  pieces.push(points.slice(from))
+  const trips: DayTrip[] = []
+  for (const piece of pieces) {
+    if (piece.length < 2) continue
+    let d = 0
+    for (let k = 1; k < piece.length; k++) d += metres(piece[k - 1], piece[k])
+    if (d < MIN_TRIP_M) continue
+    const count = new Map<string, number>()
+    for (const p of piece) { const m = mainMotion(p.motion); if (m && m !== 'stationary') count.set(m, (count.get(m) ?? 0) + 1) }
+    trips.push({
+      n: trips.length + 1, from: piece[0].ts, to: piece[piece.length - 1].ts, points: piece, distanceM: Math.round(d),
+      durationS: Math.round((t(piece[piece.length - 1]) - t(piece[0])) / 1000),
+      motion: [...count].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null,
+    })
+  }
+  return trips
+}

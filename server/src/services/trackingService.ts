@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { makePreview } from './plannerPreview';
 import { db, canAccessTrip } from '../db/database';
 import { escapeXml } from './tripGpxExport';
 
@@ -587,9 +588,7 @@ export function saveAsRoute(
   const name = (opts.name?.trim() || `${row.name} · ${rangeDay(opts.from, opts.to)}`).slice(0, 120);
   const sortRow = db.prepare('SELECT COUNT(*) as n FROM gpx_tracks WHERE trip_id = ?').get(opts.tripId) as { n: number };
   // The route along the ways when the map drew one, else the recorded fixes.
-  const shape = opts.line && opts.line.length > 1
-    ? lineWithFixes(opts.line, points)
-    : (() => { const kept = withoutSpikes(points); const alts = steadyAltitudes(kept); return kept.map((p, i) => ({ lat: p.lat, lng: p.lng, ele: alts[i], time: p.ts })); })();
+  const shape = routeShape(points, opts.line);
   const trackId = saveTrack(
     opts.tripId, userId, name, 'overland.gpx',
     shape,
@@ -597,6 +596,62 @@ export function saveAsRoute(
   );
   if (stats.duration_s) db.prepare('UPDATE gpx_tracks SET duration_seconds = ? WHERE id = ?').run(stats.duration_s, trackId);
   return { trackId, points: points.length };
+}
+
+/**
+ * The points a saved route is made of (5.7.21): the line the map drew along
+ * the ways when there was one, else the recorded fixes without spikes, every
+ * altitude held to what a road can climb (steadyAltitudes).
+ */
+function routeShape(points: TrackPoint[], line?: [number, number][]): { lat: number; lng: number; ele: number | null; time: string | null }[] {
+  if (line && line.length > 1) return lineWithFixes(line, points);
+  const kept = withoutSpikes(points);
+  const alts = steadyAltitudes(kept);
+  return kept.map((p, i) => ({ lat: p.lat, lng: p.lng, ele: alts[i], time: p.ts }));
+}
+
+/** Metres climbed and descended, counting only rises and falls past a few metres so the fixes' noise adds nothing. */
+export function climbOf(eles: (number | null)[], step = 4): { gain: number; loss: number } {
+  let gain = 0, loss = 0;
+  let ref: number | null = null;
+  for (const e of eles) {
+    if (e == null) continue;
+    if (ref == null) { ref = e; continue; }
+    if (e - ref >= step) { gain += e - ref; ref = e; } else if (ref - e >= step) { loss += ref - e; ref = e; }
+  }
+  return { gain: Math.round(gain), loss: Math.round(loss) };
+}
+
+/**
+ * A range of a device's points kept as a route of the route planner (/planner,
+ * 5.7.21): a person's own, not tied to any trip, in a "Tracking" folder, where
+ * it can be split into stages, exported or planned again.
+ */
+export function saveToPlanner(
+  userId: number, deviceId: number,
+  opts: { from: string; to: string; name?: string; maxAccuracy?: number; line?: [number, number][] },
+): { routeId: number; points: number } | { error: string; status: number } {
+  const row = deviceOf(userId, deviceId);
+  if (!row) return { error: 'Device not found', status: 404 };
+  const points = pointsBetween(deviceId, opts.from, opts.to, opts.maxAccuracy);
+  if (points.length < 2) return { error: 'Not enough points in that range', status: 400 };
+  const shape = routeShape(points, opts.line);
+  const compact = shape.map(p => [p.lat, p.lng, p.ele] as [number, number, number | null]);
+  let km = 0;
+  for (let i = 1; i < shape.length; i++) km += haversineM(shape[i - 1].lat, shape[i - 1].lng, shape[i].lat, shape[i].lng) / 1000;
+  const { gain, loss } = climbOf(shape.map(p => p.ele));
+  const name = (opts.name?.trim() || `${row.name} · ${rangeDay(opts.from, opts.to)}`).slice(0, 160);
+  const info = db.prepare(`
+    INSERT INTO planner_routes
+      (user_id, name, orig_name, total_distance_km, elevation_gain, elevation_loss,
+       point_count, stage_count, points_json, cuts_json, waypoints_json, settings_json, preview_json, folder, favorite)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,0)
+  `).run(
+    userId, name, 'tracking.gpx', Math.round(km * 100) / 100, gain, loss,
+    compact.length, 1, JSON.stringify(compact), '[]', '[]', JSON.stringify({ stageKm: 60, poiRadiusM: 1000 }),
+    JSON.stringify(makePreview(compact)), 'Tracking',
+  );
+  return { routeId: Number(info.lastInsertRowid), points: points.length };
 }
 
 // ── Sharing ────────────────────────────────────────────────────────────────

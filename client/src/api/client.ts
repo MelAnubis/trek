@@ -808,6 +808,9 @@ export const trackingApi = {
     `/api/tracking/devices/${id}/gpx?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])).toString()}`,
   saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number; line?: [number, number][] }) =>
     apiClient.post(`/tracking/devices/${id}/save-route`, body).then(r => r.data),
+  /** 5.7.21: kept as a route of the route planner (/planner), tied to no trip. */
+  saveToPlanner: (id: number, body: { from: string; to: string; name?: string; max_accuracy?: number; line?: [number, number][] }) =>
+    apiClient.post(`/tracking/devices/${id}/save-planner`, body).then(r => r.data as { routeId: number; points: number }),
   share: (id: number, hours: number, label?: string) => apiClient.post(`/tracking/devices/${id}/share`, { hours, label }).then(r => r.data),
   stopShare: (id: number) => apiClient.delete(`/tracking/devices/${id}/share`).then(r => r.data),
   // Public — no auth, used by the viewer page.

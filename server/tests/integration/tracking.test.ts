@@ -390,4 +390,22 @@ describe('Lost points (5.7.9)', () => {
     const eles = [...res.text.matchAll(/<ele>([\d.]+)<\/ele>/g)].map(m => Number(m[1]));
     expect(eles).toEqual([946, 950, 962, 965]);
   });
+
+  it('TRACKING-024 — a range is kept as a route of the route planner, the owner\'s own, in its Tracking folder', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    const at = (m: number) => `2026-11-02T11:${String(m).padStart(2, '0')}:00Z`;
+    await send(token, Array.from({ length: 10 }, (_, i) => point(-3.92 + i * 0.001, 40.72, at(i), { altitude: 900 + i * 10 })));
+    const body = { from: '2026-11-02T11:00:00Z', to: '2026-11-02T11:09:00Z', name: 'Vuelta corta' };
+    expect((await request(app).post(`/api/tracking/devices/${device.id}/save-planner`).send(body).set('Cookie', authCookie(other.id))).status).toBe(404);
+    const res = await request(app).post(`/api/tracking/devices/${device.id}/save-planner`).send(body).set('Cookie', authCookie(user.id));
+    expect(res.status).toBe(201);
+    const row = testDb.prepare('SELECT * FROM planner_routes WHERE id = ?').get(res.body.routeId) as Record<string, unknown>;
+    expect(row).toMatchObject({ user_id: user.id, name: 'Vuelta corta', folder: 'Tracking', point_count: 10, elevation_gain: 90 });
+    expect(Number(row.total_distance_km)).toBeGreaterThan(0.7);
+    expect(JSON.parse(row.points_json as string)[0]).toEqual([40.72, -3.92, 900]);
+    const bad = await request(app).post(`/api/tracking/devices/${device.id}/save-planner`).send({ ...body, line: [[1, 2]] }).set('Cookie', authCookie(user.id));
+    expect(bad.status).toBe(400);
+  });
 });

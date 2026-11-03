@@ -24,7 +24,7 @@
  */
 import { valhallaBase, valhallaTurn } from '../../tours/routing/valhalla'
 import { decodePolyline } from '../../tours/routing/polyline'
-import { mainMotion, motionColor, type TrackPoint } from './trackingModel'
+import { isStopBetween, mainMotion, motionColor, type TrackPoint } from './trackingModel'
 
 export type Costing = 'pedestrian' | 'bicycle' | 'auto'
 
@@ -346,6 +346,8 @@ export function trackGaps(parts: Stretch[]): TrackGap[] {
     const distanceM = distM(a, b)
     const durationMs = Date.parse(b.ts) - Date.parse(a.ts)
     if (distanceM < BRIDGE_MIN_M || distanceM > BRIDGE_MAX_M || durationMs > BRIDGE_MAX_MS) continue
+    // A stop between two trips of the day (5.7.21) is no hole: nothing is guessed across it.
+    if (isStopBetween(a, b)) continue
     out.push({ from: a, to: b, distanceM, durationMs, costing: bridgeCosting(distanceM, durationMs, parts[i - 1].costing, parts[i].costing) })
   }
   return out

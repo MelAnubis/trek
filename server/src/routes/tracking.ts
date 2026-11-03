@@ -9,6 +9,7 @@
  *   POST   /api/tracking/devices/:id/token         → (auth) token nuevo (el anterior deja de valer)
  *   DELETE /api/tracking/devices/:id               → (auth) borra el dispositivo y sus puntos
  *   GET    /api/tracking/devices/:id/track         → (auth) puntos entre from y to
+ *   POST   /api/tracking/devices/:id/save-planner     → (auth) guarda un rango como ruta del planificador (/planner)
  *   GET    /api/tracking/devices/:id/ingests       → (auth) últimos envíos recibidos y qué pasó con sus puntos
  *   GET    /api/tracking/devices/:id/days          → (auth) días con puntos (calendario)
  *   GET    /api/tracking/devices/:id/gpx           → (auth) descarga GPX de un rango
@@ -177,6 +178,29 @@ router.get('/tracking/devices/:id/gpx', authenticate, (req: Request, res: Respon
   res.send(out.xml);
 });
 
+/** The line the map drew, when one was sent: undefined for none, false for one that is not a line. */
+function lineOf(raw: unknown): [number, number][] | undefined | false {
+  if (raw === undefined || raw === null) return undefined;
+  const valid = Array.isArray(raw) && raw.length >= 2 && raw.length <= 50_000 && raw.every((p: unknown) =>
+    Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number'
+    && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180);
+  return valid ? (raw as [number, number][]) : false;
+}
+
+/** 5.7.21: a range kept as a route of the route planner (/planner), the person's own and tied to no trip. */
+router.post('/tracking/devices/:id/save-planner', authenticate, (req: Request, res: Response) => {
+  const id = deviceId(req);
+  const r = range(req);
+  if (!id || !r) return res.status(400).json({ error: 'from and to required' });
+  const line = lineOf(req.body?.line);
+  if (line === false) return res.status(400).json({ error: 'Invalid line' });
+  const out = tracking.saveToPlanner((req as AuthRequest).user.id, id, {
+    ...r, line, name: typeof req.body?.name === 'string' ? req.body.name : undefined,
+  });
+  if ('error' in out) return res.status(out.status).json({ error: out.error });
+  res.status(201).json(out);
+});
+
 router.post('/tracking/devices/:id/save-route', authenticate, (req: Request, res: Response) => {
   const id = deviceId(req);
   const r = range(req);
@@ -186,15 +210,8 @@ router.post('/tracking/devices/:id/save-route', authenticate, (req: Request, res
     return res.status(400).json({ error: 'from, to and trip_id required' });
   }
   // Optional: the line the map drew along streets and paths (5.7.3).
-  let line: [number, number][] | undefined;
-  if (req.body?.line !== undefined) {
-    const raw = req.body.line;
-    const valid = Array.isArray(raw) && raw.length >= 2 && raw.length <= 50_000 && raw.every((p: unknown) =>
-      Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number'
-      && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180);
-    if (!valid) return res.status(400).json({ error: 'Invalid line' });
-    line = raw as [number, number][];
-  }
+  const line = lineOf(req.body?.line);
+  if (line === false) return res.status(400).json({ error: 'Invalid line' });
   const out = tracking.saveAsRoute((req as AuthRequest).user.id, id, {
     ...r, tripId, dayId, line, name: typeof req.body?.name === 'string' ? req.body.name : undefined,
   }, saveTrack as never);
