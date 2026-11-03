@@ -21,7 +21,7 @@ import { AutoResize, FollowLive, LiveMapStyles, LiveMarker, LiveTrail, headingOf
 import { gapsOf, type TrackGap } from '../components/Tracking/mapMatch'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
 import {
-  MOTION_COLORS, formatDistance, formatDuration, isFresh, localDayRange, localToday, motionColor, shareUrl, splitTrips, utcOffsetMinutes,
+  MOTION_COLORS, formatDistance, formatDuration, isFresh, joinsLive, localDayRange, localToday, motionColor, shareUrl, splitTrips, utcOffsetMinutes,
   type DayTrip, type TrackPoint, type TrackStats, type TrackingDevice,
 } from '../components/Tracking/trackingModel'
 
@@ -328,8 +328,8 @@ export default function TrackingPage() {
         {devices && (
           <MapContainer center={center} zoom={13} style={{ position: 'absolute', inset: 0 }}>
             <TileLayer url={tileUrl} attribution="&copy; OpenStreetMap" />
-            {/* The live position joined to the end of the line, so the two read as one track. */}
-            <LiveTrail lines={lines} snap={snap} live={live} />
+            {/* The live position joined to the end of the line, so the two read as one track: only when the line ends at the day's last fix. */}
+            <LiveTrail lines={lines} snap={snap} live={joinsLive(trip, trips) ? live : null} />
             {lastDrawn && !live && <CircleMarker center={lastDrawn} radius={7} pathOptions={{ color: '#111827', fillColor: '#ffffff', fillOpacity: 1, weight: 3 }} />}
             {live && device && (
               <LiveMarker position={live} name={device.name} fresh={fresh} accuracy={device.last_position?.accuracy} heading={heading} onClick={() => setFollow(true)} />

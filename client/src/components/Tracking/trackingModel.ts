@@ -220,3 +220,13 @@ export function splitTrips(points: TrackPoint[]): DayTrip[] {
   }
   return trips
 }
+
+/**
+ * Whether the line shown ends where the phone is now, so the live position is
+ * joined to it (5.7.23): the whole day, or its last trip. An earlier trip ends
+ * where that trip ended, and a dotted line from it across the map to where the
+ * phone is now read as part of the trip.
+ */
+export function joinsLive(trip: DayTrip | null, trips: DayTrip[]): boolean {
+  return !trip || trip.n === trips[trips.length - 1]?.n
+}

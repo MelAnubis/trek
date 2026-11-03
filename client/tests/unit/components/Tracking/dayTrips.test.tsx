@@ -6,7 +6,7 @@ import { http, HttpResponse } from 'msw'
 import { server } from '../../../helpers/msw/server'
 import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render'
 import TrackingPage from '../../../../src/pages/TrackingPage'
-import { splitTrips, localToday, type TrackPoint, type TrackingDevice } from '../../../../src/components/Tracking/trackingModel'
+import { joinsLive, splitTrips, localToday, type TrackPoint, type TrackingDevice } from '../../../../src/components/Tracking/trackingModel'
 
 const day = localToday()
 const base = Date.parse(`${day}T08:00:00`)
@@ -77,6 +77,16 @@ describe('TrackingPage — the day\'s trips', () => {
     const trips = splitTrips(dayPoints)
     expect(saved.map(s => [s.from, s.to])).toEqual(trips.map(t => [t.from, t.to]))
     expect(String(saved[1].name)).toMatch(/ · 2$/)
+  })
+})
+
+describe('the live position and the trip shown (5.7.23)', () => {
+  it('is joined to the whole day or its last trip, never to an earlier trip', () => {
+    const trips = splitTrips(dayPoints)
+    expect(trips.length).toBeGreaterThan(1)
+    expect(joinsLive(null, trips)).toBe(true)
+    expect(joinsLive(trips[trips.length - 1], trips)).toBe(true)
+    expect(joinsLive(trips[0], trips)).toBe(false)
   })
 })
 
