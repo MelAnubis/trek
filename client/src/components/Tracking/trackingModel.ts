@@ -181,6 +181,37 @@ export function metres(a: { lat: number; lng: number }, b: { lat: number; lng: n
 }
 
 /**
+ * How far the fixes went (5.7.27): not the fixes joined one to the next,
+ * which counts every wobble of a phone standing still and every fix that
+ * jumps out and back. A fix that jumps out and straight back is left out,
+ * and while the phone says it is standing still a move is only counted once
+ * it takes it further than the fixes' spread. The server counts a day the
+ * same way (trackingService.ts pathLengthM).
+ */
+type PathFix = { lat: number; lng: number; accuracy?: number | null; speed?: number | null; motion?: string | null }
+/** A fix of a phone that says it is standing still (and is not moving fast). */
+const still = (p: PathFix) => !!p.motion && p.motion.split(',').every(m => m === 'stationary') && (p.speed == null || p.speed < 0.7)
+export function pathLength(points: PathFix[]): number {
+  const acc = (p: PathFix) => (p.accuracy != null && p.accuracy > 0 ? p.accuracy : 10)
+  let total = 0
+  let anchor = points[0]
+  let prev = points[0]
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i]
+    const next = points[i + 1]
+    if (next) {
+      const away = Math.min(metres(prev, p), metres(p, next))
+      if (away > Math.max(40, 2 * acc(p)) && away > 3 * metres(prev, next)) continue
+    }
+    prev = p
+    const d = metres(anchor, p)
+    // Standing still, a move within the fixes' spread is the phone wobbling, not going anywhere.
+    if (!still(p) || d > Math.min(50, Math.max(10, 1.5 * Math.max(acc(anchor), acc(p))))) { total += d; anchor = p }
+  }
+  return total
+}
+
+/**
  * A day's fixes as the trips it holds (5.7.21): a morning ride, lunch, the
  * drive home. A trip ends where the phone stays within 200 m for 20 minutes
  * or more, or records nothing for that long, and the next one starts where it
@@ -207,8 +238,7 @@ export function splitTrips(points: TrackPoint[]): DayTrip[] {
   const trips: DayTrip[] = []
   for (const piece of pieces) {
     if (piece.length < 2) continue
-    let d = 0
-    for (let k = 1; k < piece.length; k++) d += metres(piece[k - 1], piece[k])
+    const d = pathLength(piece)
     if (d < MIN_TRIP_M) continue
     const count = new Map<string, number>()
     for (const p of piece) { const m = mainMotion(p.motion); if (m && m !== 'stationary') count.set(m, (count.get(m) ?? 0) + 1) }

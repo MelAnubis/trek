@@ -37,6 +37,8 @@ const MAX_FUTURE_MS = 24 * 3600 * 1000;
 const MAX_POINTS_RETURNED = 5000;
 const PUBLIC_WINDOW_HOURS = 24;
 const MAX_SHARE_HOURS = 24 * 30;
+/** Fixes less precise than this are not shown to someone with the link. */
+const PUBLIC_MAX_ACCURACY_M = 100;
 
 /** Requests per device per minute — a phone sends one a minute by default. */
 const RATE_LIMIT_PER_MIN = 120;
@@ -426,12 +428,43 @@ function haversineM(la1: number, lo1: number, la2: number, lo2: number): number 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/**
+ * How far the fixes went (5.7.27): not the fixes joined one to the next,
+ * which counts every wobble of a phone standing still and every fix that
+ * jumps out and back. A fix that jumps out and straight back is left out,
+ * and while the phone says it is standing still a move is only counted once
+ * it takes it further than the fixes' spread. The map counts a trip the same
+ * way (client trackingModel.ts pathLength).
+ */
+type PathFix = Pick<TrackPoint, 'lat' | 'lng' | 'accuracy'> & Partial<Pick<TrackPoint, 'speed' | 'motion'>>;
+/** A fix of a phone that says it is standing still (and is not moving fast). */
+const still = (p: PathFix) => !!p.motion && p.motion.split(',').every(m => m === 'stationary') && (p.speed == null || p.speed < 0.7);
+export function pathLengthM(points: PathFix[]): number {
+  const acc = (p: PathFix) => (p.accuracy != null && p.accuracy > 0 ? p.accuracy : 10);
+  const d = (a: Pick<TrackPoint, 'lat' | 'lng'>, b: Pick<TrackPoint, 'lat' | 'lng'>) => haversineM(a.lat, a.lng, b.lat, b.lng);
+  let total = 0;
+  let anchor = points[0];
+  let prev = points[0];
+  for (let i = 1; i < points.length; i++) {
+    const p = points[i];
+    const next = points[i + 1];
+    if (next) {
+      const away = Math.min(d(prev, p), d(p, next));
+      if (away > Math.max(40, 2 * acc(p)) && away > 3 * d(prev, next)) continue;
+    }
+    prev = p;
+    const m = d(anchor, p);
+    // Standing still, a move within the fixes' spread is the phone wobbling, not going anywhere.
+    if (!still(p) || m > Math.min(50, Math.max(10, 1.5 * Math.max(acc(anchor), acc(p))))) { total += m; anchor = p; }
+  }
+  return total;
+}
+
 /** Distance, time span and the motion seen most, from the full (not thinned) points. */
 export function trackStats(points: TrackPoint[]) {
-  let distance = 0;
+  const distance = pathLengthM(points);
   const motions = new Map<string, number>();
   for (let i = 0; i < points.length; i++) {
-    if (i > 0) distance += haversineM(points[i - 1].lat, points[i - 1].lng, points[i].lat, points[i].lng);
     for (const m of (points[i].motion ?? '').split(',')) if (m && m !== 'stationary') motions.set(m, (motions.get(m) ?? 0) + 1);
   }
   const dominant = [...motions].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
@@ -686,7 +719,8 @@ export function getPublicShare(token: string) {
   if (!row || (row.share_expires_at && row.share_expires_at <= sqlNow())) return null;
   const windowStart = new Date(Date.now() - PUBLIC_WINDOW_HOURS * 3600 * 1000).toISOString();
   const from = row.share_started_at && row.share_started_at > windowStart ? row.share_started_at : windowStart;
-  const points = pointsBetween(row.id, from, '9999');
+  // The imprecise fixes left out, as the owner's map does by default (5.7.27).
+  const points = pointsBetween(row.id, from, '9999', PUBLIC_MAX_ACCURACY_M);
   const owner = db.prepare('SELECT username FROM users WHERE id = ?').get(row.user_id) as { username: string } | undefined;
   return {
     label: row.share_label || owner?.username || row.name,

@@ -70,6 +70,8 @@ const VIA_MIN_M = 120
 const WINDOW = 100
 /** The most requests one track may take; past that the rest is drawn unmatched. */
 const MAX_REQUESTS = 120
+/** The most matched stretches and windows kept in the tab. */
+const CACHE_MAX = 1000
 /** The most traces one window may take to get past the fixes the matcher breaks at. */
 const MAX_PIECES = 10
 /** Pieces of a trace further apart than this are joined along the network, not straight. */
@@ -646,9 +648,13 @@ export async function matchTrack(points: TrackPoint[], opts: {
   const items = plan(points)
   const lines = items.map(item => item.line(opts.cache))
   let requests = 0
+  const remember = (key: string, positions: [number, number][]) => {
+    if (!opts.cache) return
+    opts.cache.set(key, positions)
+    if (opts.cache.size > CACHE_MAX) opts.cache.delete(opts.cache.keys().next().value as string)
+  }
   const keep = (i: number, key: string, positions: [number, number][]) => {
-    opts.cache?.set(key, positions)
-    if (opts.cache && opts.cache.size > 300) opts.cache.delete(opts.cache.keys().next().value as string)
+    remember(key, positions)
     lines[i] = { ...lines[i], positions, matched: true }
     opts.onProgress?.(lines.slice())
   }
@@ -682,7 +688,14 @@ export async function matchTrack(points: TrackPoint[], opts: {
     let good = 0
     const parts = windows(s.points)
     for (const w of parts) {
-      let line: [number, number][] | null = null
+      /*
+       * Each window is kept on its own too (5.7.27): a live ride is one
+       * stretch that grows with every batch, and only its last window has new
+       * fixes; the ones before it come from the cache instead of being asked
+       * again every minute.
+       */
+      const wkey = `w|${s.costing}|${w[0].ts}|${w[w.length - 1].ts}|${w.length}`
+      let line: [number, number][] | null = opts.cache?.get(wkey) ?? null
       /*
        * Traced to its end first; a window no trace covers is routed through
        * its fixes (5.7.23: before, only a sparse one was, and the routed
@@ -702,7 +715,7 @@ export async function matchTrack(points: TrackPoint[], opts: {
         }
         if (got && covers(got, w)) line = got
       }
-      if (line) good++
+      if (line) { good++; remember(wkey, line) }
       const piece = line ?? w.map(p => [p.lat, p.lng] as [number, number])
       pieces.push(...(pieces.length ? piece.slice(1) : piece))
     }

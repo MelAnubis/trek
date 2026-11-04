@@ -338,3 +338,29 @@ describe('a sparse, rough recording (5.7.19)', () => {
     vi.unstubAllGlobals()
   })
 })
+
+/** 5.7.27 — a live ride grows every minute: only its last window is asked again. */
+describe('a live ride, matched window by window (5.7.27)', () => {
+  const at = (i: number) => ({ ts: new Date(t0 + i * 10_000).toISOString(), lat: 40.72 + i * 0.0005, lng: -3.92, motion: 'cycling', accuracy: 8 }) as TrackPoint
+  const fetchMock = vi.fn()
+  beforeEach(() => { resetValhallaTurns(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockReset() })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('the windows already matched come from the cache when the ride grows', { timeout: 30_000 }, async () => {
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as { shape: { lat: number; lon: number }[] }
+      return new Response(JSON.stringify({ trip: { legs: [{ shape: encode(body.shape.map(p => [p.lat, p.lon + 0.0001] as [number, number])) }] } }), { status: 200 })
+    })
+    const cache = new Map<string, [number, number][]>()
+    const ride = Array.from({ length: 160 }, (_, i) => at(i))
+    const first = await matchTrack(ride.slice(0, 150), { cache })
+    expect(first[0].matched).toBe(true)
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    fetchMock.mockClear()
+    const grown = await matchTrack(ride, { cache })
+    expect(grown[0].matched).toBe(true)
+    // The first hundred fixes are the same window as before: only the last one is traced.
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).shape[0].lat).toBeCloseTo(ride[99].lat, 9)
+  })
+})

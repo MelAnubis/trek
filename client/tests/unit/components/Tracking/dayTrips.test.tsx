@@ -106,3 +106,18 @@ describe('stops and holes (5.7.21)', () => {
     expect(splitTrips(dropped)).toHaveLength(1)
   })
 })
+
+describe('how far a trip went (5.7.27)', () => {
+  const p = (lat: number, lng: number, accuracy = 8, motion = 'cycling') => ({ lat, lng, accuracy, motion, speed: null })
+  it('a phone standing still adds nothing, a fix out and straight back adds nothing, a ride adds its length', async () => {
+    const { pathLength, metres } = await import('../../../../src/components/Tracking/trackingModel')
+    // Twenty minutes on a table, wobbling 5–20 m around one spot.
+    const still = Array.from({ length: 60 }, (_, i) => p(40.72 + (i % 3 - 1) * 0.0001, -3.92 + (i % 2) * 0.0002, 20, 'stationary'))
+    expect(pathLength(still)).toBeLessThan(60)
+    // A straight 5.5 km with one fix 2 km off in the middle.
+    const ride = Array.from({ length: 101 }, (_, i) => p(40.72 + i * 0.0005, -3.92))
+    ride[50] = p(40.745, -3.9)
+    const straight = metres(ride[0], ride[100])
+    expect(Math.abs(pathLength(ride) - straight)).toBeLessThan(straight * 0.02)
+  })
+})

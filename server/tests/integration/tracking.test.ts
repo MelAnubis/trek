@@ -409,3 +409,29 @@ describe('Lost points (5.7.9)', () => {
     expect(bad.status).toBe(400);
   });
 });
+
+describe('Reliable figures (5.7.27)', () => {
+  it('TRACKING-025 — a day\'s distance leaves out a phone wobbling on the spot and a fix that jumps out and back', async () => {
+    const { user } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    // 1.1 km north in 21 fixes, one of them 3 km off, then 30 fixes wobbling on one spot.
+    const fixes = Array.from({ length: 21 }, (_, i) => point(-3.92, 40.72 + i * 0.0005, iso(120 - i)));
+    fixes[10] = point(-3.88, 40.725, iso(110));
+    for (let i = 0; i < 30; i++) fixes.push(point(-3.92 + (i % 2) * 0.0002, 40.73 + (i % 3 - 1) * 0.0001, iso(90 - i), { horizontal_accuracy: 20, speed: 0, motion: ['stationary'] }));
+    await send(token, fixes);
+    const r = await request(app).get(`/api/tracking/devices/${device.id}/track`).query({ from: iso(200), to: iso(-1) }).set('Cookie', authCookie(user.id));
+    expect(r.status).toBe(200);
+    expect(r.body.stats.distance_m).toBeGreaterThan(1050);
+    expect(r.body.stats.distance_m).toBeLessThan(1250);
+  });
+
+  it('TRACKING-026 — someone with the link is not shown the imprecise fixes', async () => {
+    const { user } = createUser(testDb);
+    const { device, token } = await newDevice(user.id);
+    const share = await request(app).post(`/api/tracking/devices/${device.id}/share`).set('Cookie', authCookie(user.id)).send({ hours: 6 });
+    await send(token, [point(-5.84, 43.36, iso(-0.1)), point(-5.83, 43.37, iso(-0.2), { horizontal_accuracy: 400 })]);
+    const pub = await request(app).get(`/api/tracking/public/${share.body.device.share.token}`);
+    expect(pub.body.track).toHaveLength(1);
+  });
+});
+
