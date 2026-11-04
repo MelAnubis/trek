@@ -804,6 +804,11 @@ export const trackingApi = {
   track: (id: number, params: { from: string; to: string; max_accuracy?: number }) => apiClient.get(`/tracking/devices/${id}/track`, { params }).then(r => r.data),
   days: (id: number, offset: number) => apiClient.get(`/tracking/devices/${id}/days`, { params: { offset } }).then(r => r.data),
   ingests: (id: number, limit = 50) => apiClient.get(`/tracking/devices/${id}/ingests`, { params: { limit } }).then(r => r.data),
+  /** The track as already matched to streets and paths (5.7.29), by the map's own keys. */
+  matches: (id: number, params: { from: string; to: string }) =>
+    apiClient.get(`/tracking/devices/${id}/matches`, { params }).then(r => r.data as { matches: Record<string, [number, number][]> }),
+  saveMatches: (id: number, entries: { key: string; group: string; from: string; to: string; line: [number, number][] }[]) =>
+    apiClient.put(`/tracking/devices/${id}/matches`, { entries }).then(r => r.data as { saved: number }),
   gpxUrl: (id: number, params: { from: string; to: string; max_accuracy?: number }) =>
     `/api/tracking/devices/${id}/gpx?${new URLSearchParams(Object.entries(params).filter(([, v]) => v != null).map(([k, v]) => [k, String(v)])).toString()}`,
   saveRoute: (id: number, body: { from: string; to: string; trip_id: number; day_id?: number | null; name?: string; max_accuracy?: number; line?: [number, number][] }) =>

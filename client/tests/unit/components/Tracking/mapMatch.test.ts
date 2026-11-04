@@ -364,3 +364,65 @@ describe('a live ride, matched window by window (5.7.27)', () => {
     expect(JSON.parse((fetchMock.mock.calls[0][1] as RequestInit).body as string).shape[0].lat).toBeCloseTo(ride[99].lat, 9)
   })
 })
+
+/** 5.7.29 — matched once, kept on the server, drawn at once elsewhere. */
+describe('lines kept on the server (5.7.29)', () => {
+  const at = (i: number) => ({ ts: new Date(t0 + 86_400_000 + i * 10_000).toISOString(), lat: 40.72 + i * 0.0005, lng: -3.92, motion: 'cycling', accuracy: 8 }) as TrackPoint
+  const ride = Array.from({ length: 40 }, (_, i) => at(i))
+  const fetchMock = vi.fn()
+  beforeEach(async () => {
+    resetValhallaTurns(); vi.stubGlobal('fetch', fetchMock); fetchMock.mockReset()
+    const { matchCache } = await import('../../../../src/components/Tracking/mapMatch')
+    matchCache.clear()
+  })
+  afterEach(() => { vi.unstubAllGlobals() })
+
+  it('a ride matched here is sent to the server, tagged with the matcher\'s version; a ride kept there is drawn without asking', async () => {
+    const { renderHook, waitFor } = await import('@testing-library/react')
+    const { useMatchedTrack, MATCH_VERSION } = await import('../../../../src/components/Tracking/useMatchedTrack')
+    const { matchCache } = await import('../../../../src/components/Tracking/mapMatch')
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) => {
+      const body = JSON.parse(init.body as string) as { shape: { lat: number; lon: number }[] }
+      return new Response(JSON.stringify({ trip: { legs: [{ shape: encode(body.shape.map(p => [p.lat, p.lon + 0.0001] as [number, number])) }] } }), { status: 200 })
+    })
+    const saved: { key: string; group: string; from: string; to: string }[] = []
+    const store = { load: vi.fn(async () => ({})), save: vi.fn(async (e: typeof saved) => { saved.push(...e) }) }
+    const first = renderHook(() => useMatchedTrack(ride, true, 0, store))
+    await waitFor(() => expect(first.result.current.status).toBe('matched'))
+    await waitFor(() => expect(saved.length).toBeGreaterThan(0))
+    expect(store.load).toHaveBeenCalledWith(ride[0].ts, ride[39].ts)
+    expect(saved.every(e => e.key.startsWith(`${MATCH_VERSION}|`) && e.group.startsWith(`${MATCH_VERSION}|`))).toBe(true)
+    expect(saved.some(e => e.from === ride[0].ts && e.to === ride[39].ts)).toBe(true)
+    first.unmount()
+
+    // Another browser: nothing in its tab, the server has the line.
+    const kept: Record<string, [number, number][]> = {}
+    for (const [k, v] of matchCache) kept[`${MATCH_VERSION}|${k}`] = v
+    kept['m1|old-version'] = [[0, 0], [1, 1]]
+    matchCache.clear()
+    fetchMock.mockClear()
+    const other = { load: vi.fn(async () => kept), save: vi.fn(async () => undefined) }
+    const second = renderHook(() => useMatchedTrack(ride, true, 0, other))
+    await waitFor(() => expect(second.result.current.status).toBe('matched'))
+    expect(second.result.current.lines[0].matched).toBe(true)
+    expect(fetchMock).not.toHaveBeenCalled()
+    expect(other.save).not.toHaveBeenCalled()
+    expect(matchCache.has('m1|old-version')).toBe(false)
+  })
+})
+
+describe('which Valhalla is asked (5.7.29)', () => {
+  it('this Trek\'s own one when the server has it, the public one otherwise, a configured one above both', async () => {
+    const { useSettingsStore } = await import('../../../../src/store/settingsStore')
+    const { valhallaBase, OWN_VALHALLA } = await import('../../../../src/tours/routing/valhalla')
+    const before = useSettingsStore.getState().settings
+    const set = (extra: Record<string, unknown>) => useSettingsStore.setState({ settings: { ...before, valhalla_base_url: '', routing_base_url: '', ...extra } as never })
+    set({ valhalla_proxy: false })
+    expect(valhallaBase()).toBe('https://valhalla1.openstreetmap.de')
+    set({ valhalla_proxy: true })
+    expect(valhallaBase()).toBe(OWN_VALHALLA)
+    set({ valhalla_proxy: true, valhalla_base_url: 'https://mine.example/' })
+    expect(valhallaBase()).toBe('https://mine.example')
+    useSettingsStore.setState({ settings: before })
+  })
+})

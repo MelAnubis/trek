@@ -2890,6 +2890,23 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_tracking_ingests_device ON tracking_ingests(device_id, id);
       `);
     },
+    // 5.7.29: the track as matched to streets and paths, kept so every browser of the owner draws the same line at once.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS tracking_matches (
+          device_id INTEGER NOT NULL REFERENCES tracking_devices(id) ON DELETE CASCADE,
+          key TEXT NOT NULL,
+          grp TEXT NOT NULL,
+          from_ts TEXT NOT NULL,
+          to_ts TEXT NOT NULL,
+          line_json TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          PRIMARY KEY (device_id, key)
+        );
+        CREATE INDEX IF NOT EXISTS idx_tracking_matches_range ON tracking_matches(device_id, from_ts);
+        CREATE INDEX IF NOT EXISTS idx_tracking_matches_grp ON tracking_matches(device_id, grp);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

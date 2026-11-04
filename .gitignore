@@ -71,3 +71,4 @@ data/
 uploads/
 certs/
 .env
+/valhalla/

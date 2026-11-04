@@ -16,7 +16,7 @@ import { useTranslation } from '../i18n'
 import { useSettingsStore } from '../store/settingsStore'
 import { useToast } from '../components/shared/Toast'
 import { CopyField } from '../components/Tracking/CopyField'
-import { joinedLine, useMatchedTrack, type MatchStatus } from '../components/Tracking/useMatchedTrack'
+import { joinedLine, useMatchedTrack, type MatchStatus, type MatchStore } from '../components/Tracking/useMatchedTrack'
 import { AutoResize, FollowLive, LiveMapStyles, LiveMarker, LiveTrail, headingOf, useLiveRefresh } from '../components/Tracking/LiveMap'
 import { gapsOf, type TrackGap } from '../components/Tracking/mapMatch'
 import { BatteryBadge, DeviceStatusChip, useAgo } from '../components/Tracking/DeviceStatus'
@@ -144,7 +144,12 @@ export default function TrackingPage() {
   const shown = trip ? trip.points : points
   const shownRange = useMemo(() => (trip ? { from: trip.from, to: trip.to } : range), [trip, range])
   // A live day is matched again a quarter of a minute after its last new point, only its last stretch asked for.
-  const { lines, status: matchStatus } = useMatchedTrack(shown, snap, isToday && !trip ? 15_000 : 0)
+  // Matched once, kept on the server (5.7.29): the phone and the PC draw the same line, the second one at once.
+  const matchStore = useMemo<MatchStore | undefined>(() => (deviceId ? {
+    load: (from, to) => trackingApi.matches(deviceId, { from, to }).then(r => r.matches),
+    save: entries => trackingApi.saveMatches(deviceId, entries),
+  } : undefined), [deviceId])
+  const { lines, status: matchStatus } = useMatchedTrack(shown, snap, isToday && !trip ? 15_000 : 0, matchStore)
   const lastDrawn = lines.length ? lines[lines.length - 1].positions[lines[lines.length - 1].positions.length - 1] : null
   const fresh = device ? isFresh(device) : false
   // Where the phone recorded nothing (5.7.7): listed, so a hole is seen as one rather than as a wrong line.

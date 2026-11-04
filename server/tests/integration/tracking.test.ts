@@ -435,3 +435,85 @@ describe('Reliable figures (5.7.27)', () => {
   });
 });
 
+
+describe('Matched lines kept on the server (5.7.29)', () => {
+  const line: [number, number][] = [[40.72, -3.92], [40.7205, -3.9199], [40.721, -3.9198]];
+  it('TRACKING-027 — the lines a browser matched are kept for the owner, a grown stretch replaces its older line', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const { device } = await newDevice(user.id);
+    const put = (entries: unknown) => request(app).put(`/api/tracking/devices/${device.id}/matches`).set('Cookie', authCookie(user.id)).send({ entries });
+    const e1 = { key: 'm29|bicycle|2026-11-02T10:00:00.000Z|2026-11-02T10:30:00.000Z|180', group: 'm29|bicycle|2026-11-02T10:00:00.000Z', from: '2026-11-02T10:00:00.000Z', to: '2026-11-02T10:30:00.000Z', line };
+    expect((await put([e1])).body).toEqual({ saved: 1 });
+    // The same stretch, grown: its older line goes.
+    const e2 = { ...e1, key: 'm29|bicycle|2026-11-02T10:00:00.000Z|2026-11-02T10:40:00.000Z|240', to: '2026-11-02T10:40:00.000Z' };
+    await put([e2]);
+    const get = await request(app).get(`/api/tracking/devices/${device.id}/matches`).query({ from: '2026-11-01T23:00:00.000Z', to: '2026-11-02T22:59:59.999Z' }).set('Cookie', authCookie(user.id));
+    expect(Object.keys(get.body.matches)).toEqual([e2.key]);
+    expect(get.body.matches[e2.key]).toEqual(line);
+    // Another day asks for nothing of it, another person for none of it, and junk is refused.
+    const before = await request(app).get(`/api/tracking/devices/${device.id}/matches`).query({ from: '2026-10-31T23:00:00.000Z', to: '2026-11-01T22:59:59.999Z' }).set('Cookie', authCookie(user.id));
+    expect(before.body.matches).toEqual({});
+    expect((await request(app).get(`/api/tracking/devices/${device.id}/matches`).query({ from: '2026-11-01T23:00:00.000Z', to: '2026-11-02T22:59:59.999Z' }).set('Cookie', authCookie(other.id))).status).toBe(404);
+    expect((await request(app).put(`/api/tracking/devices/${device.id}/matches`).set('Cookie', authCookie(other.id)).send({ entries: [e1] })).status).toBe(404);
+    expect((await put([{ ...e1, line: [[400, 0], [0, 0]] }])).status).toBe(400);
+    expect((await put('nope')).status).toBe(400);
+  });
+});
+
+describe('Own routing engine (5.7.29)', () => {
+  const realFetch = globalThis.fetch;
+  afterAll(() => { globalThis.fetch = realFetch; delete process.env.VALHALLA_URL; });
+
+  it('TRACKING-028 — routing requests go to the Valhalla at VALHALLA_URL, only for people signed in, and the settings say it is there', async () => {
+    const { user } = createUser(testDb);
+    delete process.env.VALHALLA_URL;
+    expect((await request(app).post('/api/valhalla/trace_route').set('Cookie', authCookie(user.id)).send({})).status).toBe(503);
+    expect((await request(app).get('/api/settings').set('Cookie', authCookie(user.id))).body.settings.valhalla_proxy).toBe(false);
+
+    process.env.VALHALLA_URL = 'http://valhalla:8002/';
+    const calls: string[] = [];
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push(`${url} ${init.body}`);
+      return new Response(JSON.stringify({ trip: { legs: [] } }), { status: 200 });
+    }) as typeof fetch;
+    const ok = await request(app).post('/api/valhalla/trace_route').set('Cookie', authCookie(user.id)).send({ costing: 'bicycle' });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toEqual({ trip: { legs: [] } });
+    expect(calls).toEqual(['http://valhalla:8002/trace_route {"costing":"bicycle"}']);
+    expect((await request(app).post('/api/valhalla/status').set('Cookie', authCookie(user.id)).send({})).status).toBe(404);
+    expect((await request(app).post('/api/valhalla/route').send({})).status).toBe(401);
+    expect((await request(app).get('/api/settings').set('Cookie', authCookie(user.id))).body.settings.valhalla_proxy).toBe(true);
+
+    // Off the own map (a trip abroad): asked of the public one.
+    calls.length = 0;
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push(`${url} ${init.body}`);
+      return String(url).startsWith('http://valhalla')
+        ? new Response(JSON.stringify({ error_code: 171, error: 'No suitable edges near location' }), { status: 400 })
+        : new Response(JSON.stringify({ trip: { legs: [{ shape: 'abc' }] } }), { status: 200 });
+    }) as typeof fetch;
+    const abroad = await request(app).post('/api/valhalla/route').set('Cookie', authCookie(user.id)).send({ costing: 'auto' });
+    expect(abroad.status).toBe(200);
+    expect(calls.map(c => c.split(' ')[0])).toEqual(['http://valhalla:8002/route', 'https://valhalla1.openstreetmap.de/route']);
+
+    // Heights off the own elevation data too.
+    calls.length = 0;
+    globalThis.fetch = (async (url: string, init: RequestInit) => {
+      calls.push(`${url} ${init.body}`);
+      return new Response(JSON.stringify({ height: String(url).startsWith('http://valhalla') ? [812, -32768] : [812, 640] }), { status: 200 });
+    }) as typeof fetch;
+    const heights = await request(app).post('/api/valhalla/height').set('Cookie', authCookie(user.id)).send({ shape: [] });
+    expect(heights.body.height).toEqual([812, 640]);
+    expect(calls).toHaveLength(2);
+
+    // Still building its tiles: the public one answers meanwhile; neither there, the map draws the fixes.
+    globalThis.fetch = (async (url: string) => {
+      if (String(url).startsWith('http://valhalla')) throw new Error('ECONNREFUSED');
+      return new Response(JSON.stringify({ trip: { legs: [] } }), { status: 200 });
+    }) as typeof fetch;
+    expect((await request(app).post('/api/valhalla/route').set('Cookie', authCookie(user.id)).send({})).status).toBe(200);
+    globalThis.fetch = (async () => { throw new Error('ECONNREFUSED'); }) as typeof fetch;
+    expect((await request(app).post('/api/valhalla/route').set('Cookie', authCookie(user.id)).send({})).status).toBe(502);
+  });
+});

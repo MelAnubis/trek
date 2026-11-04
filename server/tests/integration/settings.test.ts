@@ -66,8 +66,8 @@ describe('Settings', () => {
     expect(res.status).toBe(200);
     expect(res.body.settings).toBeDefined();
     expect(typeof res.body.settings).toBe('object');
-    // New user has no custom settings
-    expect(Object.keys(res.body.settings)).toHaveLength(0);
+    // New user has no custom settings; only what the server says about itself (5.7.29: its own routing engine).
+    expect(res.body.settings).toEqual({ valhalla_proxy: false });
   });
 
   it('SET-002: PUT /api/settings sets a key/value pair', async () => {

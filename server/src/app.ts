@@ -42,6 +42,7 @@ import photoRoutes from './routes/photos';
 import notificationRoutes from './routes/notifications';
 import shareRoutes from './routes/share';
 import trackingRoutes from './routes/tracking';
+import valhallaRoutes from './routes/valhalla';
 import journeyRoutes from './routes/journey';
 import journeyPublicRoutes from './routes/journeyPublic';
 import siteRoutes from './routes/site';
@@ -211,6 +212,8 @@ export function createApp(): express.Application {
   app.use('/api/tracking/overland', express.json({ limit: '10mb' }));
   // "Guardar como ruta" may carry the whole day's line as drawn along the ways.
   app.use('/api/tracking/devices', express.json({ limit: '5mb' }));
+  // Routing requests carry a few hundred fixes (5.7.29).
+  app.use('/api/valhalla', express.json({ limit: '2mb' }));
   app.use(express.json({ limit: '100kb' }));
   app.use(express.urlencoded({ extended: true }));
   app.use(cookieParser());
@@ -446,6 +449,7 @@ export function createApp(): express.Application {
   app.use('/api/notifications', notificationRoutes);
   app.use('/api', shareRoutes);
   app.use('/api', trackingRoutes);
+  app.use('/api', valhallaRoutes);
 
   // OAuth 2.1 — public endpoints
   // Gate: 404 when MCP addon is disabled (M2 — prevents feature fingerprinting)

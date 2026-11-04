@@ -181,11 +181,16 @@ export interface ValhallaRun {
  * pipeline answers `exclude` on its own, which is exactly the fallback below.
  */
 export function valhallaBase(): string | null {
-  const settings = useSettingsStore.getState().settings as { valhalla_base_url?: string; routing_base_url?: string }
+  const settings = useSettingsStore.getState().settings as { valhalla_base_url?: string; routing_base_url?: string; valhalla_proxy?: boolean }
   const configured = settings.valhalla_base_url?.trim()
   if (configured) return configured.replace(/\/+$/, '')
+  // This Trek's own Valhalla (5.7.29), reached through the server: no public host, no pacing.
+  if (settings.valhalla_proxy) return OWN_VALHALLA
   return settings.routing_base_url?.trim() ? null : FOSSGIS_VALHALLA
 }
+
+/** Where the server passes requests on to its own Valhalla (server routes/valhalla.ts). */
+export const OWN_VALHALLA = '/api/valhalla'
 
 /** True when this engine can be asked at all, so callers can skip building a request. */
 export function valhallaAvailable(): boolean {

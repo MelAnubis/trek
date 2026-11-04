@@ -10,6 +10,8 @@
  *   DELETE /api/tracking/devices/:id               → (auth) borra el dispositivo y sus puntos
  *   GET    /api/tracking/devices/:id/track         → (auth) puntos entre from y to
  *   POST   /api/tracking/devices/:id/save-planner     → (auth) guarda un rango como ruta del planificador (/planner)
+ *   GET    /api/tracking/devices/:id/matches       → (auth) líneas ya ajustadas a calles y caminos en from–to
+ *   PUT    /api/tracking/devices/:id/matches       → (auth) guarda líneas ajustadas (las calcula el navegador)
  *   GET    /api/tracking/devices/:id/ingests       → (auth) últimos envíos recibidos y qué pasó con sus puntos
  *   GET    /api/tracking/devices/:id/days          → (auth) días con puntos (calendario)
  *   GET    /api/tracking/devices/:id/gpx           → (auth) descarga GPX de un rango
@@ -147,6 +149,26 @@ router.get('/tracking/devices/:id/track', authenticate, (req: Request, res: Resp
   res.setHeader('Cache-Control', 'no-store');
   if (!out) return res.status(404).json({ error: 'Device not found' });
   res.json(out);
+});
+
+// The track as matched to streets and paths (5.7.29): matched in one browser, drawn at once in the others.
+router.get('/tracking/devices/:id/matches', authenticate, (req: Request, res: Response) => {
+  const id = deviceId(req);
+  const r = range(req);
+  if (!id || !r) return res.status(400).json({ error: 'from/to required (ISO)' });
+  const matches = tracking.getMatches((req as AuthRequest).user.id, id, r.from, r.to);
+  res.setHeader('Cache-Control', 'no-store');
+  if (!matches) return res.status(404).json({ error: 'Device not found' });
+  res.json({ matches });
+});
+
+router.put('/tracking/devices/:id/matches', authenticate, (req: Request, res: Response) => {
+  const id = deviceId(req);
+  const entries = tracking.cleanMatchEntries(req.body?.entries);
+  if (!id || !entries) return res.status(400).json({ error: 'entries required' });
+  const saved = tracking.saveMatches((req as AuthRequest).user.id, id, entries);
+  if (saved == null) return res.status(404).json({ error: 'Device not found' });
+  res.json({ saved });
 });
 
 // The device's latest uploads (5.7.9): what reached the server and what became of it.

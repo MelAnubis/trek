@@ -181,6 +181,7 @@ function prune(deviceId: number, retentionDays: number | null) {
   if (!retentionDays || retentionDays <= 0) return;
   const cutoff = new Date(Date.now() - retentionDays * 24 * 3600 * 1000).toISOString();
   db.prepare('DELETE FROM tracking_points WHERE device_id = ? AND ts < ?').run(deviceId, cutoff);
+  db.prepare('DELETE FROM tracking_matches WHERE device_id = ? AND to_ts < ?').run(deviceId, cutoff);
 }
 
 // ── Overland ingest ────────────────────────────────────────────────────────
@@ -685,6 +686,73 @@ export function saveToPlanner(
     JSON.stringify(makePreview(compact)), 'Tracking',
   );
   return { routeId: Number(info.lastInsertRowid), points: points.length };
+}
+
+// ── Matched lines (5.7.29) ──────────────────────────────────────────────────
+
+/**
+ * The track as the map matched it to streets and paths, kept on the server:
+ * matched once in one browser, it is drawn at once in every other (the phone,
+ * the PC) and the same everywhere. The browser does the matching (it knows
+ * how); the server keeps what it gets, by the browser's own key for the
+ * stretch, window or hole, with the span of fixes it covers. A stretch that
+ * grew while live is the same group with a newer key: only the newest is kept.
+ */
+export interface MatchEntry { key: string; group: string; from: string; to: string; line: [number, number][] }
+
+const MATCH_KEY_MAX = 200;
+const MATCH_LINE_MAX = 20_000;
+const MATCH_ENTRIES_MAX = 400;
+const MATCHES_RETURNED_MAX = 3000;
+
+function validLine(raw: unknown): raw is [number, number][] {
+  return Array.isArray(raw) && raw.length >= 2 && raw.length <= MATCH_LINE_MAX && raw.every((p: unknown) =>
+    Array.isArray(p) && p.length === 2 && typeof p[0] === 'number' && typeof p[1] === 'number'
+    && Number.isFinite(p[0]) && Number.isFinite(p[1]) && Math.abs(p[0]) <= 90 && Math.abs(p[1]) <= 180);
+}
+
+/** The entries of a request that can be kept; null when the request is not a list of them at all. */
+export function cleanMatchEntries(raw: unknown): MatchEntry[] | null {
+  if (!Array.isArray(raw) || raw.length > MATCH_ENTRIES_MAX) return null;
+  const out: MatchEntry[] = [];
+  for (const e of raw) {
+    if (!e || typeof e !== 'object') return null;
+    const { key, group, from, to, line } = e as Record<string, unknown>;
+    const f = parseInstant(from);
+    const t = parseInstant(to);
+    if (typeof key !== 'string' || !key || key.length > MATCH_KEY_MAX) return null;
+    if (typeof group !== 'string' || !group || group.length > MATCH_KEY_MAX) return null;
+    if (!f || !t || f > t || !validLine(line)) return null;
+    // Six decimals is a few centimetres: all a drawn line needs.
+    out.push({ key, group, from: f, to: t, line: line.map(([a, b]) => [Math.round(a * 1e6) / 1e6, Math.round(b * 1e6) / 1e6]) });
+  }
+  return out;
+}
+
+export function saveMatches(userId: number, deviceId: number, entries: MatchEntry[]): number | null {
+  if (!deviceOf(userId, deviceId)) return null;
+  const drop = db.prepare('DELETE FROM tracking_matches WHERE device_id = ? AND grp = ? AND key <> ?');
+  const put = db.prepare(`INSERT OR REPLACE INTO tracking_matches (device_id, key, grp, from_ts, to_ts, line_json, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?)`);
+  const now = sqlNow();
+  db.transaction(() => {
+    for (const e of entries) {
+      drop.run(deviceId, e.group, e.key);
+      put.run(deviceId, e.key, e.group, e.from, e.to, JSON.stringify(e.line), now);
+    }
+  })();
+  return entries.length;
+}
+
+/** The kept lines of a device whose fixes fall in [from, to], by key. */
+export function getMatches(userId: number, deviceId: number, from: string, to: string): Record<string, [number, number][]> | null {
+  if (!deviceOf(userId, deviceId)) return null;
+  const rows = db.prepare(`SELECT key, line_json FROM tracking_matches
+                            WHERE device_id = ? AND from_ts >= ? AND to_ts <= ? ORDER BY from_ts LIMIT ?`)
+    .all(deviceId, from, to, MATCHES_RETURNED_MAX) as { key: string; line_json: string }[];
+  const out: Record<string, [number, number][]> = {};
+  for (const r of rows) { try { out[r.key] = JSON.parse(r.line_json); } catch { /* a broken row is skipped */ } }
+  return out;
 }
 
 // ── Sharing ────────────────────────────────────────────────────────────────

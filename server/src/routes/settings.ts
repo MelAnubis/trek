@@ -2,12 +2,14 @@ import express, { Request, Response } from 'express';
 import { authenticate } from '../middleware/auth';
 import { AuthRequest } from '../types';
 import * as settingsService from '../services/settingsService';
+import { valhallaUrl } from './valhalla';
 
 const router = express.Router();
 
 router.get('/', authenticate, (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  res.json({ settings: settingsService.getUserSettings(authReq.user.id) });
+  // Whether this Trek has its own routing engine (5.7.29): not a setting of the person, so always the server's answer.
+  res.json({ settings: { ...settingsService.getUserSettings(authReq.user.id), valhalla_proxy: !!valhallaUrl() } });
 });
 
 router.put('/', authenticate, (req: Request, res: Response) => {

@@ -639,22 +639,32 @@ function plan(points: TrackPoint[], clean = true): Planned[] {
   return out
 }
 
+/**
+ * A matched line with what it covers, as it is kept on the server (5.7.29):
+ * its key, the group it replaces an older line of (a stretch or window that
+ * grew while live keeps its start), and the span of fixes it was matched from.
+ */
+export interface LearnedLine { key: string; group: string; from: string; to: string; line: [number, number][] }
+
 export async function matchTrack(points: TrackPoint[], opts: {
   signal?: AbortSignal
   onProgress?: (lines: MatchedLine[]) => void
   /** Matched lines already known, by stretch: a live day only re-asks for the stretch that grew. */
   cache?: Map<string, [number, number][]>
+  /** Hears every line matched (not the ones that came from the cache), to keep them on the server (5.7.29). */
+  onLearn?: (entry: LearnedLine) => void
 } = {}): Promise<MatchedLine[]> {
   const items = plan(points)
   const lines = items.map(item => item.line(opts.cache))
   let requests = 0
-  const remember = (key: string, positions: [number, number][]) => {
+  const remember = (key: string, positions: [number, number][], span?: Omit<LearnedLine, 'key' | 'line'>) => {
+    if (span) opts.onLearn?.({ key, line: positions, ...span })
     if (!opts.cache) return
     opts.cache.set(key, positions)
     if (opts.cache.size > CACHE_MAX) opts.cache.delete(opts.cache.keys().next().value as string)
   }
-  const keep = (i: number, key: string, positions: [number, number][]) => {
-    remember(key, positions)
+  const keep = (i: number, key: string, positions: [number, number][], span: Omit<LearnedLine, 'key' | 'line'>) => {
+    remember(key, positions, span)
     lines[i] = { ...lines[i], positions, matched: true }
     opts.onProgress?.(lines.slice())
   }
@@ -666,7 +676,7 @@ export async function matchTrack(points: TrackPoint[], opts: {
       // The hole, guessed along the network; kept straight when the guess is not believable.
       requests++
       const routed = await routeVia([item.gap.from, item.gap.to], item.gap.costing, opts.signal)
-      if (routed && plausible(routed, item.gap)) keep(i, item.key, routed)
+      if (routed && plausible(routed, item.gap)) keep(i, item.key, routed, { group: item.key, from: item.gap.from.ts, to: item.gap.to.ts })
       continue
     }
     const s = item.stretch
@@ -695,7 +705,8 @@ export async function matchTrack(points: TrackPoint[], opts: {
        * again every minute.
        */
       const wkey = `w|${s.costing}|${w[0].ts}|${w[w.length - 1].ts}|${w.length}`
-      let line: [number, number][] | null = opts.cache?.get(wkey) ?? null
+      const cached = opts.cache?.get(wkey) ?? null
+      let line: [number, number][] | null = cached
       /*
        * Traced to its end first; a window no trace covers is routed through
        * its fixes (5.7.23: before, only a sparse one was, and the routed
@@ -715,12 +726,12 @@ export async function matchTrack(points: TrackPoint[], opts: {
         }
         if (got && covers(got, w)) line = got
       }
-      if (line) { good++; remember(wkey, line) }
+      if (line) { good++; if (!cached) remember(wkey, line, { group: `w|${s.costing}|${w[0].ts}`, from: w[0].ts, to: w[w.length - 1].ts }) }
       const piece = line ?? w.map(p => [p.lat, p.lng] as [number, number])
       pieces.push(...(pieces.length ? piece.slice(1) : piece))
     }
     // Drawn as matched when most of it is; the windows left as fixes are still where they were recorded.
-    if (good > 0 && good * 2 >= parts.length && pieces.length > 1) keep(i, item.key, pieces)
+    if (good > 0 && good * 2 >= parts.length && pieces.length > 1) keep(i, item.key, pieces, { group: `${s.costing}|${s.points[0].ts}`, from: s.points[0].ts, to: s.points[s.points.length - 1].ts })
   }
   return lines
 }
