@@ -71,7 +71,12 @@ services:
       # Comenta esta línea para volver a usar solo el público.
       - VALHALLA_URL=${VALHALLA_URL:-http://valhalla:8002}
     volumes:
-      - //c/003Trek/trek-main/data:/app/data
+      # La base de datos en un volumen de Docker (5.7.31), no en la carpeta de Windows:
+      # al caerse Docker Desktop el 4-5 nov se perdieron los cambios de 3 días que aún no
+      # habían llegado al disco de Windows. Las copias de seguridad sí salen a Windows:
+      # C:\003Trek\trek-main\data\backups (cópialas a otro disco de vez en cuando).
+      - trek_data:/app/data
+      - //c/003Trek/trek-main/data/backups:/app/data/backups
       - ./uploads:/app/uploads
     restart: unless-stopped
     networks:
@@ -129,3 +134,12 @@ services:
 networks:
   trek_net:
     driver: bridge
+
+volumes:
+  # Externo a propósito: si no existe, Trek no arranca (nunca con una base de datos vacía).
+  # Se crea una sola vez y se rellena con lo que había en .\data, con Trek parado:
+  #   docker volume create trek_data
+  #   docker run --rm -v trek_data:/to -v //c/003Trek/trek-main/data:/from alpine sh -c "cp -a /from/. /to/ && rm -rf /to/backups"
+  trek_data:
+    name: trek_data
+    external: true
