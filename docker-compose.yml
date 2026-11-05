@@ -83,23 +83,28 @@ services:
       retries: 3
       start_period: 15s
 
-  # Motor de rutas propio (5.7.29). La primera vez descarga el mapa de España y Portugal
-  # (≈1,6 GB) y construye sus teselas y alturas: entre 1 y 2 horas, unos 6-8 GB de RAM
-  # durante la construcción y ≈8 GB de disco en ./valhalla. Después arranca en segundos.
-  # Mientras construye, Trek sigue usando el servidor público sin que se note.
-  # Para actualizar el mapa (cada pocos meses): borra ./valhalla/valhalla_tiles.tar y reinícialo.
+  # Motor de rutas propio (5.7.29). La primera vez descarga el mapa de España (≈1,4 GB)
+  # y construye sus teselas y alturas: unas 2-3 horas y ≈6 GB de disco en ./valhalla.
+  # Después arranca en segundos. Mientras construye, Trek usa el servidor público.
+  # Lo de fuera de España (Portugal, un viaje al extranjero) se pide siempre al público.
+  # Con 2 hilos y un tope de memoria (5.7.31): la construcción con 4 hilos agotó la
+  # memoria de Docker Desktop y lo tiró todo; con el tope, si se pasa, solo cae Valhalla.
+  # Para actualizar el mapa (cada pocos meses): borra ./valhalla/valhalla_tiles y
+  # ./valhalla/valhalla_tiles.tar y reinícialo.
   valhalla:
     image: ghcr.io/valhalla/valhalla-scripted:latest
     container_name: trek_valhalla
     restart: unless-stopped
+    mem_limit: 6g
+    memswap_limit: 6g
     environment:
-      - tile_urls=https://download.geofabrik.de/europe/spain-latest.osm.pbf https://download.geofabrik.de/europe/portugal-latest.osm.pbf
+      - tile_urls=https://download.geofabrik.de/europe/spain-latest.osm.pbf
       - use_tiles_ignore_pbf=True
       - build_elevation=True
       - build_admins=True
       - build_time_zones=True
       - serve_tiles=True
-      - server_threads=4
+      - server_threads=2
     volumes:
       - ./valhalla:/custom_files
     networks:
