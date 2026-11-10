@@ -194,7 +194,7 @@ export default function JourneyPublicPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen page-bg flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="min-h-screen page-bg flex items-center justify-center ![background:var(--bg-secondary)]">
         <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
       </div>
     )
@@ -202,7 +202,7 @@ export default function JourneyPublicPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen page-bg flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="min-h-screen page-bg flex items-center justify-center ![background:var(--bg-secondary)]">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-zinc-900 dark:text-white mb-2">{t('journey.public.notFound')}</h1>
           <p className="text-zinc-500">{t('journey.public.notFoundMessage')}</p>
@@ -300,7 +300,7 @@ export default function JourneyPublicPage() {
                     {photos.length === 1 && (
                       <div className="relative cursor-pointer" onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}>
                         <img src={photoUrl(photos[0], token!)} className="w-full h-64 object-cover" alt="" />
-                        <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.15) 60%, transparent 100%)', height: '65%' }} />
+                        <div className="absolute inset-x-0 bottom-0 pointer-events-none ![background:linear-gradient(to_top,_rgba(0,0,0,0.55)_0%,_rgba(0,0,0,0.15)_60%,_transparent_100%)] !h-[65%]" />
                         {entry.location_name && (
                           <div className="absolute top-3 left-4">
                             <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-black/40 backdrop-blur-sm rounded-full text-[10px] font-semibold text-white">
@@ -332,11 +332,11 @@ export default function JourneyPublicPage() {
                     )}
 
                     {photos.length >= 3 && (
-                      <div className="overflow-hidden flex" style={{ height: 280, gap: 2 }}>
+                      <div className="overflow-hidden flex !h-[280px] !gap-[2px]">
                         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => setLightbox({ photos: lightboxPhotos, index: 0 })}>
                           <img src={photoUrl(photos[0], token!, 'thumbnail')} alt="" className="w-full h-full object-cover" />
                         </div>
-                        <div className="flex-1 min-w-0 flex flex-col" style={{ gap: 2 }}>
+                        <div className="flex-1 min-w-0 flex flex-col !gap-[2px]">
                           <div className="flex-1 min-h-0 cursor-pointer" onClick={() => setLightbox({ photos: lightboxPhotos, index: 1 })}>
                             <img src={photoUrl(photos[1], token!, 'thumbnail')} alt="" className="w-full h-full object-cover" />
                           </div>
@@ -396,7 +396,7 @@ export default function JourneyPublicPage() {
                       {hasProscons && (
                         <div className={`grid gap-3 mt-4 ${prosArr.length > 0 && consArr.length > 0 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                           {prosArr.length > 0 && (
-                            <div className="rounded-xl border border-green-200 dark:border-green-800/30 p-3" style={{ background: 'linear-gradient(180deg, #F0FDF4 0%, white 100%)' }}>
+                            <div className="rounded-xl border border-green-200 dark:border-green-800/30 p-3 ![background:linear-gradient(180deg,_#F0FDF4_0%,_white_100%)]">
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-green-700 mb-2">
                                 <ThumbsUp size={10} /> Pros
                               </div>
@@ -408,7 +408,7 @@ export default function JourneyPublicPage() {
                             </div>
                           )}
                           {consArr.length > 0 && (
-                            <div className="rounded-xl border border-red-200 dark:border-red-800/30 p-3" style={{ background: 'linear-gradient(180deg, #FEF2F2 0%, white 100%)' }}>
+                            <div className="rounded-xl border border-red-200 dark:border-red-800/30 p-3 ![background:linear-gradient(180deg,_#FEF2F2_0%,_white_100%)]">
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-red-700 mb-2">
                                 <ThumbsDown size={10} /> Cons
                               </div>
@@ -490,66 +490,61 @@ export default function JourneyPublicPage() {
   )
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       {/* Hero */}
-      <div className="relative text-center text-white" style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', padding: '32px 20px 28px', overflow: 'hidden' }}>
+      <div className="relative text-center text-white ![background:linear-gradient(135deg,_#000_0%,_#0f172a_50%,_#1e293b_100%)] !p-[32px_20px_28px] !overflow-hidden">
         {journey.cover_image && (
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(/uploads/${journey.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
+          <div className="!absolute !inset-[0]" style={{ backgroundImage: `url(/uploads/${journey.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
         )}
-        <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
-        <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
+        <div className="!absolute !top-[-60px] !right-[-60px] !w-[200px] !h-[200px] !rounded-[50%] ![background:rgba(255,255,255,0.03)]" />
+        <div className="!absolute !bottom-[-40px] !left-[-40px] !w-[150px] !h-[150px] !rounded-[50%] ![background:rgba(255,255,255,0.02)]" />
 
         {/* Language picker */}
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button onClick={() => setShowLangPicker(v => !v)} style={{
-            padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
-            background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-            color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
+        <div className="!absolute !top-[12px] !right-[12px] !z-[10]">
+          <button className="!p-[5px_12px] !rounded-[20px] ![border:1px_solid_rgba(255,255,255,0.15)] ![background:rgba(255,255,255,0.1)] ![backdrop-filter:blur(8px)] ![color:rgba(255,255,255,0.7)] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowLangPicker(v => !v)}>
             {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
           </button>
           {showLangPicker && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150 }}>
+            <div className="!absolute !top-[100%] !right-[0] !mt-[6px] ![background:white] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.2)] !p-[4px] !z-[50] !min-w-[150px]">
               {SUPPORTED_LANGUAGES.map(lang => (
-                <button className="trek-hover-gray" key={lang.value} onClick={() => {
+                <button className="trek-hover-gray !block !w-[100%] !p-[6px_12px] ![border:none] ![background:none] !text-left !cursor-pointer !text-[length:12px] ![color:#374151] !rounded-[6px] ![font-family:inherit]" key={lang.value} onClick={() => {
                   useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
                   setShowLangPicker(false)
-                }}
-                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit' }} >{lang.label}</button>
+                }} >{lang.label}</button>
               ))}
             </div>
           )}
         </div>
 
         {/* Logo */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', marginBottom: 12, border: '1px solid rgba(255,255,255,0.1)', position: 'relative' }}>
+        <div className="!inline-flex !items-center !justify-center !w-[44px] !h-[44px] !rounded-[12px] ![background:rgba(255,255,255,0.08)] ![backdrop-filter:blur(8px)] !mb-[12px] ![border:1px_solid_rgba(255,255,255,0.1)] !relative">
           <img src="/icons/icon-white.svg" alt="Trek Wanderer" width={26} height={26} />
         </div>
 
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12, position: 'relative' }}>{t('journey.public.tagline')}</div>
+        <div className="!text-[length:10px] !font-[600] !tracking-[3px] !uppercase !mb-[12px] !relative" style={{ opacity: 0.35 }}>{t('journey.public.tagline')}</div>
 
-        <h1 className="relative" style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{journey.title}</h1>
+        <h1 className="relative !m-[0_0_4px] !text-[length:26px] !font-[700] !tracking-[-0.5px]">{journey.title}</h1>
 
         {journey.subtitle && (
-          <div className="relative" style={{ fontSize: 13, opacity: 0.5, maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>{journey.subtitle}</div>
+          <div className="relative !text-[length:13px] !max-w-[400px] !m-[0_auto] !leading-[1.5]" style={{ opacity: 0.5 }}>{journey.subtitle}</div>
         )}
 
         {/* Stats pill */}
-        <div className="relative" style={{ marginTop: 12, display: 'inline-flex', alignItems: 'center', gap: 12, padding: '8px 18px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-          <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><BookOpen size={12} /> {stats.entries} {t('journey.stats.entries')}</span>
-          <span style={{ fontSize: 11, opacity: 0.4 }}>·</span>
-          <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><Camera size={12} /> {stats.photos} {t('journey.stats.photos')}</span>
-          <span style={{ fontSize: 11, opacity: 0.4 }}>·</span>
-          <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8, display: 'flex', alignItems: 'center', gap: 5 }}><MapPin size={12} /> {stats.places} {t('journey.stats.places')}</span>
+        <div className="relative !mt-[12px] !inline-flex !items-center !gap-[12px] !p-[8px_18px] !rounded-[20px] ![background:rgba(255,255,255,0.08)] ![backdrop-filter:blur(4px)] ![border:1px_solid_rgba(255,255,255,0.08)]">
+          <span className="!text-[length:12px] !font-[500] !flex !items-center !gap-[5px]" style={{ opacity: 0.8 }}><BookOpen size={12} /> {stats.entries} {t('journey.stats.entries')}</span>
+          <span className="!text-[length:11px]" style={{ opacity: 0.4 }}>·</span>
+          <span className="!text-[length:12px] !font-[500] !flex !items-center !gap-[5px]" style={{ opacity: 0.8 }}><Camera size={12} /> {stats.photos} {t('journey.stats.photos')}</span>
+          <span className="!text-[length:11px]" style={{ opacity: 0.4 }}>·</span>
+          <span className="!text-[length:12px] !font-[500] !flex !items-center !gap-[5px]" style={{ opacity: 0.8 }}><MapPin size={12} /> {stats.places} {t('journey.stats.places')}</span>
         </div>
 
-        <div className="relative" style={{ marginTop: 12, fontSize: 9, fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>{t('journey.public.readOnly')}</div>
+        <div className="relative !mt-[12px] !text-[length:9px] !font-[500] !tracking-[1.5px] !uppercase" style={{ opacity: 0.25 }}>{t('journey.public.readOnly')}</div>
       </div>
 
       {/* Content */}
       {desktopTwoColumn ? (
         // ── Desktop two-column: scrollable timeline feed + sticky map ──────────
-        <div className="max-w-[1440px] mx-auto flex" style={{ alignItems: 'flex-start' }}>
+        <div className="max-w-[1440px] mx-auto flex !items-start">
           {/* Left: feed */}
           <div className="flex-1 xl:max-w-[50%] min-w-0 px-8 py-6">
             {renderTabs(availableViews)}
@@ -560,13 +555,7 @@ export default function JourneyPublicPage() {
 
           {/* Right: sticky map — matches auth page aside proportions */}
           <aside
-            className="flex-shrink-0"
-            style={{
-              width: '44%', minWidth: 420, maxWidth: 760,
-              position: 'sticky', top: 0, height: '100dvh',
-              padding: '16px 16px 16px 0',
-              alignSelf: 'flex-start',
-            }}
+            className="flex-shrink-0 !w-[44%] !min-w-[420px] !max-w-[760px] !sticky !top-[0] !h-[100dvh] !p-[16px_16px_16px_0] !self-start"
           >
             <div className="h-full rounded-2xl overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-sm">
               <JourneyMap
@@ -586,7 +575,7 @@ export default function JourneyPublicPage() {
 
           {/* Floating view toggle — visible above the fullscreen map on mobile */}
           {isMobile && view === 'timeline' && perms.share_timeline && perms.share_map && availableViews.length > 1 && (
-            <div className="fixed left-0 right-0 z-50 flex justify-center px-4" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+            <div className="fixed left-0 right-0 z-50 flex justify-center px-4 !top-[calc(env(safe-area-inset-top,_0px)_+_12px)]">
               <div className="flex bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden shadow-lg">
                 {availableViews.map(v => (
                   <button
@@ -644,9 +633,9 @@ export default function JourneyPublicPage() {
 
       {/* Powered by */}
       <div className="flex flex-col items-center py-8 gap-2">
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'white', border: '1px solid #e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <img src="/icons/icon-dark.svg" alt="Trek Wanderer" width={18} height={18} style={{ borderRadius: 4 }} />
-          <span style={{ fontSize: 11, color: '#9ca3af' }}>{t('journey.public.sharedVia')} <strong style={{ color: '#6b7280' }}>Trek Wanderer</strong></span>
+        <div className="!inline-flex !items-center !gap-[8px] !p-[8px_16px] !rounded-[20px] ![background:white] ![border:1px_solid_#e5e7eb] ![box-shadow:0_1px_3px_rgba(0,0,0,0.04)]">
+          <img className="!rounded-[4px]" src="/icons/icon-dark.svg" alt="Trek Wanderer" width={18} height={18} />
+          <span className="!text-[length:11px] ![color:#9ca3af]">{t('journey.public.sharedVia')} <strong className="![color:#6b7280]">Trek Wanderer</strong></span>
         </div>
       </div>
 

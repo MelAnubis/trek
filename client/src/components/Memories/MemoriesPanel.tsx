@@ -413,8 +413,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', ...font }}>
-        <div className="w-8 h-8 border-2 rounded-full animate-spin"
-          style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+        <div className="w-8 h-8 border-2 rounded-full animate-spin ![border-color:var(--border-primary)] ![border-top-color:var(--text-primary)]" />
       </div>
     )
   }
@@ -425,10 +424,10 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40, textAlign: 'center', ...font }}>
         <Camera size={40} style={{ color: 'var(--text-faint)', marginBottom: 12 }} />
-        <h3 style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <h3 className="!m-[0_0_6px] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">
           {t('memories.notConnected', { provider_name: enabledProviders.length === 1 ? enabledProviders[0]?.name : 'Photo provider' })}
         </h3>
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', maxWidth: 300 }}>
+        <p className="!m-[0] !text-[length:13px] ![color:var(--text-muted)] !max-w-[300px]">
           {enabledProviders.length === 1 ? t('memories.notConnectedHint', { provider_name: enabledProviders[0]?.name }) : t('memories.notConnectedMultipleHint', { provider_names: enabledProviders.map(p => p.name).join(', ') })}
         </p>
       </div>
@@ -440,25 +439,12 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
   const ProviderTabs = () => {
     if (availableProviders.length < 2) return null
     return (
-      <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+      <div className="!flex !gap-[6px] !mt-[8px]">
         {availableProviders.map(provider => (
-          <button
+          <button className="!p-[6px_12px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s] !capitalize"
             key={provider.id}
             onClick={() => setSelectedProvider(provider.id)}
-            style={{
-              padding: '6px 12px',
-              borderRadius: 99,
-              fontSize: 12,
-              fontWeight: 600,
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              border: '1px solid',
-              transition: 'all 0.15s',
-              background: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--bg-card)',
-              borderColor: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--border-primary)',
-              color: selectedProvider === provider.id ? 'var(--bg-primary)' : 'var(--text-muted)',
-              textTransform: 'capitalize',
-            }}
+            style={{ border: '1px solid', background: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--border-primary)', color: selectedProvider === provider.id ? 'var(--bg-primary)' : 'var(--text-muted)' }}
           >
             {provider.name}
           </button>
@@ -473,44 +459,38 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
     const linkedIds = new Set(albumLinks.map(l => l.album_id))
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', ...font }}>
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-secondary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="!p-[14px_20px] ![border-bottom:1px_solid_var(--border-secondary)]">
+          <div className="!flex !items-center !justify-between">
+            <h3 className="!m-[0] !text-[length:15px] !font-[700] ![color:var(--text-primary)]">
               {availableProviders.length > 1 ? t('memories.selectAlbumMultiple') : t('memories.selectAlbum', { provider_name: availableProviders.find(p => p.id === selectedProvider)?.name || 'Photo provider' })}
             </h3>
-            <button onClick={() => setShowAlbumPicker(false)}
-              style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+            <button className="!p-[7px_14px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowAlbumPicker(false)}>
               {t('common.cancel')}
             </button>
           </div>
           <ProviderTabs />
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[12px]">
           {albumsLoading ? (
-            <div style={{ textAlign: 'center', padding: 40 }}>
-              <div style={{ width: 24, height: 24, border: '2px solid var(--border-primary)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+            <div className="!text-center !p-[40px]">
+              <div className="!w-[24px] !h-[24px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : albums.length === 0 ? (
-            <p style={{ textAlign: 'center', padding: 40, fontSize: 13, color: 'var(--text-faint)' }}>
+            <p className="!text-center !p-[40px] !text-[length:13px] ![color:var(--text-faint)]">
               {t('memories.noAlbums')}
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div className="!flex !flex-col !gap-[4px]">
               {albums.map(album => {
                 const isLinked = linkedIds.has(album.id)
                 return (
-                  <button className={(!isLinked) ? 'trek-hover' : undefined} key={album.id} onClick={() => !isLinked && linkAlbum(album.id, album.albumName, album.passphrase)}
+                  <button className={[(!isLinked) ? 'trek-hover' : undefined, '!flex !items-center !gap-[12px] !w-[100%] !p-[12px_14px] !rounded-[10px] ![border:none] ![font-family:inherit] !text-left'].join(' ')} key={album.id} onClick={() => !isLinked && linkAlbum(album.id, album.albumName, album.passphrase)}
                     disabled={isLinked}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px',
-                      borderRadius: 10, border: 'none', cursor: isLinked ? 'default' : 'pointer',
-                      background: isLinked ? 'var(--bg-tertiary)' : 'transparent', fontFamily: 'inherit', textAlign: 'left',
-                      opacity: isLinked ? 0.5 : 1,
-                    }} >
+                    style={{ cursor: isLinked ? 'default' : 'pointer', background: isLinked ? 'var(--bg-tertiary)' : 'transparent', opacity: isLinked ? 0.5 : 1 }} >
                     <FolderOpen size={20} color="var(--text-muted)" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{album.albumName}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 1 }}>
+                    <div className="!flex-[1] !min-w-[0]">
+                      <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">{album.albumName}</div>
+                      <div className="!text-[length:11px] ![color:var(--text-faint)] !mt-[1px]">
                         {album.assetCount} {t('memories.photos')}
                       </div>
                     </div>
@@ -542,77 +522,58 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       <>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', ...font }}>
         {/* Picker header */}
-        <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--border-secondary)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+        <div className="!p-[14px_20px] ![border-bottom:1px_solid_var(--border-secondary)]">
+          <div className="!flex !items-center !justify-between !mb-[10px]">
+            <h3 className="!m-[0] !text-[length:15px] !font-[700] ![color:var(--text-primary)]">
               {availableProviders.length > 1 ? t('memories.selectPhotosMultiple') : t('memories.selectPhotos', { provider_name: availableProviders.find(p => p.id === selectedProvider)?.name || 'Photo provider' })}
             </h3>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { clearImageQueue(); setShowPicker(false) }}
-                style={{ padding: '7px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+            <div className="!flex !gap-[8px]">
+              <button className="!p-[7px_14px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => { clearImageQueue(); setShowPicker(false) }}>
                 {t('common.cancel')}
               </button>
-              <button onClick={confirmSelection} disabled={selectedIds.size === 0}
-                style={{
-                  padding: '7px 14px', borderRadius: 10, border: 'none', fontSize: 12, fontWeight: 600,
-                  cursor: selectedIds.size > 0 ? 'pointer' : 'default', fontFamily: 'inherit',
-                  background: selectedIds.size > 0 ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: selectedIds.size > 0 ? 'var(--bg-primary)' : 'var(--text-faint)',
-                }}>
+              <button className="!p-[7px_14px] !rounded-[10px] ![border:none] !text-[length:12px] !font-[600] ![font-family:inherit]" onClick={confirmSelection} disabled={selectedIds.size === 0}
+                style={{ cursor: selectedIds.size > 0 ? 'pointer' : 'default', background: selectedIds.size > 0 ? 'var(--text-primary)' : 'var(--border-primary)', color: selectedIds.size > 0 ? 'var(--bg-primary)' : 'var(--text-faint)' }}>
                 {selectedIds.size > 0 ? t('memories.addSelected', { count: selectedIds.size }) : t('memories.addPhotos')}
               </button>
             </div>
           </div>
-          <div style={{ marginBottom: 10 }}>
+          <div className="!mb-[10px]">
             <ProviderTabs />
           </div>
           {/* Filter tabs */}
-          <div style={{ display: 'flex', gap: 6 }}>
+          <div className="!flex !gap-[6px]">
             {startDate && endDate && (
-              <button onClick={() => { if (!pickerDateFilter) { setPickerDateFilter(true); loadPickerPhotos(true) } }}
-                style={{
-                  padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                  border: '1px solid', transition: 'all 0.15s',
-                  background: pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)',
-                  borderColor: pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
+              <button className="!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]" onClick={() => { if (!pickerDateFilter) { setPickerDateFilter(true); loadPickerPhotos(true) } }}
+                style={{ border: '1px solid', background: pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)', color: pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                 {t('memories.tripDates')} ({startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''} — {endDate ? new Date(endDate + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''})
               </button>
             )}
-            <button onClick={() => { if (pickerDateFilter || !startDate) { setPickerDateFilter(false); loadPickerPhotos(false) } }}
-              style={{
-                padding: '6px 14px', borderRadius: 99, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                border: '1px solid', transition: 'all 0.15s',
-                background: !pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)',
-                borderColor: !pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)',
-                color: !pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)',
-              }}>
+            <button className="!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]" onClick={() => { if (pickerDateFilter || !startDate) { setPickerDateFilter(false); loadPickerPhotos(false) } }}
+              style={{ border: '1px solid', background: !pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: !pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)', color: !pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
               <span className="hidden sm:inline">{t('memories.allPhotos')}</span>
               <span className="sm:hidden">{t('common.all')}</span>
             </button>
           </div>
           {selectedIds.size > 0 && (
-            <p style={{ margin: '8px 0 0', fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <p className="!m-[8px_0_0] !text-[length:12px] !font-[600] ![color:var(--text-primary)]">
               {selectedIds.size} {t('memories.selected')}
             </p>
           )}
         </div>
 
         {/* Picker grid */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[12px]">
           {pickerLoading ? (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 60 }}>
-              <div className="w-7 h-7 border-2 rounded-full animate-spin"
-                style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+            <div className="!flex !items-center !justify-center !p-[60px]">
+              <div className="w-7 h-7 border-2 rounded-full animate-spin ![border-color:var(--border-primary)] ![border-top-color:var(--text-primary)]" />
             </div>
           ) : pickerPhotos.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+            <div className="!text-center !p-[60px_20px]">
               <Camera size={36} style={{ color: 'var(--text-faint)', margin: '0 auto 10px', display: 'block' }} />
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0 }}>{t('memories.noPhotos')}</p>
+              <p className="!text-[length:13px] ![color:var(--text-muted)] !m-[0]">{t('memories.noPhotos')}</p>
               {
                 pickerDateFilter && (
-                  <p style={{ fontSize: 12, color: 'var(--text-faint)', margin: '0 0 16px' }}>
+                  <p className="!text-[length:12px] ![color:var(--text-faint)] !m-[0_0_16px]">
                     {t('memories.noPhotosHint', { provider_name: availableProviders.find(p => p.id === selectedProvider)?.name || 'Photo provider' })}
                   </p>
                 )
@@ -630,42 +591,30 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
             const sortedMonths = Object.keys(byMonth).sort().reverse()
 
             return sortedMonths.map(month => (
-              <div key={month} style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, paddingLeft: 2 }}>
+              <div className="!mb-[16px]" key={month}>
+                <div className="!text-[length:12px] !font-[700] ![color:var(--text-muted)] !mb-[6px] !pl-[2px]">
                   {month !== 'unknown'
                     ? new Date(month + '-15').toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
                     : '—'}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 4 }}>
+                <div className="!grid ![grid-template-columns:repeat(auto-fill,_minmax(100px,_1fr))] !gap-[4px]">
                   {byMonth[month].map(asset => {
                     const pickerKey = makePickerKey(asset.provider, asset.id)
                     const isSelected = selectedIds.has(pickerKey)
                     const isAlready = alreadyAdded.has(pickerKey)
                     return (
-                      <div key={pickerKey}
+                      <div className="!relative ![aspect-ratio:1] !rounded-[8px] !overflow-hidden" key={pickerKey}
                         onClick={() => !isAlready && togglePickerSelect(pickerKey)}
-                        style={{
-                          position: 'relative', aspectRatio: '1', borderRadius: 8, overflow: 'hidden',
-                          cursor: isAlready ? 'default' : 'pointer',
-                          opacity: isAlready ? 0.3 : 1,
-                          outline: isSelected ? '3px solid var(--text-primary)' : 'none',
-                          outlineOffset: -3,
-                        }}>
+                        style={{ cursor: isAlready ? 'default' : 'pointer', opacity: isAlready ? 0.3 : 1, outline: isSelected ? '3px solid var(--text-primary)' : 'none', outlineOffset: -3 }}>
                         <ProviderImg baseUrl={buildProviderAssetUrlFromAsset(asset, 'thumbnail', currentUser!.id)} provider={asset.provider} loading="lazy"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {isSelected && (
-                          <div style={{
-                            position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%',
-                            background: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          }}>
+                          <div className="!absolute !top-[4px] !right-[4px] !w-[22px] !h-[22px] !rounded-[50%] ![background:var(--text-primary)] !flex !items-center !justify-center">
                             <Check size={13} color="var(--bg-primary)" />
                           </div>
                         )}
                         {isAlready && (
-                          <div style={{
-                            position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            background: 'rgba(0,0,0,0.3)', fontSize: 10, color: 'white', fontWeight: 600,
-                          }}>
+                          <div className="!absolute !inset-[0] !flex !items-center !justify-center ![background:rgba(0,0,0,0.3)] !text-[length:10px] ![color:white] !font-[600]">
                             {t('memories.alreadyAdded')}
                           </div>
                         )}
@@ -681,37 +630,20 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
       {/* Confirm share popup (inside picker) */}
       {showConfirmShare && (
-        <div onClick={() => setShowConfirmShare(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-          }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--modal-bg)',
-              backdropFilter: 'var(--glass-blur-lg)',
-              WebkitBackdropFilter: 'var(--glass-blur-lg)',
-              border: '1px solid var(--modal-border)',
-              boxShadow: 'var(--modal-shadow)',
-              borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center',
-            }}>
+        <div className="!fixed !inset-[0] !z-[1000] ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-center !justify-center !p-[20px]" onClick={() => setShowConfirmShare(false)}>
+          <div className="![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)] !rounded-[16px] !p-[24px] !max-w-[360px] !w-[100%] !text-center" onClick={e => e.stopPropagation()}>
             <Share2 size={28} style={{ color: 'var(--text-primary)', marginBottom: 12 }} />
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h3 className="!m-[0_0_8px] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">
               {t('memories.confirmShareTitle')}
             </h3>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            <p className="!m-[0_0_20px] !text-[length:13px] ![color:var(--text-muted)] !leading-[1.5]">
               {t('memories.confirmShareHint', { count: selectedIds.size })}
             </p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button onClick={() => setShowConfirmShare(false)}
-                style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+            <div className="!flex !gap-[8px] !justify-center">
+              <button className="!p-[8px_20px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:13px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowConfirmShare(false)}>
                 {t('common.cancel')}
               </button>
-              <button onClick={executeAddPhotos}
-                style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+              <button className="!p-[8px_20px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={executeAddPhotos}>
                 {t('memories.confirmShareButton')}
               </button>
             </div>
@@ -729,12 +661,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
       {/* Disconnected banner — shown when photos exist but provider is unreachable */}
       {!connected && allVisible.length > 0 && enabledProviders.length > 0 && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 16px', flexShrink: 0,
-          background: 'rgba(234,179,8,0.08)', borderBottom: '1px solid rgba(234,179,8,0.25)',
-          fontSize: 12, color: 'var(--text-muted)',
-        }}>
+        <div className="!flex !items-center !gap-[8px] !p-[8px_16px] !shrink-[0] ![background:rgba(234,179,8,0.08)] ![border-bottom:1px_solid_rgba(234,179,8,0.25)] !text-[length:12px] ![color:var(--text-muted)]">
           <Camera size={13} style={{ color: '#ca8a04', flexShrink: 0 }} />
           <span>
             {t('memories.providerDisconnectedBanner', {
@@ -745,33 +672,23 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       )}
 
       {/* Header */}
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border-secondary)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!p-[16px_20px] ![border-bottom:1px_solid_var(--border-secondary)] !shrink-[0]">
+        <div className="!flex !items-center !justify-between">
           <div>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h2 className="!m-[0] !text-[length:18px] !font-[700] ![color:var(--text-primary)]">
               {t('memories.title')}
             </h2>
-            <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--text-faint)' }}>
+            <p className="!m-[2px_0_0] !text-[length:12px] ![color:var(--text-faint)]">
               {allVisible.length} {t('memories.photosFound')}
               {othersPhotos.length > 0 && ` · ${othersPhotos.length} ${t('memories.fromOthers')}`}
             </p>
           </div>
           {connected && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              <button onClick={openAlbumPicker}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10,
-                  border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)',
-                  fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                }}>
+            <div className="!flex !gap-[6px]">
+              <button className="!flex !items-center !gap-[5px] !p-[7px_14px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={openAlbumPicker}>
                 <Link2 size={13} /> {t('memories.linkAlbum')}
               </button>
-              <button onClick={openPicker}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 10,
-                  border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                }}>
+              <button className="!flex !items-center !gap-[5px] !p-[7px_14px] !rounded-[10px] ![border:none] ![background:var(--text-primary)] ![color:var(--bg-primary)] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit]" onClick={openPicker}>
                 <Plus size={14} /> {t('memories.addPhotos')}
               </button>
             </div>
@@ -780,22 +697,17 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
         {/* Linked Albums */}
         {albumLinks.length > 0 && (
-          <div style={{ padding: '8px 20px', borderBottom: '1px solid var(--border-secondary)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div className="!p-[8px_20px] ![border-bottom:1px_solid_var(--border-secondary)] !flex !gap-[6px] !flex-wrap">
             {albumLinks.map(link => (
-              <div key={link.id} style={{
-                display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 8,
-                background: 'var(--bg-tertiary)', fontSize: 11, color: 'var(--text-muted)',
-              }}>
+              <div className="!flex !items-center !gap-[6px] !p-[4px_10px] !rounded-[8px] ![background:var(--bg-tertiary)] !text-[length:11px] ![color:var(--text-muted)]" key={link.id}>
                 <FolderOpen size={11} />
-                <span style={{ fontWeight: 500 }}>{link.album_name}</span>
-                {link.username !== currentUser?.username && <span style={{ color: 'var(--text-faint)' }}>({link.username})</span>}
-                <button onClick={() => syncAlbum(link.id, link.provider)} disabled={syncing === link.id} title={t('memories.syncAlbum')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--text-faint)' }}>
+                <span className="!font-[500]">{link.album_name}</span>
+                {link.username !== currentUser?.username && <span className="![color:var(--text-faint)]">({link.username})</span>}
+                <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] !flex ![color:var(--text-faint)]" onClick={() => syncAlbum(link.id, link.provider)} disabled={syncing === link.id} title={t('memories.syncAlbum')}>
                   <RefreshCw size={11} style={{ animation: syncing === link.id ? 'spin 1s linear infinite' : 'none' }} />
                 </button>
                 {link.user_id === currentUser?.id && (
-                  <button onClick={() => unlinkAlbum(link.id)} title={t('memories.unlinkAlbum')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--text-faint)' }}>
+                  <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] !flex ![color:var(--text-faint)]" onClick={() => unlinkAlbum(link.id)} title={t('memories.unlinkAlbum')}>
                     <X size={11} />
                   </button>
                 )}
@@ -807,22 +719,12 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
       {/* Filter & Sort bar */}
       {allVisibleRaw.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, padding: '8px 20px', borderBottom: '1px solid var(--border-secondary)', flexShrink: 0, flexWrap: 'wrap' }}>
-          <button onClick={() => setSortAsc(v => !v)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8,
-              border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
-              fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)',
-            }}>
+        <div className="!flex !gap-[6px] !p-[8px_20px] ![border-bottom:1px_solid_var(--border-secondary)] !shrink-[0] !flex-wrap">
+          <button className="!flex !items-center !gap-[4px] !p-[4px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !text-[length:11px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setSortAsc(v => !v)}>
             <ArrowUpDown size={11} /> {sortAsc ? t('memories.oldest') : t('memories.newest')}
           </button>
           {locations.length > 1 && (
-            <select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}
-              style={{
-                padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
-                background: 'var(--bg-card)', fontSize: 11, fontFamily: 'inherit', color: 'var(--text-muted)',
-                cursor: 'pointer', outline: 'none',
-              }}>
+            <select className="!p-[4px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !text-[length:11px] ![font-family:inherit] ![color:var(--text-muted)] !cursor-pointer ![outline:none]" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}>
               <option value="">{t('memories.allLocations')}</option>
               {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
             </select>
@@ -831,29 +733,23 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
       )}
 
       {/* Gallery */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[12px]">
         {allVisible.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div className="!text-center !p-[60px_20px]">
             <Camera size={40} style={{ color: 'var(--text-faint)', margin: '0 auto 12px', display: 'block' }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+            <p className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !m-[0_0_12px]">
               {t('memories.noPhotos')}
             </p>
-            <button onClick={openPicker}
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, padding: '9px 18px', borderRadius: 10,
-                border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              }}>
+            <button className="!inline-flex !items-center !gap-[5px] !p-[9px_18px] !rounded-[10px] ![border:none] ![background:var(--text-primary)] ![color:var(--bg-primary)] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit]" onClick={openPicker}>
               <Plus size={15} /> {t('memories.addPhotos')}
             </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 6 }}>
+          <div className="!grid ![grid-template-columns:repeat(auto-fill,_minmax(130px,_1fr))] !gap-[6px]">
             {allVisible.map(photo => {
               const isOwn = photo.user_id === currentUser?.id
               return (
-                <div key={photo.photo_id} className="group"
-                  style={{ position: 'relative', aspectRatio: '1', borderRadius: 10, overflow: 'visible', cursor: 'pointer' }}
+                <div key={photo.photo_id} className="group !relative ![aspect-ratio:1] !rounded-[10px] !overflow-visible !cursor-pointer"
                   onClick={() => {
                     setLightboxId(photo.photo_id); setLightboxUserId(photo.user_id); setLightboxInfo(null)
                     if (lightboxOriginalSrc) URL.revokeObjectURL(lightboxOriginalSrc)
@@ -869,23 +765,11 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
                   {/* Other user's avatar */}
                   {!isOwn && (
-                    <div className="memories-avatar" style={{ position: 'absolute', bottom: 6, left: 6, zIndex: 10 }}>
-                      <div style={{
-                        width: 22, height: 22, borderRadius: '50%',
-                        background: `hsl(${photo.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, fontWeight: 700, color: 'white', textTransform: 'uppercase',
-                        border: '2px solid white', boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                      }}>
+                    <div className="memories-avatar !absolute !bottom-[6px] !left-[6px] !z-[10]">
+                      <div className="!w-[22px] !h-[22px] !rounded-[50%] !flex !items-center !justify-center !text-[length:10px] !font-[700] ![color:white] !uppercase ![border:2px_solid_white] ![box-shadow:0_1px_4px_rgba(0,0,0,0.3)]" style={{ background: `hsl(${photo.username.charCodeAt(0) * 37 % 360}, 55%, 55%)` }}>
                         {photo.username[0]}
                       </div>
-                      <div className="memories-avatar-tooltip" style={{
-                        position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                        marginBottom: 6, padding: '3px 8px', borderRadius: 6,
-                        background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                        fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
-                        pointerEvents: 'none', opacity: 0, transition: 'opacity 0.15s',
-                      }}>
+                      <div className="memories-avatar-tooltip !absolute !bottom-[100%] !left-[50%] !mb-[6px] !p-[3px_8px] !rounded-[6px] ![background:var(--text-primary)] ![color:var(--bg-primary)] !text-[length:10px] !font-[600] !whitespace-nowrap !pointer-events-none ![transition:opacity_0.15s]" style={{ transform: 'translateX(-50%)', opacity: 0 }}>
                         {photo.username}
                       </div>
                     </div>
@@ -893,23 +777,12 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
                   {/* Own photo actions (hover) */}
                   {isOwn && (
-                    <div className="opacity-0 group-hover:opacity-100"
-                      style={{ position: 'absolute', top: 4, right: 4, display: 'flex', gap: 3, transition: 'opacity 0.15s' }}>
-                      <button onClick={e => { e.stopPropagation(); toggleSharing(photo, !photo.shared) }}
-                        title={photo.shared ? t('memories.stopSharing') : t('memories.sharePhotos')}
-                        style={{
-                          width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
+                    <div className="opacity-0 group-hover:opacity-100 !absolute !top-[4px] !right-[4px] !flex !gap-[3px] ![transition:opacity_0.15s]">
+                      <button className="!w-[26px] !h-[26px] !rounded-[50%] ![border:none] !cursor-pointer ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center" onClick={e => { e.stopPropagation(); toggleSharing(photo, !photo.shared) }}
+                        title={photo.shared ? t('memories.stopSharing') : t('memories.sharePhotos')}>
                         {photo.shared ? <Eye size={12} color="white" /> : <EyeOff size={12} color="white" />}
                       </button>
-                      <button onClick={e => { e.stopPropagation(); removePhoto(photo) }}
-                        style={{
-                          width: 26, height: 26, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
+                      <button className="!w-[26px] !h-[26px] !rounded-[50%] ![border:none] !cursor-pointer ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center" onClick={e => { e.stopPropagation(); removePhoto(photo) }}>
                         <X size={12} color="white" />
                       </button>
                     </div>
@@ -917,11 +790,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
                   {/* Not shared indicator */}
                   {isOwn && !photo.shared && (
-                    <div style={{
-                      position: 'absolute', bottom: 6, right: 6, padding: '2px 6px', borderRadius: 6,
-                      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-                      fontSize: 9, color: 'rgba(255,255,255,0.7)', fontWeight: 500,
-                    }}>
+                    <div className="!absolute !bottom-[6px] !right-[6px] !p-[2px_6px] !rounded-[6px] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !text-[length:9px] ![color:rgba(255,255,255,0.7)] !font-[500]">
                       <EyeOff size={9} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />
                       {t('memories.private')}
                     </div>
@@ -939,37 +808,20 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
       {/* Confirm share popup */}
       {showConfirmShare && (
-        <div onClick={() => setShowConfirmShare(false)}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20,
-          }}>
-          <div onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--modal-bg)',
-              backdropFilter: 'var(--glass-blur-lg)',
-              WebkitBackdropFilter: 'var(--glass-blur-lg)',
-              border: '1px solid var(--modal-border)',
-              boxShadow: 'var(--modal-shadow)',
-              borderRadius: 16, padding: 24, maxWidth: 360, width: '100%', textAlign: 'center',
-            }}>
+        <div className="!fixed !inset-[0] !z-[1000] ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-center !justify-center !p-[20px]" onClick={() => setShowConfirmShare(false)}>
+          <div className="![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)] !rounded-[16px] !p-[24px] !max-w-[360px] !w-[100%] !text-center" onClick={e => e.stopPropagation()}>
             <Share2 size={28} style={{ color: 'var(--text-primary)', marginBottom: 12 }} />
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <h3 className="!m-[0_0_8px] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">
               {t('memories.confirmShareTitle')}
             </h3>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+            <p className="!m-[0_0_20px] !text-[length:13px] ![color:var(--text-muted)] !leading-[1.5]">
               {t('memories.confirmShareHint', { count: selectedIds.size })}
             </p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-              <button onClick={() => setShowConfirmShare(false)}
-                style={{ padding: '8px 20px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+            <div className="!flex !gap-[8px] !justify-center">
+              <button className="!p-[8px_20px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:13px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowConfirmShare(false)}>
                 {t('common.cancel')}
               </button>
-              <button onClick={executeAddPhotos}
-                style={{ padding: '8px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+              <button className="!p-[8px_20px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={executeAddPhotos}>
                 {t('memories.confirmShareButton')}
               </button>
             </div>
@@ -1008,63 +860,63 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
           <>
             {lightboxInfo.takenAt && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Date</div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>{new Date(lightboxInfo.takenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{new Date(lightboxInfo.takenAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
+                <div className="!text-[length:9px] !font-[700] !uppercase !tracking-[0.08em] ![color:rgba(255,255,255,0.4)] !mb-[3px]">Date</div>
+                <div className="!text-[length:13px] !font-[600]">{new Date(lightboxInfo.takenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+                <div className="!text-[length:11px] ![color:rgba(255,255,255,0.5)]">{new Date(lightboxInfo.takenAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
             )}
             {(lightboxInfo.city || lightboxInfo.country) && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>
+                <div className="!text-[length:9px] !font-[700] !uppercase !tracking-[0.08em] ![color:rgba(255,255,255,0.4)] !mb-[3px]">
                   <MapPin size={9} style={{ display: 'inline', verticalAlign: '-1px', marginRight: 3 }} />Location
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600 }}>
+                <div className="!text-[length:13px] !font-[600]">
                   {[lightboxInfo.city, lightboxInfo.state, lightboxInfo.country].filter(Boolean).join(', ')}
                 </div>
               </div>
             )}
             {lightboxInfo.camera && (
               <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>Camera</div>
-                <div style={{ fontSize: 12, fontWeight: 500 }}>{lightboxInfo.camera}</div>
-                {lightboxInfo.lens && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{lightboxInfo.lens}</div>}
+                <div className="!text-[length:9px] !font-[700] !uppercase !tracking-[0.08em] ![color:rgba(255,255,255,0.4)] !mb-[3px]">Camera</div>
+                <div className="!text-[length:12px] !font-[500]">{lightboxInfo.camera}</div>
+                {lightboxInfo.lens && <div className="!text-[length:11px] ![color:rgba(255,255,255,0.5)] !mt-[2px]">{lightboxInfo.lens}</div>}
               </div>
             )}
             {(lightboxInfo.focalLength || lightboxInfo.aperture || lightboxInfo.iso) && (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[8px]">
                 {lightboxInfo.focalLength && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Focal</div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.focalLength}</div>
+                    <div className="!text-[length:9px] ![color:rgba(255,255,255,0.4)] !uppercase !tracking-[0.05em]">Focal</div>
+                    <div className="!text-[length:13px] !font-[700]">{lightboxInfo.focalLength}</div>
                   </div>
                 )}
                 {lightboxInfo.aperture && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Aperture</div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.aperture}</div>
+                    <div className="!text-[length:9px] ![color:rgba(255,255,255,0.4)] !uppercase !tracking-[0.05em]">Aperture</div>
+                    <div className="!text-[length:13px] !font-[700]">{lightboxInfo.aperture}</div>
                   </div>
                 )}
                 {lightboxInfo.shutter && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Shutter</div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.shutter}</div>
+                    <div className="!text-[length:9px] ![color:rgba(255,255,255,0.4)] !uppercase !tracking-[0.05em]">Shutter</div>
+                    <div className="!text-[length:13px] !font-[700]">{lightboxInfo.shutter}</div>
                   </div>
                 )}
                 {lightboxInfo.iso && (
                   <div>
-                    <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>ISO</div>
-                    <div style={{ fontSize: 13, fontWeight: 700 }}>{lightboxInfo.iso}</div>
+                    <div className="!text-[length:9px] ![color:rgba(255,255,255,0.4)] !uppercase !tracking-[0.05em]">ISO</div>
+                    <div className="!text-[length:13px] !font-[700]">{lightboxInfo.iso}</div>
                   </div>
                 )}
               </div>
             )}
             {(lightboxInfo.width || lightboxInfo.fileName) && (
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 10 }}>
+              <div className="![border-top:1px_solid_rgba(255,255,255,0.08)] !pt-[10px]">
                 {lightboxInfo.width && lightboxInfo.height && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 3 }}>{lightboxInfo.width} × {lightboxInfo.height}</div>
+                  <div className="!text-[length:11px] ![color:rgba(255,255,255,0.4)] !mb-[3px]">{lightboxInfo.width} × {lightboxInfo.height}</div>
                 )}
                 {lightboxInfo.fileSize && (
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{(lightboxInfo.fileSize / 1024 / 1024).toFixed(1)} MB</div>
+                  <div className="!text-[length:11px] ![color:rgba(255,255,255,0.4)]">{(lightboxInfo.fileSize / 1024 / 1024).toFixed(1)} MB</div>
                 )}
               </div>
             )}
@@ -1082,86 +934,64 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
               background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
             {/* Close button */}
-            <button onClick={closeLightbox}
-              style={{
-                position: 'absolute', top: 16, right: 16, zIndex: 10, width: 40, height: 40, borderRadius: '50%',
-                background: 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
+            <button className="!absolute !top-[16px] !right-[16px] !z-[10] !w-[40px] !h-[40px] !rounded-[50%] ![background:rgba(255,255,255,0.1)] ![border:none] !cursor-pointer !flex !items-center !justify-center" onClick={closeLightbox}>
               <X size={20} color="white" />
             </button>
 
             {/* Counter */}
             {allVisible.length > 1 && (
-              <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>
+              <div className="!absolute !top-[20px] !left-[20px] !z-[10] !text-[length:12px] ![color:rgba(255,255,255,0.5)]">
                 {currentIdx + 1} / {allVisible.length}
               </div>
             )}
 
             {/* Prev/Next buttons */}
             {hasPrev && (
-              <button onClick={e => { e.stopPropagation(); navigateTo(currentIdx - 1) }}
-                style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.8)' }}>
+              <button className="!absolute !left-[12px] !top-[50%] !z-[10] ![background:rgba(0,0,0,0.5)] ![border:none] !rounded-[50%] !w-[40px] !h-[40px] !flex !items-center !justify-center !cursor-pointer ![color:rgba(255,255,255,0.8)]" onClick={e => { e.stopPropagation(); navigateTo(currentIdx - 1) }}
+                style={{ transform: 'translateY(-50%)' }}>
                 <ChevronLeft size={22} />
               </button>
             )}
             {hasNext && (
-              <button onClick={e => { e.stopPropagation(); navigateTo(currentIdx + 1) }}
-                style={{ position: 'absolute', right: isMobile ? 12 : 280, top: '50%', transform: 'translateY(-50%)', zIndex: 10, background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'rgba(255,255,255,0.8)' }}>
+              <button className="!absolute !z-[10] ![background:rgba(0,0,0,0.5)] ![border:none] !rounded-[50%] !w-[40px] !h-[40px] !flex !items-center !justify-center !cursor-pointer ![color:rgba(255,255,255,0.8)]" onClick={e => { e.stopPropagation(); navigateTo(currentIdx + 1) }}
+                style={{ right: isMobile ? 12 : 280, top: '50%', transform: 'translateY(-50%)' }}>
                 <ChevronRight size={22} />
               </button>
             )}
 
             {/* Mobile info toggle button */}
             {isMobile && (lightboxInfo || lightboxInfoLoading) && (
-              <button onClick={e => { e.stopPropagation(); setShowMobileInfo(prev => !prev) }}
-                style={{
-                  position: 'absolute', top: 16, right: 68, zIndex: 10, width: 40, height: 40, borderRadius: '50%',
-                  background: showMobileInfo ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)',
-                  border: 'none', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <button className="!absolute !top-[16px] !right-[68px] !z-[10] !w-[40px] !h-[40px] !rounded-[50%] ![border:none] !cursor-pointer !flex !items-center !justify-center" onClick={e => { e.stopPropagation(); setShowMobileInfo(prev => !prev) }}
+                style={{ background: showMobileInfo ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.1)' }}>
                 <Info size={20} color="white" />
               </button>
             )}
 
-            <div onClick={e => { if (e.target === e.currentTarget) closeLightbox() }} style={{ display: 'flex', gap: 16, alignItems: 'flex-start', justifyContent: 'center', padding: 20, width: '100%', height: '100%' }}>
-              <img
+            <div className="!flex !gap-[16px] !items-start !justify-center !p-[20px] !w-[100%] !h-[100%]" onClick={e => { if (e.target === e.currentTarget) closeLightbox() }}>
+              <img className="!object-contain !rounded-[10px] !cursor-default"
                 src={lightboxOriginalSrc}
                 alt=""
                 onClick={e => e.stopPropagation()}
-                style={{ maxWidth: (!isMobile && lightboxInfo) ? 'calc(100% - 280px)' : '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 10, cursor: 'default' }}
+                style={{ maxWidth: (!isMobile && lightboxInfo) ? 'calc(100% - 280px)' : '100%', maxHeight: '100%' }}
               />
 
               {/* Desktop info panel — liquid glass */}
               {!isMobile && lightboxInfo && (
-                <div style={{
-                  width: 240, flexShrink: 0, borderRadius: 16, padding: 18,
-                  background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255,255,255,0.12)', color: 'white',
-                  display: 'flex', flexDirection: 'column', gap: 14, maxHeight: '100%', overflowY: 'auto',
-                }}>
+                <div className="!w-[240px] !shrink-[0] !rounded-[16px] !p-[18px] ![background:rgba(255,255,255,0.08)] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:1px_solid_rgba(255,255,255,0.12)] ![color:white] !flex !flex-col !gap-[14px] !max-h-[100%] !overflow-y-auto">
                   {exifContent}
                 </div>
               )}
 
               {!isMobile && lightboxInfoLoading && (
-                <div style={{ width: 240, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="w-6 h-6 border-2 rounded-full animate-spin" style={{ borderColor: 'rgba(255,255,255,0.2)', borderTopColor: 'white' }} />
+                <div className="!w-[240px] !flex !items-center !justify-center">
+                  <div className="w-6 h-6 border-2 rounded-full animate-spin ![border-color:rgba(255,255,255,0.2)] ![border-top-color:white]" />
                 </div>
               )}
             </div>
 
             {/* Mobile bottom sheet */}
             {isMobile && showMobileInfo && lightboxInfo && (
-              <div onClick={e => e.stopPropagation()} style={{
-                position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 5,
-                maxHeight: '60vh', overflowY: 'auto',
-                borderRadius: '16px 16px 0 0', padding: 18,
-                background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                border: '1px solid rgba(255,255,255,0.12)', borderBottom: 'none',
-                color: 'white', display: 'flex', flexDirection: 'column', gap: 14,
-              }}>
+              <div className="!absolute !bottom-[0] !left-[0] !right-[0] !z-[5] !max-h-[60vh] !overflow-y-auto !rounded-[16px_16px_0_0] !p-[18px] ![background:rgba(0,0,0,0.85)] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:1px_solid_rgba(255,255,255,0.12)] ![border-bottom:none] ![color:white] !flex !flex-col !gap-[14px]" onClick={e => e.stopPropagation()}>
                 {exifContent}
               </div>
             )}

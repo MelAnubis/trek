@@ -52,30 +52,22 @@ export default function CurrencyWidget() {
 
   return (
     <div
-      className="rounded-2xl p-4"
-      style={{
-        background: 'var(--glass-bg)',
-        backdropFilter: 'var(--glass-blur)',
-        WebkitBackdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--glass-border)',
-        boxShadow: 'var(--glass-shadow)',
-      }}
+      className="rounded-2xl p-4 ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)]"
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('dashboard.currency')}</span>
-        <button onClick={fetchRate} className="p-1 rounded-md transition-colors" style={{ color: 'var(--text-faint)' }}>
+        <span className="text-xs font-semibold uppercase tracking-wide ![color:var(--text-faint)]">{t('dashboard.currency')}</span>
+        <button onClick={fetchRate} className="p-1 rounded-md transition-colors ![color:var(--text-faint)]">
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {/* Amount */}
-      <div className="rounded-xl px-4 py-3 mb-3" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
+      <div className="rounded-xl px-4 py-3 mb-3 ![background:var(--bg-secondary)] ![border:1px_solid_var(--border-primary)]">
         <input
           type="number"
           value={amount}
           onChange={e => setAmount(e.target.value)}
-          className="w-full text-2xl font-black tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-          style={{ color: 'var(--text-primary)', background: 'transparent', border: 'none' }}
+          className="w-full text-2xl font-black tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none ![color:var(--text-primary)] ![background:transparent] ![border:none]"
         />
       </div>
 
@@ -84,7 +76,7 @@ export default function CurrencyWidget() {
         <div className="flex-1" style={{ '--bg-input': 'transparent', '--border-primary': 'transparent' } as React.CSSProperties}>
           <CustomSelect value={from} onChange={setFrom} options={CURRENCY_OPTIONS} searchable size="sm" />
         </div>
-        <button onClick={swap} className="p-1.5 rounded-lg shrink-0 transition-colors" style={{ color: 'var(--text-muted)' }}>
+        <button onClick={swap} className="p-1.5 rounded-lg shrink-0 transition-colors ![color:var(--text-muted)]">
           <ArrowRightLeft size={13} />
         </button>
         <div className="flex-1" style={{ '--bg-input': 'transparent', '--border-primary': 'transparent' } as React.CSSProperties}>
@@ -93,11 +85,11 @@ export default function CurrencyWidget() {
       </div>
 
       {/* Result */}
-      <div className="rounded-xl p-3" style={{ background: 'var(--bg-secondary)' }}>
-        <p className="text-xl font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>
-          {formatNumber(result)} <span className="text-sm font-semibold" style={{ color: 'var(--text-muted)' }}>{to}</span>
+      <div className="rounded-xl p-3 ![background:var(--bg-secondary)]">
+        <p className="text-xl font-black tabular-nums ![color:var(--text-primary)]">
+          {formatNumber(result)} <span className="text-sm font-semibold ![color:var(--text-muted)]">{to}</span>
         </p>
-        {rate && <p className="text-[10px] mt-0.5" style={{ color: 'var(--text-faint)' }}>1 {from} = {rate.toFixed(4)} {to}</p>}
+        {rate && <p className="text-[10px] mt-0.5 ![color:var(--text-faint)]">1 {from} = {rate.toFixed(4)} {to}</p>}
       </div>
     </div>
   )

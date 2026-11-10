@@ -81,41 +81,23 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
 
   return (
     <div>
-      <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-        <div style={{
-          background: 'var(--bg-tertiary)', borderRadius: 18,
-          padding: '14px 16px 14px 22px',
-          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+      <div className="max-md:!px-4 max-md:!pt-4 !p-[24px_28px_0]">
+        <div className="![background:var(--bg-tertiary)] !rounded-[18px] !p-[14px_16px_14px_22px] !flex !items-center !gap-[16px] !flex-wrap">
+          <h2 className="!m-[0] !text-[length:18px] !font-[600] ![color:var(--text-primary)] !tracking-[-0.01em] !shrink-[0]">
             {t('trip.tabs.lists')}
           </h2>
-          <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-          <div style={{ display: 'inline-flex', gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+          <div className="hidden md:block !w-[1px] !h-[22px] ![background:var(--border-faint)] !shrink-[0]" />
+          <div className="!inline-flex !gap-[4px] !flex-wrap !flex-[1] !min-w-[0]">
             {tabs.map(tab => {
               const active = subTab === tab.id
               const Icon = tab.icon
               return (
-                <button key={tab.id} onClick={() => setSubTabPersist(tab.id)}
-                  style={{
-                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
-                    background: active ? 'var(--bg-card)' : 'transparent',
-                    color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                    fontWeight: active ? 500 : 400,
-                    boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                    transition: 'background 180ms cubic-bezier(0.23,1,0.32,1), color 180ms cubic-bezier(0.23,1,0.32,1), box-shadow 180ms cubic-bezier(0.23,1,0.32,1)',
-                  }}
+                <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:background_180ms_cubic-bezier(0.23,1,0.32,1),_color_180ms_cubic-bezier(0.23,1,0.32,1),_box-shadow_180ms_cubic-bezier(0.23,1,0.32,1)]" key={tab.id} onClick={() => setSubTabPersist(tab.id)}
+                  style={{ fontFamily: 'inherit', fontSize: 13, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 500 : 400, boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
                 >
                   <Icon size={13} style={{ color: active ? 'var(--text-primary)' : 'var(--text-faint)' }} />
                   <span className="hidden sm:inline">{tab.label}</span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 600,
-                    background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                    color: 'var(--text-faint)',
-                    padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
-                  }}>{tab.count}</span>
+                  <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[1px_6px] !rounded-[99px] !min-w-[16px] !text-center" style={{ background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)' }}>{tab.count}</span>
                 </button>
               )
             })}
@@ -129,11 +111,11 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
               borderRadius: 10, fontSize: 13, fontWeight: 500,
             }
             return (
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, marginLeft: 'auto', flexWrap: 'wrap' }}>
+              <div className="!flex !gap-[6px] !shrink-[0] !ml-[auto] !flex-wrap">
                 {packingAbgehakt > 0 && (
                   <button onClick={() => setClearCheckedSignal(s => s + 1)}
-                    className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88]`}
-                    style={{ ...sharedBtnStyle, background: 'rgba(239,68,68,0.14)', color: '#ef4444' }}
+                    className={`hidden sm:inline-flex items-center gap-1.5 px-[14px] py-[9px] hover:opacity-[0.88] ![background:rgba(239,68,68,0.14)] ![color:#ef4444]`}
+                    style={{ ...sharedBtnStyle }}
                   >
                     <Trash2 size={14} strokeWidth={2.5} />
                     <span>{t('packing.clearChecked', { count: packingAbgehakt })}</span>
@@ -146,24 +128,24 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
                 />
                 {packingItems.length > 0 && (
                   <button onClick={() => setSaveTemplateSignal(s => s + 1)}
-                    className={sharedBtnClass}
-                    style={{ ...sharedBtnStyle, background: 'var(--accent)', color: 'var(--accent-text)' }}
+                    className={[sharedBtnClass, '![background:var(--accent)] ![color:var(--accent-text)]'].join(' ')}
+                    style={{ ...sharedBtnStyle }}
                   >
                     <FolderPlus size={14} strokeWidth={2.5} />
                     <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
                   </button>
                 )}
                 <button onClick={() => setImportPackingSignal(s => s + 1)}
-                  className={sharedBtnClass}
-                  style={{ ...sharedBtnStyle, background: 'var(--accent)', color: 'var(--accent-text)' }}
+                  className={[sharedBtnClass, '![background:var(--accent)] ![color:var(--accent-text)]'].join(' ')}
+                  style={{ ...sharedBtnStyle }}
                 >
                   <Upload size={14} strokeWidth={2.5} />
                   <span className="hidden sm:inline">{t('packing.import')}</span>
                 </button>
                 {canEditPacking && (
                   <button onClick={() => setShowBikepackModal(true)}
-                    className={sharedBtnClass}
-                    style={{ ...sharedBtnStyle, background: 'var(--bg-card)', color: '#0d9488', border: '1px solid #0d9488' }}
+                    className={[sharedBtnClass, '![background:var(--bg-card)] ![color:#0d9488] ![border:1px_solid_#0d9488]'].join(' ')}
+                    style={{ ...sharedBtnStyle }}
                     title="Importar perfil de equipaje desde Bikepack"
                   >
                     🚴 <span className="hidden sm:inline">Bikepack</span>
@@ -174,14 +156,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
           })()}
           {subTab === 'todo' && (
             <button onClick={() => setAddTodoSignal(s => s + 1)}
-              className="hover:opacity-[0.88]"
-              style={{
-                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-                marginLeft: 'auto',
-              }}
+              className="hover:opacity-[0.88] ![appearance:none] ![border:none] !cursor-pointer ![font-family:inherit] !inline-flex !items-center !gap-[6px] !p-[9px_14px] !rounded-[10px] !text-[length:13px] !font-[500] ![background:var(--accent)] ![color:var(--accent-text)] !shrink-[0] !ml-[auto]"
             >
               <Plus size={14} strokeWidth={2.5} />
               <span className="hidden sm:inline">{t('todo.addItem')}</span>
@@ -189,7 +164,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
           )}
         </div>
       </div>
-      <div style={{ padding: '16px 28px 0' }} className="max-md:!px-4">
+      <div className="max-md:!px-4 !p-[16px_28px_0]">
         {subTab === 'packing' && <PackingListPanel tripId={tripId} items={packingItems} openImportSignal={importPackingSignal} clearCheckedSignal={clearCheckedSignal} saveTemplateSignal={saveTemplateSignal} inlineHeader={false} />}
         {subTab === 'todo' && <TodoListPanel tripId={tripId} items={todoItems} addItemSignal={addTodoSignal} />}
       </div>
@@ -937,7 +912,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
             to { opacity: 1; transform: translateY(0); }
           }
         `}</style>
-        <div style={{ marginBottom: 28 }}>
+        <div className="!mb-[28px]">
           <img
             src={document.documentElement.classList.contains('dark') ? '/icons/trek-loading-light.gif' : '/icons/trek-loading-dark.gif'}
             alt="Loading"
@@ -945,18 +920,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
             height={64}
           />
         </div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.3px', marginBottom: 6, animation: 'fadeInUp 0.5s ease-out' }}>
+        <div className="!text-[length:20px] !font-[700] ![color:var(--text-primary)] !tracking-[-0.3px] !mb-[6px]" style={{ animation: 'fadeInUp 0.5s ease-out' }}>
           {trip?.title || 'TREK'}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', fontWeight: 500, letterSpacing: '2px', textTransform: 'uppercase', marginBottom: 32, animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
+        <div className="!text-[length:12px] ![color:var(--text-faint)] !font-[500] !tracking-[2px] !uppercase !mb-[32px]" style={{ animation: 'fadeInUp 0.5s ease-out 0.1s both' }}>
           {t('trip.loadingPhotos')}
         </div>
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div className="!flex !gap-[6px]">
           {[0, 1, 2].map(i => (
-            <div key={i} style={{
-              width: 8, height: 8, borderRadius: '50%', background: 'var(--text-muted)',
-              animation: `dotPulse 1.4s ease-in-out ${i * 0.2}s infinite`,
-            }} />
+            <div className="!w-[8px] !h-[8px] !rounded-[50%] ![background:var(--text-muted)]" key={i} style={{ animation: `dotPulse 1.4s ease-in-out ${i * 0.2}s infinite` }} />
           ))}
         </div>
       </div>
@@ -968,18 +940,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
     <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', ...fontStyle }}>
       <Navbar tripTitle={trip.title} tripId={tripId} showBack onBack={() => navigate('/dashboard')} onShare={() => setShowMembersModal(true)} />
 
-      <div style={{
-        position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, zIndex: 40,
-        display: 'flex', alignItems: 'center',
-        padding: '0 8px 0 12px',
-        background: 'var(--bg-elevated)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid var(--border-faint)',
-        height: 44,
-        gap: 8,
-      }}>
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
+      <div className="!fixed !top-[var(--nav-h)] !left-[0] !right-[0] !z-[40] !flex !items-center !p-[0_8px_0_12px] ![background:var(--bg-elevated)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] ![border-bottom:1px_solid_var(--border-faint)] !h-[44px] !gap-[8px]">
+        <div className="!flex-[1] !flex !justify-center !min-w-[0]">
           {(() => {
             // A phone holds about five: the rest go under «Más» (the active one always stays in view).
             const { visible, overflow } = isMobile
@@ -1001,7 +963,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 {overflow.length > 0 && (
                   <button
                     type="button"
-                    className="trek-hover"
+                    className="trek-hover !shrink-[0] !flex !items-center !justify-center !w-[34px] !h-[30px] !rounded-[15px] ![border:none] ![background:transparent] ![color:var(--text-muted)] !cursor-pointer"
                     aria-label={t('trip.tabs.more')}
                     aria-haspopup="menu"
                     title={t('trip.tabs.more')}
@@ -1011,7 +973,6 @@ export default function TripPlannerPage(): React.ReactElement | null {
                       const r = e.currentTarget.getBoundingClientRect()
                       openTabMenuAt({ x: r.right - 200, y: r.bottom + 6 }, overflow.map(tab => ({ label: tab.label, icon: tab.icon, onClick: () => handleTabChange(tab.id) })))
                     }}
-                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 30, borderRadius: 15, border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
                   >
                     <MoreHorizontal size={17} />
                   </button>
@@ -1022,22 +983,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
         </div>
         <ContextMenu menu={tabMenu} onClose={closeTabMenu} />
         {/* Navigate button — compact, always visible in trip context */}
-        <button
+        <button className="!shrink-[0] !flex !items-center !gap-[5px] !p-[5px_10px] !rounded-[8px] ![border:1px_solid_rgba(34,217,110,0.3)] ![background:rgba(34,217,110,0.1)] ![color:#22d96e] !cursor-pointer !text-[length:12px] !font-[700] !whitespace-nowrap"
           onClick={() => navigate(`/navigate?tripId=${tripId}`)}
           title={t('nav.navigateTitle')}
-          style={{
-            flexShrink: 0,
-            display: 'flex', alignItems: 'center', gap: 5,
-            padding: '5px 10px',
-            borderRadius: 8,
-            border: '1px solid rgba(34,217,110,0.3)',
-            background: 'rgba(34,217,110,0.1)',
-            color: '#22d96e',
-            cursor: 'pointer',
-            fontSize: 12,
-            fontWeight: 700,
-            whiteSpace: 'nowrap',
-          }}
         >
           <Navigation size={14} />
           <span className="hidden sm:inline">{t('nav.navigate')}</span>
@@ -1045,10 +993,10 @@ export default function TripPlannerPage(): React.ReactElement | null {
       </div>
 
       {/* Offset by navbar + tab bar (44px) */}
-      <div style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px)', left: 0, right: 0, bottom: 0, overflow: 'hidden', overscrollBehavior: 'contain' }}>
+      <div className="!fixed !top-[calc(var(--nav-h)_+_44px)] !left-[0] !right-[0] !bottom-[0] !overflow-hidden ![overscroll-behavior:contain]">
 
         {activeTab === 'plan' && (
-          <div style={{ position: 'absolute', inset: 0 }}>
+          <div className="!absolute !inset-[0]">
             <MapView
               places={mapPlaces}
               dayPlaces={dayPlaces}
@@ -1086,17 +1034,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
             {/* POI Explore pill — desktop only, floats below the tab bar */}
             {poiPillEnabled && (
-              <div className="hidden md:flex" style={{
-                position: 'absolute',
-                top: 10,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 20,
-                flexDirection: 'row',
-                alignItems: 'flex-start',
-                gap: 8,
-                pointerEvents: 'none',
-              }}>
+              <div className="hidden md:flex !absolute !top-[10px] !left-[50%] !z-[20] !flex-row !items-start !gap-[8px] !pointer-events-none" style={{ transform: 'translateX(-50%)' }}>
                 <PoiCategoryPill
                   active={poi.active}
                   onToggle={poi.toggle}
@@ -1109,30 +1047,13 @@ export default function TripPlannerPage(): React.ReactElement | null {
               </div>
             )}
 
-            <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button className={(!leftCollapsed) ? 'trek-hover-text' : undefined} onClick={() => setLeftCollapsed(c => !c)}
-                style={{
-                  position: leftCollapsed ? 'fixed' : 'absolute', top: leftCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, left: leftCollapsed ? 10 : undefined, right: leftCollapsed ? undefined : -28, zIndex: -1,
-                  width: 36, height: 36, borderRadius: leftCollapsed ? 10 : '0 10px 10px 0',
-                  background: leftCollapsed ? '#000' : 'var(--sidebar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: leftCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', border: 'none',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: leftCollapsed ? '#fff' : 'var(--text-faint)', transition: 'color 0.15s',
-                }}>
+            <div className="hidden md:block !absolute !left-[10px] !top-[10px] !bottom-[10px] !z-[20]">
+              <button className={[(!leftCollapsed) ? 'trek-hover-text' : undefined, '!z-[-1] !w-[36px] !h-[36px] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:none] !cursor-pointer !flex !items-center !justify-center ![transition:color_0.15s]'].join(' ')} onClick={() => setLeftCollapsed(c => !c)}
+                style={{ position: leftCollapsed ? 'fixed' : 'absolute', top: leftCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, left: leftCollapsed ? 10 : undefined, right: leftCollapsed ? undefined : -28, borderRadius: leftCollapsed ? 10 : '0 10px 10px 0', background: leftCollapsed ? '#000' : 'var(--sidebar-bg)', boxShadow: leftCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', color: leftCollapsed ? '#fff' : 'var(--text-faint)' }}>
                 {leftCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
               </button>
 
-              <div style={{
-                width: leftCollapsed ? 0 : leftWidth, height: '100%',
-                background: 'var(--sidebar-bg)',
-                backdropFilter: 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                boxShadow: leftCollapsed ? 'none' : 'var(--sidebar-shadow)',
-                borderRadius: 16,
-                overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
-                opacity: leftCollapsed ? 0 : 1,
-              }}>
+              <div className="!h-[100%] ![background:var(--sidebar-bg)] ![backdrop-filter:blur(24px)_saturate(180%)] ![-webkit-backdrop-filter:blur(24px)_saturate(180%)] !rounded-[16px] !overflow-hidden !flex !flex-col ![transition:width_0.25s_ease]" style={{ width: leftCollapsed ? 0 : leftWidth, boxShadow: leftCollapsed ? 'none' : 'var(--sidebar-shadow)', opacity: leftCollapsed ? 0 : 1 }}>
                 <DayPlanSidebar
                   tripId={tripId}
                   trip={trip}
@@ -1178,43 +1099,24 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   mapTileUrl={mapTileUrl}
                 />
                 {!leftCollapsed && (
-                  <div className="trek-hover-dim"
-                    onMouseDown={startResizeLeft}
-                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }} />
+                  <div className="trek-hover-dim !absolute !right-[0] !top-[0] !bottom-[0] !w-[4px] ![cursor:col-resize] ![background:transparent]"
+                    onMouseDown={startResizeLeft} />
                 )}
               </div>
             </div>
 
-            <div className="hidden md:block" style={{ position: 'absolute', right: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button className={(!rightCollapsed) ? 'trek-hover-text' : undefined} onClick={() => setRightCollapsed(c => !c)}
-                style={{
-                  position: rightCollapsed ? 'fixed' : 'absolute', top: rightCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, right: rightCollapsed ? 10 : undefined, left: rightCollapsed ? undefined : -28, zIndex: -1,
-                  width: 36, height: 36, borderRadius: rightCollapsed ? 10 : '10px 0 0 10px',
-                  background: rightCollapsed ? '#000' : 'var(--sidebar-bg)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-                  boxShadow: rightCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', border: 'none',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: rightCollapsed ? '#fff' : 'var(--text-faint)', transition: 'color 0.15s',
-                }}>
+            <div className="hidden md:block !absolute !right-[10px] !top-[10px] !bottom-[10px] !z-[20]">
+              <button className={[(!rightCollapsed) ? 'trek-hover-text' : undefined, '!z-[-1] !w-[36px] !h-[36px] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:none] !cursor-pointer !flex !items-center !justify-center ![transition:color_0.15s]'].join(' ')} onClick={() => setRightCollapsed(c => !c)}
+                style={{ position: rightCollapsed ? 'fixed' : 'absolute', top: rightCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, right: rightCollapsed ? 10 : undefined, left: rightCollapsed ? undefined : -28, borderRadius: rightCollapsed ? 10 : '10px 0 0 10px', background: rightCollapsed ? '#000' : 'var(--sidebar-bg)', boxShadow: rightCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', color: rightCollapsed ? '#fff' : 'var(--text-faint)' }}>
                 {rightCollapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
               </button>
 
-              <div style={{
-                width: rightCollapsed ? 0 : rightWidth, height: '100%',
-                background: 'var(--sidebar-bg)',
-                backdropFilter: 'blur(24px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-                boxShadow: rightCollapsed ? 'none' : 'var(--sidebar-shadow)',
-                borderRadius: 16,
-                overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
-                opacity: rightCollapsed ? 0 : 1,
-              }}>
+              <div className="!h-[100%] ![background:var(--sidebar-bg)] ![backdrop-filter:blur(24px)_saturate(180%)] ![-webkit-backdrop-filter:blur(24px)_saturate(180%)] !rounded-[16px] !overflow-hidden !flex !flex-col ![transition:width_0.25s_ease]" style={{ width: rightCollapsed ? 0 : rightWidth, boxShadow: rightCollapsed ? 'none' : 'var(--sidebar-shadow)', opacity: rightCollapsed ? 0 : 1 }}>
                 {!rightCollapsed && (
-                  <div className="trek-hover-dim"
-                    onMouseDown={startResizeRight}
-                    style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }} />
+                  <div className="trek-hover-dim !absolute !left-[0] !top-[0] !bottom-[0] !w-[4px] ![cursor:col-resize] ![background:transparent]"
+                    onMouseDown={startResizeRight} />
                 )}
-                <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingLeft: 4 }}>
+                <div className="!flex-[1] !overflow-hidden !flex !flex-col !pl-[4px]">
                   <PlacesSidebar
                     tripId={tripId}
                     places={places}
@@ -1239,13 +1141,11 @@ export default function TripPlannerPage(): React.ReactElement | null {
 
             {/* Mobile sidebar buttons — portal to body to escape Leaflet touch handling */}
             {activeTab === 'plan' && !mobileSidebarOpen && !showPlaceForm && !showMembersModal && !showReservationModal && ReactDOM.createPortal(
-              <div className="flex md:hidden" style={{ position: 'fixed', top: 'calc(var(--nav-h) + 44px + 12px)', left: 12, right: 12, justifyContent: 'space-between', zIndex: 100, pointerEvents: 'none' }}>
-                <button onClick={() => setMobileSidebarOpen('left')}
-                  style={{ pointerEvents: 'auto', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--glass-shadow)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+              <div className="flex md:hidden !fixed !top-[calc(var(--nav-h)_+_44px_+_12px)] !left-[12px] !right-[12px] !justify-between !z-[100] !pointer-events-none">
+                <button className="!pointer-events-auto ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![color:var(--text-primary)] ![border:1px_solid_var(--glass-border)] !rounded-[24px] !p-[11px_24px] !text-[length:15px] !font-[600] !cursor-pointer ![box-shadow:var(--glass-shadow)] !min-h-[44px] ![font-family:inherit] ![touch-action:manipulation]" onClick={() => setMobileSidebarOpen('left')}>
                   {t('trip.mobilePlan')}
                 </button>
-                <button onClick={() => setMobileSidebarOpen('right')}
-                  style={{ pointerEvents: 'auto', background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', color: 'var(--text-primary)', border: '1px solid var(--glass-border)', borderRadius: 24, padding: '11px 24px', fontSize: 15, fontWeight: 600, cursor: 'pointer', boxShadow: 'var(--glass-shadow)', minHeight: 44, fontFamily: 'inherit', touchAction: 'manipulation' }}>
+                <button className="!pointer-events-auto ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![color:var(--text-primary)] ![border:1px_solid_var(--glass-border)] !rounded-[24px] !p-[11px_24px] !text-[length:15px] !font-[600] !cursor-pointer ![box-shadow:var(--glass-shadow)] !min-h-[44px] ![font-family:inherit] ![touch-action:manipulation]" onClick={() => setMobileSidebarOpen('right')}>
                   {t('trip.mobilePlaces')}
                 </button>
               </div>,
@@ -1325,8 +1225,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             {selectedPlace && isMobile && ReactDOM.createPortal(
-              <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', background: 'rgba(0,0,0,0.3)', paddingBottom: 'var(--bottom-nav-h)' }} onClick={() => setSelectedPlaceId(null)}>
-                <div style={{ width: '100%', maxHeight: '85vh' }} onClick={e => e.stopPropagation()}>
+              <div className="!fixed !inset-[0] !z-[9999] !flex !items-end !justify-center ![background:rgba(0,0,0,0.3)] !pb-[var(--bottom-nav-h)]" onClick={() => setSelectedPlaceId(null)}>
+                <div className="!w-[100%] !max-h-[85vh]" onClick={e => e.stopPropagation()}>
                   <PlaceInspector
                     place={selectedPlace}
                     categories={categories}
@@ -1377,33 +1277,19 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             {mobileSidebarOpen && ReactDOM.createPortal(
-              <div
-                style={{
-                  position: 'fixed', inset: 0, zIndex: 9999,
-                  background: 'var(--modal-backdrop)',
-                  backdropFilter: 'blur(12px) saturate(150%)',
-                  WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-                }}
+              <div className="!fixed !inset-[0] !z-[9999] ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]"
                 onClick={() => setMobileSidebarOpen(null)}
               >
-                <div
-                  style={{
-                    position: 'absolute', top: 'var(--nav-h)', left: 0, right: 0, bottom: 0,
-                    background: 'var(--modal-bg)',
-                    backdropFilter: 'var(--glass-blur-lg)',
-                    WebkitBackdropFilter: 'var(--glass-blur-lg)',
-                    borderTop: '1px solid var(--modal-border)',
-                    display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                  }}
+                <div className="!absolute !top-[var(--nav-h)] !left-[0] !right-[0] !bottom-[0] ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border-top:1px_solid_var(--modal-border)] !flex !flex-col !overflow-hidden"
                   onClick={e => e.stopPropagation()}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid var(--border-secondary)' }}>
-                    <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
-                    <button onClick={() => setMobileSidebarOpen(null)} style={{ background: 'var(--bg-tertiary)', border: 'none', borderRadius: '50%', width: 28, height: 28, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>
+                  <div className="!flex !items-center !justify-between !p-[14px_16px] ![border-bottom:1px_solid_var(--border-secondary)]">
+                    <span className="!font-[600] !text-[length:14px] ![color:var(--text-primary)]">{mobileSidebarOpen === 'left' ? t('trip.mobilePlan') : t('trip.mobilePlaces')}</span>
+                    <button className="![background:var(--bg-tertiary)] ![border:none] !rounded-[50%] !w-[28px] !h-[28px] !cursor-pointer !flex !items-center !justify-center ![color:var(--text-primary)]" onClick={() => setMobileSidebarOpen(null)}>
                       <X size={14} />
                     </button>
                   </div>
-                  <div style={{ flex: 1, overflow: 'auto' }}>
+                  <div className="!flex-[1] !overflow-auto">
                     {mobileSidebarOpen === 'left'
                       ? <DayPlanSidebar tripId={tripId} trip={trip} days={days} places={places} categories={categories} assignments={assignments} selectedDayId={selectedDayId} selectedPlaceId={selectedPlaceId} selectedAssignmentId={selectedAssignmentId} onSelectDay={(id) => { handleSelectDay(id); setMobileSidebarOpen(null) }} onRemoveAssignment={handleRemoveAssignment} onEditPlace={(place, assignmentId) => { setEditingPlace(place); setEditingAssignmentId(assignmentId || null); setShowPlaceForm(true); setMobileSidebarOpen(null) }} onDeletePlace={(placeId) => handleDeletePlace(placeId)} onPlaceClick={(placeId, assignmentId) => { handlePlaceClick(placeId, assignmentId) }} onReorder={handleReorder} onReorderDays={handleReorderDays} onAddDay={handleAddDay} onUpdateDayTitle={handleUpdateDayTitle} onAssignToDay={handleAssignToDay} onRouteCalculated={(r) => { if (r) { setRoute([r.coordinates]); setRouteInfo({ distance: r.distanceText, duration: r.durationText }) } }} reservations={reservations} visibleConnectionIds={visibleConnections} onToggleConnection={toggleConnection} onAddReservation={(dayId) => { setEditingReservation(null); tripActions.setSelectedDay(dayId); setShowReservationModal(true); setMobileSidebarOpen(null) }} onAddPlace={() => { setEditingPlace(null); setShowPlaceForm(true); setMobileSidebarOpen(null) }} onNewPlaceForDay={can('place_edit', trip) ? (dayId) => { setEditingPlace(null); setNewPlaceDayId(dayId); setShowPlaceForm(true); setMobileSidebarOpen(null) } : undefined} onAddAccommodation={can('reservation_edit', trip) ? (dayId) => { setEditingReservation(null); tripActions.setSelectedDay(dayId); setReservationDefaultType('hotel'); setShowReservationModal(true); setMobileSidebarOpen(null) } : undefined} onDayDetail={(day) => { setShowDayDetail(day); setSelectedPlaceId(null); selectAssignment(null) }} accommodations={tripAccommodations} onNavigateToFiles={() => { setMobileSidebarOpen(null); handleTabChange('dateien') }} onExpandedDaysChange={setExpandedDayIds} pushUndo={pushUndo} canUndo={canUndo} lastActionLabel={lastActionLabel} onUndo={handleUndo} onEditTransport={can('day_edit', trip) ? (reservation) => { setEditingTransport(reservation); setTransportModalDayId(reservation.day_id ?? null); setShowTransportModal(true); setMobileSidebarOpen(null) } : undefined} onEditReservation={can('reservation_edit', trip) ? (r) => { setEditingReservation(r); setShowReservationModal(true); setMobileSidebarOpen(null) } : undefined} initialScrollTop={mobilePlanScrollTopRef.current} onScrollTopChange={(top) => { mobilePlanScrollTopRef.current = top }} mapTileUrl={mapTileUrl} />
                       : <PlacesSidebar tripId={tripId} places={places} categories={categories} assignments={assignments} selectedDayId={selectedDayId} selectedPlaceId={selectedPlaceId} onPlaceClick={(placeId) => { handlePlaceClick(placeId); setMobileSidebarOpen(null) }} onAddPlace={() => { setEditingPlace(null); setShowPlaceForm(true); setMobileSidebarOpen(null) }} onAssignToDay={handleAssignToDay} onEditPlace={(place) => { setEditingPlace(place); setEditingAssignmentId(null); setShowPlaceForm(true); setMobileSidebarOpen(null) }} onDeletePlace={(placeId) => handleDeletePlace(placeId)} onBulkDeletePlaces={(ids) => setDeletePlaceIds(ids)} onBulkDeleteConfirm={(ids) => confirmDeletePlaces(ids)} days={days} isMobile onCategoryFilterChange={setMapCategoryFilter} onPlacesFilterChange={setMapPlacesFilter} pushUndo={pushUndo} initialScrollTop={mobilePlacesScrollTopRef.current} onScrollTopChange={(top) => { mobilePlacesScrollTopRef.current = top }} />
@@ -1417,7 +1303,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'transports' && (
-          <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div className="!h-[100%] !w-[100%] !flex !flex-col !overflow-y-auto ![overscroll-behavior:contain] !pb-[var(--bottom-nav-h)]">
             <ReservationsPanel
               tripId={tripId}
               reservations={reservations.filter(r => TRANSPORT_TYPES.has(r.type))}
@@ -1437,7 +1323,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'buchungen' && (
-          <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', overflowY: 'auto', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div className="!h-[100%] !w-[100%] !flex !flex-col !overflow-y-auto ![overscroll-behavior:contain] !pb-[var(--bottom-nav-h)]">
             <ReservationsPanel
               tripId={tripId}
               reservations={reservations.filter(r => !TRANSPORT_TYPES.has(r.type))}
@@ -1458,19 +1344,19 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'listen' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div className="!h-[100%] !overflow-y-auto ![overscroll-behavior:contain] !w-[100%] !pb-[var(--bottom-nav-h)]">
             <ListsContainer tripId={tripId} packingItems={packingItems} todoItems={todoItems} />
           </div>
         )}
 
         {activeTab === 'finanzplan' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div className="!h-[100%] !overflow-y-auto ![overscroll-behavior:contain] !w-[100%] !pb-[var(--bottom-nav-h)]">
             <CostsPanel tripId={tripId} tripMembers={tripMembers} />
           </div>
         )}
 
         {activeTab === 'dateien' && (
-          <div style={{ height: '100%', overflow: 'hidden', overscrollBehavior: 'contain', paddingBottom: 'var(--bottom-nav-h)' }}>
+          <div className="!h-[100%] !overflow-hidden ![overscroll-behavior:contain] !pb-[var(--bottom-nav-h)]">
             <FileManager
               files={files || []}
               onUpload={(fd) => tripActions.addFile(tripId, fd)}
@@ -1491,32 +1377,24 @@ export default function TripPlannerPage(): React.ReactElement | null {
         )}
 
         {activeTab === 'collab' && (
-          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 'var(--bottom-nav-h)', overflow: 'hidden' }}>
+          <div className="!absolute !top-[0] !left-[0] !right-[0] !bottom-[var(--bottom-nav-h)] !overflow-hidden">
             <CollabPanel tripId={tripId} tripMembers={tripMembers} collabFeatures={collabFeatures} />
           </div>
         )}
 
         {activeTab === 'gpx' && (
-          <div style={{ height: '100%', overflowY: 'auto', overscrollBehavior: 'contain', width: '100%', paddingBottom: 'var(--bottom-nav-h)' }}>
-            <div style={{ padding: '20px 28px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 16 }} className="max-md:!px-4 max-md:!pt-4">
-              <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+          <div className="!h-[100%] !overflow-y-auto ![overscroll-behavior:contain] !w-[100%] !pb-[var(--bottom-nav-h)]">
+            <div className="max-md:!px-4 max-md:!pt-4 !p-[20px_28px_0] !flex !items-center !justify-between !gap-[12px] !mb-[16px]">
+              <h2 className="!m-[0] !text-[length:15px] !font-[600] ![color:var(--text-primary)] !tracking-[-0.01em]">
                 {t('trip.tabs.tracksTitle')}
               </h2>
-              <button className="trek-h-background-2e6b9b"
-                onClick={() => navigate(`/navigate?tripId=${tripId}`)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7,
-                  padding: '7px 14px', borderRadius: 10,
-                  background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)',
-                  color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'inherit', transition: 'background 0.15s',
-                  flexShrink: 0,
-                }} >
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
+              <button className="trek-h-background-2e6b9b !flex !items-center !gap-[7px] !p-[7px_14px] !rounded-[10px] ![background:rgba(239,68,68,0.12)] ![border:1px_solid_rgba(239,68,68,0.25)] ![color:#ef4444] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:background_0.15s] !shrink-[0]"
+                onClick={() => navigate(`/navigate?tripId=${tripId}`)} >
+                <span className="!w-[8px] !h-[8px] !rounded-[50%] ![background:#ef4444] !inline-block !shrink-[0]" />
                 Grabar ruta
               </button>
             </div>
-            <div style={{ padding: '0 28px 28px' }} className="max-md:!px-4">
+            <div className="max-md:!px-4 !p-[0_28px_28px]">
               <GpxManager
                 tripId={tripId}
                 onTracksChange={(tracks) => {
@@ -1534,8 +1412,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
               />
               {/* El perfil y el IBP de cada track, antes en su propia pestaña. */}
               {gpxTracksWithPoints.length > 0 && (
-                <div style={{ marginTop: 24 }}>
-                  <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t('trip.tracks.elevationTitle')}</h3>
+                <div className="!mt-[24px]">
+                  <h3 className="!m-[0_0_12px] !text-[length:15px] !font-[600] ![color:var(--text-primary)]">{t('trip.tracks.elevationTitle')}</h3>
                   <ElevationDetail
                     tracks={gpxTracksWithPoints}
                     tripId={tripId ? Number(tripId) : undefined}

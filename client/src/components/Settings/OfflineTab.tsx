@@ -79,41 +79,29 @@ export default function OfflineTab(): React.ReactElement {
 
   return (
     <Section title="Offline Cache" icon={Database}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div className="!flex !flex-col !gap-[20px]">
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+        <div className="!flex !gap-[12px] !flex-wrap">
           <Stat label="Cached trips" value={rows.length} />
           <Stat label="Pending changes" value={pendingCount} />
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button
+        <div className="!flex !gap-[8px]">
+          <button className="!flex !items-center !gap-[6px] !p-[8px_14px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] ![color:var(--text-primary)] !text-[length:13px] !font-[500]"
             onClick={handleResync}
             disabled={syncing || !navigator.onLine}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-              borderRadius: 8, border: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)', color: 'var(--text-primary)',
-              cursor: syncing || !navigator.onLine ? 'not-allowed' : 'pointer',
-              fontSize: 13, fontWeight: 500, opacity: !navigator.onLine ? 0.5 : 1,
-            }}
+            style={{ cursor: syncing || !navigator.onLine ? 'not-allowed' : 'pointer', opacity: !navigator.onLine ? 0.5 : 1 }}
           >
             <RefreshCw size={14} style={syncing ? { animation: 'spin 1s linear infinite' } : {}} />
             {syncing ? 'Syncing…' : 'Re-sync now'}
           </button>
 
-          <button
+          <button className="!flex !items-center !gap-[6px] !p-[8px_14px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] ![color:#ef4444] !text-[length:13px] !font-[500]"
             onClick={handleClear}
             disabled={clearing || rows.length === 0}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px',
-              borderRadius: 8, border: '1px solid var(--border-primary)',
-              background: 'var(--bg-secondary)', color: '#ef4444',
-              cursor: clearing || rows.length === 0 ? 'not-allowed' : 'pointer',
-              fontSize: 13, fontWeight: 500, opacity: rows.length === 0 ? 0.5 : 1,
-            }}
+            style={{ cursor: clearing || rows.length === 0 ? 'not-allowed' : 'pointer', opacity: rows.length === 0 ? 0.5 : 1 }}
           >
             <Trash2 size={14} />
             Clear cache
@@ -122,35 +110,29 @@ export default function OfflineTab(): React.ReactElement {
 
         {/* Cached trip list */}
         {loading ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading…</p>
+          <p className="![color:var(--text-muted)] !text-[length:13px]">Loading…</p>
         ) : rows.length === 0 ? (
-          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>
+          <p className="![color:var(--text-muted)] !text-[length:13px]">
             No trips cached yet. Connect to internet to sync.
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="!flex !flex-col !gap-[8px]">
             {rows.map(({ trip, meta, placeCount, fileCount }) => (
-              <div
+              <div className="!p-[10px_14px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] !flex !flex-col !gap-[2px]"
                 key={trip.id}
-                style={{
-                  padding: '10px 14px', borderRadius: 8,
-                  border: '1px solid var(--border-primary)',
-                  background: 'var(--bg-secondary)',
-                  display: 'flex', flexDirection: 'column', gap: 2,
-                }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>
+                <div className="!flex !justify-between !items-center">
+                  <span className="!font-[600] !text-[length:14px] ![color:var(--text-primary)]">
                     {trip.title}
                   </span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                  <span className="!text-[length:11px] ![color:var(--text-muted)]">
                     <Wifi size={10} style={{ display: 'inline', marginRight: 3 }} />
                     {meta.lastSyncedAt
                       ? new Date(meta.lastSyncedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
                       : '—'}
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <span className="!text-[length:12px] ![color:var(--text-muted)]">
                   {formatDate(trip.start_date)} – {formatDate(trip.end_date)}
                   {' · '}
                   {placeCount} place{placeCount !== 1 ? 's' : ''}
@@ -168,13 +150,9 @@ export default function OfflineTab(): React.ReactElement {
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div style={{
-      padding: '8px 14px', borderRadius: 8,
-      border: '1px solid var(--border-primary)',
-      background: 'var(--bg-secondary)', minWidth: 100,
-    }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>{value}</div>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{label}</div>
+    <div className="!p-[8px_14px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] !min-w-[100px]">
+      <div className="!text-[length:20px] !font-[700] ![color:var(--text-primary)]">{value}</div>
+      <div className="!text-[length:11px] ![color:var(--text-muted)]">{label}</div>
     </div>
   )
 }

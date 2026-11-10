@@ -518,9 +518,9 @@ export default function JourneyDetailPage() {
 
   if (loading || !current) {
     return (
-      <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
         <Navbar />
-        <div style={{ paddingTop: 'var(--nav-h, 0px)' }} className="flex justify-center py-20">
+        <div className="flex justify-center py-20 !pt-[var(--nav-h,_0px)]">
           <div className="w-6 h-6 border-2 border-zinc-300 border-t-zinc-900 rounded-full animate-spin" />
         </div>
       </div>
@@ -557,7 +557,7 @@ export default function JourneyDetailPage() {
   const isMobileChromeless = showMobileCombined || showMobileGallery
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar />
 
       {/* Mobile combined map+timeline (Polarsteps-style) — renders as fullscreen overlay */}
@@ -594,35 +594,19 @@ export default function JourneyDetailPage() {
       {/* Floating top bar on mobile Journey + Gallery views: back | tabs+title | settings */}
       {isMobileChromeless && (
         <div
-          className="fixed left-0 right-0 z-30 flex items-start justify-between gap-2 px-4"
-          style={{ top: 'calc(var(--nav-h, 56px) + 12px)' }}
+          className="fixed left-0 right-0 z-30 flex items-start justify-between gap-2 px-4 !top-[calc(var(--nav-h,_56px)_+_12px)]"
         >
           <button
             onClick={() => navigate('/journey')}
             aria-label={t('journey.detail.backToJourney')}
-            className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform"
-            style={{
-              background: 'var(--glass-bg)',
-              backdropFilter: 'var(--glass-blur)',
-              WebkitBackdropFilter: 'var(--glass-blur)',
-              border: '1px solid var(--glass-border)',
-              boxShadow: 'var(--glass-shadow)',
-              color: 'var(--text-secondary)',
-            }}
+            className="w-10 h-10 flex-shrink-0 rounded-xl flex items-center justify-center active:scale-95 transition-transform ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)] ![color:var(--text-secondary)]"
           >
             <ArrowLeft size={16} />
           </button>
 
           <div className="flex-1 min-w-0 flex justify-center">
             <div
-              className="flex rounded-xl overflow-hidden"
-              style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'var(--glass-blur)',
-                WebkitBackdropFilter: 'var(--glass-blur)',
-                border: '1px solid var(--glass-border)',
-                boxShadow: 'var(--glass-shadow)',
-              }}
+              className="flex rounded-xl overflow-hidden ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)]"
             >
               <button
                 onClick={() => setView('timeline')}
@@ -678,7 +662,7 @@ export default function JourneyDetailPage() {
         </div>
       )}
 
-      <div style={{ paddingTop: 'var(--nav-h, 0px)' }} className={showMobileCombined ? 'hidden' : ''}>
+      <div className={[showMobileCombined ? 'hidden' : '', '!pt-[var(--nav-h,_0px)]'].join(' ')}>
         <div
           className={
             isMobile
@@ -700,14 +684,14 @@ export default function JourneyDetailPage() {
 
           {/* Hero card — hidden on mobile gallery/journey views (floating top bar handles branding there) */}
           <div className={`px-4 md:px-0 mb-6 ${isMobileChromeless ? 'hidden' : ''}`}>
-            <div className="rounded-none md:rounded-2xl -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7 trek-gradient" style={{ background: pickGradient(current.id), color: 'white' }}>
+            <div className="rounded-none md:rounded-2xl -mx-4 md:mx-0 overflow-hidden relative p-5 md:p-7 trek-gradient ![color:white]" style={{ background: pickGradient(current.id) }}>
                 {current.cover_image && (
                   <div className="absolute inset-0 z-[1]">
                     <img src={`/uploads/${current.cover_image}`} className="w-full h-full object-cover" alt="" />
                     <div className="absolute inset-0 trek-gradient" style={{ background: pickGradient(current.id), opacity: 0.55 }} />
                   </div>
                 )}
-                <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2]" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(236,72,153,0.3), transparent 50%), radial-gradient(circle at 80% 80%, rgba(99,102,241,0.3), transparent 50%)' }} />
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2] ![background:radial-gradient(circle_at_20%_20%,_rgba(236,72,153,0.3),_transparent_50%),_radial-gradient(circle_at_80%_80%,_rgba(99,102,241,0.3),_transparent_50%)]" />
 
                 <div className="relative z-[3] flex items-center justify-between mb-5">
                   <div className="flex items-center gap-2">
@@ -1728,7 +1712,7 @@ function EntryCard({ entry, readOnly, onEdit, onDelete, onPhotoClick }: {
         <div className="relative">
           <PhotoGrid photos={photos} onClick={(idx) => onPhotoClick(photos, idx)} />
           {/* Gradient overlay for title */}
-          <div className="absolute inset-x-0 bottom-0 pointer-events-none" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)', height: '60%' }} />
+          <div className="absolute inset-x-0 bottom-0 pointer-events-none ![background:linear-gradient(to_top,_rgba(0,0,0,0.55)_0%,_rgba(0,0,0,0.2)_50%,_transparent_100%)] !h-[60%]" />
 
           {/* Badges top-left */}
           <div className="absolute top-3 left-4 right-14 flex items-center gap-1.5 z-[2]">
@@ -1909,11 +1893,11 @@ function PhotoGrid({ photos, onClick }: { photos: JourneyPhoto[]; onClick: (idx:
   }
 
   return (
-    <div className="overflow-hidden flex" style={{ height: 300, gap: 2 }}>
+    <div className="overflow-hidden flex !h-[300px] !gap-[2px]">
       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onClick(0)}>
         <PhotoImg photo={photos[0]} className="w-full h-full object-contain bg-zinc-100 dark:bg-zinc-800" />
       </div>
-      <div className="flex-1 min-w-0 flex flex-col" style={{ gap: 2 }}>
+      <div className="flex-1 min-w-0 flex flex-col !gap-[2px]">
         <div className="flex-1 min-h-0 cursor-pointer" onClick={() => onClick(1)}>
           <PhotoImg photo={photos[1]} className="w-full h-full object-contain bg-zinc-100 dark:bg-zinc-800" />
         </div>
@@ -2128,7 +2112,7 @@ function EntryEditor({ entry, journeyId, tripDates, plannerNotes = {}, galleryPh
   }
 
   return (
-    <div className="fixed inset-0 z-[9999]" style={{ background: 'rgba(9,9,11,0.6)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}>
+    <div className="fixed inset-0 z-[9999] ![background:rgba(9,9,11,0.6)] ![backdrop-filter:blur(6px)] ![-webkit-backdrop-filter:blur(6px)]">
       {/* The modal itself is constrained to the feed column on desktop so it
           centers there — but the backdrop stays full-width (covering the map
           too) for a uniform dim/blur across the whole page. */}
@@ -2136,7 +2120,7 @@ function EntryEditor({ entry, journeyId, tripDates, plannerNotes = {}, galleryPh
         className="absolute top-0 bottom-0 left-0 flex items-end sm:items-center sm:justify-center sm:p-5"
         style={{ right: isMobile ? 0 : 'clamp(420px, 44vw, 760px)' }}
       >
-        <div className="bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[640px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh]" style={{ paddingBottom: 'var(--bottom-nav-h)' }}>
+        <div className="bg-white dark:bg-zinc-900 sm:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] sm:max-w-[640px] w-full flex flex-col overflow-hidden h-full sm:h-auto sm:max-h-[90vh] !pb-[var(--bottom-nav-h)]">
 
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
@@ -2211,8 +2195,7 @@ function EntryEditor({ entry, journeyId, tripDates, plannerNotes = {}, galleryPh
                                 setPhotos(prev => [...prev, gp])
                               }
                             }}
-                            className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all"
-                            style={{ paddingTop: '100%' }}
+                            className="relative w-full rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-zinc-900 dark:hover:ring-white hover:ring-offset-1 dark:hover:ring-offset-zinc-900 transition-all !pt-[100%]"
                           >
                             <img src={photoUrl(gp)} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" onError={e => { const img = e.currentTarget; const orig = photoUrl(gp, 'original'); if (!img.src.includes('/original')) img.src = orig }} />
                           </div>
@@ -2528,7 +2511,7 @@ function EntryEditor({ entry, journeyId, tripDates, plannerNotes = {}, galleryPh
         </div>
 
 
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50" style={{ paddingBottom: 'max(16px, env(safe-area-inset-bottom, 16px))' }}>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/50 !pb-[max(16px,_env(safe-area-inset-bottom,_16px))]">
           <button onClick={handleClose} className="px-3.5 py-2 rounded-lg border border-zinc-200 dark:border-zinc-600 text-[13px] font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700">{t('common.cancel')}</button>
           <button onClick={handleSave} disabled={saving} className="px-3.5 py-2 rounded-lg bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 text-[13px] font-medium hover:bg-zinc-800 dark:hover:bg-zinc-100 disabled:opacity-50">
             {saving ? t('common.saving') : t('common.save')}
@@ -2583,7 +2566,7 @@ function AddTripDialog({ journeyId, existingTripIds, onClose, onAdded }: {
   // the dialog was centred on the settings panel, not the screen, and
   // focusing its field scrolled that panel ("the screen goes off").
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
+    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto ![background:rgba(9,9,11,0.75)]">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
@@ -2685,7 +2668,7 @@ function ContributorInviteDialog({ journeyId, existingUserIds, onClose, onInvite
   // the dialog was centred on the settings panel, not the screen, and
   // focusing its field scrolled that panel ("the screen goes off").
   return createPortal(
-    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto" style={{ background: 'rgba(9,9,11,0.75)' }}>
+    <div className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto ![background:rgba(9,9,11,0.75)]">
       <div className="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[420px] w-full flex flex-col overflow-hidden max-h-[calc(100dvh-2.5rem)]">
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700 flex-shrink-0">
@@ -3013,8 +2996,8 @@ function JourneySettingsDialog({ journey, onClose, onSaved, onOpenInvite, onRefr
   }
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none" style={{ background: 'rgba(9,9,11,0.75)' }} onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
-      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[480px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-5 overscroll-none ![background:rgba(9,9,11,0.75)]" onClick={handleClose} onTouchMove={e => { if (e.target === e.currentTarget) e.preventDefault() }}>
+      <div className="bg-white dark:bg-zinc-900 rounded-t-2xl md:rounded-2xl shadow-[0_20px_40px_rgba(0,0,0,0.2)] max-w-[480px] w-full max-h-[85vh] md:max-h-[90vh] flex flex-col overflow-hidden !pb-[env(safe-area-inset-bottom,_0px)]" onClick={e => e.stopPropagation()}>
 
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 dark:border-zinc-700">
           <h2 className="text-[16px] font-bold text-zinc-900 dark:text-white">{t('journey.settings.title')}</h2>

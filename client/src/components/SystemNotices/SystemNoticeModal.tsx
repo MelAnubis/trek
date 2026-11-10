@@ -71,7 +71,7 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
     : DefaultIcon;
 
   return (
-    <div className="flex flex-col relative" style={{ flex: '1 1 0', minHeight: '100%' }}>
+    <div className="flex flex-col relative !flex-[1_1_0] !min-h-[100%]">
       {/* Dismiss X button — only on last page so users read all notices */}
       {notice.dismissible && isLastPage && (
         <button
@@ -84,7 +84,7 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
       )}
 
       {/* Scrollable content — vertically centered when shorter than available space */}
-      <div className="flex flex-col justify-center" style={{ flex: '1 1 0' }}>
+      <div className="flex flex-col justify-center !flex-[1_1_0]">
         {/* Hero image (not inline) */}
         {notice.media && notice.media.placement !== 'inline' && (
           <div
@@ -105,7 +105,7 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
         {/* Special warm header for Heart icon (thank-you notice) */}
         {notice.icon === 'Heart' && !notice.media && (
           <div className="relative overflow-hidden bg-gradient-to-br from-rose-500 via-pink-500 to-indigo-500 px-8 py-5 text-center">
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px), radial-gradient(circle at 60% 80%, white 1px, transparent 1px)', backgroundSize: '60px 60px, 80px 80px, 40px 40px' }} />
+            <div className="absolute inset-0 opacity-10 ![background-image:radial-gradient(circle_at_20%_50%,_white_1px,_transparent_1px),_radial-gradient(circle_at_80%_20%,_white_1px,_transparent_1px),_radial-gradient(circle_at_60%_80%,_white_1px,_transparent_1px)] ![background-size:60px_60px,_80px_80px,_40px_40px]" />
             <div className="relative flex items-center justify-center gap-3">
               <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/10">
                 <LucideIcon size={20} className="text-white" />
@@ -221,14 +221,7 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
 
       {/* Sticky footer — pager + CTA, always anchored at the bottom of the slot */}
       <div
-        className="sticky bottom-0 px-8 pt-4 flex flex-col gap-3"
-        style={{
-          background: 'var(--modal-bg)',
-          backdropFilter: 'var(--glass-blur)',
-          WebkitBackdropFilter: 'var(--glass-blur)',
-          borderTop: '1px solid var(--modal-border)',
-          paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)',
-        }}
+        className="sticky bottom-0 px-8 pt-4 flex flex-col gap-3 ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border-top:1px_solid_var(--modal-border)] !pb-[calc(var(--bottom-nav-h)_+_1rem)]"
       >
         {/* Pager — dots, arrows, counter (only when multiple notices) */}
         {total > 1 && (
@@ -652,12 +645,7 @@ export function ModalRenderer({ notices }: Props) {
         <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{pageAnnouncement}</span>
         {/* Backdrop */}
         <div
-          className={`absolute inset-0 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
-          style={{
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-          }}
+          className={`absolute inset-0 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'} ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]`}
           onClick={notice.dismissible ? animatedDismissAll : undefined}
         />
         {/* Bottom sheet */}
@@ -794,7 +782,7 @@ export function ModalRenderer({ notices }: Props) {
             <div className="w-9 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
           </div>
           {/* Clip container — fills remaining sheet height, hides adjacent slots */}
-          <div style={{ flex: '1 1 0', minHeight: 0, overflow: 'hidden', width: '100%' }}>
+          <div className="!flex-[1_1_0] !min-h-[0] !w-[100%]" style={{ overflow: 'hidden' }}>
             {/* 3-slot strip: [prev][current][next] — starts at -33.333% to show current */}
             <div
               ref={stripRef}
@@ -824,12 +812,7 @@ export function ModalRenderer({ notices }: Props) {
 
   return (
     <div
-      className={`fixed inset-0 z-50 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'}`}
-      style={{
-        background: 'var(--modal-backdrop)',
-        backdropFilter: 'blur(12px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-      }}
+      className={`fixed inset-0 z-50 transition-opacity ${dur} ${ease} ${visible ? 'opacity-100' : 'opacity-0'} ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]`}
       role="presentation"
       onClick={notice.dismissible && isLastPage ? handleDismissAll : undefined}
     >
@@ -841,14 +824,7 @@ export function ModalRenderer({ notices }: Props) {
           aria-modal="true"
           aria-labelledby={titleId}
           aria-describedby={bodyId}
-          className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] transition-all ${dur} ${ease} ${desktopMotion}`}
-          style={{
-            background: 'var(--modal-bg)',
-            backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)',
-            border: '1px solid var(--modal-border)',
-            boxShadow: 'var(--modal-shadow)',
-          }}
+          className={`w-full ${maxWidth} rounded-2xl overflow-hidden overflow-y-auto max-h-[90vh] transition-all ${dur} ${ease} ${desktopMotion} ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)]`}
           onClick={e => e.stopPropagation()}
         >
           <div ref={contentWrapperRef}>

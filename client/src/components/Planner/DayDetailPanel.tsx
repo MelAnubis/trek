@@ -178,69 +178,61 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
   return (
     <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: `calc(${leftWidth}px + (100vw - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100vw - ${leftWidth}px - ${rightWidth}px - 32px))`, ...(mobile ? { zIndex: 10000 } : null), ...font }}>
-      <div style={{
-        background: 'var(--bg-elevated)',
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-        borderRadius: 20,
-        boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)',
-        overflow: 'hidden', maxHeight: collapsed ? 'none' : '60vh', display: 'flex', flexDirection: 'column',
-      }}>
+      <div className="![background:var(--bg-elevated)] ![backdrop-filter:blur(40px)_saturate(180%)] ![-webkit-backdrop-filter:blur(40px)_saturate(180%)] !rounded-[20px] ![box-shadow:0_8px_40px_rgba(0,0,0,0.14),_0_0_0_1px_rgba(0,0,0,0.06)] !overflow-hidden !flex !flex-col" style={{ maxHeight: collapsed ? 'none' : '60vh' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: collapsed ? '12px 16px 12px 20px' : '18px 16px 14px 20px', borderBottom: collapsed ? 'none' : '1px solid var(--border-faint)', cursor: 'pointer' }}
+        <div className="!flex !items-center !gap-[14px] !cursor-pointer" style={{ padding: collapsed ? '12px 16px 12px 20px' : '18px 16px 14px 20px', borderBottom: collapsed ? 'none' : '1px solid var(--border-faint)' }}
           onClick={() => toggleCollapse()}>
-          <div style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44, borderRadius: 12, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s ease' }}>
+          <div className="!rounded-[12px] ![background:var(--bg-secondary)] !flex !items-center !justify-center !shrink-[0] ![transition:all_0.15s_ease]" style={{ width: collapsed ? 36 : 44, height: collapsed ? 36 : 44 }}>
             <Calendar size={collapsed ? 16 : 20} style={{ color: 'var(--text-primary)' }} />
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700, color: 'var(--text-primary)', transition: 'font-size 0.15s ease' }}>
+          <div className="!flex-[1] !min-w-[0]">
+            <div className="![color:var(--text-primary)] ![transition:font-size_0.15s_ease]" style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700 }}>
               {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
-              {collapsed && formattedDate && <span style={{ fontWeight: 500, color: 'var(--text-muted)', marginLeft: 8 }}>{formattedDate}</span>}
+              {collapsed && formattedDate && <span className="!font-[500] ![color:var(--text-muted)] !ml-[8px]">{formattedDate}</span>}
             </div>
-            {!collapsed && formattedDate && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{formattedDate}</div>}
+            {!collapsed && formattedDate && <div className="!text-[length:12px] ![color:var(--text-muted)] !mt-[1px]">{formattedDate}</div>}
           </div>
-          <button className="trek-hover" onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}
-            style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s ease' }}>
+          <button className="trek-hover ![background:var(--bg-secondary)] ![border:none] !rounded-[10px] !w-[32px] !h-[32px] !flex !items-center !justify-center !cursor-pointer !shrink-[0] ![transition:all_0.15s_ease]" onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}>
             {collapsed ? <ChevronsUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronsDown size={14} style={{ color: 'var(--text-muted)' }} />}
           </button>
-          <button className="trek-hover" onClick={(e) => { e.stopPropagation(); onClose() }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+          <button className="trek-hover ![background:var(--bg-secondary)] ![border:none] !rounded-[10px] !w-[32px] !h-[32px] !flex !items-center !justify-center !cursor-pointer !shrink-[0]" onClick={(e) => { e.stopPropagation(); onClose() }}>
             <X size={14} style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
 
         {/* Scrollable content */}
-        <div style={{ overflowY: 'auto', padding: '14px 20px 18px', display: collapsed ? 'none' : 'block' }}>
+        <div className="!overflow-y-auto !p-[14px_20px_18px]" style={{ display: collapsed ? 'none' : 'block' }}>
 
           {/* ── Weather ── */}
           {day.date && lat && lng && (
             loading ? (
-              <div style={{ textAlign: 'center', padding: 16, color: 'var(--text-faint)', fontSize: 12 }}>
-                <div style={{ width: 18, height: 18, border: '2px solid var(--border-primary)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 6px' }} />
+              <div className="!text-center !p-[16px] ![color:var(--text-faint)] !text-[length:12px]">
+                <div className="!w-[18px] !h-[18px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto_6px]" style={{ animation: 'spin 0.8s linear infinite' }} />
               </div>
             ) : weather ? (
               <div>
                 {/* Summary row */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div className="!flex !items-center !gap-[12px] !mb-[10px]">
+                  <div className="!w-[40px] !h-[40px] !rounded-[12px] ![background:var(--bg-secondary)] !flex !items-center !justify-center !shrink-[0]">
                     <WIcon main={weather.main} size={20} />
                   </div>
-                  <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+                  <div className="!flex-[1] !flex !items-baseline !gap-[6px] !flex-wrap">
+                    <span className="!text-[length:20px] !font-[700] ![color:var(--text-primary)] !leading-[1]">
                       {weather.type === 'climate' ? 'Ø ' : ''}{cTemp(weather.temp, isFahrenheit)}{unit}
                     </span>
                     {weather.temp_max != null && (
-                      <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>
+                      <span className="!text-[length:12px] ![color:var(--text-faint)]">
                         {cTemp(weather.temp_min, isFahrenheit)}° / {cTemp(weather.temp_max, isFahrenheit)}°
                       </span>
                     )}
                     {weather.description && (
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'capitalize' }}>{weather.description}</span>
+                      <span className="!text-[length:12px] ![color:var(--text-muted)] !capitalize">{weather.description}</span>
                     )}
                   </div>
                 </div>
 
                 {/* Chips row */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: weather.hourly ? 10 : 0 }}>
+                <div className="!flex !flex-wrap !gap-[6px]" style={{ marginBottom: weather.hourly ? 10 : 0 }}>
                   {weather.precipitation_probability_max != null && (
                     <Chip icon={Droplets} value={`${weather.precipitation_probability_max}%`} />
                   )}
@@ -256,19 +248,15 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
                 {/* Hourly scroll */}
                 {weather.hourly?.length > 0 && (
-                  <div style={{ overflowX: 'auto', margin: '0 -6px', padding: '0 6px 4px' }}>
-                    <div style={{ display: 'inline-flex', gap: 2 }}>
+                  <div className="!overflow-x-auto !m-[0_-6px] !p-[0_6px_4px]">
+                    <div className="!inline-flex !gap-[2px]">
                       {weather.hourly.filter((_, i) => i % 2 === 0).map(h => (
-                        <div key={h.hour} style={{
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-                          width: 44, padding: '5px 2px', borderRadius: 8,
-                          background: h.precipitation_probability > 50 ? 'rgba(59,130,246,0.07)' : 'transparent',
-                        }}>
-                          <span style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500 }}>{String(h.hour).padStart(2, '0')}</span>
+                        <div className="!flex !flex-col !items-center !gap-[3px] !w-[44px] !p-[5px_2px] !rounded-[8px]" key={h.hour} style={{ background: h.precipitation_probability > 50 ? 'rgba(59,130,246,0.07)' : 'transparent' }}>
+                          <span className="!text-[length:9px] ![color:var(--text-faint)] !font-[500]">{String(h.hour).padStart(2, '0')}</span>
                           <WIcon main={h.main} size={12} />
-                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-primary)' }}>{cTemp(h.temp, isFahrenheit)}°</span>
+                          <span className="!text-[length:10px] !font-[600] ![color:var(--text-primary)]">{cTemp(h.temp, isFahrenheit)}°</span>
                           {h.precipitation_probability > 0 && (
-                            <span style={{ fontSize: 8, color: '#3b82f6', fontWeight: 500 }}>{h.precipitation_probability}%</span>
+                            <span className="!text-[length:8px] ![color:#3b82f6] !font-[500]">{h.precipitation_probability}%</span>
                           )}
                         </div>
                       ))}
@@ -277,11 +265,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                 )}
 
                 {weather.type === 'climate' && (
-                  <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 6, fontStyle: 'italic' }}>{t('day.climateHint')}</div>
+                  <div className="!text-[length:10px] ![color:var(--text-faint)] !mt-[6px] !italic">{t('day.climateHint')}</div>
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 8 }}>{t('day.noWeather')}</div>
+              <div className="!text-[length:12px] ![color:var(--text-faint)] !text-center !p-[8px]">{t('day.noWeather')}</div>
             )
           )}
 
@@ -295,26 +283,26 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             })
             if (dayReservations.length === 0) return null
             return (
-              <div style={{ marginBottom: 0 }}>
-                {day.date && lat && lng && <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />}
-                <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>{t('day.reservations')}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="!mb-[0]">
+                {day.date && lat && lng && <div className="!h-[1px] ![background:var(--border-faint)] !m-[12px_0]" />}
+                <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.05em] !mb-[6px]">{t('day.reservations')}</div>
+                <div className="!flex !flex-col !gap-[4px]">
                   {dayReservations.map(r => {
                     const linkedAssignment = dayAssignments.find(a => a.id === r.assignment_id)
                     const confirmed = r.status === 'confirmed'
                     return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', borderRadius: 8, background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}` }}>
+                      <div className="!flex !items-center !gap-[8px] !p-[5px_10px] !rounded-[8px]" key={r.id} style={{ background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}` }}>
                         {(() => { const TIcon = RES_TYPE_ICONS[r.type] || FileText; return <TIcon size={12} style={{ color: RES_TYPE_COLORS[r.type] || 'var(--text-faint)', flexShrink: 0 }} /> })()}
-                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.title}</span>
-                          {linkedAssignment?.place && <span style={{ fontSize: 9, color: 'var(--text-faint)', whiteSpace: 'nowrap' }}>· {linkedAssignment.place.name}</span>}
+                        <div className="!flex-[1] !min-w-[0] !flex !items-center !gap-[6px] !overflow-hidden">
+                          <span className="!text-[length:11px] !font-[600] ![color:var(--text-primary)] !whitespace-nowrap !overflow-hidden !text-ellipsis">{r.title}</span>
+                          {linkedAssignment?.place && <span className="!text-[length:9px] ![color:var(--text-faint)] !whitespace-nowrap">· {linkedAssignment.place.name}</span>}
                         </div>
                         {(() => {
                           const { time: startTime } = splitReservationDateTime(r.reservation_time)
                           const { time: endTime } = splitReservationDateTime(r.reservation_end_time)
                           if (!startTime && !endTime) return null
                           return (
-                            <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            <span className="!text-[length:10px] ![color:var(--text-muted)] !whitespace-nowrap !shrink-[0]">
                               {startTime ? formatTime12(startTime, is12h) : ''}
                               {endTime ? ` – ${formatTime12(endTime, is12h)}` : ''}
                             </span>
@@ -329,14 +317,14 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           })()}
 
           {/* Divider before accommodation */}
-          <div style={{ height: 1, background: 'var(--border-faint)', margin: '12px 0' }} />
+          <div className="!h-[1px] ![background:var(--border-faint)] !m-[12px_0]" />
 
           {/* ── Accommodation ── */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>{t('day.accommodation')}</div>
+            <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.05em] !mb-[8px]">{t('day.accommodation')}</div>
 
             {dayAccommodations.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="!flex !flex-col !gap-[8px]">
                 {dayAccommodations.map(acc => {
                   const isCheckInDay = acc.start_day_id === day.id
                   const isCheckOutDay = acc.end_day_id === day.id
@@ -349,60 +337,59 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                   const confirmed = linked?.status === 'confirmed'
 
                   return (
-                    <div key={acc.id} style={{ borderRadius: 12, background: 'var(--bg-secondary)', overflow: 'hidden' }}>
+                    <div className="!rounded-[12px] ![background:var(--bg-secondary)] !overflow-hidden" key={acc.id}>
                       {/* Day label */}
                       {dayLabel && (
-                        <div style={{ padding: '4px 12px 0', display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div className="!p-[4px_12px_0] !flex !items-center !gap-[4px]">
                           {isCheckInDay && <LogIn size={9} style={{ color: '#22c55e' }} />}
                           {isCheckOutDay && !isCheckInDay && <LogOut size={9} style={{ color: '#ef4444' }} />}
-                          <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: isCheckOutDay && !isCheckInDay ? '#ef4444' : '#22c55e' }}>{dayLabel}</span>
+                          <span className="!text-[length:9px] !font-[700] !uppercase !tracking-[0.05em]" style={{ color: isCheckOutDay && !isCheckInDay ? '#ef4444' : '#22c55e' }}>{dayLabel}</span>
                         </div>
                       )}
                       {/* Hotel header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px' }}>
-                        <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <div className="!flex !items-center !gap-[10px] !p-[8px_12px]">
+                        <div className="!w-[36px] !h-[36px] !rounded-[10px] ![background:var(--bg-tertiary)] !flex !items-center !justify-center !shrink-[0]">
                           {acc.place_image ? (
-                            <img src={acc.place_image} style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover' }} />
+                            <img className="!w-[100%] !h-[100%] !rounded-[10px] !object-cover" src={acc.place_image} />
                           ) : (
                             <Hotel size={16} style={{ color: 'var(--text-muted)' }} />
                           )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_name}</div>
-                          {acc.place_address && <div style={{ fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{acc.place_address}</div>}
+                        <div className="!flex-[1] !min-w-[0]">
+                          <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{acc.place_name}</div>
+                          {acc.place_address && <div className="!text-[length:10px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{acc.place_address}</div>}
                         </div>
-                        {canEditDays && <button onClick={() => { setAccommodation(acc); setHotelForm({ check_in: acc.check_in || '', check_in_end: acc.check_in_end || '', check_out: acc.check_out || '', confirmation: acc.confirmation || '', place_id: acc.place_id }); setHotelDayRange({ start: acc.start_day_id, end: acc.end_day_id }); setShowHotelPicker('edit') }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, flexShrink: 0 }}>
+                        {canEditDays && <button className="![background:none] ![border:none] !cursor-pointer !p-[3px] !shrink-[0]" onClick={() => { setAccommodation(acc); setHotelForm({ check_in: acc.check_in || '', check_in_end: acc.check_in_end || '', check_out: acc.check_out || '', confirmation: acc.confirmation || '', place_id: acc.place_id }); setHotelDayRange({ start: acc.start_day_id, end: acc.end_day_id }); setShowHotelPicker('edit') }}>
                           <Pencil size={12} style={{ color: 'var(--text-faint)' }} />
                         </button>}
-                        {canEditDays && <button onClick={() => { setAccommodation(acc); handleRemoveAccommodation() }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 3, flexShrink: 0 }}>
+                        {canEditDays && <button className="![background:none] ![border:none] !cursor-pointer !p-[3px] !shrink-[0]" onClick={() => { setAccommodation(acc); handleRemoveAccommodation() }}>
                           <X size={12} style={{ color: 'var(--text-faint)' }} />
                         </button>}
                       </div>
                       {/* Details grid */}
-                      <div style={{ display: 'flex', gap: 0, margin: '0 12px 8px', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-faint)' }}>
+                      <div className="!flex !gap-[0] !m-[0_12px_8px] !rounded-[10px] !overflow-hidden ![border:1px_solid_var(--border-faint)]">
                         {acc.check_in && (
-                          <div style={{ flex: 1, padding: '8px 10px', borderRight: '1px solid var(--border-faint)', textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+                          <div className="!flex-[1] !p-[8px_10px] ![border-right:1px_solid_var(--border-faint)] !text-center">
+                            <div className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !leading-[1.2]">
                               {fmtTime(acc.check_in)}{acc.check_in_end ? ` – ${fmtTime(acc.check_in_end)}` : ''}
                             </div>
-                            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                            <div className="!text-[length:9px] ![color:var(--text-faint)] !font-[500] !mt-[2px] !flex !items-center !justify-center !gap-[3px]">
                               <LogIn size={8} /> {t('day.checkIn')}
                             </div>
                           </div>
                         )}
                         {acc.check_out && (
-                          <div style={{ flex: 1, padding: '8px 10px', borderRight: acc.confirmation ? '1px solid var(--border-faint)' : 'none', textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{fmtTime(acc.check_out)}</div>
-                            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                          <div className="!flex-[1] !p-[8px_10px] !text-center" style={{ borderRight: acc.confirmation ? '1px solid var(--border-faint)' : 'none' }}>
+                            <div className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !leading-[1.2]">{fmtTime(acc.check_out)}</div>
+                            <div className="!text-[length:9px] ![color:var(--text-faint)] !font-[500] !mt-[2px] !flex !items-center !justify-center !gap-[3px]">
                               <LogOut size={8} /> {t('day.checkOut')}
                             </div>
                           </div>
                         )}
                         {acc.confirmation && (
-                          <div style={{ flex: 1, padding: '8px 10px', textAlign: 'center' }}>
-                            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{acc.confirmation}</div>
-                            <div style={{ fontSize: 9, color: 'var(--text-faint)', fontWeight: 500, marginTop: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
+                          <div className="!flex-[1] !p-[8px_10px] !text-center">
+                            <div className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !leading-[1.2]">{acc.confirmation}</div>
+                            <div className="!text-[length:9px] ![color:var(--text-faint)] !font-[500] !mt-[2px] !flex !items-center !justify-center !gap-[3px]">
                               <Hash size={8} /> {t('day.confirmation')}
                             </div>
                           </div>
@@ -410,14 +397,14 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       </div>
                       {/* Linked booking */}
                       {linked && (
-                        <div style={{ margin: '0 12px 8px', padding: '6px 10px', borderRadius: 8, background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}`, display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{ width: 6, height: 6, borderRadius: '50%', background: confirmed ? '#16a34a' : '#d97706', flexShrink: 0 }} />
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.title}</div>
-                            <div style={{ fontSize: 9, color: 'var(--text-faint)', display: 'flex', gap: 6, marginTop: 1 }}>
+                        <div className="!m-[0_12px_8px] !p-[6px_10px] !rounded-[8px] !flex !items-center !gap-[8px]" style={{ background: confirmed ? 'rgba(22,163,74,0.06)' : 'rgba(217,119,6,0.06)', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.15)' : 'rgba(217,119,6,0.15)'}` }}>
+                          <div className="!w-[6px] !h-[6px] !rounded-[50%] !shrink-[0]" style={{ background: confirmed ? '#16a34a' : '#d97706' }} />
+                          <div className="!flex-[1] !min-w-[0]">
+                            <div className="!text-[length:11px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{linked.title}</div>
+                            <div className="!text-[length:9px] ![color:var(--text-faint)] !flex !gap-[6px] !mt-[1px]">
                               <span>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                              {linked.confirmation_number && <span className={(blurCodes) ? 'trek-h-filter-6e247f' : undefined} onClick={e => { if (blurCodes) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(4px)' : 'none' } }}
-                                style={{ filter: blurCodes ? 'blur(4px)' : 'none', transition: 'filter 0.2s', cursor: blurCodes ? 'pointer' : 'default' }}
+                              {linked.confirmation_number && <span className={[(blurCodes) ? 'trek-h-filter-6e247f' : undefined, '![transition:filter_0.2s]'].join(' ')} onClick={e => { if (blurCodes) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(4px)' : 'none' } }}
+                                style={{ filter: blurCodes ? 'blur(4px)' : 'none', cursor: blurCodes ? 'pointer' : 'default' }}
                               >#{linked.confirmation_number}</span>}
                             </div>
                           </div>
@@ -427,31 +414,19 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                   )
                 })}
                 {/* Add another hotel */}
-                {canEditDays && <button onClick={() => setShowHotelPicker(true)} style={{
-                  width: '100%', padding: 8, border: '1.5px dashed var(--border-primary)', borderRadius: 10,
-                  background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                  fontSize: 10, color: 'var(--text-faint)', fontFamily: 'inherit',
-                }}>
+                {canEditDays && <button className="!w-[100%] !p-[8px] ![border:1.5px_dashed_var(--border-primary)] !rounded-[10px] ![background:none] !cursor-pointer !flex !items-center !justify-center !gap-[5px] !text-[length:10px] ![color:var(--text-faint)] ![font-family:inherit]" onClick={() => setShowHotelPicker(true)}>
                   <Hotel size={10} /> {t('day.addAccommodation')}
                 </button>}
               </div>
             ) : (
-              canEditDays ? <button onClick={() => setShowHotelPicker(true)} style={{
-                width: '100%', padding: 10, border: '1.5px dashed var(--border-primary)', borderRadius: 10,
-                background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                fontSize: 11, color: 'var(--text-faint)', fontFamily: 'inherit',
-              }}>
+              canEditDays ? <button className="!w-[100%] !p-[10px] ![border:1.5px_dashed_var(--border-primary)] !rounded-[10px] ![background:none] !cursor-pointer !flex !items-center !justify-center !gap-[5px] !text-[length:11px] ![color:var(--text-faint)] ![font-family:inherit]" onClick={() => setShowHotelPicker(true)}>
                 <Hotel size={12} /> {t('day.addAccommodation')}
               </button> : null
             )}
 
             {/* Alojamiento de la noche: abre Booking con la localidad final del día y da de alta el hotel elegido */}
             {canEditDays && (
-              <button type="button" onClick={() => setShowLodging(true)} style={{
-                width: '100%', marginTop: 8, padding: 9, border: '1px solid var(--border-primary)', borderRadius: 10,
-                background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'inherit',
-              }}>
+              <button className="!w-[100%] !mt-[8px] !p-[9px] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![background:var(--bg-card)] !cursor-pointer !flex !items-center !justify-center !gap-[6px] !text-[length:11px] !font-[600] ![color:var(--text-primary)] ![font-family:inherit]" type="button" onClick={() => setShowLodging(true)}>
                 <Hotel size={12} /> {t('day.lodging.open')}
               </button>
             )}
@@ -470,7 +445,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 
             {/* Hotel Picker Popup — portal to body to escape transform stacking context */}
             {showHotelPicker && ReactDOM.createPortal(
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+              <div className="!fixed !inset-[0] !z-[99999] ![background:rgba(0,0,0,0.4)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[16px]"
                 onClick={() => setShowHotelPicker(false)}>
                 <div onClick={e => e.stopPropagation()} style={{
                   width: '100%', maxWidth: 900, borderRadius: 16, overflow: 'hidden',
@@ -478,19 +453,19 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                   ...font,
                 }}>
                   {/* Popup Header */}
-                  <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border-faint)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div className="!p-[16px_18px_12px] ![border-bottom:1px_solid_var(--border-faint)] !flex !items-center !gap-[10px]">
                     <Hotel size={16} style={{ color: 'var(--text-primary)' }} />
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', flex: 1 }}>{showHotelPicker === 'edit' ? t('day.editAccommodation') : t('day.addAccommodation')}</span>
-                    <button onClick={() => setShowHotelPicker(false)} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 8, width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <span className="!text-[length:14px] !font-[700] ![color:var(--text-primary)] !flex-[1]">{showHotelPicker === 'edit' ? t('day.editAccommodation') : t('day.addAccommodation')}</span>
+                    <button className="![background:var(--bg-secondary)] ![border:none] !rounded-[8px] !w-[28px] !h-[28px] !flex !items-center !justify-center !cursor-pointer" onClick={() => setShowHotelPicker(false)}>
                       <X size={12} style={{ color: 'var(--text-muted)' }} />
                     </button>
                   </div>
 
                   {/* Day Range */}
-                  <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border-faint)', background: 'var(--bg-secondary)' }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{t('day.hotelDayRange')}</div>
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="!p-[12px_18px] ![border-bottom:1px_solid_var(--border-faint)] ![background:var(--bg-secondary)]">
+                    <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !mb-[8px] !uppercase !tracking-[0.04em]">{t('day.hotelDayRange')}</div>
+                    <div className="!flex !gap-[8px] !items-center">
+                      <div className="!flex-[1] !min-w-[0]">
                         <CustomSelect
                           value={hotelDayRange.start}
                           onChange={v => setHotelDayRange(prev => ({ start: v, end: days.findIndex(d => d.id === v) > days.findIndex(d => d.id === prev.end) ? v : prev.end }))}
@@ -504,8 +479,8 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           size="sm"
                         />
                       </div>
-                      <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>→</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <span className="!text-[length:11px] ![color:var(--text-faint)] !shrink-[0]">→</span>
+                      <div className="!flex-[1] !min-w-[0]">
                         <CustomSelect
                           value={hotelDayRange.end}
                           onChange={v => setHotelDayRange(prev => ({ start: days.findIndex(d => d.id === v) < days.findIndex(d => d.id === prev.start) ? v : prev.start, end: v }))}
@@ -519,82 +494,62 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                           size="sm"
                         />
                       </div>
-                      <button onClick={() => setHotelDayRange({ start: days[0]?.id, end: days[days.length - 1]?.id })} style={{
-                        padding: '6px 14px', borderRadius: 8, border: 'none', fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
-                        background: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--text-primary)' : 'var(--bg-card)',
-                        color: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--bg-card)' : 'var(--text-muted)',
-                      }}>
+                      <button className="!p-[6px_14px] !rounded-[8px] ![border:none] !text-[length:11px] !font-[600] !cursor-pointer !shrink-[0]" onClick={() => setHotelDayRange({ start: days[0]?.id, end: days[days.length - 1]?.id })} style={{ background: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--text-primary)' : 'var(--bg-card)', color: hotelDayRange.start === days[0]?.id && hotelDayRange.end === days[days.length - 1]?.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>
                         {t('day.allDays')}
                       </button>
                     </div>
                   </div>
 
                   {/* Check-in / Check-out / Confirmation */}
-                  <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkIn')}</label>
+                  <div className="!p-[10px_18px] ![border-bottom:1px_solid_var(--border-faint)] !flex !gap-[8px] !flex-wrap">
+                    <div className="!flex-[1] !min-w-[80px]">
+                      <label className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.04em] !block !mb-[3px]">{t('day.checkIn')}</label>
                       <CustomTimePicker value={hotelForm.check_in} onChange={v => setHotelForm(f => ({ ...f, check_in: v }))} placeholder="14:00" />
                     </div>
-                    <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkInUntil')}</label>
+                    <div className="!flex-[1] !min-w-[80px]">
+                      <label className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.04em] !block !mb-[3px]">{t('day.checkInUntil')}</label>
                       <CustomTimePicker value={hotelForm.check_in_end} onChange={v => setHotelForm(f => ({ ...f, check_in_end: v }))} placeholder="22:00" />
                     </div>
-                    <div style={{ flex: 1, minWidth: 80 }}>
-                      <label style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.checkOut')}</label>
+                    <div className="!flex-[1] !min-w-[80px]">
+                      <label className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.04em] !block !mb-[3px]">{t('day.checkOut')}</label>
                       <CustomTimePicker value={hotelForm.check_out} onChange={v => setHotelForm(f => ({ ...f, check_out: v }))} placeholder="11:00" />
                     </div>
-                    <div style={{ flex: 2, minWidth: 120 }}>
-                      <label style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: 3 }}>{t('day.confirmation')}</label>
-                      <input type="text" value={hotelForm.confirmation} onChange={e => setHotelForm(f => ({ ...f, confirmation: e.target.value }))}
-                        placeholder="ABC-12345" style={{ width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box', height: 38 }} />
+                    <div className="!flex-[2] !min-w-[120px]">
+                      <label className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.04em] !block !mb-[3px]">{t('day.confirmation')}</label>
+                      <input className="!w-[100%] !p-[8px_10px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:13px] ![font-family:inherit] !box-border !h-[38px]" type="text" value={hotelForm.confirmation} onChange={e => setHotelForm(f => ({ ...f, confirmation: e.target.value }))}
+                        placeholder="ABC-12345" />
                     </div>
                   </div>
 
                   {/* Category Filter */}
                   {categories.length > 0 && (
-                    <div style={{ padding: '8px 18px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => setHotelCategoryFilter('')} style={{
-                        padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                        background: !hotelCategoryFilter ? 'var(--text-primary)' : 'var(--bg-secondary)',
-                        color: !hotelCategoryFilter ? 'var(--bg-card)' : 'var(--text-muted)',
-                      }}>{t('day.allDays')}</button>
+                    <div className="!p-[8px_18px] ![border-bottom:1px_solid_var(--border-faint)] !flex !gap-[4px] !flex-wrap">
+                      <button className="!p-[3px_10px] !rounded-[6px] ![border:none] !text-[length:10px] !font-[600] !cursor-pointer" onClick={() => setHotelCategoryFilter('')} style={{ background: !hotelCategoryFilter ? 'var(--text-primary)' : 'var(--bg-secondary)', color: !hotelCategoryFilter ? 'var(--bg-card)' : 'var(--text-muted)' }}>{t('day.allDays')}</button>
 
                       {categories.map(c => (
-                        <button key={c.id} onClick={() => setHotelCategoryFilter(c.id)} style={{
-                          padding: '3px 10px', borderRadius: 6, border: 'none', fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                          background: hotelCategoryFilter === c.id ? c.color || 'var(--text-primary)' : 'var(--bg-secondary)',
-                          color: hotelCategoryFilter === c.id ? '#fff' : 'var(--text-muted)',
-                        }}>{c.name}</button>
+                        <button className="!p-[3px_10px] !rounded-[6px] ![border:none] !text-[length:10px] !font-[600] !cursor-pointer" key={c.id} onClick={() => setHotelCategoryFilter(c.id)} style={{ background: hotelCategoryFilter === c.id ? c.color || 'var(--text-primary)' : 'var(--bg-secondary)', color: hotelCategoryFilter === c.id ? '#fff' : 'var(--text-muted)' }}>{c.name}</button>
                       ))}
                     </div>
                   )}
 
                   {/* Place List */}
-                  <div style={{ maxHeight: 250, overflowY: 'auto' }}>
+                  <div className="!max-h-[250px] !overflow-y-auto">
                     {(() => {
                       const filtered = hotelCategoryFilter ? places.filter(p => p.category_id === hotelCategoryFilter) : places
                       return filtered.length === 0 ? (
-                        <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-faint)' }}>{t('day.noPlacesForHotel')}</div>
+                        <div className="!p-[20px] !text-center !text-[length:12px] ![color:var(--text-faint)]">{t('day.noPlacesForHotel')}</div>
                       ) : filtered.map(p => (
-                      <button className={(hotelForm.place_id !== p.id) ? 'trek-hover' : undefined} key={p.id} onClick={() => handleSelectPlace(p.id)} style={{
-                        display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 18px',
-                        border: 'none', borderBottom: '1px solid var(--border-faint)',
-                        background: hotelForm.place_id === p.id ? 'var(--bg-hover)' : 'none',
-                        cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                        transition: 'background 0.1s',
-                        outline: hotelForm.place_id === p.id ? '2px solid var(--accent)' : 'none',
-                        outlineOffset: -2, borderRadius: hotelForm.place_id === p.id ? 8 : 0,
-                      }} >
-                        <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <button className={[(hotelForm.place_id !== p.id) ? 'trek-hover' : undefined, '!flex !items-center !gap-[10px] !w-[100%] !p-[10px_18px] ![border:none] ![border-bottom:1px_solid_var(--border-faint)] !cursor-pointer ![font-family:inherit] !text-left ![transition:background_0.1s]'].join(' ')} key={p.id} onClick={() => handleSelectPlace(p.id)} style={{ background: hotelForm.place_id === p.id ? 'var(--bg-hover)' : 'none', outline: hotelForm.place_id === p.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2, borderRadius: hotelForm.place_id === p.id ? 8 : 0 }} >
+                        <div className="!w-[32px] !h-[32px] !rounded-[8px] ![background:var(--bg-secondary)] !flex !items-center !justify-center !shrink-[0]">
                           {p.image_url ? (
-                            <img src={p.image_url} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                            <img className="!w-[100%] !h-[100%] !rounded-[8px] !object-cover" src={p.image_url} />
                           ) : (
                             <MapPin size={13} style={{ color: 'var(--text-faint)' }} />
                           )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                          {p.address && <div style={{ fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.address}</div>}
+                        <div className="!flex-[1] !min-w-[0]">
+                          <div className="!text-[length:12px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{p.name}</div>
+                          {p.address && <div className="!text-[length:10px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{p.address}</div>}
                         </div>
                       </button>
                     ))
@@ -602,11 +557,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                   </div>
 
                 {/* Save / Cancel */}
-                <div style={{ padding: '12px 18px', borderTop: '1px solid var(--border-faint)', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <button onClick={() => setShowHotelPicker(false)} style={{ padding: '7px 16px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+                <div className="!p-[12px_18px] ![border-top:1px_solid_var(--border-faint)] !flex !justify-end !gap-[8px]">
+                  <button className="!p-[7px_16px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowHotelPicker(false)}>
                     {t('common.cancel')}
                   </button>
-                  <button onClick={async () => {
+                  <button className="!p-[7px_20px] !rounded-[8px] ![border:none] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit]" onClick={async () => {
                     if (showHotelPicker === 'edit' && accommodation) {
                       // Update existing
                       await accommodationsApi.update(tripId, accommodation.id, {
@@ -634,11 +589,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                     } else {
                       await handleSaveAccommodation()
                     }
-                  }} disabled={!hotelForm.place_id} style={{
-                    padding: '7px 20px', borderRadius: 8, border: 'none', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                    background: hotelForm.place_id ? 'var(--text-primary)' : 'var(--bg-tertiary)',
-                    color: hotelForm.place_id ? 'var(--bg-card)' : 'var(--text-faint)',
-                  }}>
+                  }} disabled={!hotelForm.place_id} style={{ background: hotelForm.place_id ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: hotelForm.place_id ? 'var(--bg-card)' : 'var(--text-faint)' }}>
                     {t('common.save')}
                   </button>
                 </div>
@@ -662,9 +613,9 @@ interface ChipProps {
 
 function Chip({ icon: Icon, value }: ChipProps) {
   return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 11, color: 'var(--text-muted)' }}>
+    <div className="!inline-flex !items-center !gap-[4px] !p-[4px_8px] !rounded-[8px] ![background:var(--bg-secondary)] !text-[length:11px] ![color:var(--text-muted)]">
       <Icon size={11} style={{ flexShrink: 0, opacity: 0.6 }} />
-      <span style={{ fontWeight: 500 }}>{value}</span>
+      <span className="!font-[500]">{value}</span>
     </div>
   )
 }
@@ -692,17 +643,13 @@ function InfoChip({ icon: Icon, label, value, placeholder, onEdit, type }: InfoC
   }
 
   return (
-    <div
+    <div className="!flex !items-center !gap-[5px] !p-[5px_9px] !rounded-[8px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-faint)] !cursor-pointer !min-w-[0]"
       onClick={() => setEditing(true)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 8,
-        background: 'var(--bg-card)', border: '1px solid var(--border-faint)',
-        cursor: 'pointer', minWidth: 0, flex: type === 'text' ? 1 : undefined,
-      }}
+      style={{ flex: type === 'text' ? 1 : undefined }}
     >
       <Icon size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 8, color: 'var(--text-faint)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em', lineHeight: 1 }}>{label}</div>
+      <div className="!min-w-[0]">
+        <div className="!text-[length:8px] ![color:var(--text-faint)] !font-[600] !uppercase !tracking-[0.04em] !leading-[1]">{label}</div>
         {editing ? (
           <input
             ref={inputRef}
@@ -719,7 +666,7 @@ function InfoChip({ icon: Icon, label, value, placeholder, onEdit, type }: InfoC
             }}
           />
         ) : (
-          <div style={{ fontSize: 11, fontWeight: 600, color: value ? 'var(--text-primary)' : 'var(--text-faint)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div className="!text-[length:11px] !font-[600] !leading-[1.3] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color: value ? 'var(--text-primary)' : 'var(--text-faint)' }}>
             {value || placeholder}
           </div>
         )}

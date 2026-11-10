@@ -60,12 +60,12 @@ export default function VacayMonthCard({
   }, [])
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
-      <div className="px-3 py-2 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
-        <span className="text-xs font-semibold" style={{ color: 'var(--text-primary)', textTransform: 'capitalize' }}>{monthName}</span>
+    <div className="rounded-xl border overflow-hidden ![border-color:var(--border-primary)]" style={{ background: 'var(--bg-card)' }}>
+      <div className="px-3 py-2 border-b ![border-color:var(--border-secondary)]">
+        <span className="text-xs font-semibold ![color:var(--text-primary)] !capitalize">{monthName}</span>
       </div>
 
-      <div className="grid grid-cols-7 border-b" style={{ borderColor: 'var(--border-secondary)' }}>
+      <div className="grid grid-cols-7 border-b ![border-color:var(--border-secondary)]">
         {weekdays.map((wd, i) => {
           // Map column index back to JS day (0=Sun..6=Sat) to check if it's a weekend column
           const jsDay = (i + weekStart) % 7
@@ -82,7 +82,7 @@ export default function VacayMonthCard({
         {weeks.map((week, wi) => (
           <div key={wi} className="grid grid-cols-7">
             {week.map((day, di) => {
-              if (day === null) return <div key={di} style={{ height: 28 }} />
+              if (day === null) return <div className="!h-[28px]" key={di} />
 
               const dateStr = `${year}-${pad(month + 1)}-${pad(day)}`
               const dayOfWeek = new Date(year, month, day).getDay()

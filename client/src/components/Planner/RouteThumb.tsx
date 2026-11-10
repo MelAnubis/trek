@@ -8,8 +8,7 @@ const H = 120
 export default function RouteThumb({ preview, color }: { preview: PreviewPoint[]; color: string }) {
   const path = useMemo(() => projectPreview(preview, W, H, 14), [preview])
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true"
-      style={{ display: 'block' }}>
+    <svg className="!block" viewBox={`0 0 ${W} ${H}`} width="100%" height="100%" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
       {/* rejilla suave que recuerda a un mapa */}
       <g stroke="currentColor" strokeOpacity="0.07" strokeWidth="1">
         {[30, 60, 90].map(y => <line key={`h${y}`} x1="0" y1={y} x2={W} y2={y} />)}

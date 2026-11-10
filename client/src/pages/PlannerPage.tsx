@@ -550,37 +550,34 @@ export default function PlannerPage(): React.ReactElement {
   const hasRoute = points.length > 1
   const showLibrary = libraryOpen || !hasRoute
   const uploadBox = (
-    <div
-      style={{
-        ...card, textAlign: 'center', padding: 24, cursor: 'pointer',
-        border: `2px dashed ${dragOver ? 'var(--accent, #e85d24)' : 'var(--border-primary)'}`,
-      }}
+    <div className="!text-center !p-[24px] !cursor-pointer"
+      style={{ ...card, border: `2px dashed ${dragOver ? 'var(--accent, #e85d24)' : 'var(--border-primary)'}` }}
       onClick={() => fileRef.current?.click()}
       onDragOver={e => { e.preventDefault(); setDragOver(true) }}
       onDragLeave={() => setDragOver(false)}
       onDrop={e => { e.preventDefault(); setDragOver(false); onFiles(e.dataTransfer.files) }}
     >
       <Upload size={28} style={{ color: 'var(--text-muted)', margin: '0 auto 8px' }} />
-      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{reading ? t('planner.upload.reading') : t('planner.upload.title')}</div>
-      <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 12px' }}>{t('planner.upload.hint')}</div>
+      <div className="!text-[length:14px] !font-[700] ![color:var(--text-primary)]">{reading ? t('planner.upload.reading') : t('planner.upload.title')}</div>
+      <div className="!text-[length:12px] ![color:var(--text-muted)] !m-[4px_0_12px]">{t('planner.upload.hint')}</div>
       <span style={btnPrimary}>{t('planner.upload.choose')}</span>
     </div>
   )
 
   const aiBox = (
     <div style={card}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+      <div className="!flex !items-center !gap-[6px] !mb-[6px]">
         <Sparkles size={15} style={{ color: 'var(--accent, #e85d24)' }} />
         <div style={label}>{t('planner.ai.title')}</div>
       </div>
-      <textarea style={{ ...input, minHeight: 78, resize: 'vertical', fontFamily: 'inherit' }} maxLength={1500}
+      <textarea className="!min-h-[78px] ![resize:vertical] ![font-family:inherit]" style={{ ...input }} maxLength={1500}
         value={aiPrompt} disabled={aiLoading} placeholder={t('planner.ai.placeholder')}
         onChange={e => setAiPrompt(e.target.value)} />
-      <button type="button" style={{ ...btnPrimary, marginTop: 8, opacity: aiLoading || aiPrompt.trim().length < 8 ? 0.6 : 1 }}
+      <button className="!mt-[8px]" type="button" style={{ ...btnPrimary, opacity: aiLoading || aiPrompt.trim().length < 8 ? 0.6 : 1 }}
         disabled={aiLoading || aiPrompt.trim().length < 8} onClick={generateWithAI}>
         <Sparkles size={15} />{aiLoading ? t('planner.ai.generating') : t('planner.ai.generate')}
       </button>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.ai.disclaimer')}</div>
+      <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[8px]">{t('planner.ai.disclaimer')}</div>
     </div>
   )
 
@@ -606,36 +603,36 @@ export default function PlannerPage(): React.ReactElement {
   }
 
   const aiInfoBox = aiInfo && (
-    <div style={{ ...card, borderColor: 'var(--accent, #e85d24)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+    <div className="![border-color:var(--accent,_#e85d24)]" style={{ ...card }}>
+      <div className="!flex !items-center !gap-[6px] !mb-[4px]">
         <Sparkles size={14} style={{ color: 'var(--accent, #e85d24)' }} />
-        <div style={{ ...label, flex: 1 }}>{t('planner.ai.result')}</div>
-        <button type="button" aria-label={t('common.close')} style={{ ...btn, padding: 3, border: 'none', background: 'transparent' }}
+        <div className="!flex-[1]" style={{ ...label }}>{t('planner.ai.result')}</div>
+        <button className="!p-[3px] ![border:none] ![background:transparent]" type="button" aria-label={t('common.close')} style={{ ...btn }}
           onClick={() => setAiInfo(null)}><X size={14} /></button>
       </div>
-      {aiInfo.summary && <div style={{ fontSize: 13, color: 'var(--text-primary)' }}>{aiInfo.summary}</div>}
+      {aiInfo.summary && <div className="!text-[length:13px] ![color:var(--text-primary)]">{aiInfo.summary}</div>}
       {aiInfo.warnings.map(w => {
         const [kind, ...rest] = w.split(':')
         const detail = rest.join(':')
         return (
-          <div key={w} style={{ fontSize: 12, color: '#b45309', marginTop: 6 }}>
+          <div className="!text-[length:12px] ![color:#b45309] !mt-[6px]" key={w}>
             ⚠️ {warningText(kind, detail)}
           </div>
         )
       })}
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t('planner.ai.reviewHint')}</div>
+      <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[6px]">{t('planner.ai.reviewHint')}</div>
     </div>
   )
 
   const statBox = (k: string, v: string) => (
-    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '6px 8px' }}>
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{k}</div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{v}</div>
+    <div className="![background:var(--bg-secondary)] !rounded-[8px] !p-[6px_8px]">
+      <div className="!text-[length:10px] ![color:var(--text-muted)] !uppercase !tracking-[0.5px]">{k}</div>
+      <div className="!text-[length:15px] !font-[700] ![color:var(--text-primary)]">{v}</div>
     </div>
   )
 
   const routePanel = !hasRoute ? (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="!flex !flex-col !gap-[12px]">
       {aiBox}{uploadBox}
       {routesTotal > 0 && (
         <button type="button" className="lg:hidden" style={btn} onClick={() => setMobileView('map')}>
@@ -644,24 +641,24 @@ export default function PlannerPage(): React.ReactElement {
       )}
     </div>
   ) : (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="!flex !flex-col !gap-[12px]">
       {aiInfoBox}
       <div style={card}>
-        <div style={{ ...label, marginBottom: 6 }}>{t('planner.name')}</div>
+        <div className="!mb-[6px]" style={{ ...label }}>{t('planner.name')}</div>
         <input style={input} value={name} maxLength={160}
           onChange={e => { markDirty(); setName(e.target.value) }} />
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
-          <input key={`${routeId}-${routeFolder ?? ''}`} style={{ ...input, flex: 1, minWidth: 0 }} list="planner-folders" maxLength={60}
+        <div className="!flex !gap-[6px] !mt-[8px]">
+          <input className="!flex-[1] !min-w-[0]" key={`${routeId}-${routeFolder ?? ''}`} style={{ ...input }} list="planner-folders" maxLength={60}
             defaultValue={routeFolder ?? ''} placeholder={t('planner.lib.folder.field')}
             onBlur={e => setFolder(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }} />
           <datalist id="planner-folders">{folderNames.map(n => <option key={n} value={n} />)}</datalist>
-          <button type="button" aria-pressed={routeFavorite} title={t('planner.lib.favorite')} aria-label={t('planner.lib.favorite')}
-            style={{ ...btn, padding: '6px 9px' }} onClick={() => setFavorite(!routeFavorite)}>
+          <button className="!p-[6px_9px]" type="button" aria-pressed={routeFavorite} title={t('planner.lib.favorite')} aria-label={t('planner.lib.favorite')}
+            style={{ ...btn }} onClick={() => setFavorite(!routeFavorite)}>
             <Star size={16} fill={routeFavorite ? '#f59e0b' : 'none'} style={{ color: routeFavorite ? '#f59e0b' : 'var(--text-muted)' }} />
           </button>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginTop: 10 }}>
+        <div className="!grid ![grid-template-columns:repeat(3,_1fr)] !gap-[6px] !mt-[10px]">
           {statBox(t('planner.stats.distance'), fmtKm(stats.distKm))}
           {statBox(t('planner.stats.gain'), `+${stats.gain} m`)}
           {statBox(t('planner.stats.loss'), `−${stats.loss} m`)}
@@ -669,17 +666,17 @@ export default function PlannerPage(): React.ReactElement {
           {statBox(t('planner.stats.max'), stats.maxEle != null ? `${stats.maxEle} m` : '—')}
           {statBox(t('planner.stats.stages'), String(stages.length))}
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+        <div className="!flex !flex-wrap !gap-[8px] !mt-[10px]">
           <button type="button" style={btnPrimary} onClick={downloadRoute}><Download size={15} />{t('planner.download.route')}</button>
           <button type="button" style={btn} onClick={closeRoute}><X size={15} />{t('planner.closeRoute')}</button>
         </div>
-        <div style={{ fontSize: 11, marginTop: 8, color: saveState === 'error' ? '#dc2626' : 'var(--text-muted)' }}>
+        <div className="!text-[length:11px] !mt-[8px]" style={{ color: saveState === 'error' ? '#dc2626' : 'var(--text-muted)' }}>
           {saveState === 'saving' ? t('planner.save.saving') : saveState === 'saved' ? t('planner.save.saved') : saveState === 'error' ? t('planner.save.error') : ''}
         </div>
       </div>
 
       <div style={card}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+        <div className="!flex !items-center !justify-between !mb-[8px]">
           <div style={label}>{t('planner.waypoints')} ({waypoints.length})</div>
           <button type="button" style={addingWaypoint ? btnPrimary : btn}
             onClick={() => { setAddingWaypoint(a => !a); setMobileView('map') }}>
@@ -687,20 +684,20 @@ export default function PlannerPage(): React.ReactElement {
           </button>
         </div>
         {waypoints.length === 0 ? (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('planner.waypoints.empty')}</div>
+          <div className="!text-[length:12px] ![color:var(--text-muted)]">{t('planner.waypoints.empty')}</div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="!flex !flex-col !gap-[6px]">
             {waypoints.map(w => {
               const cat = CATEGORY_BY_KEY[w.type]
               const near = nearestOnRoute(points, cum, w.lat, w.lng)
               return (
-                <div key={w.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 16, width: 22, textAlign: 'center' }}>{cat?.emoji ?? GENERIC_WAYPOINT.emoji}</span>
-                  <input style={{ ...input, flex: 1, minWidth: 0 }} value={w.name} maxLength={160}
+                <div className="!flex !items-center !gap-[6px]" key={w.id}>
+                  <span className="!text-[length:16px] !w-[22px] !text-center">{cat?.emoji ?? GENERIC_WAYPOINT.emoji}</span>
+                  <input className="!flex-[1] !min-w-[0]" style={{ ...input }} value={w.name} maxLength={160}
                     placeholder={w.type === 'generic' ? t('planner.waypoints.namePlaceholder') : catLabel(w.type)}
                     onChange={e => renameWaypoint(w.id, e.target.value)} />
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>km {near.km.toFixed(1)}</span>
-                  <button type="button" aria-label={t('common.delete')} style={{ ...btn, padding: 5, border: 'none', background: 'transparent' }}
+                  <span className="!text-[length:11px] ![color:var(--text-muted)] !whitespace-nowrap">km {near.km.toFixed(1)}</span>
+                  <button className="!p-[5px] ![border:none] ![background:transparent]" type="button" aria-label={t('common.delete')} style={{ ...btn }}
                     onClick={() => removeWaypoint(w.id)}>
                     <Trash2 size={14} style={{ color: '#dc2626' }} />
                   </button>
@@ -711,8 +708,8 @@ export default function PlannerPage(): React.ReactElement {
         )}
       </div>
 
-      <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', flex: 1 }}>{t('planner.upload.another')}</span>
+      <div className="!flex !items-center !gap-[8px]" style={{ ...card }}>
+        <span className="!text-[length:12px] ![color:var(--text-muted)] !flex-[1]">{t('planner.upload.another')}</span>
         <button type="button" style={btn} onClick={() => fileRef.current?.click()}><Upload size={15} />{t('planner.upload.choose')}</button>
       </div>
 
@@ -723,14 +720,14 @@ export default function PlannerPage(): React.ReactElement {
   )
 
   const stagesPanel = !hasRoute ? (
-    <div style={{ ...card, fontSize: 13, color: 'var(--text-muted)' }}>{t('planner.stages.noRoute')}</div>
+    <div className="!text-[length:13px] ![color:var(--text-muted)]" style={{ ...card }}>{t('planner.stages.noRoute')}</div>
   ) : (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div className="!flex !flex-col !gap-[12px]">
       <div style={card}>
-        <div style={{ ...label, marginBottom: 8 }}>{t('planner.stages.auto')}</div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{t('planner.stages.kmPerStage')}</div>
+        <div className="!mb-[8px]" style={{ ...label }}>{t('planner.stages.auto')}</div>
+        <div className="!flex !items-end !gap-[8px]">
+          <div className="!flex-[1]">
+            <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[3px]">{t('planner.stages.kmPerStage')}</div>
             <input style={input} type="number" min={5} max={500} step={5} value={settings.stageKm ?? 60}
               onChange={e => { markDirty(); setSettings(s => ({ ...s, stageKm: Math.max(1, Number(e.target.value) || 1) })) }} />
           </div>
@@ -742,54 +739,50 @@ export default function PlannerPage(): React.ReactElement {
           )}
         </div>
         {cuts.length > 0 && (
-          <button type="button" style={{ ...btn, marginTop: 8, opacity: cutsLoading ? 0.6 : 1 }} disabled={cutsLoading} onClick={snapCutsToLodging}>
+          <button className="!mt-[8px]" type="button" style={{ ...btn, opacity: cutsLoading ? 0.6 : 1 }} disabled={cutsLoading} onClick={snapCutsToLodging}>
             🛏️ {t('planner.stages.cuts.snap')}
           </button>
         )}
-        <div style={{ marginTop: 10 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{t('planner.stages.startDate')}</div>
+        <div className="!mt-[10px]">
+          <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[3px]">{t('planner.stages.startDate')}</div>
           <input style={input} type="date" value={settings.startDate ?? ''}
             onChange={e => { markDirty(); setSettings(s => ({ ...s, startDate: e.target.value || undefined })) }} />
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 3 }}>{t('planner.stages.startDate.hint')}</div>
+          <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[3px]">{t('planner.stages.startDate.hint')}</div>
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>{t('planner.stages.cuts.hint')}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{t('planner.stages.hintProfile')}</div>
+        <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[8px]">{t('planner.stages.cuts.hint')}</div>
+        <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[4px]">{t('planner.stages.hintProfile')}</div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="!flex !flex-col !gap-[8px]">
         {stages.map((st, i) => (
-          <div key={`${st.from}-${st.to}`} style={{
-            ...card, padding: 10, cursor: 'pointer',
-            borderLeft: `5px solid ${STAGE_COLORS[i % STAGE_COLORS.length]}`,
-            outline: activeStage === i ? `2px solid ${STAGE_COLORS[i % STAGE_COLORS.length]}` : 'none',
-          }} onClick={() => setActiveStage(activeStage === i ? null : i)}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input style={{ ...input, fontWeight: 700 }} value={st.name} maxLength={120}
+          <div className="!p-[10px] !cursor-pointer" key={`${st.from}-${st.to}`} style={{ ...card, borderLeft: `5px solid ${STAGE_COLORS[i % STAGE_COLORS.length]}`, outline: activeStage === i ? `2px solid ${STAGE_COLORS[i % STAGE_COLORS.length]}` : 'none' }} onClick={() => setActiveStage(activeStage === i ? null : i)}>
+            <div className="!flex !items-center !gap-[6px]">
+              <input className="!font-[700]" style={{ ...input }} value={st.name} maxLength={120}
                 onClick={e => e.stopPropagation()}
                 onChange={e => renameStage(i, e.target.value)} />
-              <button type="button" title={t('planner.download.stage')} style={{ ...btn, padding: 6 }}
+              <button className="!p-[6px]" type="button" title={t('planner.download.stage')} style={{ ...btn }}
                 onClick={e => { e.stopPropagation(); downloadStage(i) }}><Download size={15} /></button>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 12px', marginTop: 6, fontSize: 12, color: 'var(--text-muted)' }}>
-              <span><b style={{ color: 'var(--text-primary)' }}>{fmtKm(st.distKm)}</b></span>
+            <div className="!flex !flex-wrap !gap-[4px_12px] !mt-[6px] !text-[length:12px] ![color:var(--text-muted)]">
+              <span><b className="![color:var(--text-primary)]">{fmtKm(st.distKm)}</b></span>
               <span>+{st.gain} m</span>
               <span>−{st.loss} m</span>
               <span>km {st.startKm.toFixed(1)}–{st.endKm.toFixed(1)}</span>
               {st.minEle != null && st.maxEle != null && <span>{st.minEle}–{st.maxEle} m</span>}
             </div>
             {st.endLodged === true && (
-              <div style={{ fontSize: 11, marginTop: 5, color: '#15803d' }}>
+              <div className="!text-[length:11px] !mt-[5px] ![color:#15803d]">
                 🛏️ {st.endPlace ? t('planner.stages.end.lodgedIn', { place: st.endPlace }) : t('planner.stages.end.lodged')}{shiftLabel(st.endShiftKm)}{st.endSource === 'google' ? ' · Google' : ''}
               </div>
             )}
             {st.endLodged !== true && st.endTown && (
-              <div style={{ fontSize: 11, marginTop: 5, color: '#a16207' }}>
+              <div className="!text-[length:11px] !mt-[5px] ![color:#a16207]">
                 🏘️ {t('planner.stages.end.town', { place: st.endPlace ?? '' })}{shiftLabel(st.endShiftKm)}
                 {st.endUnchecked ? ` · ${t('planner.stages.end.townUnchecked')}` : ''}
               </div>
             )}
             {st.endLodged === false && !st.endTown && (
-              <div style={{ fontSize: 11, marginTop: 5, color: '#b45309' }}>⚠️ {t(st.endUnchecked ? 'planner.stages.end.unchecked' : 'planner.stages.end.none')}</div>
+              <div className="!text-[length:11px] !mt-[5px] ![color:#b45309]">⚠️ {t(st.endUnchecked ? 'planner.stages.end.unchecked' : 'planner.stages.end.none')}</div>
             )}
             {(() => {
               // Enlaces para comprobar el alojamiento a mano (Booking no tiene API pública: solo abrimos su buscador).
@@ -799,14 +792,14 @@ export default function PlannerPage(): React.ReactElement {
               const place = st.endPlace || wp?.name
               const link: React.CSSProperties = { color: 'var(--accent, #e85d24)', fontWeight: 600, textDecoration: 'none' }
               return (
-                <div style={{ display: 'flex', gap: 12, marginTop: 5, fontSize: 11 }} onClick={e => e.stopPropagation()}>
+                <div className="!flex !gap-[12px] !mt-[5px] !text-[length:11px]" onClick={e => e.stopPropagation()}>
                   {place && <a href={bookingSearchUrl(place, locale, nightOfStage(settings.startDate, i))} target="_blank" rel="noopener noreferrer" style={link}>🔎 {t('planner.stages.end.booking')}</a>}
                   <a href={googleMapsHotelsUrl(end.lat, end.lng)} target="_blank" rel="noopener noreferrer" style={link}>📍 {t('planner.stages.end.googleMaps')}</a>
                 </div>
               )
             })()}
             {i > 0 && (
-              <button type="button" style={{ ...btn, padding: '3px 8px', fontSize: 11, marginTop: 6 }}
+              <button className="!p-[3px_8px] !text-[length:11px] !mt-[6px]" type="button" style={{ ...btn }}
                 onClick={e => { e.stopPropagation(); mergeWithPrevious(i) }}>{t('planner.stages.merge')}</button>
             )}
           </div>
@@ -817,33 +810,29 @@ export default function PlannerPage(): React.ReactElement {
       </div>
 
       <div style={card}>
-        <div style={{ ...label, marginBottom: 8 }}>{t('planner.services')}</div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+        <div className="!mb-[8px]" style={{ ...label }}>{t('planner.services')}</div>
+        <div className="!flex !flex-wrap !gap-[6px] !mb-[8px]">
           {PLANNER_CATEGORIES.map(c => {
             const on = cats.includes(c.key)
             return (
-              <button key={c.key} type="button" aria-pressed={on}
+              <button className="!p-[4px_9px] !text-[length:12px]" key={c.key} type="button" aria-pressed={on}
                 onClick={() => setCats(prev => (on ? prev.filter(k => k !== c.key) : [...prev, c.key]))}
-                style={{
-                  ...btn, padding: '4px 9px', fontSize: 12,
-                  background: on ? c.color : 'var(--bg-card)', color: on ? '#fff' : 'var(--text-primary)',
-                  borderColor: on ? c.color : 'var(--border-primary)',
-                }}>
+                style={{ ...btn, background: on ? c.color : 'var(--bg-card)', color: on ? '#fff' : 'var(--text-primary)', borderColor: on ? c.color : 'var(--border-primary)' }}>
                 <span>{c.emoji}</span>{catLabel(c.key)}
               </button>
             )
           })}
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 110 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{t('planner.services.radius')}</div>
+        <div className="!flex !gap-[8px] !items-end !flex-wrap">
+          <div className="!flex-[1] !min-w-[110px]">
+            <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[3px]">{t('planner.services.radius')}</div>
             <select style={input} value={settings.poiRadiusM ?? 1000}
               onChange={e => { markDirty(); setSettings(s => ({ ...s, poiRadiusM: Number(e.target.value) })) }}>
               {RADIUS_OPTIONS.map(r => <option key={r} value={r}>{r >= 1000 ? `${r / 1000} km` : `${r} m`}</option>)}
             </select>
           </div>
-          <div style={{ flex: 1, minWidth: 110 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 3 }}>{t('planner.services.scope')}</div>
+          <div className="!flex-[1] !min-w-[110px]">
+            <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[3px]">{t('planner.services.scope')}</div>
             <select style={input} value={scope} onChange={e => setScope(e.target.value as 'stage' | 'all')}>
               <option value="stage">{t('planner.services.scopeStage')}</option>
               <option value="all">{t('planner.services.scopeAll')}</option>
@@ -854,25 +843,25 @@ export default function PlannerPage(): React.ReactElement {
           </button>
         </div>
         {pois.length > 0 && (
-          <button type="button" style={{ ...btn, padding: '3px 8px', fontSize: 11, marginTop: 8 }} onClick={() => setPois([])}>{t('planner.services.clear')}</button>
+          <button className="!p-[3px_8px] !text-[length:11px] !mt-[8px]" type="button" style={{ ...btn }} onClick={() => setPois([])}>{t('planner.services.clear')}</button>
         )}
         {poisForList.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 10, maxHeight: 320, overflowY: 'auto' }}>
+          <div className="!flex !flex-col !gap-[4px] !mt-[10px] !max-h-[320px] !overflow-y-auto">
             {poisForList.map(p => {
               const cat = CATEGORY_BY_KEY[p.category]
               return (
-                <div key={p.osm_id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0', borderBottom: '1px solid var(--border-primary)' }}>
-                  <span style={{ fontSize: 15, width: 20, textAlign: 'center' }}>{cat?.emoji}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div className="!flex !items-center !gap-[6px] !p-[4px_0] ![border-bottom:1px_solid_var(--border-primary)]" key={p.osm_id}>
+                  <span className="!text-[length:15px] !w-[20px] !text-center">{cat?.emoji}</span>
+                  <div className="!flex-[1] !min-w-[0]">
+                    <div className="!text-[length:12px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                       {p.name || catLabel(p.category)}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    <div className="!text-[length:11px] ![color:var(--text-muted)]">
                       {t('planner.km')} {p.km.toFixed(1)} · {Math.round(p.offM)} m {t('planner.offRoute')}
                     </div>
                   </div>
-                  <button type="button" title={t('planner.services.add')} style={{ ...btn, padding: 5 }} onClick={() => addPoiAsWaypoint(p)}><Plus size={14} /></button>
-                  <button type="button" title={t('planner.services.cutHere')} style={{ ...btn, padding: 5 }} onClick={() => cutAtPoi(p)}><Scissors size={14} /></button>
+                  <button className="!p-[5px]" type="button" title={t('planner.services.add')} style={{ ...btn }} onClick={() => addPoiAsWaypoint(p)}><Plus size={14} /></button>
+                  <button className="!p-[5px]" type="button" title={t('planner.services.cutHere')} style={{ ...btn }} onClick={() => cutAtPoi(p)}><Scissors size={14} /></button>
                 </div>
               )
             })}
@@ -883,45 +872,43 @@ export default function PlannerPage(): React.ReactElement {
   )
 
   return (
-    <div className="page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="page-bg ![background:var(--bg-secondary)]">
       <Navbar />
       <input ref={fileRef} type="file" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml,text/xml,application/xml"
         style={{ display: 'none' }} onChange={e => onFiles(e.target.files)} />
 
-      <div style={{ position: 'fixed', top: 'var(--nav-h)', left: 0, right: 0, bottom: 'env(safe-area-inset-bottom, 0px)', display: 'flex', flexDirection: 'column' }}>
+      <div className="!fixed !top-[var(--nav-h)] !left-[0] !right-[0] !bottom-[env(safe-area-inset-bottom,_0px)] !flex !flex-col">
         {/* Conmutador Editar / Mapa en pantallas estrechas */}
-        <div className="lg:hidden" style={{ display: 'flex', gap: 6, padding: 8, background: 'var(--bg-card)', borderBottom: '1px solid var(--border-primary)' }}>
+        <div className="lg:hidden !flex !gap-[6px] !p-[8px] ![background:var(--bg-card)] ![border-bottom:1px_solid_var(--border-primary)]">
           {(['panel', 'map'] as MobileView[]).map(v => (
-            <button key={v} type="button" onClick={() => setMobileView(v)}
-              style={{ ...(mobileView === v ? btnPrimary : btn), flex: 1 }}>
+            <button className="!flex-[1]" key={v} type="button" onClick={() => setMobileView(v)}
+              style={{ ...(mobileView === v ? btnPrimary : btn) }}>
               {v === 'panel' ? <Layers size={15} /> : <MapIcon size={15} />}{t(hasRoute ? `planner.view.${v}` : v === 'panel' ? 'planner.view.create' : 'planner.view.library')}
             </button>
           ))}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0, display: 'flex' }}>
+        <div className="!flex-[1] !min-h-[0] !flex">
           {/* Panel lateral */}
-          <aside className={`${mobileView === 'panel' ? 'flex' : 'hidden'} lg:flex`}
-            style={{ flexDirection: 'column', width: '100%', maxWidth: 420, flexShrink: 0, background: 'var(--bg-secondary)', borderRight: '1px solid var(--border-primary)', minHeight: 0 }}>
-            <div className="hidden lg:flex" style={{ alignItems: 'center', gap: 8, padding: '10px 12px 0' }}>
+          <aside className={`${mobileView === 'panel' ? 'flex' : 'hidden'} lg:flex !flex-col !w-[100%] !max-w-[420px] !shrink-[0] ![background:var(--bg-secondary)] ![border-right:1px_solid_var(--border-primary)] !min-h-[0]`}>
+            <div className="hidden lg:flex !items-center !gap-[8px] !p-[10px_12px_0]">
               <RouteIcon size={18} style={{ color: 'var(--text-primary)' }} />
-              <h1 style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{t('planner.title')}</h1>
+              <h1 className="!text-[length:16px] !font-[800] ![color:var(--text-primary)] !m-[0]">{t('planner.title')}</h1>
             </div>
-            <div style={{ display: 'flex', gap: 6, padding: '10px 12px 0' }}>
+            <div className="!flex !gap-[6px] !p-[10px_12px_0]">
               {(['route', 'stages'] as PanelTab[]).map(k => (
-                <button key={k} type="button" onClick={() => setTab(k)}
-                  style={{ ...(tab === k ? btnPrimary : btn), flex: 1 }}>{t(`planner.tab.${k}`)}</button>
+                <button className="!flex-[1]" key={k} type="button" onClick={() => setTab(k)}
+                  style={{ ...(tab === k ? btnPrimary : btn) }}>{t(`planner.tab.${k}`)}</button>
               ))}
             </div>
-            <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 12 }}>
+            <div className="!flex-[1] !min-h-[0] !overflow-y-auto !p-[12px]">
               {tab === 'route' ? routePanel : stagesPanel}
             </div>
           </aside>
 
           {/* Biblioteca (sin ruta abierta, o al pulsar «Mis rutas») o mapa + perfil */}
-          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} lg:flex`}
-            style={{ flex: 1, minWidth: 0, flexDirection: 'column' }}>
-            <div style={{ display: showLibrary ? 'flex' : 'none', flex: 1, minHeight: 0 }}>
+          <section className={`${mobileView === 'map' ? 'flex' : 'hidden'} lg:flex !flex-[1] !min-w-[0] !flex-col`}>
+            <div className="!flex-[1] !min-h-[0]" style={{ display: showLibrary ? 'flex' : 'none' }}>
               <RouteLibrary
                 version={libraryVersion} currentId={routeId}
                 onOpen={id => { if (id === routeId) setLibraryOpen(false); else openRoute(id) }}
@@ -930,8 +917,8 @@ export default function PlannerPage(): React.ReactElement {
                 onChanged={loadSaved}
               />
             </div>
-            <div style={{ display: showLibrary ? 'none' : 'flex', flex: 1, minHeight: 0, flexDirection: 'column' }}>
-            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            <div className="!flex-[1] !min-h-[0] !flex-col" style={{ display: showLibrary ? 'none' : 'flex' }}>
+            <div className="!flex-[1] !min-h-[0] !relative">
               <PlannerMap
                 points={points} stages={stages} activeStage={activeStage} waypoints={waypoints} pois={visiblePois}
                 hoverIdx={hoverIdx} addingWaypoint={addingWaypoint} poiLabel={catLabel}
@@ -942,14 +929,14 @@ export default function PlannerPage(): React.ReactElement {
                 onAddPoi={addPoiAsWaypoint} onCutAtPoi={cutAtPoi} onRemoveWaypoint={removeWaypoint}
               />
               {addingWaypoint && (
-                <div style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, ...btnPrimary, boxShadow: '0 2px 8px rgba(0,0,0,.3)' }}
+                <div className="![box-shadow:0_2px_8px_rgba(0,0,0,.3)]" style={{ position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)', zIndex: 1000, ...btnPrimary }}
                   onClick={() => setAddingWaypoint(false)}>
                   {t('planner.waypoints.adding')} <X size={14} />
                 </div>
               )}
             </div>
             {hasRoute && (
-              <div style={{ height: 190, flexShrink: 0, background: 'var(--bg-card)', borderTop: '1px solid var(--border-primary)' }}>
+              <div className="!h-[190px] !shrink-[0] ![background:var(--bg-card)] ![border-top:1px_solid_var(--border-primary)]">
                 <PlannerProfile
                   cum={cum} smoothed={smoothed} stages={stages} activeStage={activeStage}
                   hint={tab === 'stages' ? t('planner.profile.hintCut') : t('planner.profile.hint')}

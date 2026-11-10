@@ -57,7 +57,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
   const dateStr = date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-white dark:bg-zinc-950 flex flex-col overflow-hidden" style={{ height: '100dvh' }}>
+    <div className="fixed inset-0 z-[9999] bg-white dark:bg-zinc-950 flex flex-col overflow-hidden !h-[100dvh]">
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 flex-shrink-0">
         <button
@@ -86,7 +86,7 @@ export default function MobileEntryView({ entry, readOnly, publicPhotoUrl, onClo
       </div>
 
       {/* Scrollable content */}
-      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain ![-webkit-overflow-scrolling:touch]">
 
         {/* Hero photo(s) */}
         {photos.length > 0 && (

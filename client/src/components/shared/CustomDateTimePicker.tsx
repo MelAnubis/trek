@@ -88,14 +88,11 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
   return (
     <div ref={ref} style={{ position: 'relative', ...style }}>
       {isTyping ? (
-        <input autoFocus type="text" value={textInput} onChange={e => setTextInput(e.target.value)}
+        <input className="!w-[100%] !p-[8px_14px] !rounded-[10px] ![background:var(--bg-input)] ![color:var(--text-primary)] !text-[length:13px] ![font-family:inherit] ![outline:none]" autoFocus type="text" value={textInput} onChange={e => setTextInput(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleTextSubmit(); if (e.key === 'Escape') setIsTyping(false) }}
           onBlur={handleTextSubmit}
           placeholder="DD.MM.YYYY"
-          style={{
-            width: '100%', padding: '8px 14px', borderRadius: 10, border: '1px solid var(--text-faint)',
-            background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit', outline: 'none',
-          }} />
+          style={{ border: '1px solid var(--text-faint)' }} />
       ) : (
       <button type="button" onClick={() => setOpen(o => !o)} onDoubleClick={() => { setTextInput(value || ''); setIsTyping(true) }}
         style={{
@@ -109,7 +106,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
         onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--text-faint)'}
         onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = 'var(--border-primary)' }}>
         {!compact && <Calendar size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />}
-        <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayValue || placeholder || t('common.date')}</span>
+        <span className="!whitespace-nowrap !overflow-hidden !text-ellipsis">{displayValue || placeholder || t('common.date')}</span>
       </button>
       )}
 
@@ -138,41 +135,33 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         }}>
           {/* Month nav */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <button className="trek-hover-text" type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
+          <div className="!flex !items-center !justify-between !mb-[10px]">
+            <button className="trek-hover-text ![background:none] !cursor-pointer !p-[4px] !rounded-[6px] !flex ![color:var(--text-faint)]" type="button" onClick={prevMonth} style={{ border: 'none' }}>
               <ChevronLeft size={16} />
             </button>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
-            <button className="trek-hover-text" type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
+            <span className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">{monthLabel}</span>
+            <button className="trek-hover-text ![background:none] !cursor-pointer !p-[4px] !rounded-[6px] !flex ![color:var(--text-faint)]" type="button" onClick={nextMonth} style={{ border: 'none' }}>
               <ChevronRight size={16} />
             </button>
           </div>
 
           {/* Weekday headers */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, marginBottom: 4 }}>
+          <div className="!grid ![grid-template-columns:repeat(7,_1fr)] !gap-[2px] !mb-[4px]">
             {weekdays.map((d, i) => (
-              <div key={i} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '2px 0' }}>{d}</div>
+              <div className="!text-center !text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[2px_0]" key={i}>{d}</div>
             ))}
           </div>
 
           {/* Days grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+          <div className="!grid ![grid-template-columns:repeat(7,_1fr)] !gap-[2px]">
             {Array.from({ length: startDay }, (_, i) => <div key={`e-${i}`} />)}
             {Array.from({ length: days }, (_, i) => {
               const d = i + 1
               const sel = d === selectedDay
               const td = isToday(d)
               return (
-                <button className={(!sel) ? 'trek-hover' : undefined} key={d} type="button" onClick={() => selectDay(d)}
-                  style={{
-                    width: 32, height: 32, borderRadius: 8, border: 'none',
-                    background: sel ? 'var(--accent)' : 'transparent',
-                    color: sel ? 'var(--accent-text)' : 'var(--text-primary)',
-                    fontSize: 12, fontWeight: sel ? 700 : td ? 600 : 400,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2,
-                    transition: 'background 0.1s',
-                  }}>
+                <button className={[(!sel) ? 'trek-hover' : undefined, '!w-[32px] !h-[32px] !rounded-[8px] !cursor-pointer !flex !items-center !justify-center ![transition:background_0.1s]'].join(' ')} key={d} type="button" onClick={() => selectDay(d)}
+                  style={{ border: 'none', background: sel ? 'var(--accent)' : 'transparent', color: sel ? 'var(--accent-text)' : 'var(--text-primary)', fontSize: 12, fontWeight: sel ? 700 : td ? 600 : 400, outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2 }}>
                   {d}
                 </button>
               )
@@ -181,9 +170,9 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
 
           {/* Clear */}
           {value && (
-            <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-              <button className="trek-hover-danger" type="button" onClick={() => { onChange(''); setOpen(false) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}>
+            <div className="!mt-[8px] !flex !justify-center">
+              <button className="trek-hover-danger ![background:none] !cursor-pointer !text-[length:11px] ![color:var(--text-faint)] !p-[3px_8px] !rounded-[6px]" type="button" onClick={() => { onChange(''); setOpen(false) }}
+                style={{ border: 'none' }}>
                 ✕
               </button>
             </div>
@@ -219,7 +208,7 @@ export function CustomDateTimePicker({ value, onChange, placeholder, style = {} 
   return (
     <div style={{ display: 'flex', gap: 8, ...style }}>
       <CustomDatePicker value={datePart || ''} onChange={handleDateChange} style={{ flex: 1, minWidth: 0 }} />
-      <div style={{ width: 110, flexShrink: 0 }}>
+      <div className="!w-[110px] !shrink-[0]">
         <CustomTimePicker value={timePart || ''} onChange={handleTimeChange} />
       </div>
     </div>

@@ -377,37 +377,21 @@ export default function JourneyStudioPage() {
   return (
     <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)', ...font }}>
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '10px 16px', borderBottom: '1px solid var(--border-secondary)', flexShrink: 0,
-      }}>
-        <button onClick={backToJourney} style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-          border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)',
-          fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-        }}>
+      <div className="!flex !items-center !justify-between !p-[10px_16px] ![border-bottom:1px_solid_var(--border-secondary)] !shrink-[0]">
+        <button className="!flex !items-center !gap-[6px] !p-[7px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)] !text-[length:13px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={backToJourney}>
           <ArrowLeft size={15} /> {t('journey.studio.backToJourney')}
         </button>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className="!flex !items-center !gap-[8px]">
           <BookOpen size={16} color="var(--text-muted)" />
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('journey.studio.title')}</span>
-          <span style={{
-            padding: '2px 8px', borderRadius: 99, fontSize: 10, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.04em',
-            background: 'var(--bg-tertiary)', color: 'var(--text-faint)',
-          }}>{t('journey.studio.betaBadge')}</span>
+          <span className="!text-[length:14px] !font-[700] ![color:var(--text-primary)]">{t('journey.studio.title')}</span>
+          <span className="!p-[2px_8px] !rounded-[99px] !text-[length:10px] !font-[700] !uppercase !tracking-[0.04em] ![background:var(--bg-tertiary)] ![color:var(--text-faint)]">{t('journey.studio.betaBadge')}</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="!flex !items-center !gap-[10px]">
           <PeerBadges peers={peers} t={t} />
           {doc && (
-            <button onClick={() => setBookView(v => !v)} aria-pressed={bookView} title={t('journey.studio.bookView')} style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-              border: bookView ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-              background: bookView ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
-              fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-            }}>
+            <button className="!flex !items-center !gap-[6px] !p-[7px_12px] !rounded-[10px] ![color:var(--text-primary)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setBookView(v => !v)} aria-pressed={bookView} title={t('journey.studio.bookView')} style={{ border: bookView ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: bookView ? 'var(--bg-tertiary)' : 'none' }}>
               <BookOpen size={14} /> {t('journey.studio.bookView')}
             </button>
           )}
@@ -434,81 +418,70 @@ export default function JourneyStudioPage() {
           )}
           {doc && (
             <>
-              <button onClick={undo} disabled={!canUndo} title={t('journey.studio.undo')}
-                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: canUndo ? 'pointer' : 'default', opacity: canUndo ? 1 : 0.4, color: 'var(--text-muted)' }}>
+              <button className="!w-[30px] !h-[30px] !flex !items-center !justify-center !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)]" onClick={undo} disabled={!canUndo} title={t('journey.studio.undo')}
+                style={{ cursor: canUndo ? 'pointer' : 'default', opacity: canUndo ? 1 : 0.4 }}>
                 <Undo2 size={14} />
               </button>
-              <button onClick={redo} disabled={!canRedo} title={t('journey.studio.redo')}
-                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: canRedo ? 'pointer' : 'default', opacity: canRedo ? 1 : 0.4, color: 'var(--text-muted)' }}>
+              <button className="!w-[30px] !h-[30px] !flex !items-center !justify-center !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)]" onClick={redo} disabled={!canRedo} title={t('journey.studio.redo')}
+                style={{ cursor: canRedo ? 'pointer' : 'default', opacity: canRedo ? 1 : 0.4 }}>
                 <Redo2 size={14} />
               </button>
-              <button onClick={() => copySelection(activeSpread, selection)} disabled={!selection.length} title={t('journey.studio.copy')}
-                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: selection.length ? 'pointer' : 'default', opacity: selection.length ? 1 : 0.4, color: 'var(--text-muted)' }}>
+              <button className="!w-[30px] !h-[30px] !flex !items-center !justify-center !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)]" onClick={() => copySelection(activeSpread, selection)} disabled={!selection.length} title={t('journey.studio.copy')}
+                style={{ cursor: selection.length ? 'pointer' : 'default', opacity: selection.length ? 1 : 0.4 }}>
                 <Clipboard size={14} />
               </button>
-              <button onClick={() => pasteClipboard(activeSpread)} disabled={!clipboard.length} title={t('journey.studio.paste')}
-                style={{ width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', cursor: clipboard.length ? 'pointer' : 'default', opacity: clipboard.length ? 1 : 0.4, color: 'var(--text-muted)' }}>
+              <button className="!w-[30px] !h-[30px] !flex !items-center !justify-center !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)]" onClick={() => pasteClipboard(activeSpread)} disabled={!clipboard.length} title={t('journey.studio.paste')}
+                style={{ cursor: clipboard.length ? 'pointer' : 'default', opacity: clipboard.length ? 1 : 0.4 }}>
                 <ClipboardPaste size={14} />
               </button>
-              <button onClick={() => { void saveNow(); setShowExport(true) }} title={t('journey.studio.export')}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button className="!flex !items-center !gap-[6px] !p-[7px_12px] !rounded-[10px] ![border:none] ![background:var(--text-primary)] ![color:var(--bg-primary)] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit]" onClick={() => { void saveNow(); setShowExport(true) }} title={t('journey.studio.export')}>
                 <Printer size={14} /> {t('journey.studio.export')}
               </button>
             </>
           )}
           {saveLabel && (
-            <span style={{ fontSize: 11, color: state.status === 'error' ? '#dc2626' : 'var(--text-faint)', minWidth: 60 }}>{saveLabel}</span>
+            <span className="!text-[length:11px] !min-w-[60px]" style={{ color: state.status === 'error' ? '#dc2626' : 'var(--text-faint)' }}>{saveLabel}</span>
           )}
         </div>
       </div>
 
       {!bookLoaded ? (
-        <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <div className="w-8 h-8 border-2 rounded-full animate-spin"
-            style={{ borderColor: 'var(--border-primary)', borderTopColor: 'var(--text-primary)' }} />
+        <div className="!flex-[1] !flex !justify-center !items-center">
+          <div className="w-8 h-8 border-2 rounded-full animate-spin ![border-color:var(--border-primary)] ![border-top-color:var(--text-primary)]" />
         </div>
       ) : !doc ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 20px', textAlign: 'center' }}>
+        <div className="!flex-[1] !flex !flex-col !items-center !justify-center !p-[80px_20px] !text-center">
           <BookOpen size={40} style={{ color: 'var(--text-faint)', marginBottom: 14 }} />
-          <h2 style={{ margin: '0 0 6px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h2 className="!m-[0_0_6px] !text-[length:18px] !font-[700] ![color:var(--text-primary)]">
             {t('journey.studio.emptyTitle')}
           </h2>
-          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)', maxWidth: 380, lineHeight: 1.5 }}>
+          <p className="!m-[0_0_20px] !text-[length:13px] ![color:var(--text-muted)] !max-w-[380px] !leading-[1.5]">
             {t('journey.studio.emptyHint')}
           </p>
 
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 8 }}>
+          <div className="!mb-[20px]">
+            <div className="!text-[length:11px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !mb-[8px]">
               {t('journey.studio.pageSize')}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', maxWidth: 420 }}>
+            <div className="!flex !flex-wrap !gap-[6px] !justify-center !max-w-[420px]">
               {(Object.keys(PAGE_PRESETS) as (keyof typeof PAGE_PRESETS)[]).map(key => (
-                <button key={key} onClick={() => setPagePreset(key)} aria-pressed={pagePreset === key} style={{
-                  padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-                  border: pagePreset === key ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                  background: pagePreset === key ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
-                }}>
+                <button className="!p-[7px_12px] !rounded-[8px] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-primary)]" key={key} onClick={() => setPagePreset(key)} aria-pressed={pagePreset === key} style={{ border: pagePreset === key ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: pagePreset === key ? 'var(--bg-tertiary)' : 'none' }}>
                   {t(PAGE_PRESETS[key].labelKey)}
                 </button>
               ))}
-              <button onClick={() => setPagePreset('custom')} aria-pressed={pagePreset === 'custom'} style={{
-                padding: '7px 12px', borderRadius: 8, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit',
-                border: pagePreset === 'custom' ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                background: pagePreset === 'custom' ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
-              }}>
+              <button className="!p-[7px_12px] !rounded-[8px] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-primary)]" onClick={() => setPagePreset('custom')} aria-pressed={pagePreset === 'custom'} style={{ border: pagePreset === 'custom' ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: pagePreset === 'custom' ? 'var(--bg-tertiary)' : 'none' }}>
                 {t('journey.studio.pagePreset.custom')}
               </button>
             </div>
 
             {pagePreset === 'custom' && (
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 10 }}>
+              <div className="!flex !gap-[8px] !justify-center !mt-[10px]">
                 {(['pageWidth', 'pageHeight', 'bleed'] as const).map(field => (
-                  <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 10, color: 'var(--text-faint)' }}>
+                  <label className="!flex !flex-col !gap-[3px] !text-[length:10px] ![color:var(--text-faint)]" key={field}>
                     {t(`journey.studio.pageField.${field}`)}
-                    <input
+                    <input className="!w-[72px] !p-[6px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] ![font-family:inherit] !text-[length:12px]"
                       type="number" min={0} step={0.1} value={customPage[field]}
                       onChange={e => setCustomPage(c => ({ ...c, [field]: Number(e.target.value) || 0 }))}
-                      style={{ width: 72, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 12 }}
                     />
                   </label>
                 ))}
@@ -516,60 +489,41 @@ export default function JourneyStudioPage() {
             )}
           </div>
 
-          <button onClick={createBook} style={{
-            padding: '10px 20px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
-          }}>
+          <button className="!p-[10px_20px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={createBook}>
             {t('journey.studio.createBook')}
           </button>
         </div>
       ) : (
-        <div style={{ flex: 1, display: 'flex', minHeight: 0 }}>
+        <div className="!flex-[1] !flex !min-h-[0]">
           <StudioSidebar journeyId={journeyId} galleryPhotos={galleryPhotos} journeyStats={autoInput?.journeyStats} onGenerateMap={generateMapImage} onGeneratePlaces={generatePlacesList} onGeneratePacking={generatePackingList} onGenerateAccommodations={generateAccommodationsList} />
 
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <div className="!flex-[1] !flex !flex-col !min-w-[0]">
             {state.status === 'newer' && (
-              <div role="alert" data-testid="newer-notice" style={{
-                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', flexShrink: 0,
-                borderBottom: '1px solid #f59e0b', background: 'rgba(245,158,11,0.12)', fontSize: 12, color: 'var(--text-primary)',
-              }}>
+              <div className="!flex !items-center !gap-[10px] !flex-wrap !p-[8px_14px] !shrink-[0] ![border-bottom:1px_solid_#f59e0b] ![background:rgba(245,158,11,0.12)] !text-[length:12px] ![color:var(--text-primary)]" role="alert" data-testid="newer-notice">
                 <Lock size={14} style={{ flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 200 }}>{t('journey.studio.newerNotice')}</span>
-                <button onClick={() => window.location.reload()} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none',
-                  fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                }}>
+                <span className="!flex-[1] !min-w-[200px]">{t('journey.studio.newerNotice')}</span>
+                <button className="!flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[8px] ![border:none] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={() => window.location.reload()}>
                   <RefreshCw size={13} /> {t('journey.studio.reload')}
                 </button>
               </div>
             )}
             {resizeNotice && (
-              <div role="status" data-testid="resize-notice" style={{
-                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 14px', flexShrink: 0,
-                borderBottom: '1px solid var(--border-secondary)', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
-              }}>
-                <span style={{ flex: 1, minWidth: 200 }}>
+              <div className="!flex !items-center !gap-[10px] !flex-wrap !p-[8px_14px] !shrink-[0] ![border-bottom:1px_solid_var(--border-secondary)] ![background:var(--bg-tertiary)] !text-[length:12px] ![color:var(--text-primary)]" role="status" data-testid="resize-notice">
+                <span className="!flex-[1] !min-w-[200px]">
                   {t('journey.studio.resizeNotice', { w: Math.round(doc.page.pageWidth * 10) / 10, h: Math.round(doc.page.pageHeight * 10) / 10 })}
                 </span>
                 {autoInput && (
-                  <button onClick={handleAutoBook} disabled={autoBookBuilding} style={{
-                    display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, border: 'none',
-                    fontSize: 12, fontWeight: 600, cursor: autoBookBuilding ? 'default' : 'pointer', opacity: autoBookBuilding ? 0.6 : 1,
-                    fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                  }}>
+                  <button className="!flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[8px] ![border:none] !text-[length:12px] !font-[600] ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={handleAutoBook} disabled={autoBookBuilding} style={{ cursor: autoBookBuilding ? 'default' : 'pointer', opacity: autoBookBuilding ? 0.6 : 1 }}>
                     <Sparkles size={13} /> {t('journey.studio.relayoutBook')}
                   </button>
                 )}
-                <button onClick={() => setResizeNotice(false)} style={{
-                  padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none',
-                  fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)',
-                }}>
+                <button className="!p-[6px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setResizeNotice(false)}>
                   {t('journey.studio.keepLayout')}
                 </button>
               </div>
             )}
             <div ref={viewportRef} style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <div style={{ boxShadow: '0 8px 32px rgba(0,0,0,0.18)', borderRadius: 4, overflow: 'hidden' }}>
+              <div className="![box-shadow:0_8px_32px_rgba(0,0,0,0.18)] !rounded-[4px] !overflow-hidden">
                 <StudioCanvas
                   spread={spread}
                   spreadIndex={activeSpread}
@@ -585,19 +539,16 @@ export default function JourneyStudioPage() {
             </div>
 
             {/* Zoom */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '8px 16px', borderTop: '1px solid var(--border-secondary)', flexShrink: 0 }}>
-              <button onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.max(0, zoomIndex - 1)]) }}
-                style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <div className="!flex !items-center !justify-center !gap-[10px] !p-[8px_16px] ![border-top:1px_solid_var(--border-secondary)] !shrink-[0]">
+              <button className="!w-[26px] !h-[26px] !flex !items-center !justify-center !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.max(0, zoomIndex - 1)]) }}>
                 <Minus size={13} />
               </button>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 40, textAlign: 'center' }}>{Math.round(zoom * 100)}%</span>
-              <button onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1)]) }}
-                style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <span className="!text-[length:12px] ![color:var(--text-muted)] !min-w-[40px] !text-center">{Math.round(zoom * 100)}%</span>
+              <button className="!w-[26px] !h-[26px] !flex !items-center !justify-center !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={() => { setAutoFit(false); setZoom(ZOOM_STEPS[Math.min(ZOOM_STEPS.length - 1, zoomIndex + 1)]) }}>
                 <Plus size={13} />
               </button>
-              <button onClick={() => setAutoFit(true)} aria-pressed={autoFit} title={t('journey.studio.zoomFit')}
-                style={{ height: 26, padding: '0 9px', display: 'flex', alignItems: 'center', borderRadius: 6, fontSize: 11, fontFamily: 'inherit', cursor: 'pointer',
-                  border: autoFit ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: autoFit ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-muted)' }}>
+              <button className="!h-[26px] !p-[0_9px] !flex !items-center !rounded-[6px] !text-[length:11px] ![font-family:inherit] !cursor-pointer ![color:var(--text-muted)]" onClick={() => setAutoFit(true)} aria-pressed={autoFit} title={t('journey.studio.zoomFit')}
+                style={{ border: autoFit ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: autoFit ? 'var(--bg-tertiary)' : 'none' }}>
                 {t('journey.studio.zoomFit')}
               </button>
             </div>
@@ -609,17 +560,15 @@ export default function JourneyStudioPage() {
 
       {/* Conflict modal */}
       {state.status === 'conflict' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'var(--bg-card)', borderRadius: 16, padding: 24, maxWidth: 400, width: '100%' }}>
-            <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('journey.studio.saveConflictTitle')}</h3>
-            <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('journey.studio.saveConflictHint')}</p>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => { const d = acceptTheirs(state.current); loadDoc(d) }}
-                style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+        <div className="!fixed !inset-[0] !z-[1000] ![background:rgba(0,0,0,0.5)] !flex !items-center !justify-center !p-[20px]">
+          <div className="![background:var(--bg-card)] !rounded-[16px] !p-[24px] !max-w-[400px] !w-[100%]">
+            <h3 className="!m-[0_0_8px] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">{t('journey.studio.saveConflictTitle')}</h3>
+            <p className="!m-[0_0_20px] !text-[length:13px] ![color:var(--text-muted)] !leading-[1.5]">{t('journey.studio.saveConflictHint')}</p>
+            <div className="!flex !gap-[8px] !justify-end">
+              <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:13px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => { const d = acceptTheirs(state.current); loadDoc(d) }}>
                 {t('journey.studio.takeTheirs')}
               </button>
-              <button onClick={() => keepMine(state.current)}
-                style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+              <button className="!p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={() => keepMine(state.current)}>
                 {t('journey.studio.keepMine')}
               </button>
             </div>

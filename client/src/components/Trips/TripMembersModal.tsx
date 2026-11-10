@@ -18,17 +18,13 @@ interface AvatarProps {
 
 function Avatar({ username, avatarUrl, size = 32 }: AvatarProps) {
   if (avatarUrl) {
-    return <img src={avatarUrl} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+    return <img className="!rounded-[50%] !object-cover !shrink-[0]" src={avatarUrl} alt="" style={{ width: size, height: size }} />
   }
   const letter = (username || '?')[0].toUpperCase()
   const colors = ['#3b82f6', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#ef4444', '#06b6d4']
   const color = colors[letter.charCodeAt(0) % colors.length]
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', background: color,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontSize: size * 0.4, fontWeight: 700, color: 'white', flexShrink: 0,
-    }}>
+    <div className="!rounded-[50%] !flex !items-center !justify-center ![color:white] !shrink-[0]" style={{ width: size, height: size, background: color, fontSize: size * 0.4, fontWeight: 700 }}>
       {letter}
     </div>
   )
@@ -91,14 +87,14 @@ function ShareLinkSection({ tripId, t }: { tripId: number | string; t: (key: str
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+      <div className="!flex !items-center !gap-[6px] !mb-[10px]">
         <Link2 size={14} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('share.linkTitle')}</span>
+        <span className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">{t('share.linkTitle')}</span>
       </div>
-      <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 10, lineHeight: 1.5 }}>{t('share.linkHint')}</p>
+      <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[10px] !leading-[1.5]">{t('share.linkHint')}</p>
 
       {/* Permission checkboxes */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+      <div className="!flex !flex-wrap !gap-[6px] !mb-[12px]">
         {[
           { key: 'share_map', label: t('share.permMap'), always: true },
           { key: 'share_bookings', label: t('share.permBookings') },
@@ -106,16 +102,8 @@ function ShareLinkSection({ tripId, t }: { tripId: number | string; t: (key: str
           { key: 'share_budget', label: t('share.permBudget') },
           { key: 'share_collab', label: t('share.permCollab') },
         ].map(opt => (
-          <button key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 20,
-              border: '1.5px solid', fontSize: 11, fontWeight: 500, cursor: opt.always ? 'default' : 'pointer',
-              fontFamily: 'inherit', transition: 'all 0.12s',
-              background: perms[opt.key] ? 'var(--text-primary)' : 'transparent',
-              borderColor: perms[opt.key] ? 'var(--text-primary)' : 'var(--border-primary)',
-              color: perms[opt.key] ? 'var(--bg-primary)' : 'var(--text-muted)',
-              opacity: opt.always ? 0.7 : 1,
-            }}>
+          <button className="!flex !items-center !gap-[5px] !p-[4px_10px] !rounded-[20px] !text-[length:11px] !font-[500] ![font-family:inherit] ![transition:all_0.12s]" key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
+            style={{ border: '1.5px solid', cursor: opt.always ? 'default' : 'pointer', background: perms[opt.key] ? 'var(--text-primary)' : 'transparent', borderColor: perms[opt.key] ? 'var(--text-primary)' : 'var(--border-primary)', color: perms[opt.key] ? 'var(--bg-primary)' : 'var(--text-muted)', opacity: opt.always ? 0.7 : 1 }}>
             {perms[opt.key] ? <Check size={10} /> : null}
             {opt.label}
           </button>
@@ -123,39 +111,19 @@ function ShareLinkSection({ tripId, t }: { tripId: number | string; t: (key: str
       </div>
 
       {shareUrl ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px',
-            background: 'var(--bg-tertiary)', borderRadius: 8, border: '1px solid var(--border-faint)',
-          }}>
-            <input type="text" value={shareUrl} readOnly style={{
-              flex: 1, border: 'none', background: 'none', fontSize: 11, color: 'var(--text-primary)',
-              outline: 'none', fontFamily: 'monospace',
-            }} />
-            <button onClick={handleCopy} style={{
-              display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 6,
-              border: 'none', background: copied ? '#16a34a' : 'var(--accent)', color: copied ? 'white' : 'var(--accent-text)',
-              fontSize: 10, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.2s',
-            }}>
+        <div className="!flex !flex-col !gap-[8px]">
+          <div className="!flex !items-center !gap-[6px] !p-[8px_10px] ![background:var(--bg-tertiary)] !rounded-[8px] ![border:1px_solid_var(--border-faint)]">
+            <input className="!flex-[1] ![border:none] ![background:none] !text-[length:11px] ![color:var(--text-primary)] ![outline:none] ![font-family:monospace]" type="text" value={shareUrl} readOnly />
+            <button className="!flex !items-center !gap-[4px] !p-[4px_8px] !rounded-[6px] ![border:none] !text-[length:10px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:background_0.2s]" onClick={handleCopy} style={{ background: copied ? '#16a34a' : 'var(--accent)', color: copied ? 'white' : 'var(--accent-text)' }}>
               {copied ? <><Check size={10} /> {t('common.copied')}</> : <><Copy size={10} /> {t('common.copy')}</>}
             </button>
           </div>
-          <button onClick={handleDelete} style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            padding: '6px 0', borderRadius: 8, border: '1px solid rgba(239,68,68,0.3)',
-            background: 'rgba(239,68,68,0.06)', color: '#ef4444', fontSize: 11, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit',
-          }}>
+          <button className="!flex !items-center !justify-center !gap-[5px] !p-[6px_0] !rounded-[8px] ![border:1px_solid_rgba(239,68,68,0.3)] ![background:rgba(239,68,68,0.06)] ![color:#ef4444] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={handleDelete}>
             <Trash2 size={11} /> {t('share.deleteLink')}
           </button>
         </div>
       ) : (
-        <button onClick={handleCreate} style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          width: '100%', padding: '8px 0', borderRadius: 8, border: '1px dashed var(--border-primary)',
-          background: 'none', color: 'var(--text-muted)', fontSize: 12, fontWeight: 500,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>
+        <button className="!flex !items-center !justify-center !gap-[6px] !w-[100%] !p-[8px_0] !rounded-[8px] ![border:1px_dashed_var(--border-primary)] ![background:none] ![color:var(--text-muted)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={handleCreate}>
           <Link2 size={12} /> {t('share.createLink')}
         </button>
       )}
@@ -259,24 +227,24 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={t('members.shareTrip')} size="3xl">
-      <div style={{ display: 'grid', gridTemplateColumns: canManageShare ? '1fr 1fr' : '1fr', gap: 24, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }} className="share-modal-grid">
+      <div style={{ gridTemplateColumns: canManageShare ? '1fr 1fr' : '1fr', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }} className="share-modal-grid !grid !gap-[24px]">
         <style>{`@media (max-width: 640px) { .share-modal-grid { grid-template-columns: 1fr !important; } }`}</style>
 
         {/* Left column: Members */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="!flex !flex-col !gap-[16px]">
 
         {/* Trip name */}
-        <div style={{ padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 10, border: '1px solid var(--border-secondary)' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 2 }}>{t('nav.trip')}</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{tripTitle}</div>
+        <div className="!p-[10px_14px] ![background:var(--bg-secondary)] !rounded-[10px] ![border:1px_solid_var(--border-secondary)]">
+          <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.05em] !mb-[2px]">{t('nav.trip')}</div>
+          <div className="!text-[length:14px] !font-[600] ![color:var(--text-primary)]">{tripTitle}</div>
         </div>
 
         {/* Add member dropdown */}
         {canManageMembers && <div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>
+          <label className="!block !text-[length:12px] !font-[600] ![color:var(--text-secondary)] !mb-[8px]">
             {t('members.inviteUser')}
           </label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="!flex !gap-[8px]">
             <CustomSelect
               value={selectedUserId}
               onChange={value => setSelectedUserId(value)}
@@ -292,68 +260,59 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
               style={{ flex: 1 }}
               size="sm"
             />
-            <button
+            <button className="!flex !items-center !gap-[5px] !p-[8px_14px] ![background:var(--accent)] ![color:var(--accent-text)] ![border:none] !rounded-[10px] !text-[length:13px] !font-[600] ![font-family:inherit] !shrink-[0]"
               onClick={handleAdd}
               disabled={adding || !selectedUserId}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '8px 14px',
-                background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 10,
-                fontSize: 13, fontWeight: 600, cursor: adding || !selectedUserId ? 'default' : 'pointer',
-                fontFamily: 'inherit', opacity: adding || !selectedUserId ? 0.4 : 1, flexShrink: 0,
-              }}
+              style={{ cursor: adding || !selectedUserId ? 'default' : 'pointer', opacity: adding || !selectedUserId ? 0.4 : 1 }}
             >
               <UserPlus size={13} /> {adding ? '…' : t('members.invite')}
             </button>
           </div>
           {availableUsers.length === 0 && allUsers.length > 0 && canManageMembers && (
-            <p style={{ fontSize: 11.5, color: 'var(--text-faint)', margin: '6px 0 0' }}>{t('members.allHaveAccess')}</p>
+            <p className="!text-[length:11.5px] ![color:var(--text-faint)] !m-[6px_0_0]">{t('members.allHaveAccess')}</p>
           )}
         </div>}
 
         {/* Members list */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+          <div className="!flex !items-center !gap-[6px] !mb-[10px]">
             <Users size={13} style={{ color: 'var(--text-faint)' }} />
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
+            <span className="!text-[length:12px] !font-[600] ![color:var(--text-secondary)]">
               {t('members.access')} ({allMembers.length} {allMembers.length === 1 ? t('members.person') : t('members.persons')})
             </span>
           </div>
 
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="!flex !flex-col !gap-[8px]">
               {[1, 2].map(i => (
-                <div key={i} style={{ height: 48, background: 'var(--bg-tertiary)', borderRadius: 10, animation: 'pulse 1.5s ease-in-out infinite' }} />
+                <div className="!h-[48px] ![background:var(--bg-tertiary)] !rounded-[10px]" key={i} style={{ animation: 'pulse 1.5s ease-in-out infinite' }} />
               ))}
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="!flex !flex-col !gap-[6px]">
               {allMembers.map(member => {
                 const isSelf = member.id === user?.id
                 const canRemove = isSelf || (canManageMembers && member.role !== 'owner')
                 return (
-                  <div key={member.id} style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '8px 12px', borderRadius: 10, background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-secondary)',
-                  }}>
+                  <div className="!flex !items-center !gap-[10px] !p-[8px_12px] !rounded-[10px] ![background:var(--bg-secondary)] ![border:1px_solid_var(--border-secondary)]" key={member.id}>
                     <Avatar username={member.username} avatarUrl={member.avatar_url} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{member.username}</span>
-                        {isSelf && <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>({t('members.you')})</span>}
+                    <div className="!flex-[1] !min-w-[0]">
+                      <div className="!flex !items-center !gap-[6px] !flex-wrap">
+                        <span className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">{member.username}</span>
+                        {isSelf && <span className="!text-[length:10px] ![color:var(--text-faint)]">({t('members.you')})</span>}
                         {member.role === 'owner' && (
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 700, color: '#d97706', background: '#fef9c3', padding: '1px 6px', borderRadius: 99 }}>
+                          <span className="!inline-flex !items-center !gap-[3px] !text-[length:10px] !font-[700] ![color:#d97706] ![background:#fef9c3] !p-[1px_6px] !rounded-[99px]">
                             <Crown size={9} /> {t('members.owner')}
                           </span>
                         )}
                       </div>
                     </div>
                     {canRemove && (
-                      <button className="trek-hover-danger"
+                      <button className="trek-hover-danger ![background:none] ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] !flex ![color:var(--text-faint)]"
                         onClick={() => handleRemove(member.id, isSelf)}
                         disabled={removingId === member.id}
                         title={isSelf ? t('members.leaveTrip') : t('members.removeAccess')}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)', opacity: removingId === member.id ? 0.4 : 1 }} >
+                        style={{ opacity: removingId === member.id ? 0.4 : 1 }} >
                         {isSelf ? <LogOut size={14} /> : <UserMinus size={14} />}
                       </button>
                     )}
@@ -367,7 +326,7 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
         </div>
 
         {/* Right column: Share Link */}
-        {canManageShare && <div style={{ borderLeft: '1px solid var(--border-faint)', paddingLeft: 24 }}>
+        {canManageShare && <div className="![border-left:1px_solid_var(--border-faint)] !pl-[24px]">
         <ShareLinkSection tripId={tripId} t={t} />
         </div>}
 

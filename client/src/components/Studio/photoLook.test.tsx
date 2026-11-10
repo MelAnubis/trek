@@ -119,7 +119,7 @@ describe('the look on the page', () => {
     })} />)
     const outer = rect.container.firstElementChild as HTMLElement
     expect(outer.style.boxShadow).toContain('3mm')
-    expect(rect.container.querySelector('[aria-hidden][style*="border-style: solid"]')).not.toBeNull()
+    expect(rect.container.querySelector('[aria-hidden][style*="border-style: solid"], [class*="![border-style:solid"]')).not.toBeNull()
 
     const star = render(<ElementView big={false} el={photoEl({ mask: 'star-5' as BookPhotoElement['mask'], cutout: { width: 3, color: '#ff0000' } })} />)
     expect((star.container.firstElementChild as HTMLElement).style.boxShadow).toBe('')

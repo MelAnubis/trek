@@ -127,30 +127,22 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 
   // Sidebar filter item
   const SidebarItem = ({ id, icon: Icon, label, count, color }: { id: string; icon: any; label: string; count: number; color?: string }) => (
-    <button className={(filter !== id) ? 'trek-hover' : undefined} onClick={() => setFilter(id as FilterType)}
+    <button className={[(filter !== id) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s] !relative'].join(' ')} onClick={() => setFilter(id as FilterType)}
       title={isMobile ? label : undefined}
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
-        gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px',
-        border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
-        background: filter === id ? 'var(--bg-hover)' : 'transparent',
-        color: filter === id ? 'var(--text-primary)' : 'var(--text-secondary)',
-        fontWeight: filter === id ? 600 : 400, transition: 'all 0.1s',
-        position: 'relative',
-      }}>
+      style={{ justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, background: filter === id ? 'var(--bg-hover)' : 'transparent', color: filter === id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: filter === id ? 600 : 400 }}>
       {color ? (
-        <span style={{ width: isMobile ? 12 : 10, height: isMobile ? 12 : 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+        <span className="!shrink-[0]" style={{ width: isMobile ? 12 : 10, height: isMobile ? 12 : 10, borderRadius: '50%', background: color }} />
       ) : (
         <Icon size={isMobile ? 18 : 15} style={{ flexShrink: 0, opacity: 0.7 }} />
       )}
-      {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{label}</span>}
+      {!isMobile && <span className="!flex-[1] !text-left">{label}</span>}
       {!isMobile && count > 0 && (
-        <span style={{ fontSize: 11, color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 10, padding: '1px 7px', minWidth: 20, textAlign: 'center' }}>
+        <span className="!text-[length:11px] ![color:var(--text-faint)] ![background:var(--bg-hover)] !p-[1px_7px] !min-w-[20px] !text-center" style={{ borderRadius: 10 }}>
           {count}
         </span>
       )}
       {isMobile && count > 0 && (
-        <span style={{ position: 'absolute', top: 2, right: 2, fontSize: 8, fontWeight: 700, color: 'var(--bg-primary)', background: 'var(--text-faint)', borderRadius: '50%', width: 14, height: 14, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <span className="!absolute !top-[2px] !right-[2px] !text-[length:8px] !font-[700] ![color:var(--bg-primary)] ![background:var(--text-faint)] !h-[14px] !flex !items-center !justify-center" style={{ borderRadius: '50%', width: 14 }}>
           {count}
         </span>
       )}
@@ -167,36 +159,27 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
   })()
 
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 180px)', minHeight: 400 }}>
+    <div className="!flex !h-[calc(100vh_-_180px)] !min-h-[400px]">
 
       {/* ── Left Sidebar ── */}
-      <div style={{
-        width: isMobile ? 52 : 220, flexShrink: 0, borderRight: '1px solid var(--border-faint)',
-        padding: isMobile ? '12px 6px' : '16px 12px 16px 0', display: 'flex', flexDirection: 'column', gap: 2, overflowY: 'auto',
-        transition: 'width 0.2s',
-      }}>
+      <div className="!shrink-[0] !flex !flex-col !gap-[2px] !overflow-y-auto ![transition:width_0.2s]" style={{ width: isMobile ? 52 : 220, borderRight: '1px solid var(--border-faint)', padding: isMobile ? '12px 6px' : '16px 12px 16px 0' }}>
         {/* Progress Card */}
-        {!isMobile && <div style={{
-          margin: '0 0 12px', padding: '14px 14px 12px', borderRadius: 14,
-          background: 'var(--bg-hover)',
-          border: '1px solid var(--border-primary)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-            <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-0.02em' }}>
+        {!isMobile && <div className="!m-[0_0_12px] !p-[14px_14px_12px] ![background:var(--bg-hover)] ![box-shadow:0_1px_2px_rgba(0,0,0,0.02)]" style={{ borderRadius: 14, border: '1px solid var(--border-primary)' }}>
+          <div className="!flex !items-baseline !gap-[4px] !mb-[8px]">
+            <span className="!text-[length:18px] !font-[700] ![color:var(--text-primary)] !leading-[1] !tracking-[-0.02em]">
               {totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0}%
             </span>
           </div>
-          <div style={{ height: 4, background: 'var(--border-faint)', borderRadius: 2, overflow: 'hidden', marginBottom: 6 }}>
-            <div style={{ height: '100%', width: totalCount > 0 ? `${Math.round((doneCount / totalCount) * 100)}%` : '0%', background: '#22c55e', borderRadius: 2, transition: 'width 0.3s' }} />
+          <div className="!h-[4px] ![background:var(--border-faint)] !overflow-hidden !mb-[6px]" style={{ borderRadius: 2 }}>
+            <div className="!h-[100%] ![background:#22c55e] ![transition:width_0.3s]" style={{ width: totalCount > 0 ? `${Math.round((doneCount / totalCount) * 100)}%` : '0%', borderRadius: 2 }} />
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+          <div className="!text-[length:11px] ![color:var(--text-faint)]">
             {doneCount} / {totalCount} {t('todo.completed')}
           </div>
         </div>}
 
         {/* Smart filters */}
-        {!isMobile && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '8px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[8px_12px_4px] !uppercase !tracking-[0.05em]">
           {t('todo.sidebar.tasks')}
         </div>}
         <SidebarItem id="all" icon={Inbox} label={t('todo.filter.all')} count={items.filter(i => !i.checked).length} />
@@ -205,45 +188,38 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         <SidebarItem id="done" icon={CheckCheck} label={t('todo.filter.done')} count={doneCount} />
 
         {/* Sort by */}
-        {!isMobile && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[16px_12px_4px] !uppercase !tracking-[0.05em]">
           {t('todo.sidebar.sortBy')}
         </div>}
-        <button className={(!sortByPrio) ? 'trek-hover' : undefined} onClick={() => setSortByPrio(v => !v)}
+        <button className={[(!sortByPrio) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s]'].join(' ')} onClick={() => setSortByPrio(v => !v)}
           title={isMobile ? t('todo.priority') : undefined}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
-            gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px',
-            border: 'none', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
-            background: sortByPrio ? '#f59e0b12' : 'transparent',
-            color: sortByPrio ? '#f59e0b' : 'var(--text-secondary)',
-            fontWeight: sortByPrio ? 600 : 400, transition: 'all 0.1s',
-          }}>
+          style={{ justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, background: sortByPrio ? '#f59e0b12' : 'transparent', color: sortByPrio ? '#f59e0b' : 'var(--text-secondary)', fontWeight: sortByPrio ? 600 : 400 }}>
           <Flag size={isMobile ? 18 : 15} style={{ flexShrink: 0, opacity: 0.7 }} />
-          {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{t('todo.priority')}</span>}
+          {!isMobile && <span className="!flex-[1] !text-left">{t('todo.priority')}</span>}
         </button>
 
         {/* Categories */}
-        {!isMobile && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {!isMobile && <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[16px_12px_4px] !uppercase !tracking-[0.05em]">
           {t('todo.sidebar.categories')}
         </div>}
-        {isMobile && <div style={{ height: 1, background: 'var(--border-faint)', margin: '8px 4px' }} />}
+        {isMobile && <div className="!h-[1px] ![background:var(--border-faint)] !m-[8px_4px]" />}
         {categories.map(cat => (
           <SidebarItem key={cat} id={cat} icon={null} label={cat} count={catCount(cat)} color={katColor(cat, categories)} />
         ))}
 
         {canEdit && (
           addingCategory && !isMobile ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px' }}>
-              <input autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
+            <div className="!flex !items-center !gap-[4px] !p-[4px_12px]">
+              <input className="!flex-[1] !text-[length:12px] !p-[4px_6px] ![background:var(--bg-hover)] ![color:var(--text-primary)] ![font-family:inherit] !min-w-[0]" autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') } }}
                 placeholder={t('todo.newCategory')}
-                style={{ flex: 1, fontSize: 12, padding: '4px 6px', border: '1px solid var(--border-primary)', borderRadius: 5, background: 'var(--bg-hover)', color: 'var(--text-primary)', fontFamily: 'inherit', minWidth: 0 }} />
-              <button onClick={addCategory} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#22c55e', padding: 2 }}><Check size={13} /></button>
+                style={{ border: '1px solid var(--border-primary)', borderRadius: 5 }} />
+              <button className="![background:none] !cursor-pointer ![color:#22c55e] !p-[2px]" onClick={addCategory} style={{ border: 'none' }}><Check size={13} /></button>
             </div>
           ) : (
-            <button onClick={() => setAddingCategory(true)}
+            <button className="!flex !items-center !text-[length:12px] ![color:var(--text-faint)] ![background:none] !cursor-pointer ![font-family:inherit] !text-left" onClick={() => setAddingCategory(true)}
               title={isMobile ? t('todo.addCategory') : undefined}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 6, padding: isMobile ? '8px 0' : '7px 12px', fontSize: 12, color: 'var(--text-faint)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', width: '100%', textAlign: 'left' }}>
+              style={{ justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 6, padding: isMobile ? '8px 0' : '7px 12px', border: 'none', width: '100%' }}>
               <Plus size={isMobile ? 18 : 13} /> {!isMobile && t('todo.addCategory')}
             </button>
           )
@@ -251,21 +227,21 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       </div>
 
       {/* ── Middle: Task List ── */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="!flex-[1] !flex !flex-col !min-w-[0]">
         {/* Header */}
-        <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+        <div className="!p-[16px_20px_12px]" style={{ borderBottom: '1px solid var(--border-faint)' }}>
+          <div className="!flex !items-center !gap-[10px]">
+            <h2 className="!m-[0] !text-[length:22px] !font-[700] ![color:var(--text-primary)] !tracking-[-0.02em]">
               {filterTitle}
             </h2>
-            <span style={{ fontSize: 13, color: 'var(--text-faint)', background: 'var(--bg-hover)', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
+            <span className="!text-[length:13px] ![color:var(--text-faint)] ![background:var(--bg-hover)] !p-[2px_8px] !font-[600]" style={{ borderRadius: 6 }}>
               {filtered.length}
             </span>
           </div>
         </div>
 
         {/* Task list */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[4px_0]">
           {filtered.length === 0 ? null : (
             filtered.map(item => {
               const done = !!item.checked
@@ -275,84 +251,52 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
               const catColor = item.category ? katColor(item.category, categories) : null
 
               return (
-                <div className={(!isSelected) ? 'trek-h-background-d9ff9a' : undefined} key={item.id}
+                <div className={[(!isSelected) ? 'trek-h-background-d9ff9a' : undefined, '!flex !items-center !gap-[10px] !p-[10px_20px] !cursor-pointer ![transition:background_0.1s]'].join(' ')} key={item.id}
                   onClick={() => { setSelectedId(isSelected ? null : item.id); setIsAddingNew(false) }}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
-                    borderBottom: '1px solid var(--border-faint)', cursor: 'pointer',
-                    background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                    transition: 'background 0.1s',
-                  }}>
+                  style={{ borderBottom: '1px solid var(--border-faint)', background: isSelected ? 'var(--bg-hover)' : 'transparent' }}>
 
                   {/* Checkbox */}
-                  <button onClick={e => { e.stopPropagation(); canEdit && toggleTodoItem(tripId, item.id, !done) }}
-                    style={{ background: 'none', border: 'none', cursor: canEdit ? 'pointer' : 'default', padding: 0, flexShrink: 0,
-                      color: done ? '#22c55e' : 'var(--border-primary)' }}>
+                  <button className="![background:none] !p-[0] !shrink-[0]" onClick={e => { e.stopPropagation(); canEdit && toggleTodoItem(tripId, item.id, !done) }}
+                    style={{ border: 'none', cursor: canEdit ? 'pointer' : 'default', color: done ? '#22c55e' : 'var(--border-primary)' }}>
                     {done ? <CheckSquare size={18} /> : <Square size={18} />}
                   </button>
 
                   {/* Content */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 14, color: done ? 'var(--text-faint)' : 'var(--text-primary)',
-                      textDecoration: done ? 'line-through' : 'none', lineHeight: 1.4,
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                    }}>
+                  <div className="!flex-[1] !min-w-[0]">
+                    <div className="!text-[length:14px] !leading-[1.4] !overflow-hidden !whitespace-nowrap" style={{ color: done ? 'var(--text-faint)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', textOverflow: 'ellipsis' }}>
                       {item.name}
                     </div>
                     {/* Description preview */}
                     {item.description && (
-                      <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.4 }}>
+                      <div className="!text-[length:12px] ![color:var(--text-faint)] !mt-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap !leading-[1.4]">
                         {item.description}
                       </div>
                     )}
                     {/* Inline badges */}
                     {(item.priority || item.due_date || catColor || assignedUser) && (
-                    <div style={{ display: 'flex', gap: 5, marginTop: 5, flexWrap: 'wrap' }}>
+                    <div className="!flex !gap-[5px] !mt-[5px] !flex-wrap">
                       {item.priority > 0 && PRIO_CONFIG[item.priority] && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 600,
-                          color: PRIO_CONFIG[item.priority].color,
-                          background: `${PRIO_CONFIG[item.priority].color}10`,
-                          border: `1px solid ${PRIO_CONFIG[item.priority].color}25`,
-                        }}>
+                        <span className="!text-[length:10px] !inline-flex !items-center !gap-[3px] !p-[2px_7px] !font-[600]" style={{ borderRadius: 5, color: PRIO_CONFIG[item.priority].color, background: `${PRIO_CONFIG[item.priority].color}10`, border: `1px solid ${PRIO_CONFIG[item.priority].color}25` }}>
                           <Flag size={9} />{PRIO_CONFIG[item.priority].label}
                         </span>
                       )}
                       {item.due_date && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 3,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: isOverdue ? '#ef4444' : 'var(--text-secondary)',
-                          background: isOverdue ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)',
-                          border: `1px solid ${isOverdue ? 'rgba(239,68,68,0.15)' : 'var(--border-faint)'}`,
-                        }}>
+                        <span className="!text-[length:10px] !inline-flex !items-center !gap-[3px] !p-[2px_7px] !font-[500]" style={{ borderRadius: 5, color: isOverdue ? '#ef4444' : 'var(--text-secondary)', background: isOverdue ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)', border: `1px solid ${isOverdue ? 'rgba(239,68,68,0.15)' : 'var(--border-faint)'}` }}>
                           <Calendar size={9} />{formatDate(item.due_date)}
                         </span>
                       )}
                       {catColor && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: 'var(--text-secondary)', background: 'var(--bg-hover)',
-                          border: '1px solid var(--border-faint)',
-                        }}>
-                          <span style={{ width: 6, height: 6, borderRadius: '50%', background: catColor, flexShrink: 0 }} />
+                        <span className="!text-[length:10px] !inline-flex !items-center !gap-[4px] !p-[2px_7px] !font-[500] ![color:var(--text-secondary)] ![background:var(--bg-hover)]" style={{ borderRadius: 5, border: '1px solid var(--border-faint)' }}>
+                          <span className="!h-[6px] !shrink-[0]" style={{ width: 6, borderRadius: '50%', background: catColor }} />
                           {item.category}
                         </span>
                       )}
                       {assignedUser && (
-                        <span style={{
-                          fontSize: 10, display: 'inline-flex', alignItems: 'center', gap: 4,
-                          padding: '2px 7px', borderRadius: 5, fontWeight: 500,
-                          color: 'var(--text-secondary)', background: 'var(--bg-hover)',
-                          border: '1px solid var(--border-faint)',
-                        }}>
+                        <span className="!text-[length:10px] !inline-flex !items-center !gap-[4px] !p-[2px_7px] !font-[500] ![color:var(--text-secondary)] ![background:var(--bg-hover)]" style={{ borderRadius: 5, border: '1px solid var(--border-faint)' }}>
                           {assignedUser.avatar ? (
-                            <img src={`/uploads/avatars/${assignedUser.avatar}`} style={{ width: 13, height: 13, borderRadius: '50%', objectFit: 'cover' }} alt="" />
+                            <img className="!h-[13px] !object-cover" src={`/uploads/avatars/${assignedUser.avatar}`} style={{ width: 13, borderRadius: '50%' }} alt="" />
                           ) : (
-                            <span style={{ width: 13, height: 13, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, color: 'var(--text-faint)', fontWeight: 700 }}>
+                            <span className="!h-[13px] ![background:var(--border-primary)] !inline-flex !items-center !justify-center !text-[length:7px] ![color:var(--text-faint)] !font-[700]" style={{ width: 13, borderRadius: '50%' }}>
                               {assignedUser.username.charAt(0).toUpperCase()}
                             </span>
                           )}
@@ -383,8 +327,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         />
       )}
       {selectedItem && !isAddingNew && isMobile && (
-        <div onClick={e => { if (e.target === e.currentTarget) setSelectedId(null) }}
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
+        <div className="!fixed !inset-[0] !z-[1000] ![background:rgba(0,0,0,0.4)] !flex !justify-center !items-end !pb-[var(--bottom-nav-h)]" onClick={e => { if (e.target === e.currentTarget) setSelectedId(null) }}>
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px 16px 0 0' } } }}>
             <DetailPane
@@ -399,8 +342,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       )}
       {isAddingNew && !selectedItem && !isMobile && ReactDOM.createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
-          className="modal-backdrop"
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'flex-start', paddingTop: 'calc(var(--nav-h) + 60px)', paddingBottom: 40 }}>
+          className="modal-backdrop !fixed !inset-[0] !z-[1000] ![background:rgba(15,23,42,0.5)] !flex !justify-center !items-start !pt-[calc(var(--nav-h)_+_60px)] !pb-[40px]">
           <div style={{ width: 'min(520px, 92vw)', maxHeight: 'calc(100vh - var(--nav-h) - 120px)', overflow: 'auto', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px' } } }}>
             <NewTaskPane
@@ -417,8 +359,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
       )}
       {isAddingNew && !selectedItem && isMobile && ReactDOM.createPortal(
         <div onClick={e => { if (e.target === e.currentTarget) setIsAddingNew(false) }}
-          className="modal-backdrop"
-          style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.4)', display: 'flex', justifyContent: 'center', alignItems: 'flex-end', paddingBottom: 'var(--bottom-nav-h)' }}>
+          className="modal-backdrop !fixed !inset-[0] !z-[1000] ![background:rgba(0,0,0,0.4)] !flex !justify-center !items-end !pb-[var(--bottom-nav-h)]">
           <div style={{ width: '100%', maxHeight: '85vh', borderRadius: '16px 16px 0 0', overflow: 'auto' }}
             ref={el => { if (el) { const child = el.firstElementChild as HTMLElement; if (child) { child.style.width = '100%'; child.style.borderLeft = 'none'; child.style.borderRadius = '16px 16px 0 0' } } }}>
             <NewTaskPane
@@ -501,52 +442,42 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
   }
 
   return (
-    <div style={{
-      width: 320, flexShrink: 0, borderLeft: '1px solid var(--border-faint)',
-      display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)',
-    }}>
+    <div className="!shrink-[0] !flex !flex-col ![background:var(--bg-primary)]" style={{ width: 320, borderLeft: '1px solid var(--border-faint)' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.detail.title')}</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
+      <div className="!flex !items-center !justify-between !p-[16px_20px_12px]" style={{ borderBottom: '1px solid var(--border-faint)' }}>
+        <span className="!text-[length:14px] !font-[700] ![color:var(--text-primary)]">{t('todo.detail.title')}</span>
+        <button className="![background:none] !cursor-pointer ![color:var(--text-faint)] !p-[4px]" onClick={onClose} style={{ border: 'none' }}>
           <X size={16} />
         </button>
       </div>
 
       {/* Form */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[16px_20px] !flex !flex-col !gap-[14px]">
         {/* Name */}
         <div>
-          <input value={name} onChange={e => setName(e.target.value)} disabled={!canEdit}
-            style={{ ...inputStyle, fontSize: 15, fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent' }}
+          <input className="!text-[length:15px] !font-[600] !p-[4px_0] ![background:transparent]" value={name} onChange={e => setName(e.target.value)} disabled={!canEdit}
+            style={{ ...inputStyle, border: 'none' }}
             placeholder={t('todo.namePlaceholder')} />
         </div>
 
         {/* Description */}
         <div>
           <label style={labelStyle}>{t('todo.detail.description')}</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} disabled={!canEdit} rows={4}
+          <textarea className="![resize:vertical] !min-h-[80px]" value={desc} onChange={e => setDesc(e.target.value)} disabled={!canEdit} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
-            style={{ ...inputStyle, resize: 'vertical', minHeight: 80 }} />
+            style={{ ...inputStyle }} />
         </div>
 
         {/* Priority */}
         <div>
           <label style={labelStyle}>{t('todo.detail.priority')}</label>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="!flex !gap-[4px]">
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
               const isActive = priority === p
               return (
-                <button key={p} onClick={() => canEdit && setPriority(p)}
-                  style={{
-                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: canEdit ? 'pointer' : 'default',
-                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                    border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`,
-                    background: isActive && cfg ? cfg.color + '12' : 'transparent',
-                    color: isActive && cfg ? cfg.color : isActive ? 'var(--text-primary)' : 'var(--text-faint)',
-                    transition: 'all 0.1s',
-                  }}>
+                <button className="!flex-[1] !p-[6px_0] !text-[length:11px] !font-[600] ![font-family:inherit] !flex !items-center !justify-center !gap-[4px] ![transition:all_0.1s]" key={p} onClick={() => canEdit && setPriority(p)}
+                  style={{ borderRadius: 6, cursor: canEdit ? 'pointer' : 'default', border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`, background: isActive && cfg ? cfg.color + '12' : 'transparent', color: isActive && cfg ? cfg.color : isActive ? 'var(--text-primary)' : 'var(--text-faint)' }}>
                   {cfg ? <><Flag size={10} />{cfg.label}</> : t('todo.detail.noPriority')}
                 </button>
               )
@@ -565,7 +496,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
               ...categories.map(c => ({
                 value: c,
                 label: c,
-                icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
+                icon: <span className="!h-[8px] !inline-block" style={{ width: 8, borderRadius: '50%', background: katColor(c, categories) }} />,
               })),
             ]}
             placeholder={t('todo.noCategory')}
@@ -595,9 +526,9 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
                 value: String(m.id),
                 label: m.username,
                 icon: m.avatar ? (
-                  <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
+                  <img className="!h-[18px]" src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>
+                  <span className="!h-[18px] ![background:var(--border-primary)] !inline-flex !items-center !justify-center !text-[length:10px] ![color:var(--text-faint)] !font-[600]" style={{ width: 18, borderRadius: '50%' }}>
                     {m.username.charAt(0).toUpperCase()}
                   </span>
                 ),
@@ -612,23 +543,14 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 
       {/* Footer actions */}
       {canEdit && (
-        <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
-          <button onClick={handleDelete}
-            style={{
-              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-              border: '1px solid var(--border-primary)', background: 'transparent', color: 'var(--text-secondary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-            }}>
+        <div className="!p-[12px_20px] !flex !gap-[8px]" style={{ borderTop: '1px solid var(--border-faint)' }}>
+          <button className="!flex-[1] !p-[9px_16px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![background:transparent] ![color:var(--text-secondary)] !flex !items-center !justify-center !gap-[5px]" onClick={handleDelete}
+            style={{ borderRadius: 8, border: '1px solid var(--border-primary)' }}>
             <Trash2 size={13} />
             {t('todo.detail.delete')}
           </button>
-          <button onClick={save} disabled={!hasChanges || saving}
-            style={{
-              flex: 1, padding: '9px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: hasChanges ? 'pointer' : 'default', fontFamily: 'inherit',
-              border: 'none', background: hasChanges ? 'var(--text-primary)' : 'var(--border-faint)',
-              color: hasChanges ? 'var(--bg-primary)' : 'var(--text-faint)',
-              transition: 'all 0.15s',
-            }}>
+          <button className="!flex-[1] !p-[9px_16px] !text-[length:12px] !font-[600] ![font-family:inherit] ![transition:all_0.15s]" onClick={save} disabled={!hasChanges || saving}
+            style={{ borderRadius: 8, cursor: hasChanges ? 'pointer' : 'default', border: 'none', background: hasChanges ? 'var(--text-primary)' : 'var(--border-faint)', color: hasChanges ? 'var(--bg-primary)' : 'var(--text-faint)' }}>
             {saving ? '...' : t('todo.detail.save')}
           </button>
         </div>
@@ -674,52 +596,49 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
   }
 
   return (
-    <div style={{
-      width: 320, flexShrink: 0, borderLeft: '1px solid var(--border-faint)',
-      display: 'flex', flexDirection: 'column', background: 'var(--bg-primary)',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-        <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('todo.newItem')}</span>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4 }}>
+    <div className="!shrink-[0] !flex !flex-col ![background:var(--bg-primary)]" style={{ width: 320, borderLeft: '1px solid var(--border-faint)' }}>
+      <div className="!flex !items-center !justify-between !p-[16px_20px_12px]" style={{ borderBottom: '1px solid var(--border-faint)' }}>
+        <span className="!text-[length:14px] !font-[700] ![color:var(--text-primary)]">{t('todo.newItem')}</span>
+        <button className="![background:none] !cursor-pointer ![color:var(--text-faint)] !p-[4px]" onClick={onClose} style={{ border: 'none' }}>
           <X size={16} />
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[16px_20px] !flex !flex-col !gap-[14px]">
         <div>
-          <input autoFocus value={name} onChange={e => setName(e.target.value)}
+          <input className="!text-[length:15px] !font-[600] !p-[4px_0] ![background:transparent] ![color:var(--text-primary)] ![outline:none] ![font-family:inherit]" autoFocus value={name} onChange={e => setName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && name.trim()) create() }}
-            style={{ width: '100%', fontSize: 15, fontWeight: 600, border: 'none', padding: '4px 0', background: 'transparent', color: 'var(--text-primary)', outline: 'none', fontFamily: 'inherit' }}
+            style={{ width: '100%', border: 'none' }}
             placeholder={t('todo.namePlaceholder')} />
         </div>
 
         <div>
           <label style={labelStyle}>{t('todo.detail.description')}</label>
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={4}
+          <textarea className="!text-[length:13px] !p-[8px_10px] ![background:var(--bg-primary)] ![color:var(--text-primary)] ![font-family:inherit] ![resize:vertical] !min-h-[80px]" value={desc} onChange={e => setDesc(e.target.value)} rows={4}
             placeholder={t('todo.descriptionPlaceholder')}
-            style={{ width: '100%', fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', resize: 'vertical', minHeight: 80 }} />
+            style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 8 }} />
         </div>
 
         <div>
           <label style={labelStyle}>{t('todo.detail.category')}</label>
           {addingCategory ? (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <input
+            <div className="!flex !gap-[4px]">
+              <input className="!flex-[1] !text-[length:13px] !p-[8px_10px] ![background:var(--bg-primary)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none]"
                 autoFocus
                 value={category}
                 onChange={e => setCategory(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') setAddingCategoryInline(false); if (e.key === 'Escape') { setCategory(''); setAddingCategoryInline(false) } }}
                 placeholder={t('todo.newCategory')}
-                style={{ flex: 1, fontSize: 13, padding: '8px 10px', border: '1px solid var(--border-primary)', borderRadius: 8, background: 'var(--bg-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+                style={{ border: '1px solid var(--border-primary)', borderRadius: 8 }}
               />
-              <button type="button" onClick={() => setAddingCategoryInline(false)}
-                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+              <button className="![background:var(--bg-hover)] !p-[0_10px] !cursor-pointer ![color:var(--text-primary)]" type="button" onClick={() => setAddingCategoryInline(false)}
+                style={{ border: '1px solid var(--border-primary)', borderRadius: 8 }}>
                 <Check size={14} />
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', gap: 4 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="!flex !gap-[4px]">
+              <div className="!flex-[1] !min-w-[0]">
                 <CustomSelect
                   value={category}
                   onChange={v => setCategory(v)}
@@ -727,20 +646,20 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
                     { value: '', label: t('todo.noCategory') },
                     ...categories.map(c => ({
                       value: c, label: c,
-                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(c, categories), display: 'inline-block' }} />,
+                      icon: <span className="!h-[8px] !inline-block" style={{ width: 8, borderRadius: '50%', background: katColor(c, categories) }} />,
                     })),
                     ...(category && !categories.includes(category) ? [{
                       value: category, label: `${category} (${t('todo.newCategoryLabel') || 'new'})`,
-                      icon: <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />,
+                      icon: <span className="!h-[8px] ![background:#9ca3af] !inline-block" style={{ width: 8, borderRadius: '50%' }} />,
                     }] : []),
                   ]}
                   placeholder={t('todo.noCategory')}
                   size="sm"
                 />
               </div>
-              <button type="button" onClick={() => { setCategory(''); setAddingCategoryInline(true) }}
+              <button className="![background:var(--bg-hover)] !p-[0_10px] !cursor-pointer ![color:var(--text-muted)] ![font-family:inherit]" type="button" onClick={() => { setCategory(''); setAddingCategoryInline(true) }}
                 title={t('todo.newCategory')}
-                style={{ background: 'var(--bg-hover)', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '0 10px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>
+                style={{ border: '1px solid var(--border-primary)', borderRadius: 8 }}>
                 <Plus size={14} />
               </button>
             </div>
@@ -749,20 +668,13 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
 
         <div>
           <label style={labelStyle}>{t('todo.detail.priority')}</label>
-          <div style={{ display: 'flex', gap: 4 }}>
+          <div className="!flex !gap-[4px]">
             {[0, 1, 2, 3].map(p => {
               const cfg = PRIO_CONFIG[p]
               const isActive = priority === p
               return (
-                <button key={p} onClick={() => setPriority(p)}
-                  style={{
-                    flex: 1, padding: '6px 0', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                    border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`,
-                    background: isActive && cfg ? cfg.color + '12' : 'transparent',
-                    color: isActive && cfg ? cfg.color : isActive ? 'var(--text-primary)' : 'var(--text-faint)',
-                    transition: 'all 0.1s',
-                  }}>
+                <button className="!flex-[1] !p-[6px_0] !text-[length:11px] !font-[600] !cursor-pointer ![font-family:inherit] !flex !items-center !justify-center !gap-[4px] ![transition:all_0.1s]" key={p} onClick={() => setPriority(p)}
+                  style={{ borderRadius: 6, border: `1px solid ${isActive && cfg ? cfg.color + '40' : 'var(--border-primary)'}`, background: isActive && cfg ? cfg.color + '12' : 'transparent', color: isActive && cfg ? cfg.color : isActive ? 'var(--text-primary)' : 'var(--text-faint)' }}>
                   {cfg ? <><Flag size={10} />{cfg.label}</> : t('todo.detail.noPriority')}
                 </button>
               )
@@ -785,9 +697,9 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
               ...members.map(m => ({
                 value: String(m.id), label: m.username,
                 icon: m.avatar ? (
-                  <img src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, height: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
+                  <img className="!h-[18px]" src={`/uploads/avatars/${m.avatar}`} style={{ width: 18, borderRadius: '50%', objectFit: 'cover' as const }} alt="" />
                 ) : (
-                  <span style={{ width: 18, height: 18, borderRadius: '50%', background: 'var(--border-primary)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: 'var(--text-faint)', fontWeight: 600 }}>
+                  <span className="!h-[18px] ![background:var(--border-primary)] !inline-flex !items-center !justify-center !text-[length:10px] ![color:var(--text-faint)] !font-[600]" style={{ width: 18, borderRadius: '50%' }}>
                     {m.username.charAt(0).toUpperCase()}
                   </span>
                 ),
@@ -799,13 +711,9 @@ function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, 
         </div>
       </div>
 
-      <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border-faint)' }}>
-        <button onClick={create} disabled={!name.trim() || saving}
-          style={{
-            width: '100%', padding: '9px 16px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: name.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
-            border: 'none', background: name.trim() ? 'var(--text-primary)' : 'var(--border-faint)',
-            color: name.trim() ? 'var(--bg-primary)' : 'var(--text-faint)', transition: 'all 0.15s',
-          }}>
+      <div className="!p-[12px_20px]" style={{ borderTop: '1px solid var(--border-faint)' }}>
+        <button className="!p-[9px_16px] !text-[length:12px] !font-[600] ![font-family:inherit] ![transition:all_0.15s]" onClick={create} disabled={!name.trim() || saving}
+          style={{ width: '100%', borderRadius: 8, cursor: name.trim() ? 'pointer' : 'default', border: 'none', background: name.trim() ? 'var(--text-primary)' : 'var(--border-faint)', color: name.trim() ? 'var(--bg-primary)' : 'var(--text-faint)' }}>
           {saving ? '...' : t('todo.detail.create')}
         </button>
       </div>

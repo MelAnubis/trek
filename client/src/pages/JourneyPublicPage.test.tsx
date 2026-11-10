@@ -213,7 +213,7 @@ describe('JourneyPublicPage', () => {
     });
     // The page renders a t('journey.public.readOnly') div with inline style textTransform: 'uppercase'
     // The translation key resolves to the English text in the real TranslationProvider
-    const readOnlyEl = document.querySelector('[style*="uppercase"]');
+    const readOnlyEl = document.querySelector('[style*="uppercase"], [class~="!uppercase"]');
     expect(readOnlyEl).toBeInTheDocument();
   });
 
@@ -278,7 +278,7 @@ describe('JourneyPublicPage', () => {
     // Stats pill: "2 Entries", "1 Photos", "2 Places"
     // The numbers appear alongside translation keys inside a pill with blur(4px) backdrop
     // Use querySelectorAll to find the right one (not the language picker which also has backdrop-filter)
-    const allBackdrop = document.querySelectorAll('[style*="backdrop-filter"]');
+    const allBackdrop = document.querySelectorAll('[style*="backdrop-filter"], [class*="backdrop-filter"]');
     // The stats pill contains the entry/photo/city counts
     const statsContainer = Array.from(allBackdrop).find(
       el => el.textContent && el.textContent.includes('1') && el.children.length > 3,
@@ -405,7 +405,7 @@ describe('JourneyPublicPage', () => {
     });
 
     // Stats pill shows "14 Entries", "83 Photos", "7 Places"
-    const allBackdrop = document.querySelectorAll('[style*="backdrop-filter"]');
+    const allBackdrop = document.querySelectorAll('[style*="backdrop-filter"], [class*="backdrop-filter"]');
     const statsContainer = Array.from(allBackdrop).find(
       el => el.textContent && el.textContent.includes('14') && el.textContent.includes('83'),
     );
@@ -575,7 +575,7 @@ describe('JourneyPublicPage', () => {
     expect(bookBtn).toBeDefined();
     fireEvent.click(bookBtn!);
 
-    await waitFor(() => expect(document.querySelectorAll('[style*="position: absolute"]').length).toBeGreaterThan(0));
+    await waitFor(() => expect(document.querySelectorAll('[style*="position: absolute"], [class~="!absolute"]').length).toBeGreaterThan(0));
   });
 
   // FE-PAGE-PUBLICJOURNEY-023

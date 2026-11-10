@@ -413,31 +413,24 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
       title={reservation ? t('transport.modalTitle.edit') : t('transport.modalTitle.create')}
       size="2xl"
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={onClose} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+        <div className="!flex !justify-end !gap-[8px]">
+          <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" type="button" onClick={onClose}>
             {t('common.cancel')}
           </button>
-          <button type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} style={{ padding: '8px 20px', borderRadius: 10, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
+          <button className="!p-[8px_20px] !rounded-[10px] ![border:none] ![background:var(--text-primary)] ![color:var(--bg-primary)] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit]" type="button" onClick={handleSubmit} disabled={isSaving || !form.title.trim()} style={{ opacity: isSaving || !form.title.trim() ? 0.5 : 1 }}>
             {isSaving ? t('common.saving') : reservation ? t('common.update') : t('common.add')}
           </button>
         </div>
       }
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <form className="!flex !flex-col !gap-[14px]" onSubmit={handleSubmit}>
 
         {/* Type selector */}
         <div>
           <label style={labelStyle}>{t('reservations.bookingType')}</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          <div className="!flex !flex-wrap !gap-[5px]">
             {TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-              <button key={value} type="button" onClick={() => set('type', value)} style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: '5px 10px', borderRadius: 99, border: '1px solid',
-                fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.12s',
-                background: form.type === value ? 'var(--text-primary)' : 'var(--bg-card)',
-                borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)',
-                color: form.type === value ? 'var(--bg-primary)' : 'var(--text-muted)',
-              }}>
+              <button className="!flex !items-center !gap-[4px] !p-[5px_10px] !rounded-[99px] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={value} type="button" onClick={() => set('type', value)} style={{ border: '1px solid', background: form.type === value ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)', color: form.type === value ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                 <Icon size={11} /> {t(labelKey)}
               </button>
             ))}
@@ -453,7 +446,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
 
         {form.type === 'flight' ? (
           /* ── Flight route: ordered airports (origin · stops · destination) ── */
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="!flex !flex-col !gap-[8px]">
             <label style={labelStyle}>{t('reservations.layover.route')}</label>
             {waypoints.map((wp, i) => {
               const isFirst = i === 0
@@ -461,52 +454,52 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               const updateWp = (patch: Partial<WaypointForm>) => setWaypoints(prev => prev.map((w, j) => (j === i ? { ...w, ...patch } : w)))
               const roleLabel = isFirst ? t('reservations.meta.from') : isLast ? t('reservations.meta.to') : t('reservations.layover.stop')
               return (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.03em', flexShrink: 0, color: 'var(--text-faint)' }}>{roleLabel}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="!flex !flex-col !gap-[6px]" key={i}>
+                  <div className="![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[10px] !flex !flex-col !gap-[8px]">
+                    <div className="!flex !items-center !gap-[8px]">
+                      <span className="!text-[length:10px] !font-[700] !uppercase !tracking-[0.03em] !shrink-[0] ![color:var(--text-faint)]">{roleLabel}</span>
+                      <div className="!flex-[1] !min-w-[0]">
                         <AirportSelect value={wp.airport} onChange={a => updateWp({ airport: a || null })} />
                       </div>
                       {!isFirst && !isLast && (
-                        <button type="button" onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))} aria-label={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: 4, flexShrink: 0, color: 'var(--text-faint)' }}>
+                        <button className="![background:none] ![border:none] !cursor-pointer !flex !p-[4px] !shrink-[0] ![color:var(--text-faint)]" type="button" onClick={() => setWaypoints(prev => prev.filter((_, j) => j !== i))} aria-label={t('common.delete')}>
                           <Trash2 size={14} />
                         </button>
                       )}
                     </div>
                     {!isFirst && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="!flex !gap-[8px]">
+                        <div className="!flex-[1] !min-w-[0]">
                           <label style={labelStyle}>{t('reservations.arrivalDate')}</label>
                           <CustomSelect value={wp.arrDayId} onChange={v => updateWp({ arrDayId: v })} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="!flex-[1] !min-w-[0]">
                           <label style={labelStyle}>{t('reservations.arrivalTime')}</label>
                           <CustomTimePicker value={wp.arrTime} onChange={v => updateWp({ arrTime: v })} />
                         </div>
                         {wp.airport && (
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="!flex-[1] !min-w-[0]">
                             <label style={labelStyle}>{t('reservations.meta.arrivalTimezone')}</label>
-                            <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>{wp.airport.tz}</div>
+                            <div className="!p-[8px_12px] ![color:var(--text-muted)] !text-[length:12px] ![background:var(--bg-tertiary)]" style={{ ...inputStyle }}>{wp.airport.tz}</div>
                           </div>
                         )}
                       </div>
                     )}
                     {!isLast && (
                       <>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="!flex !gap-[8px]">
+                          <div className="!flex-[1] !min-w-[0]">
                             <label style={labelStyle}>{t('reservations.departureDate')}</label>
                             <CustomSelect value={wp.depDayId} onChange={v => updateWp({ depDayId: v })} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="!flex-[1] !min-w-[0]">
                             <label style={labelStyle}>{t('reservations.departureTime')}</label>
                             <CustomTimePicker value={wp.depTime} onChange={v => updateWp({ depTime: v })} />
                           </div>
                           {wp.airport && (
-                            <div style={{ flex: 1, minWidth: 0 }}>
+                            <div className="!flex-[1] !min-w-[0]">
                               <label style={labelStyle}>{t('reservations.meta.departureTimezone')}</label>
-                              <div style={{ ...inputStyle, padding: '8px 12px', color: 'var(--text-muted)', fontSize: 12, background: 'var(--bg-tertiary)' }}>{wp.airport.tz}</div>
+                              <div className="!p-[8px_12px] ![color:var(--text-muted)] !text-[length:12px] ![background:var(--bg-tertiary)]" style={{ ...inputStyle }}>{wp.airport.tz}</div>
                             </div>
                           )}
                         </div>
@@ -524,8 +517,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                     )}
                   </div>
                   {!isLast && (
-                    <button type="button" onClick={() => setWaypoints(prev => [...prev.slice(0, i + 1), emptyWaypoint(prev[i]?.depDayId || ''), ...prev.slice(i + 1)])}
-                      style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 10px', border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-faint)' }}>
+                    <button className="!w-[100%] !flex !items-center !justify-center !gap-[5px] !p-[6px_10px] ![border:1px_dashed_var(--border-primary)] !rounded-[8px] ![background:none] !text-[length:11px] !cursor-pointer ![font-family:inherit] ![color:var(--text-faint)]" type="button" onClick={() => setWaypoints(prev => [...prev.slice(0, i + 1), emptyWaypoint(prev[i]?.depDayId || ''), ...prev.slice(i + 1)])}>
                       <Plus size={12} /> {t('reservations.layover.addStop')}
                     </button>
                   )}
@@ -548,24 +540,24 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
             </div>
 
             {/* Departure row */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="!flex !gap-[8px]">
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{form.type === 'car' ? t('reservations.pickupDate') : t('reservations.date')}</label>
                 <CustomSelect value={form.start_day_id} onChange={value => set('start_day_id', value)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{form.type === 'car' ? t('reservations.pickupTime') : t('reservations.startTime')}</label>
                 <CustomTimePicker value={form.departure_time} onChange={v => set('departure_time', v)} />
               </div>
             </div>
 
             {/* Arrival row */}
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="!flex !gap-[8px]">
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{form.type === 'car' ? t('reservations.returnDate') : t('reservations.endDate')}</label>
                 <CustomSelect value={form.end_day_id} onChange={value => set('end_day_id', value)} placeholder={t('dayplan.dayN', { n: '?' })} options={dayOptions} size="sm" />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{form.type === 'car' ? t('reservations.returnTime') : t('reservations.endTime')}</label>
                 <CustomTimePicker value={form.arrival_time} onChange={v => set('arrival_time', v)} />
               </div>
@@ -618,21 +610,21 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {/* Notes */}
         <div>
           <label style={labelStyle}>{t('reservations.notes')}</label>
-          <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
+          <textarea className="![resize:none] !leading-[1.5]" value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
             placeholder={t('reservations.notesPlaceholder')}
-            style={{ ...inputStyle, resize: 'none', lineHeight: 1.5 }} />
+            style={{ ...inputStyle }} />
         </div>
 
         {/* Files */}
         <div>
           <label style={labelStyle}>{t('files.title')}</label>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <div className="!flex !flex-col !gap-[4px]">
             {attachedFiles.map(f => (
-              <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
+              <div className="!flex !items-center !gap-[8px] !p-[5px_10px] ![background:var(--bg-secondary)] !rounded-[8px]" key={f.id}>
                 <FileText size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                <a href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }} style={{ color: 'var(--text-faint)', display: 'flex', flexShrink: 0, cursor: 'pointer' }}><ExternalLink size={11} /></a>
-                <button type="button" onClick={async () => {
+                <span className="!flex-[1] !text-[length:12px] ![color:var(--text-secondary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{f.original_name}</span>
+                <a className="![color:var(--text-faint)] !flex !shrink-[0] !cursor-pointer" href="#" onClick={(e) => { e.preventDefault(); openFile(f.url).catch(() => {}) }}><ExternalLink size={11} /></a>
+                <button className="![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !p-[0] !shrink-[0]" type="button" onClick={async () => {
                   if (f.reservation_id === reservation?.id) {
                     try { await apiClient.put(`/trips/${tripId}/files/${f.id}`, { reservation_id: null }) } catch {}
                   }
@@ -643,62 +635,44 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                   } catch {}
                   setLinkedFileIds(prev => prev.filter(id => id !== f.id))
                   if (tripId) loadFiles(tripId)
-                }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0, flexShrink: 0 }}>
+                }}>
                   <X size={11} />
                 </button>
               </div>
             ))}
             {pendingFiles.map((f, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 10px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
+              <div className="!flex !items-center !gap-[8px] !p-[5px_10px] ![background:var(--bg-secondary)] !rounded-[8px]" key={i}>
                 <FileText size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                <span style={{ flex: 1, fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-                <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 0, flexShrink: 0 }}>
+                <span className="!flex-[1] !text-[length:12px] ![color:var(--text-secondary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{f.name}</span>
+                <button className="![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !p-[0] !shrink-[0]" type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))}>
                   <X size={11} />
                 </button>
               </div>
             ))}
             <input ref={fileInputRef} type="file" accept=".pdf,.doc,.docx,.txt,image/*" style={{ display: 'none' }} onChange={handleFileChange} />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {onFileUpload && <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                fontSize: 11, color: 'var(--text-faint)', cursor: uploadingFile ? 'default' : 'pointer', fontFamily: 'inherit',
-              }}>
+            <div className="!flex !gap-[6px] !flex-wrap">
+              {onFileUpload && <button className="!flex !items-center !gap-[5px] !p-[6px_10px] ![border:1px_dashed_var(--border-primary)] !rounded-[8px] ![background:none] !text-[length:11px] ![color:var(--text-faint)] ![font-family:inherit]" type="button" onClick={() => fileInputRef.current?.click()} disabled={uploadingFile} style={{ cursor: uploadingFile ? 'default' : 'pointer' }}>
                 <Paperclip size={11} />
                 {uploadingFile ? t('reservations.uploading') : t('reservations.attachFile')}
               </button>}
               {reservation?.id && files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).length > 0 && (
-                <div style={{ position: 'relative' }}>
-                  <button type="button" onClick={() => setShowFilePicker(v => !v)} style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
-                    border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                    fontSize: 11, color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
-                  }}>
+                <div className="!relative">
+                  <button className="!flex !items-center !gap-[5px] !p-[6px_10px] ![border:1px_dashed_var(--border-primary)] !rounded-[8px] ![background:none] !text-[length:11px] ![color:var(--text-faint)] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => setShowFilePicker(v => !v)}>
                     <Link2 size={11} /> {t('reservations.linkExisting')}
                   </button>
                   {showFilePicker && (
-                    <div style={{
-                      position: 'absolute', bottom: '100%', left: 0, marginBottom: 4, zIndex: 50,
-                      background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220, maxHeight: 200, overflowY: 'auto',
-                    }}>
+                    <div className="!absolute !bottom-[100%] !left-[0] !mb-[4px] !z-[50] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[220px] !max-h-[200px] !overflow-y-auto">
                       {files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).map(f => (
-                        <button className="trek-hover-tertiary" key={f.id} type="button" onClick={async () => {
+                        <button className="trek-hover-tertiary !flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] ![background:none] ![border:none] !cursor-pointer !text-[length:12px] ![font-family:inherit] ![color:var(--text-secondary)] !rounded-[7px] !text-left" key={f.id} type="button" onClick={async () => {
                           try {
                             await apiClient.post(`/trips/${tripId}/files/${f.id}/link`, { reservation_id: reservation.id })
                             setLinkedFileIds(prev => [...prev, f.id])
                             setShowFilePicker(false)
                             if (tripId) loadFiles(tripId)
                           } catch {}
-                        }}
-                          style={{
-                            display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
-                            background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
-                            color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
-                          }}>
+                        }}>
                           <FileText size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
+                          <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{f.original_name}</span>
                         </button>
                       ))}
                     </div>
@@ -712,8 +686,8 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         {/* Price + Budget Category */}
         {isBudgetEnabled && (
           <>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="!flex !gap-[8px]">
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{t('reservations.price')}</label>
                 <input type="text" inputMode="decimal" value={form.price}
                   onChange={e => { const v = e.target.value; if (v === '' || /^\d*[.,]?\d{0,2}$/.test(v)) set('price', v.replace(',', '.')) }}
@@ -721,7 +695,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
                   placeholder="0.00"
                   style={inputStyle} />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="!flex-[1] !min-w-[0]">
                 <label style={labelStyle}>{t('reservations.budgetCategory')}</label>
                 <CustomSelect
                   value={form.budget_category}
@@ -736,7 +710,7 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
               </div>
             </div>
             {form.price && parseFloat(form.price) > 0 && (
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: -4 }}>
+              <div className="!text-[length:11px] ![color:var(--text-faint)] !mt-[-4px]">
                 {t('reservations.budgetHint')}
               </div>
             )}

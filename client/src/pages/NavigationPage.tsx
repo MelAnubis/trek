@@ -85,13 +85,9 @@ export default function NavigationPage() {
 
   if (loading) {
     return (
-      <div style={{
-        position: 'fixed', inset: 0,
-        background: '#0a0a14',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12,
-      }}>
-        <div style={{ width: 36, height: 36, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ color: '#64748b', fontSize: 13 }}>Cargando track…</span>
+      <div className="!fixed !inset-[0] ![background:#0a0a14] !flex !items-center !justify-center !flex-col !gap-[12px]">
+        <div className="!w-[36px] !h-[36px] ![border:3px_solid_rgba(255,255,255,0.1)] ![border-top-color:#3b82f6] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
+        <span className="![color:#64748b] !text-[length:13px]">Cargando track…</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -99,13 +95,9 @@ export default function NavigationPage() {
 
   if (error) {
     return (
-      <div style={{
-        position: 'fixed', inset: 0,
-        background: '#0a0a14',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12,
-      }}>
-        <span style={{ color: '#ef4444', fontSize: 14 }}>Error: {error}</span>
-        <button onClick={handleExit} style={{ color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}>
+      <div className="!fixed !inset-[0] ![background:#0a0a14] !flex !items-center !justify-center !flex-col !gap-[12px]">
+        <span className="![color:#ef4444] !text-[length:14px]">Error: {error}</span>
+        <button className="![color:#64748b] ![background:none] ![border:none] !cursor-pointer !text-[length:13px]" onClick={handleExit}>
           Volver
         </button>
       </div>

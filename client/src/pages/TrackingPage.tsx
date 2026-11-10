@@ -160,11 +160,11 @@ export default function TrackingPage() {
 
   if (devices && devices.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex items-center justify-center p-6 ![background:var(--bg-primary)]">
         <div className="max-w-md text-center space-y-3">
           <Radio className="w-10 h-10 mx-auto" style={{ color: 'var(--text-faint)' }} />
-          <h1 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{t('tracking.title')}</h1>
-          <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('tracking.emptyPage')}</p>
+          <h1 className="text-lg font-bold ![color:var(--text-primary)]">{t('tracking.title')}</h1>
+          <p className="text-sm ![color:var(--text-muted)]">{t('tracking.emptyPage')}</p>
           <Link to="/settings?tab=tracking" className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium" style={{ background: 'var(--accent)', color: 'white' }}>
             <Settings className="w-4 h-4" /> {t('tracking.setUp')}
           </Link>
@@ -176,36 +176,35 @@ export default function TrackingPage() {
   const dayLabel = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })
 
   return (
-    <div className="flex flex-col md:flex-row" style={{ height: 'calc(100dvh - var(--bottom-nav-h, 0px))', background: 'var(--bg-primary)' }}>
+    <div className="flex flex-col md:flex-row !h-[calc(100dvh_-_var(--bottom-nav-h,_0px))] ![background:var(--bg-primary)]">
       <LiveMapStyles />
       {/* On a phone the map takes most of the screen and the panel scrolls under it; it can be folded away. */}
-      <aside className={`${mapOnly ? 'hidden md:block' : ''} flex-1 min-h-0 md:flex-none md:w-80 md:max-h-full overflow-y-auto p-4 space-y-4 order-2 md:order-1`}
-        style={{ borderRight: '1px solid var(--border-secondary)' }}>
+      <aside className={`${mapOnly ? 'hidden md:block' : ''} flex-1 min-h-0 md:flex-none md:w-80 md:max-h-full overflow-y-auto p-4 space-y-4 order-2 md:order-1 ![border-right:1px_solid_var(--border-secondary)]`}>
         <div className="flex items-center gap-2">
           <Link to="/dashboard" aria-label={t('common.back')} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}><ArrowLeft className="w-4 h-4" /></Link>
-          <h1 className="text-base font-bold flex-1" style={{ color: 'var(--text-primary)' }}>{t('tracking.title')}</h1>
+          <h1 className="text-base font-bold flex-1 ![color:var(--text-primary)]">{t('tracking.title')}</h1>
           <Link to="/settings?tab=tracking" aria-label={t('tracking.devices')} title={t('tracking.devices')} className="p-1.5 rounded-lg" style={{ color: 'var(--text-muted)' }}><Settings className="w-4 h-4" /></Link>
         </div>
 
         {devices && devices.length > 1 && (
           <select value={deviceId ?? ''} onChange={e => setParams({ device: e.target.value })} aria-label={t('tracking.devices')}
-            className="w-full px-3 py-2 rounded-xl text-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+            className="w-full px-3 py-2 rounded-xl text-sm ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]">
             {devices.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         )}
 
         {device && (
-          <div className="rounded-xl p-3 space-y-1.5" style={{ border: '1px solid var(--border-primary)' }} data-testid="device-card">
+          <div className="rounded-xl p-3 space-y-1.5 ![border:1px_solid_var(--border-primary)]" data-testid="device-card">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{device.name}</span>
+              <span className="text-sm font-semibold flex-1 ![color:var(--text-primary)]">{device.name}</span>
               <BatteryBadge level={device.battery_level} state={device.battery_state} />
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <DeviceStatusChip device={device} />
-              <span className="text-xs" style={{ color: 'var(--text-muted)' }}>{ago(device.last_position?.recorded_at)}</span>
+              <span className="text-xs ![color:var(--text-muted)]">{ago(device.last_position?.recorded_at)}</span>
             </div>
             {device.last_position?.speed != null && (
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{Math.round(device.last_position.speed * 3.6)} km/h</div>
+              <div className="text-xs ![color:var(--text-muted)]">{Math.round(device.last_position.speed * 3.6)} km/h</div>
             )}
           </div>
         )}
@@ -213,8 +212,8 @@ export default function TrackingPage() {
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <input type="date" value={day} max={localToday()} onChange={e => e.target.value && setDay(e.target.value)} aria-label={t('tracking.day')}
-              className="flex-1 px-3 py-1.5 rounded-xl text-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
-            <button type="button" onClick={loadTrack} aria-label={t('tracking.refresh')} title={t('tracking.refresh')} className="p-2 rounded-lg" style={{ color: 'var(--text-muted)' }}>
+              className="flex-1 px-3 py-1.5 rounded-xl text-sm ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]" />
+            <button type="button" onClick={loadTrack} aria-label={t('tracking.refresh')} title={t('tracking.refresh')} className="p-2 rounded-lg ![color:var(--text-muted)]">
               <RefreshCw className="w-4 h-4" />
             </button>
           </div>
@@ -222,10 +221,7 @@ export default function TrackingPage() {
             <div className="flex flex-wrap gap-1" data-testid="day-list">
               {days.slice(0, 14).map(d => (
                 <button key={d.day} type="button" onClick={() => setDay(d.day)} aria-pressed={d.day === day}
-                  className="px-2 py-1 rounded-lg text-xs" style={{
-                    border: d.day === day ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                    background: d.day === day ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
-                  }}>
+                  className="px-2 py-1 rounded-lg text-xs ![color:var(--text-primary)]" style={{ border: d.day === day ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: d.day === day ? 'var(--bg-tertiary)' : 'none' }}>
                   {dayLabel(d.day)}
                 </button>
               ))}
@@ -233,30 +229,30 @@ export default function TrackingPage() {
           )}
         </div>
 
-        <div className="rounded-xl p-3 space-y-1" style={{ background: 'var(--bg-tertiary)' }} data-testid="day-stats">
+        <div className="rounded-xl p-3 space-y-1 ![background:var(--bg-tertiary)]" data-testid="day-stats">
           {trip ? (
             <>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('tracking.trips.one', { n: trip.n })} · {formatDistance(trip.distanceM)} · {formatDuration(trip.durationS)}</div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-sm font-semibold ![color:var(--text-primary)]">{t('tracking.trips.one', { n: trip.n })} · {formatDistance(trip.distanceM)} · {formatDuration(trip.durationS)}</div>
+              <div className="text-xs ![color:var(--text-muted)]">
                 {t('tracking.pointsCount', { n: trip.points.length })} · {clock(trip.from)}–{clock(trip.to)}
               </div>
             </>
           ) : total > 0 && stats ? (
             <>
-              <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{formatDistance(stats.distance_m)} · {formatDuration(stats.duration_s)}</div>
-              <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+              <div className="text-sm font-semibold ![color:var(--text-primary)]">{formatDistance(stats.distance_m)} · {formatDuration(stats.duration_s)}</div>
+              <div className="text-xs ![color:var(--text-muted)]">
                 {t('tracking.pointsCount', { n: total })}
                 {stats.start && stats.end ? ` · ${new Date(stats.start).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}–${new Date(stats.end).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}` : ''}
               </div>
             </>
           ) : (
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracking.noPointsDay')}</div>
+            <div className="text-xs ![color:var(--text-muted)]">{t('tracking.noPointsDay')}</div>
           )}
         </div>
 
         {trips.length > 1 && (
           <div className="space-y-1" data-testid="day-trips">
-            <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('tracking.trips.title', { count: trips.length })}</div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide ![color:var(--text-faint)]">{t('tracking.trips.title', { count: trips.length })}</div>
             <button type="button" onClick={() => setTripSel(null)} aria-pressed={tripSel == null} data-trip="all"
               className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs" style={tripStyle(tripSel == null)}>
               {t('tracking.trips.all')}
@@ -266,20 +262,20 @@ export default function TrackingPage() {
                 className="w-full flex items-center gap-2 text-left px-2.5 py-1.5 rounded-lg text-xs" style={tripStyle(tripSel === x.n)}>
                 <span className="inline-flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold text-white flex-shrink-0" style={{ background: motionColor(x.motion) }}>{x.n}</span>
                 <span className="flex-1">{clock(x.from)}–{clock(x.to)}</span>
-                <span style={{ color: 'var(--text-muted)' }}>{formatDistance(x.distanceM)}</span>
+                <span className="![color:var(--text-muted)]">{formatDistance(x.distanceM)}</span>
               </button>
             ))}
           </div>
         )}
 
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex items-center gap-2 text-xs ![color:var(--text-secondary)]">
           <input type="checkbox" checked={hideImprecise} onChange={e => setHideImprecise(e.target.checked)} />
           {t('tracking.hideImprecise', { m: GOOD_ACCURACY_M })}
           {hideImprecise && hidden > 0 && (
-            <span data-testid="hidden-count" className="ml-auto text-[11px]" style={{ color: '#b45309' }}>{t('tracking.hiddenCount', { n: hidden })}</span>
+            <span data-testid="hidden-count" className="ml-auto text-[11px] ![color:#b45309]">{t('tracking.hiddenCount', { n: hidden })}</span>
           )}
         </label>
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex items-center gap-2 text-xs ![color:var(--text-secondary)]">
           <input type="checkbox" checked={snap} onChange={e => setSnap(e.target.checked)} />
           {t('tracking.snap')}
           {snap && total > 1 && <MatchBadge status={matchStatus} />}
@@ -287,28 +283,28 @@ export default function TrackingPage() {
         <GapNotice gaps={gaps} />
         {device && <UploadLog deviceId={device.id} refreshKey={total} />}
         {isToday && (
-          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+          <label className="flex items-center gap-2 text-xs ![color:var(--text-secondary)]">
             <input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} />
             {t('tracking.follow')}
           </label>
         )}
 
-        <div className="flex flex-wrap gap-1.5 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+        <div className="flex flex-wrap gap-1.5 text-[11px] ![color:var(--text-muted)]">
           {(['driving', 'cycling', 'walking', 'running', 'stationary'] as const).map(m => (
-            <span key={m} className="inline-flex items-center gap-1"><span style={{ width: 10, height: 3, borderRadius: 2, background: MOTION_COLORS[m] }} />{t(`tracking.motion.${m}`)}</span>
+            <span key={m} className="inline-flex items-center gap-1"><span className="!w-[10px] !h-[3px] !rounded-[2px]" style={{ background: MOTION_COLORS[m] }} />{t(`tracking.motion.${m}`)}</span>
           ))}
         </div>
 
         {device && (
           <div className="grid grid-cols-3 gap-1.5">
             <a href={trackingApi.gpxUrl(device.id, { ...shownRange, max_accuracy: accuracy })} download
-              className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-[11px]"
-              style={{ border: '1px solid var(--border-primary)', color: 'var(--text-secondary)', pointerEvents: total ? 'auto' : 'none', opacity: total ? 1 : 0.4 }}>
+              className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-[11px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-secondary)]"
+              style={{ pointerEvents: total ? 'auto' : 'none', opacity: total ? 1 : 0.4 }}>
               <Download className="w-4 h-4" /> GPX
             </a>
             <button type="button" disabled={total < 2} onClick={() => setPanel(panel === 'save' ? null : 'save')}
-              className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-[11px]"
-              style={{ border: panel === 'save' ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', color: 'var(--text-secondary)', opacity: total < 2 ? 0.4 : 1 }}>
+              className="flex flex-col items-center gap-1 px-2 py-2 rounded-xl text-[11px] ![color:var(--text-secondary)]"
+              style={{ border: panel === 'save' ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', opacity: total < 2 ? 0.4 : 1 }}>
               <Save className="w-4 h-4" /> {t('tracking.saveRoute')}
             </button>
             <button type="button" onClick={() => setPanel(panel === 'share' ? null : 'share')}
@@ -349,27 +345,25 @@ export default function TrackingPage() {
             <AutoResize />
           </MapContainer>
         )}
-        <div className="absolute right-3 bottom-6 flex flex-col gap-2" style={{ zIndex: 1000 }}>
-          <button type="button" onClick={() => setMapOnly(v => !v)} className="md:hidden w-11 h-11 rounded-full flex items-center justify-center shadow-lg"
-            aria-label={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')} title={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')}
-            style={{ background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+        <div className="absolute right-3 bottom-6 flex flex-col gap-2 !z-[1000]">
+          <button type="button" onClick={() => setMapOnly(v => !v)} className="md:hidden w-11 h-11 rounded-full flex items-center justify-center shadow-lg ![background:var(--bg-card)] ![color:var(--text-primary)]"
+            aria-label={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')} title={mapOnly ? t('tracking.live.showPanel') : t('tracking.live.mapOnly')}>
             {mapOnly ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
           </button>
           {live && (
             <button type="button" data-testid="tracking-recenter" onClick={() => setFollow(true)} aria-pressed={follow}
               aria-label={t('tracking.live.recenter')} title={t('tracking.live.recenter')}
-              className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: 'var(--bg-card)', color: follow ? '#2563eb' : 'var(--text-primary)' }}>
+              className="w-11 h-11 rounded-full flex items-center justify-center shadow-lg ![background:var(--bg-card)]"
+              style={{ color: follow ? '#2563eb' : 'var(--text-primary)' }}>
               <Crosshair className="w-5 h-5" />
             </button>
           )}
         </div>
         {mapOnly && device && (
-          <button type="button" onClick={() => setMapOnly(false)} className="md:hidden absolute left-3 right-16 bottom-6 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg text-left"
-            style={{ zIndex: 1000, background: 'var(--bg-card)', color: 'var(--text-primary)' }}>
+          <button type="button" onClick={() => setMapOnly(false)} className="md:hidden absolute left-3 right-16 bottom-6 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg text-left !z-[1000] ![background:var(--bg-card)] ![color:var(--text-primary)]">
             <span className="flex-1 min-w-0">
               <span className="block text-sm font-semibold truncate">{device.name}</span>
-              <span className="block text-xs" style={{ color: 'var(--text-muted)' }}>
+              <span className="block text-xs ![color:var(--text-muted)]">
                 {ago(device.last_position?.recorded_at)}{stats && total > 0 ? ` · ${formatDistance(stats.distance_m)}` : ''}
               </span>
             </span>
@@ -389,32 +383,32 @@ function SharePanel({ device, onChange, onClose }: { device: TrackingDevice; onC
   const start = async () => onChange((await trackingApi.share(device.id, hours, label)).device)
   const stop = async () => onChange((await trackingApi.stopShare(device.id)).device)
   return (
-    <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border-primary)' }} data-testid="share-panel">
+    <div className="rounded-xl p-3 space-y-2 ![border:1px_solid_var(--border-primary)]" data-testid="share-panel">
       <div className="flex items-center gap-2">
         <Link2 className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-        <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('tracking.shareTitle')}</span>
-        <button type="button" onClick={onClose} aria-label={t('common.close')} style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
+        <span className="text-sm font-semibold flex-1 ![color:var(--text-primary)]">{t('tracking.shareTitle')}</span>
+        <button className="![color:var(--text-muted)]" type="button" onClick={onClose} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
       </div>
-      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracking.shareHint')}</p>
+      <p className="text-xs ![color:var(--text-muted)]">{t('tracking.shareHint')}</p>
       {device.share && (
         <>
           <CopyField value={shareUrl(window.location.origin, device.share.token)} label={t('tracking.copyLink')} testId="share-link" />
-          {device.share.expires_at && <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('tracking.shareUntil', { when: new Date(device.share.expires_at).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })}</div>}
+          {device.share.expires_at && <div className="text-xs ![color:var(--text-muted)]">{t('tracking.shareUntil', { when: new Date(device.share.expires_at).toLocaleString(locale, { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) })}</div>}
         </>
       )}
       <input value={label} onChange={e => setLabel(e.target.value)} maxLength={80} placeholder={t('tracking.shareLabel')} aria-label={t('tracking.shareLabel')}
-        className="w-full px-3 py-1.5 rounded-lg text-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
+        className="w-full px-3 py-1.5 rounded-lg text-sm ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]" />
       <div className="flex gap-2">
         <select value={hours} onChange={e => setHours(Number(e.target.value))} aria-label={t('tracking.shareFor')}
-          className="flex-1 px-2 py-1.5 rounded-lg text-sm" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+          className="flex-1 px-2 py-1.5 rounded-lg text-sm ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]">
           {[2, 8, 24, 72, 168, 720].map(h => <option key={h} value={h}>{h < 48 ? t('tracking.hours', { n: h }) : t('tracking.days', { n: Math.round(h / 24) })}</option>)}
         </select>
-        <button type="button" onClick={() => void start()} className="px-3 py-1.5 rounded-lg text-sm font-medium" style={{ background: 'var(--accent)', color: 'white' }}>
+        <button type="button" onClick={() => void start()} className="px-3 py-1.5 rounded-lg text-sm font-medium ![background:var(--accent)] ![color:white]">
           {device.share ? t('tracking.extend') : t('tracking.createLink')}
         </button>
       </div>
       {device.share && (
-        <button type="button" onClick={() => void stop()} className="w-full px-3 py-1.5 rounded-lg text-sm" style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626' }}>
+        <button type="button" onClick={() => void stop()} className="w-full px-3 py-1.5 rounded-lg text-sm ![background:rgba(239,68,68,0.1)] ![color:#dc2626]">
           {t('tracking.stopSharing')}
         </button>
       )}
@@ -486,11 +480,11 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
 
   const field = { background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }
   return (
-    <div className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border-primary)' }} data-testid="save-panel">
+    <div className="rounded-xl p-3 space-y-2 ![border:1px_solid_var(--border-primary)]" data-testid="save-panel">
       <div className="flex items-center gap-2">
         <Save className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
-        <span className="text-sm font-semibold flex-1" style={{ color: 'var(--text-primary)' }}>{t('tracking.saveRouteTitle')}</span>
-        <button type="button" onClick={onClose} aria-label={t('common.close')} style={{ color: 'var(--text-muted)' }}><X className="w-4 h-4" /></button>
+        <span className="text-sm font-semibold flex-1 ![color:var(--text-primary)]">{t('tracking.saveRouteTitle')}</span>
+        <button className="![color:var(--text-muted)]" type="button" onClick={onClose} aria-label={t('common.close')}><X className="w-4 h-4" /></button>
       </div>
       <div role="radiogroup" aria-label={t('tracking.saveWhere')} className="grid grid-cols-2 gap-1" data-testid="save-dest">
         {(['planner', 'trip'] as const).map(d => (
@@ -500,16 +494,16 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
           </button>
         ))}
       </div>
-      <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t(dest === 'planner' ? 'tracking.savePlannerHint' : 'tracking.saveRouteHint')}</p>
+      <p className="text-xs ![color:var(--text-muted)]">{t(dest === 'planner' ? 'tracking.savePlannerHint' : 'tracking.saveRouteHint')}</p>
       <input value={name} onChange={e => setName(e.target.value)} maxLength={120} aria-label={t('tracking.routeName')} className="w-full px-3 py-1.5 rounded-lg text-sm" style={field} />
       {trips && trips.length > 1 && (
-        <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+        <label className="flex items-center gap-2 text-xs ![color:var(--text-secondary)]">
           <input type="checkbox" checked={separate} onChange={e => setSeparate(e.target.checked)} data-testid="save-separate" />
           {t('tracking.trips.saveEach', { count: trips.length })}
         </label>
       )}
       {dest === 'trip' && tripOptions.length === 0 ? (
-        <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('tracking.noTrips')}</p>
+        <p className="text-xs ![color:var(--text-faint)]">{t('tracking.noTrips')}</p>
       ) : (
         <>
           {dest === 'trip' && (<>
@@ -520,16 +514,16 @@ function SaveRoutePanel({ device, day, range, maxAccuracy, line, onClose, onSave
             <option value="">{t('tracking.noDay')}</option>
             {tripDays.map(d => <option key={d.id} value={d.id}>{d.title || t('tracking.dayN', { n: d.day_number })}{d.date ? ` · ${d.date}` : ''}</option>)}
           </select>
-          <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('tracking.tripListHint')}</p>
+          <p className="text-[11px] ![color:var(--text-faint)]">{t('tracking.tripListHint')}</p>
           </>)}
           {line && !many && (
-            <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--text-secondary)' }}>
+            <label className="flex items-center gap-2 text-xs ![color:var(--text-secondary)]">
               <input type="checkbox" checked={useLine} onChange={e => setUseLine(e.target.checked)} />
               {t('tracking.saveSnapped')}
             </label>
           )}
-          <button type="button" onClick={() => void save()} disabled={saving || (dest === 'trip' && !tripId)} data-testid="save-go" className="w-full px-3 py-1.5 rounded-lg text-sm font-medium"
-            style={{ background: 'var(--accent)', color: 'white', opacity: saving ? 0.6 : 1 }}>
+          <button type="button" onClick={() => void save()} disabled={saving || (dest === 'trip' && !tripId)} data-testid="save-go" className="w-full px-3 py-1.5 rounded-lg text-sm font-medium ![background:var(--accent)] ![color:white]"
+            style={{ opacity: saving ? 0.6 : 1 }}>
             {saving ? t('tracking.saving') : t('tracking.saveRoute')}
           </button>
         </>
@@ -566,25 +560,25 @@ function UploadLog({ deviceId, refreshKey }: { deviceId: number; refreshKey: num
   const dm = (iso: string) => new Date(iso).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' })
   return (
     <div className="text-xs" data-testid="upload-log">
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="font-medium" style={{ color: 'var(--text-secondary)' }}>
+      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="font-medium ![color:var(--text-secondary)]">
         {open ? '▾' : '▸'} {t('tracking.uploads.title')}
       </button>
       {open && (
         <div className="mt-1.5 space-y-1">
-          <p style={{ color: 'var(--text-muted)' }}>{t('tracking.uploads.hint')}</p>
-          {rows === null ? <p style={{ color: 'var(--text-muted)' }}>…</p> : rows.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)' }}>{t('tracking.uploads.none')}</p>
+          <p className="![color:var(--text-muted)]">{t('tracking.uploads.hint')}</p>
+          {rows === null ? <p className="![color:var(--text-muted)]">…</p> : rows.length === 0 ? (
+            <p className="![color:var(--text-muted)]">{t('tracking.uploads.none')}</p>
           ) : (
-            <ul className="space-y-0.5 max-h-60 overflow-y-auto" style={{ fontVariantNumeric: 'tabular-nums' }}>
+            <ul className="space-y-0.5 max-h-60 overflow-y-auto ![font-variant-numeric:tabular-nums]">
               {rows.map((r, i) => {
                 const bad = r.http_status !== 200 || r.invalid > 0
                 return (
                   <li key={i} data-testid="upload-row" style={{ color: bad ? '#b45309' : 'var(--text-secondary)' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>{dm(r.at)}</span>{' · '}
+                    <span className="![color:var(--text-muted)]">{dm(r.at)}</span>{' · '}
                     {r.http_status !== 200
                       ? t(`tracking.uploads.status${r.http_status === 429 ? '429' : r.http_status === 413 ? '413' : 'Other'}`, { code: r.http_status })
                       : t('tracking.uploads.row', { received: r.received, stored: r.stored, duplicates: r.duplicates, invalid: r.invalid, from: hm(r.oldest_ts), to: hm(r.newest_ts) })}
-                    {r.client && <span style={{ color: 'var(--text-faint)' }}> · {r.client.split(' ')[0]}</span>}
+                    {r.client && <span className="![color:var(--text-faint)]"> · {r.client.split(' ')[0]}</span>}
                   </li>
                 )
               })}
@@ -602,8 +596,8 @@ function GapNotice({ gaps }: { gaps: TrackGap[] }) {
   if (!gaps.length) return null
   const time = (iso: string) => new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
   return (
-    <div data-testid="track-gaps" className="rounded-xl p-3 text-xs space-y-1" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.45)', color: 'var(--text-secondary)' }}>
-      <div className="font-semibold" style={{ color: '#b45309' }}>{t('tracking.gaps.title', { count: gaps.length })}</div>
+    <div data-testid="track-gaps" className="rounded-xl p-3 text-xs space-y-1 ![background:rgba(245,158,11,0.10)] ![border:1px_solid_rgba(245,158,11,0.45)] ![color:var(--text-secondary)]">
+      <div className="font-semibold ![color:#b45309]">{t('tracking.gaps.title', { count: gaps.length })}</div>
       <ul className="space-y-0.5">
         {gaps.slice(0, 6).map(g => (
           <li key={g.from.ts}>
@@ -611,7 +605,7 @@ function GapNotice({ gaps }: { gaps: TrackGap[] }) {
           </li>
         ))}
       </ul>
-      <p style={{ color: 'var(--text-muted)' }}>{t('tracking.gaps.hint')}</p>
+      <p className="![color:var(--text-muted)]">{t('tracking.gaps.hint')}</p>
     </div>
   )
 }

@@ -54,18 +54,18 @@ export default function SharedTripPage() {
   }, [token])
 
   if (error) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
-      <div style={{ textAlign: 'center', padding: 40 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>🔒</div>
-        <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{t('shared.expired')}</h1>
-        <p style={{ color: '#6b7280', marginTop: 8 }}>{t('shared.expiredHint')}</p>
+    <div className="!flex !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6]">
+      <div className="!text-center !p-[40px]">
+        <div className="!text-[length:48px] !mb-[16px]">🔒</div>
+        <h1 className="!text-[length:20px] !font-[700] ![color:#111827]">{t('shared.expired')}</h1>
+        <p className="![color:#6b7280] !mt-[8px]">{t('shared.expiredHint')}</p>
       </div>
     </div>
   )
 
   if (!data) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
-      <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#111827', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+    <div className="!flex !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6]">
+      <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] ![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -81,69 +81,64 @@ export default function SharedTripPage() {
   const center = mapPlaces.length > 0 ? [mapPlaces[0].lat, mapPlaces[0].lng] : [48.85, 2.35]
 
   return (
-    <div className="page-bg" style={{ minHeight: '100vh', background: 'var(--bg-secondary)', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+    <div className="page-bg !min-h-[100vh] ![background:var(--bg-secondary)]" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Header */}
-      <div style={{ background: 'linear-gradient(135deg, #000 0%, #0f172a 50%, #1e293b 100%)', color: 'white', padding: '32px 20px 28px', textAlign: 'center', position: 'relative' }}>
+      <div className="![background:linear-gradient(135deg,_#000_0%,_#0f172a_50%,_#1e293b_100%)] ![color:white] !p-[32px_20px_28px] !text-center !relative">
         {/* Cover image background */}
         {trip.cover_image && (
-          <div style={{ position: 'absolute', inset: 0, backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
+          <div className="!absolute !inset-[0]" style={{ backgroundImage: `url(${trip.cover_image.startsWith('http') ? trip.cover_image : trip.cover_image.startsWith('/') ? trip.cover_image : '/uploads/' + trip.cover_image})`, backgroundSize: 'cover', backgroundPosition: 'center', opacity: 0.15 }} />
         )}
         {/* Background decoration */}
-        <div style={{ position: 'absolute', top: -60, right: -60, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
-        <div style={{ position: 'absolute', bottom: -40, left: -40, width: 150, height: 150, borderRadius: '50%', background: 'rgba(255,255,255,0.02)' }} />
+        <div className="!absolute !top-[-60px] !right-[-60px] !w-[200px] !h-[200px] !rounded-[50%] ![background:rgba(255,255,255,0.03)]" />
+        <div className="!absolute !bottom-[-40px] !left-[-40px] !w-[150px] !h-[150px] !rounded-[50%] ![background:rgba(255,255,255,0.02)]" />
 
         {/* Logo */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', marginBottom: 12, border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div className="!inline-flex !items-center !justify-center !w-[44px] !h-[44px] !rounded-[12px] ![background:rgba(255,255,255,0.08)] ![backdrop-filter:blur(8px)] !mb-[12px] ![border:1px_solid_rgba(255,255,255,0.1)]">
           <img src="/icons/icon-white.svg" alt="Trek Wanderer" width="26" height="26" />
         </div>
 
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 3, textTransform: 'uppercase', opacity: 0.35, marginBottom: 12 }}>Travel Resource & Exploration Kit</div>
+        <div className="!text-[length:10px] !font-[600] !tracking-[3px] !uppercase !mb-[12px]" style={{ opacity: 0.35 }}>Travel Resource & Exploration Kit</div>
 
-        <h1 style={{ margin: '0 0 4px', fontSize: 26, fontWeight: 700, letterSpacing: -0.5 }}>{trip.title}</h1>
+        <h1 className="!m-[0_0_4px] !text-[length:26px] !font-[700] !tracking-[-0.5px]">{trip.title}</h1>
 
         {trip.description && (
-          <div style={{ fontSize: 13, opacity: 0.5, maxWidth: 400, margin: '0 auto', lineHeight: 1.5 }}>{trip.description}</div>
+          <div className="!text-[length:13px] !max-w-[400px] !m-[0_auto] !leading-[1.5]" style={{ opacity: 0.5 }}>{trip.description}</div>
         )}
 
         {(trip.start_date || trip.end_date) && (
-          <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.08)' }}>
-            <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.8 }}>
+          <div className="!mt-[10px] !inline-flex !items-center !gap-[8px] !p-[6px_14px] !rounded-[20px] ![background:rgba(255,255,255,0.08)] ![backdrop-filter:blur(4px)] ![border:1px_solid_rgba(255,255,255,0.08)]">
+            <span className="!text-[length:12px] !font-[500]" style={{ opacity: 0.8 }}>
               {[trip.start_date, trip.end_date].filter(Boolean).map((d: string) => new Date(d + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })).join(' — ')}
             </span>
-            {days?.length > 0 && <span style={{ fontSize: 11, opacity: 0.4 }}>·</span>}
-            {days?.length > 0 && <span style={{ fontSize: 11, opacity: 0.5 }}>{days.length} {t('shared.days')}</span>}
+            {days?.length > 0 && <span className="!text-[length:11px]" style={{ opacity: 0.4 }}>·</span>}
+            {days?.length > 0 && <span className="!text-[length:11px]" style={{ opacity: 0.5 }}>{days.length} {t('shared.days')}</span>}
           </div>
         )}
 
-        <div style={{ marginTop: 12, fontSize: 9, fontWeight: 500, letterSpacing: 1.5, textTransform: 'uppercase', opacity: 0.25 }}>{t('shared.readOnly')}</div>
+        <div className="!mt-[12px] !text-[length:9px] !font-[500] !tracking-[1.5px] !uppercase" style={{ opacity: 0.25 }}>{t('shared.readOnly')}</div>
 
         {/* Language picker - top right */}
-        <div style={{ position: 'absolute', top: 12, right: 12, zIndex: 10 }}>
-          <button onClick={() => setShowLangPicker(v => !v)} style={{
-            padding: '5px 12px', borderRadius: 20, border: '1px solid rgba(255,255,255,0.15)',
-            background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)',
-            color: 'rgba(255,255,255,0.7)', fontSize: 11, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
+        <div className="!absolute !top-[12px] !right-[12px] !z-[10]">
+          <button className="!p-[5px_12px] !rounded-[20px] ![border:1px_solid_rgba(255,255,255,0.15)] ![background:rgba(255,255,255,0.1)] ![backdrop-filter:blur(8px)] ![color:rgba(255,255,255,0.7)] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowLangPicker(v => !v)}>
             {SUPPORTED_LANGUAGES.find(l => l.value === (locale?.split('-')[0] || 'en'))?.label || 'Language'}
           </button>
           {showLangPicker && (
-            <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150 }}>
+            <div className="!absolute !top-[100%] !right-[0] !mt-[6px] ![background:white] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.2)] !p-[4px] !z-[50] !min-w-[150px]">
               {SUPPORTED_LANGUAGES.map(lang => (
-                <button className="trek-hover-gray" key={lang.value} onClick={() => {
+                <button className="trek-hover-gray !block !w-[100%] !p-[6px_12px] ![border:none] ![background:none] !text-left !cursor-pointer !text-[length:12px] ![color:#374151] !rounded-[6px] ![font-family:inherit]" key={lang.value} onClick={() => {
                   // Set language locally without API call (shared page has no auth)
                   useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
                   setShowLangPicker(false)
-                }}
-                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit' }} >{lang.label}</button>
+                }} >{lang.label}</button>
               ))}
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
+      <div className="!max-w-[900px] !m-[0_auto] !p-[20px_16px]">
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20, overflowX: 'auto', padding: '2px 0' }}>
+        <div className="!flex !gap-[6px] !mb-[20px] !overflow-x-auto !p-[2px_0]">
           {[
             { id: 'plan', label: t('shared.tabPlan'), Icon: Map },
             ...(permissions?.share_bookings ? [{ id: 'bookings', label: t('shared.tabBookings'), Icon: Ticket }] : []),
@@ -151,23 +146,13 @@ export default function SharedTripPage() {
             ...(permissions?.share_budget ? [{ id: 'budget', label: t('shared.tabBudget'), Icon: Wallet }] : []),
             ...(permissions?.share_collab ? [{ id: 'collab', label: t('shared.tabChat'), Icon: MessageCircle }] : []),
           ].map(tab => (
-            <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-              padding: '8px 18px', borderRadius: 12, border: '1.5px solid', cursor: 'pointer',
-              fontSize: 12, fontWeight: 600, fontFamily: 'inherit', transition: 'all 0.15s', whiteSpace: 'nowrap',
-              display: 'flex', alignItems: 'center', gap: 6,
-              background: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-bg)',
-              backdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)',
-              WebkitBackdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)',
-              borderColor: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-border)',
-              color: activeTab === tab.id ? 'var(--accent-text)' : 'var(--text-muted)',
-              boxShadow: activeTab === tab.id ? '0 4px 14px rgba(0,0,0,0.20)' : 'var(--glass-shadow)',
-            }}><tab.Icon size={13} /><span className="hidden sm:inline">{tab.label}</span></button>
+            <button className="!p-[8px_18px] !rounded-[12px] !cursor-pointer !text-[length:12px] !font-[600] ![font-family:inherit] ![transition:all_0.15s] !whitespace-nowrap !flex !items-center !gap-[6px]" key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ border: '1.5px solid', background: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-bg)', backdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)', WebkitBackdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)', borderColor: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-border)', color: activeTab === tab.id ? 'var(--accent-text)' : 'var(--text-muted)', boxShadow: activeTab === tab.id ? '0 4px 14px rgba(0,0,0,0.20)' : 'var(--glass-shadow)' }}><tab.Icon size={13} /><span className="hidden sm:inline">{tab.label}</span></button>
           ))}
         </div>
 
         {/* Map */}
         {activeTab === 'plan' && (<>
-        <div style={{ borderRadius: 16, overflow: 'hidden', height: 300, marginBottom: 20, boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+        <div className="!rounded-[16px] !overflow-hidden !h-[300px] !mb-[20px] ![box-shadow:0_2px_12px_rgba(0,0,0,0.08)]">
           <MapContainer center={center as [number, number]} zoom={11} zoomControl={false} style={{ width: '100%', height: '100%' }}>
             {/* CARTO's basemaps.cartocdn.com now refuses anonymous requests (an "API KEY REQUIRED" watermark since Aug 2026) — this public page has no admin-configured key to use, so it falls back to plain OSM tiles. */}
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" referrerPolicy="strict-origin-when-cross-origin" />
@@ -181,7 +166,7 @@ export default function SharedTripPage() {
         </div>
 
         {/* Day Plan */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="!flex !flex-col !gap-[12px]">
           {sortedDays.map((day: any, di: number) => {
             const da = assignments[String(day.id)] || []
             const notes = (dayNotes[String(day.id)] || [])
@@ -197,24 +182,23 @@ export default function SharedTripPage() {
             })
 
             return (
-              <div key={day.id} style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--glass-border)' }}>
-                <div onClick={() => setSelectedDay(selectedDay === day.id ? null : day.id)}
-                  style={{ padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 28, height: 28, borderRadius: '50%', background: selectedDay === day.id ? '#111827' : '#f3f4f6', color: selectedDay === day.id ? 'white' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>{di + 1}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: '#111827' }}>{day.title || `Day ${day.day_number}`}</div>
-                    {day.date && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 1 }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>}
+              <div className="![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !rounded-[14px] !overflow-hidden ![border:1px_solid_var(--glass-border)]" key={day.id}>
+                <div className="!p-[12px_16px] !cursor-pointer !flex !items-center !gap-[10px]" onClick={() => setSelectedDay(selectedDay === day.id ? null : day.id)}>
+                  <div className="!w-[28px] !h-[28px] !rounded-[50%] !flex !items-center !justify-center !text-[length:12px] !font-[700] !shrink-[0]" style={{ background: selectedDay === day.id ? '#111827' : '#f3f4f6', color: selectedDay === day.id ? 'white' : '#6b7280' }}>{di + 1}</div>
+                  <div className="!flex-[1]">
+                    <div className="!text-[length:14px] !font-[600] ![color:#111827]">{day.title || `Day ${day.day_number}`}</div>
+                    {day.date && <div className="!text-[length:11px] ![color:#9ca3af] !mt-[1px]">{new Date(day.date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>}
                   </div>
                   {dayAccs.map((acc: any) => (
-                    <span key={acc.id} style={{ fontSize: 9, padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <span className="!text-[length:9px] !p-[2px_6px] !rounded-[4px] ![background:#f3f4f6] ![color:#6b7280] !flex !items-center !gap-[3px]" key={acc.id}>
                       <Hotel size={8} /> {acc.place_name}
                     </span>
                   ))}
-                  <span style={{ fontSize: 11, color: '#9ca3af' }}>{da.length} {t('shared.places')}</span>
+                  <span className="!text-[length:11px] ![color:#9ca3af]">{da.length} {t('shared.places')}</span>
                 </div>
 
                 {selectedDay === day.id && merged.length > 0 && (
-                  <div style={{ padding: '0 16px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div className="!p-[0_16px_12px] !flex !flex-col !gap-[6px]">
                     {merged.map((item: any) => {
                       if (item.type === 'transport') {
                         const r = item.data
@@ -225,24 +209,24 @@ export default function SharedTripPage() {
                         if (r.type === 'flight') sub = [meta.airline, meta.flight_number, meta.departure_airport && meta.arrival_airport ? `${meta.departure_airport} → ${meta.arrival_airport}` : ''].filter(Boolean).join(' · ')
                         else if (r.type === 'train') sub = [meta.train_number, meta.platform ? `Gl. ${meta.platform}` : ''].filter(Boolean).join(' · ')
                         return (
-                          <div key={`t-${r.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.15)' }}>
-                            <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'rgba(59,130,246,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <div className="!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[6px] ![background:rgba(59,130,246,0.06)] ![border:1px_solid_rgba(59,130,246,0.15)]" key={`t-${r.id}`}>
+                            <div className="!w-[24px] !h-[24px] !rounded-[50%] ![background:rgba(59,130,246,0.12)] !flex !items-center !justify-center !shrink-[0]">
                               <TIcon size={12} color="#3b82f6" />
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontSize: 12, fontWeight: 500, color: '#111827' }}>{r.title}{time ? ` · ${time}` : ''}</div>
-                              {sub && <div style={{ fontSize: 10, color: '#6b7280' }}>{sub}</div>}
+                            <div className="!flex-[1] !min-w-[0]">
+                              <div className="!text-[length:12px] !font-[500] ![color:#111827]">{r.title}{time ? ` · ${time}` : ''}</div>
+                              {sub && <div className="!text-[length:10px] ![color:#6b7280]">{sub}</div>}
                             </div>
                           </div>
                         )
                       }
                       if (item.type === 'note') {
                         return (
-                          <div key={`n-${item.data.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 6, background: '#f9fafb', border: '1px solid #f3f4f6' }}>
+                          <div className="!flex !items-center !gap-[8px] !p-[5px_8px] !rounded-[6px] ![background:#f9fafb] ![border:1px_solid_#f3f4f6]" key={`n-${item.data.id}`}>
                             <FileText size={12} color="#9ca3af" />
                             <div>
-                              <div style={{ fontSize: 12, color: '#374151' }}>{item.data.text}</div>
-                              {item.data.time && <div style={{ fontSize: 10, color: '#9ca3af' }}>{item.data.time}</div>}
+                              <div className="!text-[length:12px] ![color:#374151]">{item.data.text}</div>
+                              {item.data.time && <div className="!text-[length:10px] ![color:#9ca3af]">{item.data.time}</div>}
                             </div>
                           </div>
                         )
@@ -251,15 +235,15 @@ export default function SharedTripPage() {
                       if (!place) return null
                       const cat = categories?.find((c: any) => c.id === place.category_id)
                       return (
-                        <div key={`p-${item.data.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px', borderRadius: 6 }}>
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: cat?.color || '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {place.image_url ? <img src={place.image_url} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} /> : <MapPin size={13} color="white" />}
+                        <div className="!flex !items-center !gap-[10px] !p-[6px_8px] !rounded-[6px]" key={`p-${item.data.id}`}>
+                          <div className="!w-[28px] !h-[28px] !rounded-[50%] !flex !items-center !justify-center !shrink-[0]" style={{ background: cat?.color || '#6366f1' }}>
+                            {place.image_url ? <img className="!w-[28px] !h-[28px] !rounded-[50%] !object-cover" src={place.image_url} /> : <MapPin size={13} color="white" />}
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 12.5, fontWeight: 500, color: '#111827' }}>{place.name}</div>
-                            {(place.address || place.description) && <div style={{ fontSize: 10, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{place.address || place.description}</div>}
+                          <div className="!flex-[1] !min-w-[0]">
+                            <div className="!text-[length:12.5px] !font-[500] ![color:#111827]">{place.name}</div>
+                            {(place.address || place.description) && <div className="!text-[length:10px] ![color:#9ca3af] !overflow-hidden !text-ellipsis !whitespace-nowrap">{place.address || place.description}</div>}
                           </div>
-                          {place.place_time && <span style={{ fontSize: 10, color: '#6b7280', display: 'flex', alignItems: 'center', gap: 3, flexShrink: 0 }}><Clock size={9} />{place.place_time}{place.end_time ? ` – ${place.end_time}` : ''}</span>}
+                          {place.place_time && <span className="!text-[length:10px] ![color:#6b7280] !flex !items-center !gap-[3px] !shrink-[0]"><Clock size={9} />{place.place_time}{place.end_time ? ` – ${place.end_time}` : ''}</span>}
                         </div>
                       )
                     })}
@@ -273,7 +257,7 @@ export default function SharedTripPage() {
 
         {/* Bookings */}
         {activeTab === 'bookings' && (reservations || []).length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="!flex !flex-col !gap-[8px]">
             {(reservations || []).map((r: any) => {
               const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
               const TIcon = TRANSPORT_ICONS[r.type] || Ticket
@@ -281,13 +265,13 @@ export default function SharedTripPage() {
               const time = rTime ?? ''
               const date = rDate ? new Date(rDate + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : ''
               return (
-                <div key={r.id} style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: 10, padding: '12px 16px', border: '1px solid var(--glass-border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div className="![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !rounded-[10px] !p-[12px_16px] ![border:1px_solid_var(--glass-border)] !flex !items-center !gap-[12px]" key={r.id}>
+                  <div className="!w-[32px] !h-[32px] !rounded-[50%] ![background:#f3f4f6] !flex !items-center !justify-center !shrink-[0]">
                     <TIcon size={15} color="#6b7280" />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{r.title}</div>
-                    <div style={{ fontSize: 11, color: '#9ca3af', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 2 }}>
+                  <div className="!flex-[1] !min-w-[0]">
+                    <div className="!text-[length:13px] !font-[600] ![color:#111827]">{r.title}</div>
+                    <div className="!text-[length:11px] ![color:#9ca3af] !flex !gap-[8px] !flex-wrap !mt-[2px]">
                       {date && <span>{date}</span>}
                       {time && <span>{time}</span>}
                       {r.location && <span>{r.location}</span>}
@@ -295,7 +279,7 @@ export default function SharedTripPage() {
                       {meta.train_number && <span>{meta.train_number}</span>}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, padding: '2px 8px', borderRadius: 20, fontWeight: 600, background: r.status === 'confirmed' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)', color: r.status === 'confirmed' ? '#16a34a' : '#d97706' }}>
+                  <span className="!text-[length:10px] !p-[2px_8px] !rounded-[20px] !font-[600]" style={{ background: r.status === 'confirmed' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)', color: r.status === 'confirmed' ? '#16a34a' : '#d97706' }}>
                     {r.status === 'confirmed' ? t('shared.confirmed') : t('shared.pending')}
                   </span>
                 </div>
@@ -306,13 +290,13 @@ export default function SharedTripPage() {
 
         {/* Packing */}
         {activeTab === 'packing' && (packing || []).length > 0 && (
-          <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: 14, border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
+          <div className="![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !rounded-[14px] ![border:1px_solid_var(--glass-border)] !overflow-hidden">
             {Object.entries((packing || []).reduce((g: any, i: any) => { const c = i.category || t('shared.other'); (g[c] = g[c] || []).push(i); return g }, {})).map(([cat, items]: [string, any]) => (
               <div key={cat}>
-                <div style={{ padding: '8px 16px', background: '#f9fafb', fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #f3f4f6' }}>{cat}</div>
+                <div className="!p-[8px_16px] ![background:#f9fafb] !text-[length:11px] !font-[700] ![color:#6b7280] !uppercase !tracking-[0.05em] ![border-bottom:1px_solid_#f3f4f6]">{cat}</div>
                 {items.map((item: any) => (
-                  <div key={item.id} style={{ padding: '6px 16px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid #f9fafb' }}>
-                    <span style={{ fontSize: 13, color: item.checked ? '#9ca3af' : '#111827', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.name}</span>
+                  <div className="!p-[6px_16px] !flex !items-center !gap-[8px] ![border-bottom:1px_solid_#f9fafb]" key={item.id}>
+                    <span className="!text-[length:13px]" style={{ color: item.checked ? '#9ca3af' : '#111827', textDecoration: item.checked ? 'line-through' : 'none' }}>{item.name}</span>
                   </div>
                 ))}
               </div>
@@ -325,23 +309,23 @@ export default function SharedTripPage() {
           const grouped = (budget || []).reduce((g: any, i: any) => { const c = i.category || t('shared.other'); (g[c] = g[c] || []).push(i); return g }, {})
           const total = (budget || []).reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0)
           return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div className="!flex !flex-col !gap-[12px]">
               {/* Total card */}
-              <div style={{ background: 'linear-gradient(135deg, #000 0%, #1a1a2e 100%)', borderRadius: 14, padding: '20px 24px', color: 'white' }}>
-                <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: 1, textTransform: 'uppercase', opacity: 0.5 }}>{t('shared.totalBudget')}</div>
-                <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>{total.toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || 'EUR'}</div>
+              <div className="![background:linear-gradient(135deg,_#000_0%,_#1a1a2e_100%)] !rounded-[14px] !p-[20px_24px] ![color:white]">
+                <div className="!text-[length:10px] !font-[500] !tracking-[1px] !uppercase" style={{ opacity: 0.5 }}>{t('shared.totalBudget')}</div>
+                <div className="!text-[length:28px] !font-[700] !mt-[4px]">{total.toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || 'EUR'}</div>
               </div>
               {/* By category */}
               {Object.entries(grouped).map(([cat, items]: [string, any]) => (
-                <div key={cat} style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: 12, border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
-                  <div style={{ padding: '10px 16px', background: '#f9fafb', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f3f4f6' }}>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{cat}</span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7280' }}>{items.reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0).toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || ''}</span>
+                <div className="![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !rounded-[12px] ![border:1px_solid_var(--glass-border)] !overflow-hidden" key={cat}>
+                  <div className="!p-[10px_16px] ![background:#f9fafb] !flex !justify-between !items-center ![border-bottom:1px_solid_#f3f4f6]">
+                    <span className="!text-[length:12px] !font-[700] ![color:#374151]">{cat}</span>
+                    <span className="!text-[length:12px] !font-[600] ![color:#6b7280]">{items.reduce((s: number, i: any) => s + (parseFloat(i.total_price) || 0), 0).toLocaleString(locale, { minimumFractionDigits: 2 })} {trip.currency || ''}</span>
                   </div>
                   {items.map((item: any) => (
-                    <div key={item.id} style={{ padding: '8px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #fafafa' }}>
-                      <span style={{ fontSize: 13, color: '#111827' }}>{item.name}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: '#111827' }}>{item.total_price ? Number(item.total_price).toLocaleString(locale, { minimumFractionDigits: 2 }) : '—'}</span>
+                    <div className="!p-[8px_16px] !flex !justify-between !items-center ![border-bottom:1px_solid_#fafafa]" key={item.id}>
+                      <span className="!text-[length:13px] ![color:#111827]">{item.name}</span>
+                      <span className="!text-[length:13px] !font-[600] ![color:#111827]">{item.total_price ? Number(item.total_price).toLocaleString(locale, { minimumFractionDigits: 2 }) : '—'}</span>
                     </div>
                   ))}
                 </div>
@@ -352,32 +336,32 @@ export default function SharedTripPage() {
 
         {/* Collab Chat */}
         {activeTab === 'collab' && (collab || []).length > 0 && (
-          <div style={{ background: 'var(--glass-bg)', backdropFilter: 'var(--glass-blur)', WebkitBackdropFilter: 'var(--glass-blur)', borderRadius: 14, border: '1px solid var(--glass-border)', overflow: 'hidden' }}>
-            <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--glass-border-inner)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !rounded-[14px] ![border:1px_solid_var(--glass-border)] !overflow-hidden">
+            <div className="!p-[12px_16px] ![border-bottom:1px_solid_var(--glass-border-inner)] !flex !items-center !gap-[8px]">
               <MessageCircle size={14} color="#6b7280" />
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#374151' }}>{t('shared.tabChat')} · {(collab || []).length} {t('shared.messages')}</span>
+              <span className="!text-[length:12px] !font-[700] ![color:#374151]">{t('shared.tabChat')} · {(collab || []).length} {t('shared.messages')}</span>
             </div>
-            <div style={{ maxHeight: 500, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div className="!max-h-[500px] !overflow-y-auto !p-[12px_16px] !flex !flex-col !gap-[10px]">
               {(collab || []).map((msg: any, i: number) => {
                 const prevMsg = i > 0 ? collab[i - 1] : null
                 const showDate = !prevMsg || new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString()
                 return (
                   <div key={msg.id}>
                     {showDate && (
-                      <div style={{ textAlign: 'center', margin: '8px 0', fontSize: 10, fontWeight: 600, color: '#9ca3af' }}>
+                      <div className="!text-center !m-[8px_0] !text-[length:10px] !font-[600] ![color:#9ca3af]">
                         {new Date(msg.created_at).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })}
                       </div>
                     )}
-                    <div style={{ display: 'flex', gap: 10 }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#6b7280', flexShrink: 0, overflow: 'hidden' }}>
-                        {msg.avatar ? <img src={`/uploads/avatars/${msg.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (msg.username || '?')[0].toUpperCase()}
+                    <div className="!flex !gap-[10px]">
+                      <div className="!w-[32px] !h-[32px] !rounded-[50%] ![background:#e5e7eb] !flex !items-center !justify-center !text-[length:11px] !font-[700] ![color:#6b7280] !shrink-[0] !overflow-hidden">
+                        {msg.avatar ? <img className="!w-[100%] !h-[100%] !object-cover" src={`/uploads/avatars/${msg.avatar}`} /> : (msg.username || '?')[0].toUpperCase()}
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#111827' }}>{msg.username}</span>
-                          <span style={{ fontSize: 10, color: '#9ca3af' }}>{new Date(msg.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
+                      <div className="!flex-[1]">
+                        <div className="!flex !items-baseline !gap-[6px]">
+                          <span className="!text-[length:12px] !font-[600] ![color:#111827]">{msg.username}</span>
+                          <span className="!text-[length:10px] ![color:#9ca3af]">{new Date(msg.created_at).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <div style={{ fontSize: 13, color: '#374151', marginTop: 3, lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+                        <div className="!text-[length:13px] ![color:#374151] !mt-[3px] !leading-[1.5] !whitespace-pre-wrap">{msg.text}</div>
                       </div>
                     </div>
                   </div>
@@ -388,10 +372,10 @@ export default function SharedTripPage() {
         )}
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', padding: '40px 0 20px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 16px', borderRadius: 20, background: 'var(--bg-card, white)', border: '1px solid var(--border-faint, #e5e7eb)', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-            <img src="/icons/icon-dark.svg" alt="Trek Wanderer" width="18" height="18" style={{ borderRadius: 4 }} />
-            <span style={{ fontSize: 11, color: '#9ca3af' }}>{t('shared.sharedVia')} <strong style={{ color: '#6b7280' }}>Trek Wanderer</strong></span>
+        <div className="!text-center !p-[40px_0_20px]">
+          <div className="!inline-flex !items-center !gap-[8px] !p-[8px_16px] !rounded-[20px] ![background:var(--bg-card,_white)] ![border:1px_solid_var(--border-faint,_#e5e7eb)] ![box-shadow:0_1px_3px_rgba(0,0,0,0.04)]">
+            <img className="!rounded-[4px]" src="/icons/icon-dark.svg" alt="Trek Wanderer" width="18" height="18" />
+            <span className="!text-[length:11px] ![color:#9ca3af]">{t('shared.sharedVia')} <strong className="![color:#6b7280]">Trek Wanderer</strong></span>
           </div>
         </div>
       </div>

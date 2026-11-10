@@ -253,60 +253,39 @@ export default function GpxSplitWizard({ tripId, trackId, trackName, days, onClo
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 9000,
-      background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '12px',
-    }}>
-      <div style={{
-        background: 'var(--bg-primary, #0f1923)',
-        border: '1px solid var(--border-primary, #2d3f55)',
-        borderRadius: 16, width: '100%', maxWidth: 920,
-        maxHeight: '95vh', display: 'flex', flexDirection: 'column',
-        overflow: 'hidden',
-      }}>
+    <div className="!fixed !inset-[0] !z-[9000] ![background:rgba(0,0,0,0.75)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[12px]">
+      <div className="![background:var(--bg-primary,_#0f1923)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[16px] !w-[100%] !max-w-[920px] !max-h-[95vh] !flex !flex-col !overflow-hidden">
         {/* Header */}
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '14px 18px', borderBottom: '1px solid var(--border-primary, #2d3f55)',
-          flexShrink: 0,
-        }}>
+        <div className="!flex !items-center !gap-[10px] !p-[14px_18px] ![border-bottom:1px_solid_var(--border-primary,_#2d3f55)] !shrink-[0]">
           <Scissors size={18} style={{ color: '#f59e0b' }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary, #e2e8f0)' }}>
+          <div className="!flex-[1]">
+            <div className="!font-[700] !text-[length:14px] ![color:var(--text-primary,_#e2e8f0)]">
               Dividir GPX en etapas
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)' }}>{trackName}</div>
+            <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)]">{trackName}</div>
           </div>
           {/* Steps */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11 }}>
+          <div className="!flex !items-center !gap-[6px] !text-[length:11px]">
             {([1, 2, 3] as const).map(s => (
-              <div key={s} style={{
-                width: 24, height: 24, borderRadius: '50%', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 11,
-                background: step === s ? '#f59e0b' : step > s ? '#22d96e' : 'var(--bg-secondary, #253547)',
-                color: step >= s ? '#000' : 'var(--text-tertiary, #64748b)',
-                transition: 'all .2s',
-              }}>
+              <div className="!w-[24px] !h-[24px] !rounded-[50%] !flex !items-center !justify-center !font-[700] !text-[length:11px] ![transition:all_.2s]" key={s} style={{ background: step === s ? '#f59e0b' : step > s ? '#22d96e' : 'var(--bg-secondary, #253547)', color: step >= s ? '#000' : 'var(--text-tertiary, #64748b)' }}>
                 {step > s ? <Check size={12} /> : s}
               </div>
             ))}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-tertiary, #64748b)' }}>
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] ![color:var(--text-tertiary,_#64748b)]" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflow: 'auto', padding: '16px 18px' }}>
+        <div className="!flex-[1] !overflow-auto !p-[16px_18px]">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-tertiary, #64748b)' }}>
+            <div className="!text-center !p-[40px] ![color:var(--text-tertiary,_#64748b)]">
               <Mountain size={32} style={{ marginBottom: 10, opacity: 0.4 }} />
               <div>Cargando track…</div>
             </div>
           ) : error ? (
-            <div style={{ color: '#ef4444', padding: 20, textAlign: 'center' }}>⚠ {error}</div>
+            <div className="![color:#ef4444] !p-[20px] !text-center">⚠ {error}</div>
           ) : step === 1 ? (
             <Step1 trackName={trackName} totalDist={totalDist} pointCount={points.length} days={days} />
           ) : step === 2 ? (
@@ -332,17 +311,13 @@ export default function GpxSplitWizard({ tripId, trackId, trackName, days, onClo
         </div>
 
         {/* Footer */}
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 18px', borderTop: '1px solid var(--border-primary, #2d3f55)',
-          flexShrink: 0, gap: 10,
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)' }}>
+        <div className="!flex !items-center !justify-between !p-[12px_18px] ![border-top:1px_solid_var(--border-primary,_#2d3f55)] !shrink-[0] !gap-[10px]">
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)]">
             {step === 2 && cuts.length === 0 && 'Haz clic en el perfil o el mapa para añadir cortes'}
             {step === 2 && cuts.length > 0 && `${cuts.length} corte${cuts.length > 1 ? 's' : ''} · ${cuts.length + 1} etapa${cuts.length + 1 > 1 ? 's' : ''}`}
             {step === 3 && `${stages.length} etapas listas para guardar`}
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="!flex !gap-[8px]">
             {step > 1 && (
               <button
                 onClick={() => setStep(s => (s - 1) as any)}
@@ -377,23 +352,23 @@ function Step1({ trackName, totalDist, pointCount, days }: {
   trackName: string; totalDist: number; pointCount: number; days: Day[]
 }) {
   return (
-    <div style={{ maxWidth: 540, margin: '0 auto', textAlign: 'center', padding: '20px 0' }}>
+    <div className="!max-w-[540px] !m-[0_auto] !text-center !p-[20px_0]">
       <Scissors size={40} style={{ color: '#f59e0b', marginBottom: 16 }} />
-      <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary, #e2e8f0)', marginBottom: 8 }}>
+      <div className="!text-[length:18px] !font-[700] ![color:var(--text-primary,_#e2e8f0)] !mb-[8px]">
         División manual de etapas
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary, #94a3b8)', marginBottom: 24, lineHeight: 1.6 }}>
+      <div className="!text-[length:13px] ![color:var(--text-secondary,_#94a3b8)] !mb-[24px] !leading-[1.6]">
         En el siguiente paso verás el perfil de elevación y el mapa del track completo.
         Haz clic donde quieras cortar y asigna cada tramo a un día del viaje.
         Los días sin viaje simplemente no tendrán etapa asignada.
       </div>
-      <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 24 }}>
+      <div className="!flex !gap-[12px] !justify-center !flex-wrap !mb-[24px]">
         <StatChip label="Track" value={trackName} />
         <StatChip label="Distancia total" value={`${Math.round(totalDist * 10) / 10} km`} />
         <StatChip label="Puntos GPX" value={pointCount.toLocaleString()} />
         <StatChip label="Días en el viaje" value={String(days.length)} />
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)', lineHeight: 1.5 }}>
+      <div className="!text-[length:12px] ![color:var(--text-tertiary,_#64748b)] !leading-[1.5]">
         Las etapas anteriores vinculadas a este viaje se eliminarán al guardar.
       </div>
     </div>
@@ -402,13 +377,9 @@ function Step1({ trackName, totalDist, pointCount, days }: {
 
 function StatChip({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{
-      background: 'var(--bg-secondary, #253547)',
-      border: '1px solid var(--border-primary, #2d3f55)',
-      borderRadius: 8, padding: '8px 14px', textAlign: 'center',
-    }}>
-      <div style={{ fontSize: 10, color: 'var(--text-tertiary, #64748b)', marginBottom: 2, textTransform: 'uppercase', letterSpacing: 0.8 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #e2e8f0)' }}>{value}</div>
+    <div className="![background:var(--bg-secondary,_#253547)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[8px] !p-[8px_14px] !text-center">
+      <div className="!text-[length:10px] ![color:var(--text-tertiary,_#64748b)] !mb-[2px] !uppercase !tracking-[0.8px]">{label}</div>
+      <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary,_#e2e8f0)]">{value}</div>
     </div>
   )
 }
@@ -446,17 +417,13 @@ function Step2({
   const segments = buildPolylineSegments(points, cuts)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+    <div className="!flex !flex-col !gap-[14px]">
       {/* Day selector */}
-      <div style={{
-        background: 'var(--bg-secondary, #253547)',
-        border: '1px solid var(--border-primary, #2d3f55)',
-        borderRadius: 10, padding: '10px 14px',
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #64748b)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+      <div className="![background:var(--bg-secondary,_#253547)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[10px] !p-[10px_14px]">
+        <div className="!text-[length:11px] !font-[700] ![color:var(--text-tertiary,_#64748b)] !mb-[8px] !uppercase !tracking-[0.8px]">
           Día del próximo corte
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="!flex !flex-wrap !gap-[6px]">
           <DayChip label="Sin día" selected={selectedDayId === null} color="#64748b" onClick={() => onSelectDay(null)} />
           {days.map(d => (
             <DayChip key={d.id} label={dayLabel(d)} selected={selectedDayId === d.id}
@@ -467,12 +434,8 @@ function Step2({
       </div>
 
       {/* Elevation chart */}
-      <div style={{
-        background: 'var(--bg-secondary, #253547)',
-        border: '1px solid var(--border-primary, #2d3f55)',
-        borderRadius: 10, padding: '10px 6px 4px',
-      }}>
-        <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 4, paddingLeft: 8 }}>
+      <div className="![background:var(--bg-secondary,_#253547)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[10px] !p-[10px_6px_4px]">
+        <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !mb-[4px] !pl-[8px]">
           Perfil de elevación · haz clic para añadir un corte
         </div>
         <ResponsiveContainer width="100%" height={160}>
@@ -511,11 +474,7 @@ function Step2({
       </div>
 
       {/* Map */}
-      <div style={{
-        borderRadius: 10, overflow: 'hidden',
-        border: '1px solid var(--border-primary, #2d3f55)',
-        height: 280,
-      }}>
+      <div className="!rounded-[10px] !overflow-hidden ![border:1px_solid_var(--border-primary,_#2d3f55)] !h-[280px]">
         <MapContainer center={mapCenter} zoom={9} style={{ width: '100%', height: '100%' }}
           zoomControl={true}>
           <TileLayer
@@ -551,15 +510,11 @@ function Step2({
 
       {/* Cut list */}
       {cuts.length > 0 && (
-        <div style={{
-          background: 'var(--bg-secondary, #253547)',
-          border: '1px solid var(--border-primary, #2d3f55)',
-          borderRadius: 10, padding: '10px 14px',
-        }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #64748b)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+        <div className="![background:var(--bg-secondary,_#253547)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[10px] !p-[10px_14px]">
+          <div className="!text-[length:11px] !font-[700] ![color:var(--text-tertiary,_#64748b)] !mb-[8px] !uppercase !tracking-[0.8px]">
             Cortes añadidos
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="!flex !flex-col !gap-[6px]">
             {cuts.map((c, i) => (
               <CutRow key={i} cut={c} index={i} color={CUT_COLORS[i % CUT_COLORS.length]}
                 dist={distances[c.pointIndex] ?? 0}
@@ -574,12 +529,7 @@ function Step2({
 
 function DayChip({ label, selected, color, onClick }: { key?: any; label: string; selected: boolean; color: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{
-      padding: '4px 10px', borderRadius: 6, border: `1px solid ${selected ? color : 'transparent'}`,
-      background: selected ? color + '25' : 'var(--bg-tertiary, #1a2535)',
-      color: selected ? color : 'var(--text-secondary, #94a3b8)',
-      cursor: 'pointer', fontSize: 11, fontWeight: selected ? 700 : 400, transition: 'all .15s',
-    }}>
+    <button className="!p-[4px_10px] !rounded-[6px] !cursor-pointer ![transition:all_.15s]" onClick={onClick} style={{ border: `1px solid ${selected ? color : 'transparent'}`, background: selected ? color + '25' : 'var(--bg-tertiary, #1a2535)', color: selected ? color : 'var(--text-secondary, #94a3b8)', fontSize: 11, fontWeight: selected ? 700 : 400 }}>
       {label}
     </button>
   )
@@ -590,22 +540,18 @@ function CutRow({ cut, index, color, dist, days, onRemove, onChangeDay }: {
   days: Day[]; onRemove: () => void; onChangeDay: (id: number | null) => void
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', flexShrink: 0, minWidth: 50 }}>
+    <div className="!flex !items-center !gap-[8px]">
+      <div className="!w-[10px] !h-[10px] !rounded-[3px] !shrink-[0]" style={{ background: color }} />
+      <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !shrink-[0] !min-w-[50px]">
         km {Math.round(dist * 10) / 10}
       </div>
-      <select
+      <select className="!flex-[1] ![background:var(--bg-tertiary,_#1a2535)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[6px] ![color:var(--text-primary,_#e2e8f0)] !text-[length:11px] !p-[3px_6px] !cursor-pointer"
         value={cut.dayId ?? ''}
-        onChange={e => onChangeDay(e.target.value ? Number(e.target.value) : null)}
-        style={{
-          flex: 1, background: 'var(--bg-tertiary, #1a2535)', border: '1px solid var(--border-primary, #2d3f55)',
-          borderRadius: 6, color: 'var(--text-primary, #e2e8f0)', fontSize: 11, padding: '3px 6px', cursor: 'pointer',
-        }}>
+        onChange={e => onChangeDay(e.target.value ? Number(e.target.value) : null)}>
         <option value="">Sin día</option>
         {days.map(d => <option key={d.id} value={d.id}>{dayLabel(d)}</option>)}
       </select>
-      <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#ef4444', flexShrink: 0 }}>
+      <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] ![color:#ef4444] !shrink-[0]" onClick={onRemove}>
         <Trash2 size={13} />
       </button>
     </div>
@@ -615,34 +561,28 @@ function CutRow({ cut, index, color, dist, days, onRemove, onChangeDay }: {
 // ── Step 3: summary ───────────────────────────────────────────────────────────
 function Step3({ stages, days, error }: { stages: StageSummary[]; days: Day[]; error: string | null }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ fontSize: 13, color: 'var(--text-secondary, #94a3b8)', marginBottom: 4 }}>
+    <div className="!flex !flex-col !gap-[10px]">
+      <div className="!text-[length:13px] ![color:var(--text-secondary,_#94a3b8)] !mb-[4px]">
         Revisa las etapas resultantes antes de guardar. Al confirmar se eliminarán las etapas anteriores vinculadas a este viaje.
       </div>
       {error && (
-        <div style={{ padding: '8px 12px', borderRadius: 8, background: '#ef444420', border: '1px solid #ef4444', fontSize: 12, color: '#ef4444' }}>
+        <div className="!p-[8px_12px] !rounded-[8px] ![background:#ef444420] ![border:1px_solid_#ef4444] !text-[length:12px] ![color:#ef4444]">
           ⚠ {error}
         </div>
       )}
       {stages.map((s, i) => (
-        <div key={i} style={{
-          background: 'var(--bg-secondary, #253547)',
-          border: `1px solid ${CUT_COLORS[i % CUT_COLORS.length]}40`,
-          borderLeft: `3px solid ${CUT_COLORS[i % CUT_COLORS.length]}`,
-          borderRadius: 8, padding: '10px 14px',
-          display: 'flex', alignItems: 'center', gap: 14,
-        }}>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary, #e2e8f0)', marginBottom: 2 }}>
+        <div className="![background:var(--bg-secondary,_#253547)] !rounded-[8px] !p-[10px_14px] !flex !items-center !gap-[14px]" key={i} style={{ border: `1px solid ${CUT_COLORS[i % CUT_COLORS.length]}40`, borderLeft: `3px solid ${CUT_COLORS[i % CUT_COLORS.length]}` }}>
+          <div className="!flex-[1]">
+            <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary,_#e2e8f0)] !mb-[2px]">
               {s.dayLabel}
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', display: 'flex', gap: 10 }}>
+            <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !flex !gap-[10px]">
               <span><MapPin size={9} style={{ display: 'inline', marginRight: 2 }} />{fmtKm(s.distKm)}</span>
-              {s.gainM > 0 && <span style={{ color: '#f97316' }}>↑ {s.gainM} m</span>}
-              {s.lossM > 0 && <span style={{ color: '#38bdf8' }}>↓ {s.lossM} m</span>}
+              {s.gainM > 0 && <span className="![color:#f97316]">↑ {s.gainM} m</span>}
+              {s.lossM > 0 && <span className="![color:#38bdf8]">↓ {s.lossM} m</span>}
             </div>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', textAlign: 'right', flexShrink: 0 }}>
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !text-right !shrink-[0]">
             {s.from === 0 ? 'inicio' : `pt ${s.from}`} → {s.to === -1 ? 'fin' : `pt ${s.to}`}
           </div>
         </div>

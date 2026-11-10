@@ -42,25 +42,25 @@ export default function MobileNavEditor({ t }: { t: T }) {
 
   return (
     <div>
-      <span style={{ display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 4, color: 'var(--text-secondary)' }}>{t('settings.mobileNav.title')}</span>
-      <p style={{ margin: '0 0 10px', fontSize: 12, color: 'var(--text-muted)' }}>{t('settings.mobileNav.hint', { max: MOBILE_NAV_MAX })}</p>
+      <span className="!block !text-[length:14px] !font-[500] !mb-[4px] ![color:var(--text-secondary)]">{t('settings.mobileNav.title')}</span>
+      <p className="!m-[0_0_10px] !text-[length:12px] ![color:var(--text-muted)]">{t('settings.mobileNav.hint', { max: MOBILE_NAV_MAX })}</p>
 
       {/* Preview */}
-      <div data-testid="mobile-nav-preview" aria-hidden style={{ display: 'flex', justifyContent: 'space-around', padding: '10px 4px', borderRadius: 14, border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)', marginBottom: 10 }}>
+      <div className="!flex !justify-around !p-[10px_4px] !rounded-[14px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] !mb-[10px]" data-testid="mobile-nav-preview" aria-hidden>
         {[...current.map(i => ({ id: i.id, Icon: i.icon, label: t(i.labelKey) })), { id: 'profile', Icon: User, label: t('nav.profile') }].map(({ id, Icon, label }, k) => (
-          <div key={id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, minWidth: 0, flex: 1, color: k === 0 ? 'var(--accent)' : 'var(--text-faint)' }}>
+          <div className="!flex !flex-col !items-center !gap-[3px] !min-w-[0] !flex-[1]" key={id} style={{ color: k === 0 ? 'var(--accent)' : 'var(--text-faint)' }}>
             <Icon size={18} />
-            <span style={{ fontSize: 9.5, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+            <span className="!text-[length:9.5px] !max-w-[100%] !overflow-hidden !text-ellipsis !whitespace-nowrap">{label}</span>
           </div>
         ))}
       </div>
 
       {/* Chosen, in order */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="!flex !flex-col !gap-[6px]">
         {current.map((item, i) => (
-          <div key={item.id} data-nav-item={item.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 9, border: '1px solid var(--border-primary)', background: 'var(--bg-card)' }}>
+          <div className="!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[9px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)]" key={item.id} data-nav-item={item.id}>
             <item.icon size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <span style={{ flex: 1, fontSize: 13, color: 'var(--text-primary)' }}>{t(item.labelKey)}</span>
+            <span className="!flex-[1] !text-[length:13px] ![color:var(--text-primary)]">{t(item.labelKey)}</span>
             <button type="button" aria-label={t('settings.mobileNav.up')} disabled={i === 0} onClick={() => move(i, -1)} style={btn(i === 0)}><ArrowUp size={13} /></button>
             <button type="button" aria-label={t('settings.mobileNav.down')} disabled={i === current.length - 1} onClick={() => move(i, 1)} style={btn(i === current.length - 1)}><ArrowDown size={13} /></button>
             <button type="button" aria-label={t('settings.mobileNav.remove')} disabled={current.length <= 1} onClick={() => save(ids.filter(x => x !== item.id))} style={btn(current.length <= 1)}><X size={13} /></button>
@@ -70,20 +70,18 @@ export default function MobileNavEditor({ t }: { t: T }) {
 
       {/* To add */}
       {unused.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+        <div className="!flex !flex-wrap !gap-[6px] !mt-[10px]">
           {unused.map(item => (
-            <button key={item.id} type="button" data-nav-add={item.id} disabled={full} onClick={() => save([...ids, item.id])}
+            <button className="!inline-flex !items-center !gap-[5px] !p-[5px_10px] !rounded-[99px] !text-[length:12px] ![font-family:inherit] ![border:1px_dashed_var(--border-primary)] ![background:none]" key={item.id} type="button" data-nav-add={item.id} disabled={full} onClick={() => save([...ids, item.id])}
               title={full ? t('settings.mobileNav.full', { max: MOBILE_NAV_MAX }) : undefined}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 99, fontSize: 12, fontFamily: 'inherit',
-                border: '1px dashed var(--border-primary)', background: 'none', color: full ? 'var(--text-faint)' : 'var(--text-secondary)', cursor: full ? 'default' : 'pointer', opacity: full ? 0.6 : 1 }}>
+              style={{ color: full ? 'var(--text-faint)' : 'var(--text-secondary)', cursor: full ? 'default' : 'pointer', opacity: full ? 0.6 : 1 }}>
               <Plus size={12} /> <item.icon size={13} /> {t(item.labelKey)}
             </button>
           ))}
         </div>
       )}
 
-      <button type="button" onClick={() => save(null)} disabled={!Array.isArray(saved) || saved.length === 0}
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, padding: '6px 11px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
+      <button className="!inline-flex !items-center !gap-[6px] !mt-[10px] !p-[6px_11px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)] !text-[length:12px] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => save(null)} disabled={!Array.isArray(saved) || saved.length === 0}>
         <RotateCcw size={12} /> {t('settings.mobileNav.reset')}
       </button>
     </div>

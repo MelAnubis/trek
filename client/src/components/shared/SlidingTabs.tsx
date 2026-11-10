@@ -61,22 +61,9 @@ export function SlidingTabs<T extends string>({
     >
       {/* Sliding indicator */}
       {indicator.ready && (
-        <div
+        <div className="!absolute ![transition:left_320ms_cubic-bezier(0.77,_0,_0.175,_1),_width_320ms_cubic-bezier(0.77,_0,_0.175,_1)] !pointer-events-none !z-[0]"
           aria-hidden
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: indicator.left,
-            width: indicator.width,
-            height: size === 'sm' ? 26 : 30,
-            background: indicatorColor,
-            borderRadius,
-            transform: 'translateY(-50%)',
-            transition: 'left 320ms cubic-bezier(0.77, 0, 0.175, 1), width 320ms cubic-bezier(0.77, 0, 0.175, 1)',
-            pointerEvents: 'none',
-            zIndex: 0,
-            willChange: 'left, width',
-          }}
+          style={{ top: '50%', left: indicator.left, width: indicator.width, height: size === 'sm' ? 26 : 30, background: indicatorColor, borderRadius, transform: 'translateY(-50%)', willChange: 'left, width' }}
         />
       )}
       {tabs.map(tab => {
@@ -114,13 +101,7 @@ export function SlidingTabs<T extends string>({
             {Icon && <Icon size={size === 'sm' ? 13 : 15} />}
             {tab.label}
             {tab.count != null && (
-              <span style={{
-                fontSize: 10, fontWeight: 600,
-                padding: '1px 6px', borderRadius: 99, minWidth: 16,
-                background: isActive ? 'rgba(255,255,255,0.22)' : 'var(--bg-tertiary)',
-                color: isActive ? 'inherit' : 'var(--text-faint)',
-                textAlign: 'center',
-              }}>{tab.count}</span>
+              <span className="!text-[length:10px] !font-[600] !p-[1px_6px] !rounded-[99px] !min-w-[16px] !text-center" style={{ background: isActive ? 'rgba(255,255,255,0.22)' : 'var(--bg-tertiary)', color: isActive ? 'inherit' : 'var(--text-faint)' }}>{tab.count}</span>
             )}
           </button>
         )

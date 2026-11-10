@@ -45,83 +45,55 @@ const ForgotPasswordPage: React.FC = () => {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(180deg, #f9fafb, #ffffff)', padding: 24, fontFamily: 'inherit',
-    }}>
-      <div style={{
-        width: '100%', maxWidth: 420, background: 'white', borderRadius: 20,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)',
-        padding: '32px 28px',
-      }}>
-        <button type="button" onClick={() => navigate('/login')} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-          color: '#6b7280', fontSize: 13, fontFamily: 'inherit', marginBottom: 22,
-        }}>
+    <div className="!min-h-[100vh] !flex !items-center !justify-center ![background:linear-gradient(180deg,_#f9fafb,_#ffffff)] !p-[24px] ![font-family:inherit]">
+      <div className="!w-[100%] !max-w-[420px] ![background:white] !rounded-[20px] ![box-shadow:0_12px_40px_rgba(0,0,0,0.06),_0_2px_8px_rgba(0,0,0,0.04)] !p-[32px_28px]">
+        <button className="!flex !items-center !gap-[6px] ![background:none] !cursor-pointer !p-[0] ![color:#6b7280] !text-[length:13px] ![font-family:inherit] !mb-[22px]" type="button" onClick={() => navigate('/login')} style={{ border: 'none' }}>
           <ArrowLeft size={14} />{t('login.backToLogin')}
         </button>
 
         {submitted ? (
-          <div style={{ textAlign: 'center', padding: '12px 0' }}>
-            <div style={{
-              width: 56, height: 56, borderRadius: '50%', background: '#ecfdf5',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              color: '#059669', marginBottom: 16,
-            }}>
+          <div className="!text-center !p-[12px_0]">
+            <div className="!w-[56px] !h-[56px] !rounded-[50%] ![background:#ecfdf5] !inline-flex !items-center !justify-center ![color:#059669] !mb-[16px]">
               <CheckCircle2 size={28} />
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 10px 0' }}>
+            <h1 className="!text-[length:22px] !font-[700] ![color:#111827] !m-[0_0_10px_0]">
               {t('login.forgotPasswordSentTitle')}
             </h1>
-            <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.55, margin: 0 }}>
+            <p className="!text-[length:14px] ![color:#4b5563] !leading-[1.55] !m-[0]">
               {t('login.forgotPasswordSentBody')}
             </p>
             {smtpConfigured === false && (
-              <div style={{
-                marginTop: 18, padding: '12px 14px',
-                background: '#fffbeb', border: '1px solid #fde68a',
-                borderRadius: 10, textAlign: 'left',
-                display: 'flex', alignItems: 'flex-start', gap: 10,
-              }}>
+              <div className="!mt-[18px] !p-[12px_14px] ![background:#fffbeb] !rounded-[10px] !text-left !flex !items-start !gap-[10px]" style={{ border: '1px solid #fde68a' }}>
                 <Terminal size={16} style={{ color: '#92400e', marginTop: 1, flexShrink: 0 }} />
-                <p style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.55, margin: 0 }}>
+                <p className="!text-[length:12.5px] ![color:#92400e] !leading-[1.55] !m-[0]">
                   {t('login.forgotPasswordSmtpHintOff')}
                 </p>
               </div>
             )}
-            <button type="button" onClick={() => navigate('/login')} style={{
-              marginTop: 24, padding: '11px 22px', background: '#111827', color: 'white',
-              border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}>{t('login.backToLogin')}</button>
+            <button className="!mt-[24px] !p-[11px_22px] ![background:#111827] ![color:white] !rounded-[12px] !text-[length:14px] !font-[700] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => navigate('/login')} style={{ border: 'none' }}>{t('login.backToLogin')}</button>
           </div>
         ) : (
           <>
-            <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 8px 0' }}>
+            <h1 className="!text-[length:22px] !font-[700] ![color:#111827] !m-[0_0_8px_0]">
               {t('login.forgotPasswordTitle')}
             </h1>
-            <p style={{ fontSize: 13.5, color: '#6b7280', lineHeight: 1.55, margin: '0 0 16px 0' }}>
+            <p className="!text-[length:13.5px] ![color:#6b7280] !leading-[1.55] !m-[0_0_16px_0]">
               {t('login.forgotPasswordBody')}
             </p>
             {smtpConfigured === false && (
-              <div style={{
-                padding: '10px 12px', marginBottom: 18,
-                background: '#fffbeb', border: '1px solid #fde68a',
-                borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10,
-              }}>
+              <div className="!p-[10px_12px] !mb-[18px] ![background:#fffbeb] !rounded-[10px] !flex !items-start !gap-[10px]" style={{ border: '1px solid #fde68a' }}>
                 <Terminal size={15} style={{ color: '#92400e', marginTop: 1, flexShrink: 0 }} />
-                <p style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.5, margin: 0 }}>
+                <p className="!text-[length:12.5px] ![color:#92400e] !leading-[1.5] !m-[0]">
                   {t('login.forgotPasswordSmtpHintOff')}
                 </p>
               </div>
             )}
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form className="!flex !flex-col !gap-[16px]" onSubmit={handleSubmit}>
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+                <label className="!block !text-[length:12.5px] !font-[600] ![color:#374151] !mb-[6px]">
                   {t('common.email')}
                 </label>
-                <div style={{ position: 'relative' }}>
+                <div className="!relative">
                   <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                   <input
                     type="email" value={email}
@@ -132,12 +104,7 @@ const ForgotPasswordPage: React.FC = () => {
                   />
                 </div>
               </div>
-              <button type="submit" disabled={isLoading} style={{
-                width: '100%', padding: '12px', background: '#111827', color: 'white',
-                border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-                cursor: isLoading ? 'default' : 'pointer', fontFamily: 'inherit',
-                opacity: isLoading ? 0.7 : 1, transition: 'opacity 0.15s',
-              }}>
+              <button className="!w-[100%] !p-[12px] ![background:#111827] ![color:white] !rounded-[12px] !text-[length:14px] !font-[700] ![font-family:inherit] ![transition:opacity_0.15s]" type="submit" disabled={isLoading} style={{ border: 'none', cursor: isLoading ? 'default' : 'pointer', opacity: isLoading ? 0.7 : 1 }}>
                 {isLoading ? t('login.signingIn') : t('login.forgotPasswordSubmit')}
               </button>
             </form>

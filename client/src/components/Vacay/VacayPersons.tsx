@@ -64,11 +64,11 @@ export default function VacayPersons() {
   const editingUserColor = users.find(u => u.id === colorEditUserId)?.color || '#6366f1'
 
   return (
-    <div className="rounded-xl border p-3" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+    <div className="rounded-xl border p-3 ![background:var(--bg-card)] ![border-color:var(--border-primary)]">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: 'var(--text-faint)' }}>{t('vacay.persons')}</span>
+        <span className="text-[11px] font-medium uppercase tracking-wider ![color:var(--text-faint)]">{t('vacay.persons')}</span>
         <button onClick={() => { setShowInvite(true); loadAvailable() }}
-          className="p-0.5 rounded transition-colors" style={{ color: 'var(--text-faint)' }}>
+          className="p-0.5 rounded transition-colors ![color:var(--text-faint)]">
           <UserPlus size={14} />
         </button>
       </div>
@@ -87,13 +87,13 @@ export default function VacayPersons() {
               }}>
               <button
                 onClick={(e) => { e.stopPropagation(); setColorEditUserId(u.id); setShowColorPicker(true) }}
-                className="w-3.5 h-3.5 rounded-full shrink-0 transition-transform hover:scale-125"
-                style={{ backgroundColor: u.color, cursor: 'pointer' }}
+                className="w-3.5 h-3.5 rounded-full shrink-0 transition-transform hover:scale-125 !cursor-pointer"
+                style={{ backgroundColor: u.color }}
                 title={t('vacay.changeColor')}
               />
-              <span className="text-xs font-medium flex-1 truncate" style={{ color: 'var(--text-primary)' }}>
+              <span className="text-xs font-medium flex-1 truncate ![color:var(--text-primary)]">
                 {u.username}
-                {u.id === currentUser?.id && <span style={{ color: 'var(--text-faint)' }}> ({t('vacay.you')})</span>}
+                {u.id === currentUser?.id && <span className="![color:var(--text-faint)]"> ({t('vacay.you')})</span>}
               </span>
               {isSelected && isFused && (
                 <Check size={12} style={{ color: 'var(--text-primary)' }} />
@@ -104,15 +104,14 @@ export default function VacayPersons() {
 
         {/* Pending invites */}
         {pendingInvites.map(inv => (
-          <div key={inv.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group"
-            style={{ background: 'var(--bg-secondary)', opacity: 0.7 }}>
+          <div key={inv.id} className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg group ![background:var(--bg-secondary)]"
+            style={{ opacity: 0.7 }}>
             <Clock size={12} style={{ color: 'var(--text-faint)' }} />
-            <span className="text-xs flex-1 truncate" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-xs flex-1 truncate ![color:var(--text-muted)]">
               {inv.username} <span className="text-[10px]">({t('vacay.pending')})</span>
             </span>
             <button onClick={() => cancelInvite(inv.user_id)}
-              className="opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all"
-              style={{ color: 'var(--text-faint)' }}>
+              className="opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded transition-all ![color:var(--text-faint)]">
               {t('common.cancel')}
             </button>
           </div>
@@ -121,20 +120,20 @@ export default function VacayPersons() {
 
       {/* Invite Modal — Portal to body to avoid z-index issues */}
       {showInvite && ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter" style={{ zIndex: 99990, backgroundColor: 'rgba(15,23,42,0.5)', paddingTop: 70 }}
+        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter !z-[99990] ![background-color:rgba(15,23,42,0.5)] !pt-[70px]"
           onClick={() => setShowInvite(false)}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm" style={{ background: 'var(--bg-card)' }}
+          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-sm ![background:var(--bg-card)]"
             onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('vacay.inviteUser')}</h2>
-              <button onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-faint)' }}>
+            <div className="flex items-center justify-between p-5 ![border-bottom:1px_solid_var(--border-secondary)]">
+              <h2 className="text-base font-semibold ![color:var(--text-primary)]">{t('vacay.inviteUser')}</h2>
+              <button onClick={() => setShowInvite(false)} className="p-1.5 rounded-lg transition-colors ![color:var(--text-faint)]">
                 <X size={16} />
               </button>
             </div>
             <div className="p-5 space-y-4">
-              <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('vacay.inviteHint')}</p>
+              <p className="text-xs ![color:var(--text-muted)]">{t('vacay.inviteHint')}</p>
               {availableUsers.length === 0 ? (
-                <p className="text-xs text-center py-4" style={{ color: 'var(--text-faint)' }}>{t('vacay.noUsersAvailable')}</p>
+                <p className="text-xs text-center py-4 ![color:var(--text-faint)]">{t('vacay.noUsersAvailable')}</p>
               ) : (
                 <CustomSelect
                   value={selectedInviteUser}
@@ -145,13 +144,11 @@ export default function VacayPersons() {
                 />
               )}
               <div className="flex gap-3 justify-end pt-2">
-                <button onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm rounded-lg"
-                  style={{ color: 'var(--text-muted)', border: '1px solid var(--border-primary)' }}>
+                <button onClick={() => setShowInvite(false)} className="px-4 py-2 text-sm rounded-lg ![color:var(--text-muted)] ![border:1px_solid_var(--border-primary)]">
                   {t('common.cancel')}
                 </button>
                 <button onClick={handleInvite} disabled={!selectedInviteUser || inviting}
-                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40"
-                  style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}>
+                  className="px-4 py-2 text-sm rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-40 ![background:var(--text-primary)] ![color:var(--bg-card)]">
                   {inviting && <Loader2 size={13} className="animate-spin" />}
                   {t('vacay.sendInvite')}
                 </button>
@@ -164,13 +161,13 @@ export default function VacayPersons() {
 
       {/* Color Picker Modal — Portal to body */}
       {showColorPicker && ReactDOM.createPortal(
-        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter" style={{ zIndex: 99990, backgroundColor: 'rgba(15,23,42,0.5)', paddingTop: 70 }}
+        <div className="fixed inset-0 flex items-center justify-center px-4 trek-backdrop-enter !z-[99990] ![background-color:rgba(15,23,42,0.5)] !pt-[70px]"
           onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }}>
-          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs" style={{ background: 'var(--bg-card)' }}
+          <div className="trek-modal-enter rounded-2xl shadow-2xl w-full max-w-xs ![background:var(--bg-card)]"
             onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-              <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{t('vacay.changeColor')}</h2>
-              <button onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors" style={{ color: 'var(--text-faint)' }}>
+            <div className="flex items-center justify-between p-5 ![border-bottom:1px_solid_var(--border-secondary)]">
+              <h2 className="text-base font-semibold ![color:var(--text-primary)]">{t('vacay.changeColor')}</h2>
+              <button onClick={() => { setShowColorPicker(false); setColorEditUserId(null) }} className="p-1.5 rounded-lg transition-colors ![color:var(--text-faint)]">
                 <X size={16} />
               </button>
             </div>

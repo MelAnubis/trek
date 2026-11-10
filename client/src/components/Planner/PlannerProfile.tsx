@@ -39,9 +39,9 @@ export default function PlannerProfile({ cum, smoothed, stages, activeStage, hin
   const total = cum.length ? cum[cum.length - 1] : 0
 
   return (
-    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ fontSize: 11, color: 'var(--text-muted)', padding: '4px 10px 0' }}>{hint}</div>
-      <div style={{ flex: 1, minHeight: 0 }}>
+    <div className="!w-[100%] !h-[100%] !flex !flex-col">
+      <div className="!text-[length:11px] ![color:var(--text-muted)] !p-[4px_10px_0]">{hint}</div>
+      <div className="!flex-[1] !min-h-[0]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart
             data={data}

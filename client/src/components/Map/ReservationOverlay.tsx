@@ -425,8 +425,8 @@ export default function ReservationOverlay({ reservations, showConnections, show
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.from.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
+            <div className="!font-[600] !text-[length:12px]">{item.from.name}</div>
+            {item.res.title && <div className="!text-[length:11px] ![color:var(--text-muted)]">{item.res.title}</div>}
           </Tooltip>
         </Marker>,
         <Marker
@@ -438,8 +438,8 @@ export default function ReservationOverlay({ reservations, showConnections, show
           eventHandlers={{ click: () => onEndpointClick?.(item.res.id) }}
         >
           <Tooltip direction="top" offset={[0, -8]} opacity={1} className="map-tooltip">
-            <div style={{ fontWeight: 600, fontSize: 12 }}>{item.to.name}</div>
-            {item.res.title && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{item.res.title}</div>}
+            <div className="!font-[600] !text-[length:12px]">{item.to.name}</div>
+            {item.res.title && <div className="!text-[length:11px] ![color:var(--text-muted)]">{item.res.title}</div>}
           </Tooltip>
         </Marker>,
       ])}

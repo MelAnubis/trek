@@ -52,46 +52,45 @@ export default function ActualCard({ tour, planned, tracks, dayIds, canEdit, onL
 
   return (
     <RailCard testId="actual-card" icon={<Activity size={15} />} title={t('tours.actual.title')} defaultOpen={!!actual}
-      aside={actual ? <span style={{ width: 10, height: 10, borderRadius: 5, background: ACTUAL_COLOR }} /> : undefined}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 10 }}>
+      aside={actual ? <span className="!w-[10px] !h-[10px] !rounded-[5px]" style={{ background: ACTUAL_COLOR }} /> : undefined}>
+      <div className="!flex !flex-col !gap-[10px] !pt-[10px]">
         {actual ? (
           <>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              <span style={{ display: 'inline-block', width: 14, height: 3, background: ACTUAL_COLOR, borderRadius: 2, verticalAlign: 'middle', marginRight: 6 }} />
+            <div className="!text-[length:12px] ![color:var(--text-muted)]">
+              <span className="!inline-block !w-[14px] !h-[3px] !rounded-[2px] ![vertical-align:middle] !mr-[6px]" style={{ background: ACTUAL_COLOR }} />
               {actual.track_name}{actual.ibp ? ` · IBP ${actual.ibp}` : ''}
             </div>
-            <table data-testid="actual-compare" style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <table className="!w-[100%] ![border-collapse:collapse] !text-[length:12px]" data-testid="actual-compare">
               <thead>
-                <tr style={{ color: 'var(--text-faint)', fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  <th style={{ textAlign: 'left', fontWeight: 600, padding: '0 0 4px' }} />
-                  <th style={{ textAlign: 'right', fontWeight: 600, padding: '0 0 4px' }}>{t('tours.actual.planned')}</th>
-                  <th style={{ textAlign: 'right', fontWeight: 600, padding: '0 0 4px' }}>{t('tours.actual.real')}</th>
+                <tr className="![color:var(--text-faint)] !text-[length:10.5px] !uppercase !tracking-[0.05em]">
+                  <th className="!text-left !font-[600] !p-[0_0_4px]" />
+                  <th className="!text-right !font-[600] !p-[0_0_4px]">{t('tours.actual.planned')}</th>
+                  <th className="!text-right !font-[600] !p-[0_0_4px]">{t('tours.actual.real')}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map(r => (
-                  <tr key={r.label} style={{ borderTop: '1px solid var(--border-faint)' }}>
-                    <td style={{ padding: '6px 0', color: 'var(--text-muted)' }}>{r.label}</td>
-                    <td style={{ padding: '6px 0', textAlign: 'right', color: 'var(--text-secondary)' }}>{r.plan}</td>
-                    <td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  <tr className="![border-top:1px_solid_var(--border-faint)]" key={r.label}>
+                    <td className="!p-[6px_0] ![color:var(--text-muted)]">{r.label}</td>
+                    <td className="!p-[6px_0] !text-right ![color:var(--text-secondary)]">{r.plan}</td>
+                    <td className="!p-[6px_0] !text-right !font-[600] ![color:var(--text-primary)]">
                       {r.real}
-                      {r.delta && <span style={{ display: 'block', fontSize: 10.5, fontWeight: 500, color: ACTUAL_COLOR }}>{r.delta}</span>}
+                      {r.delta && <span className="!block !text-[length:10.5px] !font-[500]" style={{ color: ACTUAL_COLOR }}>{r.delta}</span>}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {canEdit && <button type="button" style={{ ...btn, alignSelf: 'flex-start' }} disabled={busy} onClick={() => run(() => onLink(null))}><Link2Off size={12} />{t('tours.actual.unlink')}</button>}
+            {canEdit && <button className="!self-start" type="button" style={{ ...btn }} disabled={busy} onClick={() => run(() => onLink(null))}><Link2Off size={12} />{t('tours.actual.unlink')}</button>}
           </>
         ) : (
           <>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('tours.actual.empty')}</p>
+            <p className="!m-[0] !text-[length:12px] ![color:var(--text-muted)] !leading-[1.5]">{t('tours.actual.empty')}</p>
             {canEdit && (
               <>
                 {free.length > 0 && (
-                  <div style={{ display: 'flex', gap: 6 }}>
-                    <select data-testid="actual-pick" value={choice} onChange={e => setChoice(e.target.value)}
-                      style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 9, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'inherit' }}>
+                  <div className="!flex !gap-[6px]">
+                    <select className="!flex-[1] !min-w-[0] !p-[6px_8px] !rounded-[9px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:12px] ![font-family:inherit]" data-testid="actual-pick" value={choice} onChange={e => setChoice(e.target.value)}>
                       <option value="">{t('tours.actual.pick')}</option>
                       {free.map(tr => <option key={tr.id} value={tr.id}>{tr.track_name}{tr.total_distance ? ` · ${formatDistance(tr.total_distance)}` : ''}{dayIds.includes(tr.day_id ?? -1) ? ` · ${t('tours.actual.sameDay')}` : ''}</option>)}
                     </select>
@@ -99,7 +98,7 @@ export default function ActualCard({ tour, planned, tracks, dayIds, canEdit, onL
                   </div>
                 )}
                 <input ref={fileRef} type="file" accept=".gpx" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void run(() => onUpload(f)) }} />
-                <button type="button" style={{ ...btn, alignSelf: 'flex-start' }} disabled={busy} onClick={() => fileRef.current?.click()}>
+                <button className="!self-start" type="button" style={{ ...btn }} disabled={busy} onClick={() => fileRef.current?.click()}>
                   {busy ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12} />}{t('tours.actual.upload')}
                 </button>
               </>

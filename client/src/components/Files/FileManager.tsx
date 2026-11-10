@@ -82,20 +82,14 @@ function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxProps) {
   const hasPrev = index > 0
   const hasNext = index < files.length - 1
   const navBtn = (side: 'left' | 'right', onClick: () => void, show: boolean): React.ReactNode => show ? (
-    <button className="trek-h-background-d3ab94" onClick={e => { e.stopPropagation(); onClick() }}
-      style={{
-        position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', zIndex: 10,
-        background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40,
-        display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-        color: 'rgba(255,255,255,0.8)', transition: 'background 0.15s',
-      }}>
+    <button className="trek-h-background-d3ab94 !absolute !top-[50%] !z-[10] ![background:rgba(0,0,0,0.5)] ![border:none] !rounded-[50%] !w-[40px] !h-[40px] !flex !items-center !justify-center !cursor-pointer ![color:rgba(255,255,255,0.8)] ![transition:background_0.15s]" onClick={e => { e.stopPropagation(); onClick() }}
+      style={{ [side]: 12, transform: 'translateY(-50%)' }}>
       {side === 'left' ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
     </button>
   ) : null
 
   return (
-    <div
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.92)', zIndex: 2000, display: 'flex', flexDirection: 'column', paddingBottom: 'var(--bottom-nav-h)' }}
+    <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.92)] !z-[2000] !flex !flex-col !pb-[var(--bottom-nav-h)]"
       onClick={onClose}
       onTouchStart={e => setTouchStart(e.touches[0].clientX)}
       onTouchEnd={e => {
@@ -107,41 +101,39 @@ function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxProps) {
       }}
     >
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+      <div className="!flex !items-center !justify-between !p-[10px_16px] !shrink-[0]" onClick={e => e.stopPropagation()}>
+        <span className="!text-[length:12px] ![color:rgba(255,255,255,0.7)] !overflow-hidden !text-ellipsis !whitespace-nowrap !flex-[1]">
           {file.original_name}
-          <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.4)' }}>{index + 1} / {files.length}</span>
+          <span className="!ml-[8px] ![color:rgba(255,255,255,0.4)]">{index + 1} / {files.length}</span>
         </span>
-        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-          <button
+        <div className="!flex !gap-[8px] !shrink-[0]">
+          <button className="![background:none] ![border:none] !cursor-pointer ![color:rgba(255,255,255,0.7)] !flex !p-[4px]"
             onClick={() => openFileUrl(file.url, file.original_name).catch(() => {})}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.openTab')}>
             <ExternalLink size={16} />
           </button>
-          <button
+          <button className="![background:none] ![border:none] !cursor-pointer ![color:rgba(255,255,255,0.7)] !flex !p-[4px]"
             onClick={() => triggerDownload(file.url, file.original_name)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}
             title={t('files.download') || 'Download'}>
             <Download size={16} />
           </button>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 4 }}>
+          <button className="![background:none] ![border:none] !cursor-pointer ![color:rgba(255,255,255,0.7)] !flex !p-[4px]" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
       </div>
 
       {/* Main image + nav */}
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', minHeight: 0 }}
+      <div className="!flex-[1] !flex !items-center !justify-center !relative !min-h-[0]"
         onClick={e => { if (e.target === e.currentTarget) onClose() }}>
         {navBtn('left', goPrev, hasPrev)}
-        {imgSrc && <img src={imgSrc} alt={file.original_name} style={{ maxWidth: '85vw', maxHeight: '80vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} onClick={e => e.stopPropagation()} />}
+        {imgSrc && <img className="!max-w-[85vw] !max-h-[80vh] !object-contain !rounded-[8px] !block" src={imgSrc} alt={file.original_name} onClick={e => e.stopPropagation()} />}
         {navBtn('right', goNext, hasNext)}
       </div>
 
       {/* Thumbnail strip */}
       {files.length > 1 && (
-        <div style={{ display: 'flex', gap: 4, justifyContent: 'center', padding: '10px 16px', flexShrink: 0, overflowX: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div className="!flex !gap-[4px] !justify-center !p-[10px_16px] !shrink-[0] !overflow-x-auto" onClick={e => e.stopPropagation()}>
           {files.map((f, i) => (
             <ThumbImg key={f.id} file={f} active={i === index} onClick={() => setIndex(i)} />
           ))}
@@ -155,11 +147,8 @@ function ThumbImg({ file, active, onClick }: { file: TripFile; active: boolean; 
   const [src, setSrc] = useState('')
   useEffect(() => { getAuthUrl(file.url, 'download').then(setSrc) }, [file.url])
   return (
-    <button onClick={onClick} style={{
-      width: 48, height: 48, borderRadius: 6, overflow: 'hidden', border: active ? '2px solid #fff' : '2px solid transparent',
-      opacity: active ? 1 : 0.5, cursor: 'pointer', padding: 0, background: '#111', flexShrink: 0, transition: 'opacity 0.15s',
-    }}>
-      {src && <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />}
+    <button className="!w-[48px] !h-[48px] !rounded-[6px] !overflow-hidden !cursor-pointer !p-[0] ![background:#111] !shrink-[0] ![transition:opacity_0.15s]" onClick={onClick} style={{ border: active ? '2px solid #fff' : '2px solid transparent', opacity: active ? 1 : 0.5 }}>
+      {src && <img className="!w-[100%] !h-[100%] !object-cover !block" src={src} alt="" />}
     </button>
   )
 }
@@ -181,15 +170,9 @@ interface SourceBadgeProps {
 
 function SourceBadge({ icon: Icon, label }: SourceBadgeProps) {
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 4,
-      fontSize: 10.5, color: '#4b5563',
-      background: 'var(--bg-tertiary)', border: '1px solid var(--border-primary)',
-      borderRadius: 6, padding: '2px 7px',
-      fontWeight: 500, maxWidth: '100%', overflow: 'hidden',
-    }}>
+    <span className="!inline-flex !items-center !gap-[4px] !text-[length:10.5px] ![color:#4b5563] ![background:var(--bg-tertiary)] ![border:1px_solid_var(--border-primary)] !rounded-[6px] !p-[2px_7px] !font-[500] !max-w-[100%] !overflow-hidden">
       <Icon size={10} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{label}</span>
     </span>
   )
 }
@@ -217,18 +200,12 @@ function AvatarChip({ name, avatarUrl, size = 20 }: { name: string; avatarUrl?: 
           cursor: 'default',
         }}>
         {avatarUrl
-          ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img className="!w-[100%] !h-[100%] !object-cover" src={avatarUrl} />
           : name?.[0]?.toUpperCase()
         }
       </div>
       {hover && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
-          background: 'var(--bg-elevated)', color: 'var(--text-primary)',
-          fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 6,
-          boxShadow: '0 2px 8px rgba(0,0,0,0.15)', whiteSpace: 'nowrap', zIndex: 9999,
-          pointerEvents: 'none',
-        }}>
+        <div className="!fixed ![background:var(--bg-elevated)] ![color:var(--text-primary)] !text-[length:11px] !font-[500] !p-[3px_8px] !rounded-[6px] ![box-shadow:0_2px_8px_rgba(0,0,0,0.15)] !whitespace-nowrap !z-[9999] !pointer-events-none" style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }}>
           {name}
         </div>,
         document.body
@@ -446,21 +423,12 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
     for (const rid of (file.linked_reservation_ids || [])) allLinkedResIds.add(rid)
     const linkedReservations = [...allLinkedResIds].map(rid => reservations?.find(r => r.id === rid)).filter(Boolean)
     return (
-      <div className="trek-hover-border-faint group" key={file.id} style={{
-        background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12,
-        padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 10,
-        transition: 'border-color 0.12s',
-        opacity: isTrash ? 0.7 : 1,
-      }}
+      <div className="trek-hover-border-faint group ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[12px] !p-[10px_12px] !flex !items-start !gap-[10px] ![transition:border-color_0.12s]" key={file.id} style={{ opacity: isTrash ? 0.7 : 1 }}
       >
         {/* Icon or thumbnail */}
-        <div
+        <div className="!shrink-[0] !w-[36px] !h-[36px] !rounded-[8px] ![background:var(--bg-tertiary)] !flex !items-center !justify-center !overflow-hidden"
           onClick={() => !isTrash && openFile(file)}
-          style={{
-            flexShrink: 0, width: 36, height: 36, borderRadius: 8,
-            background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: isTrash ? 'default' : 'pointer', overflow: 'hidden',
-          }}
+          style={{ cursor: isTrash ? 'default' : 'pointer' }}
         >
           {isImage(file.mime_type, file.original_name)
             ? <AuthedImg src={file.url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -468,8 +436,8 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                 const ext = (file.original_name || '').split('.').pop()?.toUpperCase() || '?'
                 const isPdf = file.mime_type === 'application/pdf'
                 return (
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: isPdf ? '#ef44441a' : 'var(--bg-tertiary)' }}>
-                    <span style={{ fontSize: 9, fontWeight: 700, color: isPdf ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                  <div className="!flex !flex-col !items-center !justify-center !w-[100%] !h-[100%]" style={{ background: isPdf ? '#ef44441a' : 'var(--bg-tertiary)' }}>
+                    <span className="!text-[length:9px] !font-[700] !tracking-[0.3px]" style={{ color: isPdf ? '#ef4444' : 'var(--text-muted)' }}>{ext}</span>
                   </div>
                 )
               })()
@@ -477,27 +445,27 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
         </div>
 
         {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <div className="!flex-[1] !min-w-[0]">
+          <div className="!flex !items-center !gap-[5px]">
             {file.uploaded_by_name && (
               <AvatarChip name={file.uploaded_by_name} avatarUrl={file.uploaded_by_avatar} size={20} />
             )}
             {!isTrash && file.starred ? <Star size={12} fill="#facc15" color="#facc15" style={{ flexShrink: 0 }} /> : null}
-            <span
+            <span className="!font-[500] !text-[length:13px] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap"
               onClick={() => !isTrash && openFile(file)}
-              style={{ fontWeight: 500, fontSize: 13, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isTrash ? 'default' : 'pointer' }}
+              style={{ cursor: isTrash ? 'default' : 'pointer' }}
             >
               {file.original_name}
             </span>
           </div>
 
           {file.description && (
-            <p style={{ fontSize: 11.5, color: 'var(--text-faint)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.description}</p>
+            <p className="!text-[length:11.5px] ![color:var(--text-faint)] !m-[2px_0_0] !overflow-hidden !text-ellipsis !whitespace-nowrap">{file.description}</p>
           )}
 
-          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-            {file.file_size && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{formatSize(file.file_size)}</span>}
-            <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{formatDateWithLocale(file.created_at, locale)}</span>
+          <div className="!flex !items-center !flex-wrap !gap-[6px] !mt-[4px]">
+            {file.file_size && <span className="!text-[length:11px] ![color:var(--text-faint)]">{formatSize(file.file_size)}</span>}
+            <span className="!text-[length:11px] ![color:var(--text-faint)]">{formatDateWithLocale(file.created_at, locale)}</span>
 
             {linkedPlaces.map(p => (
               <SourceBadge key={p.id} icon={MapPin} label={`${t('files.sourcePlan')} · ${p.name}`} />
@@ -514,31 +482,31 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
         </div>
 
         {/* Actions — always visible on mobile, hover on desktop */}
-        <div className="file-actions" style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+        <div className="file-actions !flex !gap-[2px] !shrink-[0]">
           {isTrash ? (
             <>
-              {can('file_delete', trip) && <button className="trek-hover-success" onClick={() => handleRestore(file.id)} title={t('files.restore') || 'Restore'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              {can('file_delete', trip) && <button className="trek-hover-success !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => handleRestore(file.id)} title={t('files.restore') || 'Restore'}>
                 <RotateCcw size={14} />
               </button>}
-              {can('file_delete', trip) && <button className="trek-hover-danger" onClick={() => handlePermanentDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              {can('file_delete', trip) && <button className="trek-hover-danger !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => handlePermanentDelete(file.id)} title={t('common.delete')}>
                 <Trash2 size={14} />
               </button>}
             </>
           ) : (
             <>
-              <button className={(!file.starred) ? 'trek-h-color-bcbd42' : undefined} onClick={() => handleStar(file.id)} title={file.starred ? t('files.unstar') || 'Unstar' : t('files.star') || 'Star'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: file.starred ? '#facc15' : 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              <button className={[(!file.starred) ? 'trek-h-color-bcbd42' : undefined, '!p-[6px] ![background:none] ![border:none] !cursor-pointer !rounded-[6px] !flex'].join(' ')} onClick={() => handleStar(file.id)} title={file.starred ? t('files.unstar') || 'Unstar' : t('files.star') || 'Star'} style={{ color: file.starred ? '#facc15' : 'var(--text-faint)' }}>
                 <Star size={14} fill={file.starred ? '#facc15' : 'none'} />
               </button>
-              {can('file_edit', trip) && <button className="trek-hover-text" onClick={() => setAssignFileId(file.id)} title={t('files.assign') || 'Assign'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              {can('file_edit', trip) && <button className="trek-hover-text !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => setAssignFileId(file.id)} title={t('files.assign') || 'Assign'}>
                 <Pencil size={14} />
               </button>}
-              <button className="trek-hover-text" onClick={() => openFile(file)} title={t('common.open')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              <button className="trek-hover-text !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => openFile(file)} title={t('common.open')}>
                 <ExternalLink size={14} />
               </button>
-              <button className="trek-hover-text" onClick={() => triggerDownload(file.url, file.original_name)} title={t('files.download') || 'Download'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              <button className="trek-hover-text !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => triggerDownload(file.url, file.original_name)} title={t('files.download') || 'Download'}>
                 <Download size={14} />
               </button>
-              {can('file_delete', trip) && <button className="trek-hover-danger" onClick={() => handleDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
+              {can('file_delete', trip) && <button className="trek-hover-danger !p-[6px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !rounded-[6px] !flex" onClick={() => handleDelete(file.id)} title={t('common.delete')}>
                 <Trash2 size={14} />
               </button>}
             </>
@@ -555,28 +523,25 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
 
       {/* Assign modal */}
       {assignFileId && ReactDOM.createPortal(
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 5000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.5)] !z-[5000] !flex !items-center !justify-center"
           onClick={() => setAssignFileId(null)}>
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-            width: 'min(600px, calc(100vw - 32px))', maxHeight: '70vh', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t('files.assignTitle')}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div className="![background:var(--bg-card)] !rounded-[16px] ![box-shadow:0_20px_60px_rgba(0,0,0,0.2)] !w-[min(600px,_calc(100vw_-_32px))] !max-h-[70vh] !overflow-hidden !flex !flex-col" onClick={e => e.stopPropagation()}>
+            <div className="!p-[16px_20px_12px] ![border-bottom:1px_solid_var(--border-primary)] !flex !items-center !justify-between !gap-[12px]">
+              <div className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:15px] !font-[600] ![color:var(--text-primary)]">{t('files.assignTitle')}</div>
+                <div className="!text-[length:12px] ![color:var(--text-faint)] !mt-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                   {files.find(f => f.id === assignFileId)?.original_name || ''}
                 </div>
               </div>
-              <button onClick={() => setAssignFileId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 4, display: 'flex', flexShrink: 0 }}>
+              <button className="![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !p-[4px] !flex !shrink-[0]" onClick={() => setAssignFileId(null)}>
                 <X size={18} />
               </button>
             </div>
-            <div style={{ padding: '8px 12px 0' }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', padding: '0 2px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <div className="!p-[8px_12px_0]">
+              <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !p-[0_2px_4px] !uppercase !tracking-[0.5px]">
                 {t('files.noteLabel') || 'Note'}
               </div>
-              <input
+              <input className="!w-[100%] !p-[7px_10px] !text-[length:13px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none]"
                 type="text"
                 placeholder={t('files.notePlaceholder')}
                 defaultValue={files.find(f => f.id === assignFileId)?.description || ''}
@@ -588,14 +553,9 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                   }
                 }}
                 onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
-                style={{
-                  width: '100%', padding: '7px 10px', fontSize: 13, borderRadius: 8,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
-                }}
               />
             </div>
-            <div style={{ overflowY: 'auto', padding: 8 }}>
+            <div className="!overflow-y-auto !p-[8px]">
               {(() => {
                 const file = files.find(f => f.id === assignFileId)
                 if (!file) return null
@@ -613,7 +573,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                 const placeBtn = (p: Place) => {
                   const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
                   return (
-                    <button className="trek-hover" key={p.id} onClick={async () => {
+                    <button className="trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]" key={p.id} onClick={async () => {
                       if (isLinked) {
                         if (file.place_id === p.id) {
                           await handleAssign(file.id, { place_id: null })
@@ -635,35 +595,27 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                           } catch {}
                         }
                       }
-                    }} style={{
-                      width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
-                      border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)',
-                      borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
+                    }} style={{ background: isLinked ? 'var(--bg-hover)' : 'none', fontSize: 13, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400 }}>
                       <MapPin size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                      <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{p.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
                     </button>
                   )
                 }
 
                 const placesSection = places.length > 0 && (
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  <div className="!flex-[1] !min-w-[0]">
+                    <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !p-[8px_10px_4px] !uppercase !tracking-[0.5px]">
                       {t('files.assignPlace')}
                     </div>
                     {dayGroups.map(({ day, dayPlaces }) => (
                       <div key={day.id}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>
+                        <div className="!flex !items-center !gap-[6px] !text-[length:11px] !font-[600] ![color:var(--text-muted)] !p-[8px_10px_2px]">
                           <span>{day.title || t('dayplan.dayN', { n: day.day_number })}</span>
                           {(() => {
                             const badge = day.date || (day.title ? t('dayplan.dayN', { n: day.day_number }) : null)
                             return badge ? (
-                              <span style={{
-                                fontSize: 10, fontWeight: 600, color: 'var(--text-faint)',
-                                background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 999,
-                              }}>{badge}</span>
+                              <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] ![background:var(--bg-tertiary)] !p-[1px_6px] !rounded-[999px]">{badge}</span>
                             ) : null
                           })()}
                         </div>
@@ -672,7 +624,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                     ))}
                     {unassigned.length > 0 && (
                       <div>
-                        {dayGroups.length > 0 && <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '8px 10px 2px' }}>{t('files.unassigned')}</div>}
+                        {dayGroups.length > 0 && <div className="!text-[length:11px] !font-[600] ![color:var(--text-muted)] !p-[8px_10px_2px]">{t('files.unassigned')}</div>}
                         {unassigned.map(placeBtn)}
                       </div>
                     )}
@@ -686,7 +638,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                   const isLinked = file.reservation_id === r.id || (file.linked_reservation_ids || []).includes(r.id)
                   const Icon = TRANSPORT_TYPES.has(r.type) ? transportIcon(r.type) : Ticket
                   return (
-                    <button className="trek-hover" key={r.id} onClick={async () => {
+                    <button className="trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]" key={r.id} onClick={async () => {
                       if (isLinked) {
                         if (file.reservation_id === r.id) {
                           await handleAssign(file.id, { reservation_id: null })
@@ -708,24 +660,19 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                           } catch {}
                         }
                       }
-                    }} style={{
-                      width: '100%', textAlign: 'left', padding: '6px 10px 6px 20px', background: isLinked ? 'var(--bg-hover)' : 'none',
-                      border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)',
-                      borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
-                      display: 'flex', alignItems: 'center', gap: 6,
-                    }}>
+                    }} style={{ background: isLinked ? 'var(--bg-hover)' : 'none', fontSize: 13, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400 }}>
                       <Icon size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</span>
+                      <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{r.title || r.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
                     </button>
                   )
                 }
 
                 const bookingsSection = reservations.length > 0 && (
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="!flex-[1] !min-w-[0]">
                     {bookingReservations.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                        <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !p-[8px_10px_4px] !uppercase !tracking-[0.5px]">
                           {t('files.assignBooking')}
                         </div>
                         {bookingReservations.map(reservationBtn)}
@@ -733,7 +680,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                     )}
                     {transportReservations.length > 0 && (
                       <>
-                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', padding: '8px 10px 4px', textTransform: 'uppercase', letterSpacing: 0.5, marginTop: bookingReservations.length > 0 ? 4 : 0 }}>
+                        <div className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !p-[8px_10px_4px] !uppercase !tracking-[0.5px]" style={{ marginTop: bookingReservations.length > 0 ? 4 : 0 }}>
                           {t('files.assignTransport')}
                         </div>
                         {transportReservations.map(reservationBtn)}
@@ -745,10 +692,10 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                 const hasBoth = placesSection && bookingsSection
                 return (
                   <div className={hasBoth ? 'md:flex' : ''}>
-                    <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingRight: hasBoth ? 6 : 0 }}>{placesSection}</div>
-                    {hasBoth && <div className="hidden md:block" style={{ width: 1, background: 'var(--border-primary)', flexShrink: 0 }} />}
-                    {hasBoth && <div className="block md:hidden" style={{ height: 1, background: 'var(--border-primary)', margin: '8px 0' }} />}
-                    <div className={hasBoth ? 'md:w-1/2' : ''} style={{ overflowY: 'auto', maxHeight: '55vh', paddingLeft: hasBoth ? 6 : 0 }}>{bookingsSection}</div>
+                    <div className={[hasBoth ? 'md:w-1/2' : '', '!overflow-y-auto !max-h-[55vh]'].join(' ')} style={{ paddingRight: hasBoth ? 6 : 0 }}>{placesSection}</div>
+                    {hasBoth && <div className="hidden md:block !w-[1px] ![background:var(--border-primary)] !shrink-[0]" />}
+                    {hasBoth && <div className="block md:hidden !h-[1px] ![background:var(--border-primary)] !m-[8px_0]" />}
+                    <div className={[hasBoth ? 'md:w-1/2' : '', '!overflow-y-auto !max-h-[55vh]'].join(' ')} style={{ paddingLeft: hasBoth ? 6 : 0 }}>{bookingsSection}</div>
                   </div>
                 )
               })()}
@@ -760,41 +707,35 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
 
       {/* PDF preview modal */}
       {previewFile && ReactDOM.createPortal(
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.85)] !z-[10000] !flex !items-center !justify-center !p-[16px]"
           onClick={() => setPreviewFile(null)}
         >
-          <div
-            style={{ width: '100%', maxWidth: 950, height: '94vh', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}
+          <div className="!w-[100%] !max-w-[950px] !h-[94vh] ![background:var(--bg-card)] !rounded-[12px] !overflow-hidden !flex !flex-col ![box-shadow:0_20px_60px_rgba(0,0,0,0.3)]"
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{previewFile.original_name}</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <button className="trek-hover-text"
-                  onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}>
+            <div className="!flex !items-center !justify-between !p-[10px_16px] ![border-bottom:1px_solid_var(--border-primary)] !shrink-[0]">
+              <span className="!text-[length:13px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap !flex-[1]">{previewFile.original_name}</span>
+              <div className="!flex !items-center !gap-[8px] !shrink-[0]">
+                <button className="trek-hover-text !flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-muted)] ![background:none] ![border:none] !cursor-pointer ![text-decoration:none] !p-[4px_8px] !rounded-[6px] ![transition:color_0.15s]"
+                  onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))}>
                   <ExternalLink size={13} /> {t('files.openTab')}
                 </button>
-                <button className="trek-hover-text"
-                  onClick={() => triggerDownload(previewFile.url, previewFile.original_name)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}>
+                <button className="trek-hover-text !flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-muted)] ![background:none] ![border:none] !cursor-pointer ![text-decoration:none] !p-[4px_8px] !rounded-[6px] ![transition:color_0.15s]"
+                  onClick={() => triggerDownload(previewFile.url, previewFile.original_name)}>
                   <Download size={13} /> {t('files.download') || 'Download'}
                 </button>
-                <button className="trek-hover-text" onClick={() => setPreviewFile(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 4, borderRadius: 6, transition: 'color 0.15s' }}>
+                <button className="trek-hover-text ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !p-[4px] !rounded-[6px] ![transition:color_0.15s]" onClick={() => setPreviewFile(null)}>
                   <X size={18} />
                 </button>
               </div>
             </div>
-            <object
+            <object className="!flex-[1] !w-[100%] ![border:none]"
               data={previewFileUrl ? `${previewFileUrl}#view=FitH` : undefined}
               type="application/pdf"
-              style={{ flex: 1, width: '100%', border: 'none' }}
               title={previewFile.original_name}
             >
-              <p style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <button onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))} style={{ color: 'var(--text-primary)', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}>{t('files.downloadPdf')}</button>
+              <p className="!p-[24px] !text-center ![color:var(--text-muted)]">
+                <button className="![color:var(--text-primary)] ![text-decoration:underline] ![background:none] ![border:none] !cursor-pointer ![font:inherit]" onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))}>{t('files.downloadPdf')}</button>
               </p>
             </object>
           </div>
@@ -803,20 +744,16 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
       )}
 
       {/* Toolbar */}
-      <div style={{ padding: '24px 28px 0', flexShrink: 0 }} className="max-md:!px-4 max-md:!pt-4">
-        <div style={{
-          background: 'var(--bg-tertiary)', borderRadius: 18,
-          padding: '14px 16px 14px 22px',
-          display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-        }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+      <div className="max-md:!px-4 max-md:!pt-4 !p-[24px_28px_0] !shrink-[0]">
+        <div className="![background:var(--bg-tertiary)] !rounded-[18px] !p-[14px_16px_14px_22px] !flex !items-center !gap-[16px] !flex-wrap">
+          <h2 className="!m-[0] !text-[length:18px] !font-[600] ![color:var(--text-primary)] !tracking-[-0.01em] !shrink-[0]">
             {showTrash ? (t('files.trash') || 'Trash') : t('files.title')}
           </h2>
 
           {!showTrash && (
             <>
-              <div className="hidden md:block" style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-              <div className="hidden md:inline-flex" style={{ gap: 4, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
+              <div className="hidden md:block !w-[1px] !h-[22px] ![background:var(--border-faint)] !shrink-[0]" />
+              <div className="hidden md:inline-flex !gap-[4px] !flex-wrap !flex-[1] !min-w-[0]">
                 {[
                   { id: 'all', label: t('files.filterAll') },
                   ...(files.some(f => f.starred) ? [{ id: 'starred', icon: Star } as const] : []),
@@ -835,26 +772,12 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                     : tab.id === 'collab' ? files.filter(f => f.note_id).length
                     : 0
                   return (
-                    <button key={tab.id} onClick={() => setFilterType(tab.id)}
-                      style={{
-                        appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                        display: 'inline-flex', alignItems: 'center', gap: 6,
-                        padding: '6px 12px', borderRadius: 99, fontSize: 13, whiteSpace: 'nowrap',
-                        background: active ? 'var(--bg-card)' : 'transparent',
-                        color: active ? 'var(--text-primary)' : 'var(--text-muted)',
-                        fontWeight: active ? 500 : 400,
-                        boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none',
-                        transition: 'all 0.15s ease',
-                      }}
+                    <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]" key={tab.id} onClick={() => setFilterType(tab.id)}
+                      style={{ fontFamily: 'inherit', fontSize: 13, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 500 : 400, boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
                     >
                       {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> : null}
                       {'label' in tab && tab.label}
-                      <span style={{
-                        fontSize: 10, fontWeight: 600,
-                        background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)',
-                        color: 'var(--text-faint)',
-                        padding: '1px 6px', borderRadius: 99, minWidth: 16, textAlign: 'center',
-                      }}>{count}</span>
+                      <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[1px_6px] !rounded-[99px] !min-w-[16px] !text-center" style={{ background: active ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)' }}>{count}</span>
                     </button>
                   )
                 })}
@@ -862,15 +785,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             </>
           )}
 
-          <button className="trek-hover-opaque" onClick={toggleTrash} style={{
-            appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-            background: 'var(--accent)', color: 'var(--accent-text)',
-            flexShrink: 0, marginLeft: 'auto',
-            opacity: showTrash ? 1 : 0.88,
-            transition: 'opacity 0.15s ease',
-          }} >
+          <button className="trek-hover-opaque ![appearance:none] ![border:none] !cursor-pointer ![font-family:inherit] !inline-flex !items-center !gap-[6px] !p-[9px_14px] !rounded-[10px] !text-[length:13px] !font-[500] ![background:var(--accent)] ![color:var(--accent-text)] !shrink-[0] !ml-[auto] ![transition:opacity_0.15s_ease]" onClick={toggleTrash} style={{ opacity: showTrash ? 1 : 0.88 }} >
             <Trash2 size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('files.trash') || 'Trash'}</span>
           </button>
         </div>
@@ -878,29 +793,25 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
 
       {showTrash ? (
         /* Trash view */
-        <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 16px' }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[12px_16px_16px]">
           {trashFiles.length > 0 && can('file_delete', trip) && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
-              <button onClick={handleEmptyTrash} style={{
-                padding: '5px 12px', borderRadius: 8, border: '1px solid #fecaca',
-                background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 500,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
+            <div className="!flex !justify-end !mb-[12px]">
+              <button className="!p-[5px_12px] !rounded-[8px] ![border:1px_solid_#fecaca] ![background:#fef2f2] ![color:#dc2626] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={handleEmptyTrash}>
                 {t('files.emptyTrash') || 'Empty Trash'}
               </button>
             </div>
           )}
           {loadingTrash ? (
-            <div style={{ textAlign: 'center', padding: 40, color: 'var(--text-faint)' }}>
-              <div style={{ width: 20, height: 20, border: '2px solid var(--text-faint)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+            <div className="!text-center !p-[40px] ![color:var(--text-faint)]">
+              <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--text-faint)] ![border-top-color:transparent] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : trashFiles.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)' }}>
+            <div className="!text-center !p-[60px_20px] ![color:var(--text-faint)]">
               <Trash2 size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.trashEmpty') || 'Trash is empty'}</p>
+              <p className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !m-[0_0_4px]">{t('files.trashEmpty') || 'Trash is empty'}</p>
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div className="!flex !flex-col !gap-[8px]">
               {trashFiles.map(file => renderFileRow(file, true))}
             </div>
           )}
@@ -920,15 +831,15 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             <input {...getInputProps()} />
             <Upload size={24} style={{ margin: '0 auto 8px', color: isDragActive ? 'var(--text-secondary)' : 'var(--text-faint)', display: 'block' }} />
             {uploading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
-                <div style={{ width: 14, height: 14, border: '2px solid var(--text-secondary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+              <div className="!flex !items-center !justify-center !gap-[6px] !text-[length:13px] ![color:var(--text-secondary)]">
+                <div className="!w-[14px] !h-[14px] ![border:2px_solid_var(--text-secondary)] ![border-top-color:transparent] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
                 {t('files.uploading')}
               </div>
             ) : (
               <>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500, margin: 0 }}>{t('files.dropzone')}</p>
-                <p style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 3 }}>{t('files.dropzoneHint')}</p>
-                <p style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 6, opacity: 0.7 }}>
+                <p className="!text-[length:13px] ![color:var(--text-secondary)] !font-[500] !m-[0]">{t('files.dropzone')}</p>
+                <p className="!text-[length:11.5px] ![color:var(--text-faint)] !mt-[3px]">{t('files.dropzoneHint')}</p>
+                <p className="!text-[length:10px] ![color:var(--text-faint)] !mt-[6px]" style={{ opacity: 0.7 }}>
                   {(allowedFileTypes || 'jpg,jpeg,png,gif,webp,heic,pdf,doc,docx,xls,xlsx,txt,csv').toUpperCase().split(',').join(', ')} · Max 50 MB
                 </p>
               </>
@@ -936,7 +847,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
           </div>}
 
           {/* Filter tabs */}
-          <div className="md:!hidden" style={{ display: 'flex', gap: 4, padding: '12px 16px 0', flexShrink: 0, flexWrap: 'wrap' }}>
+          <div className="md:!hidden !flex !gap-[4px] !p-[12px_16px_0] !shrink-[0] !flex-wrap">
             {[
               { id: 'all', label: t('files.filterAll') },
               ...(files.some(f => f.starred) ? [{ id: 'starred', icon: Star }] : []),
@@ -945,29 +856,23 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
               { id: 'doc', label: t('files.filterDocs') },
               ...(files.some(f => f.note_id) ? [{ id: 'collab', label: t('files.filterCollab') || 'Collab' }] : []),
             ].map(tab => (
-              <button key={tab.id} onClick={() => setFilterType(tab.id)} style={{
-                padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer', fontSize: 12,
-                fontFamily: 'inherit', transition: 'all 0.12s',
-                background: filterType === tab.id ? 'var(--accent)' : 'transparent',
-                color: filterType === tab.id ? 'var(--accent-text)' : 'var(--text-muted)',
-                fontWeight: filterType === tab.id ? 600 : 400,
-              }}>{tab.icon ? <tab.icon size={13} fill={filterType === tab.id ? '#facc15' : 'none'} color={filterType === tab.id ? '#facc15' : 'currentColor'} /> : tab.label}</button>
+              <button className="!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer ![transition:all_0.12s]" key={tab.id} onClick={() => setFilterType(tab.id)} style={{ fontSize: 12, fontFamily: 'inherit', background: filterType === tab.id ? 'var(--accent)' : 'transparent', color: filterType === tab.id ? 'var(--accent-text)' : 'var(--text-muted)', fontWeight: filterType === tab.id ? 600 : 400 }}>{tab.icon ? <tab.icon size={13} fill={filterType === tab.id ? '#facc15' : 'none'} color={filterType === tab.id ? '#facc15' : 'currentColor'} /> : tab.label}</button>
             ))}
-            <span style={{ marginLeft: 'auto', fontSize: 11.5, color: 'var(--text-faint)', alignSelf: 'center' }}>
+            <span className="!ml-[auto] !text-[length:11.5px] ![color:var(--text-faint)] !self-center">
               {filteredFiles.length === 1 ? t('files.countSingular') : t('files.count', { count: filteredFiles.length })}
             </span>
           </div>
 
           {/* File list */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '12px 28px 16px' }} className="max-md:!px-4">
+          <div className="max-md:!px-4 !flex-[1] !overflow-y-auto !p-[12px_28px_16px]">
             {filteredFiles.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-faint)' }}>
+              <div className="!text-center !p-[60px_20px] ![color:var(--text-faint)]">
                 <FileText size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 12px' }} />
-                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('files.empty')}</p>
-                <p style={{ fontSize: 13, color: 'var(--text-faint)', margin: 0 }}>{t('files.emptyHint')}</p>
+                <p className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !m-[0_0_4px]">{t('files.empty')}</p>
+                <p className="!text-[length:13px] ![color:var(--text-faint)] !m-[0]">{t('files.emptyHint')}</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="!flex !flex-col !gap-[8px]">
                 {filteredFiles.map(file => renderFileRow(file))}
               </div>
             )}

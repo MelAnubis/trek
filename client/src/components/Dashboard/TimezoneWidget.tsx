@@ -97,26 +97,19 @@ export default function TimezoneWidget() {
 
   return (
     <div
-      className="rounded-2xl p-4"
-      style={{
-        background: 'var(--glass-bg)',
-        backdropFilter: 'var(--glass-blur)',
-        WebkitBackdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--glass-border)',
-        boxShadow: 'var(--glass-shadow)',
-      }}
+      className="rounded-2xl p-4 ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)]"
     >
       <div className="flex items-center justify-between mb-3">
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('dashboard.timezone')}</span>
-        <button onClick={() => setShowAdd(!showAdd)} className="p-1 rounded-md transition-colors" style={{ color: 'var(--text-faint)' }}>
+        <span className="text-xs font-semibold uppercase tracking-wide ![color:var(--text-faint)]">{t('dashboard.timezone')}</span>
+        <button onClick={() => setShowAdd(!showAdd)} className="p-1 rounded-md transition-colors ![color:var(--text-faint)]">
           <Plus size={12} />
         </button>
       </div>
 
       {/* Local time */}
-      <div className="mb-3 pb-3" style={{ borderBottom: '1px solid var(--border-secondary)' }}>
-        <p className="text-2xl font-black tabular-nums" style={{ color: 'var(--text-primary)' }}>{localTime}</p>
-        <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{localZone} ({tzAbbr}) · {t('dashboard.localTime')}</p>
+      <div className="mb-3 pb-3 ![border-bottom:1px_solid_var(--border-secondary)]">
+        <p className="text-2xl font-black tabular-nums ![color:var(--text-primary)]">{localTime}</p>
+        <p className="text-[10px] font-semibold uppercase tracking-wide ![color:var(--text-faint)]">{localZone} ({tzAbbr}) · {t('dashboard.localTime')}</p>
       </div>
 
       {/* Zone list */}
@@ -124,10 +117,10 @@ export default function TimezoneWidget() {
         {zones.map(z => (
           <div key={z.tz} className="flex items-center justify-between group">
             <div>
-              <p className="text-lg font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{getTime(z.tz, locale, is12h)}</p>
-              <p className="text-[10px]" style={{ color: 'var(--text-faint)' }}>{z.label} <span style={{ color: 'var(--text-muted)' }}>{getOffset(z.tz)}</span></p>
+              <p className="text-lg font-bold tabular-nums ![color:var(--text-primary)]">{getTime(z.tz, locale, is12h)}</p>
+              <p className="text-[10px] ![color:var(--text-faint)]">{z.label} <span className="![color:var(--text-muted)]">{getOffset(z.tz)}</span></p>
             </div>
-            <button onClick={() => removeZone(z.tz)} className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all" style={{ color: 'var(--text-faint)' }}>
+            <button onClick={() => removeZone(z.tz)} className="opacity-0 group-hover:opacity-100 p-1 rounded transition-all ![color:var(--text-faint)]">
               <X size={11} />
             </button>
           </div>
@@ -136,24 +129,22 @@ export default function TimezoneWidget() {
 
       {/* Add zone dropdown */}
       {showAdd && (
-        <div className="mt-2 rounded-xl p-2 max-h-[280px] overflow-auto" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="mt-2 rounded-xl p-2 max-h-[280px] overflow-auto ![background:var(--bg-secondary)]">
           {/* Custom timezone */}
-          <div className="px-2 py-2 mb-2 rounded-lg" style={{ background: 'var(--bg-card)' }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wide mb-2" style={{ color: 'var(--text-faint)' }}>{t('dashboard.timezoneCustomTitle')}</p>
+          <div className="px-2 py-2 mb-2 rounded-lg ![background:var(--bg-card)]">
+            <p className="text-[10px] font-semibold uppercase tracking-wide mb-2 ![color:var(--text-faint)]">{t('dashboard.timezoneCustomTitle')}</p>
             <div className="space-y-1.5">
               <input value={customLabel} onChange={e => setCustomLabel(e.target.value)}
                 placeholder={t('dashboard.timezoneCustomLabelPlaceholder')}
-                className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-secondary)' }} />
+                className="w-full px-2 py-1.5 rounded-lg text-xs outline-none ![background:var(--bg-secondary)] ![color:var(--text-primary)] ![border:1px_solid_var(--border-secondary)]" />
               <input value={customTz} onChange={e => { setCustomTz(e.target.value); setCustomError('') }}
                 placeholder={t('dashboard.timezoneCustomTzPlaceholder')}
-                className="w-full px-2 py-1.5 rounded-lg text-xs outline-none"
-                style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)', border: `1px solid ${customError ? '#ef4444' : 'var(--border-secondary)'}` }}
+                className="w-full px-2 py-1.5 rounded-lg text-xs outline-none ![background:var(--bg-secondary)] ![color:var(--text-primary)]"
+                style={{ border: `1px solid ${customError ? '#ef4444' : 'var(--border-secondary)'}` }}
                 onKeyDown={e => { if (e.key === 'Enter') addCustomZone() }} />
-              {customError && <p className="text-[10px]" style={{ color: '#ef4444' }}>{customError}</p>}
+              {customError && <p className="text-[10px] ![color:#ef4444]">{customError}</p>}
               <button onClick={addCustomZone}
-                className="w-full py-1.5 rounded-lg text-xs font-medium transition-colors"
-                style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                className="w-full py-1.5 rounded-lg text-xs font-medium transition-colors ![background:var(--text-primary)] ![color:var(--bg-primary)]">
                 {t('dashboard.timezoneCustomAdd')}
               </button>
             </div>
@@ -161,10 +152,9 @@ export default function TimezoneWidget() {
           {/* Popular zones */}
           {POPULAR_ZONES.filter(z => !zones.find(existing => existing.tz === z.tz)).map(z => (
             <button key={z.tz} onClick={() => addZone(z)}
-              className="trek-hover w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs text-left transition-colors"
-              style={{ color: 'var(--text-primary)' }}>
+              className="trek-hover w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs text-left transition-colors ![color:var(--text-primary)]">
               <span className="font-medium">{z.label}</span>
-              <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>{getTime(z.tz, locale, is12h)}</span>
+              <span className="text-[10px] ![color:var(--text-faint)]">{getTime(z.tz, locale, is12h)}</span>
             </button>
           ))}
         </div>

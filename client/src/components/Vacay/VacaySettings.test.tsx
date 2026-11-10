@@ -7,6 +7,7 @@ import { server } from '../../../tests/helpers/msw/server'
 import { http, HttpResponse } from 'msw'
 import { useVacayStore } from '../../store/vacayStore'
 import VacaySettings from './VacaySettings'
+import { hasStyle } from '../../../tests/helpers/inlineStyle';
 
 const basePlan = {
   id: 1,
@@ -105,7 +106,7 @@ describe('VacaySettings', () => {
 
     // Day buttons have inline style with padding: '4px 10px' and borderRadius: 8
     const dayButtons = screen.getAllByRole('button').filter(b =>
-      b.style.padding === '4px 10px'
+      hasStyle(b, 'padding', '4px 10px')
     )
     // Order: Mon(1), Tue(2), Wed(3), Thu(4), Fri(5), Sat(6), Sun(0)
     // Sun is the last one (index 6), day=0, currently in '0,6'
@@ -285,14 +286,14 @@ describe('VacaySettings', () => {
 
     // The color button in CalendarRow has width:28 and height:28 inline style
     const colorButton = screen.getAllByRole('button').find(b =>
-      b.style.width === '28px' && b.style.height === '28px'
+      hasStyle(b, 'width', '28px') && hasStyle(b, 'height', '28px')
     )
     expect(colorButton).toBeDefined()
     await user.click(colorButton!)
 
     // Color picker should now be visible (12 preset color swatches with width:24)
     const swatches = screen.getAllByRole('button').filter(b =>
-      b.style.width === '24px' && b.style.height === '24px'
+      hasStyle(b, 'width', '24px') && hasStyle(b, 'height', '24px')
     )
     expect(swatches.length).toBe(12)
   })
@@ -314,13 +315,13 @@ describe('VacaySettings', () => {
 
     // Open color picker
     const colorButton = screen.getAllByRole('button').find(b =>
-      b.style.width === '28px' && b.style.height === '28px'
+      hasStyle(b, 'width', '28px') && hasStyle(b, 'height', '28px')
     )
     await user.click(colorButton!)
 
     // Click a different color swatch (second swatch = '#fed7aa', not the current '#fecaca')
     const swatches = screen.getAllByRole('button').filter(b =>
-      b.style.width === '24px' && b.style.height === '24px'
+      hasStyle(b, 'width', '24px') && hasStyle(b, 'height', '24px')
     )
     await user.click(swatches[1]) // '#fed7aa'
 
@@ -427,7 +428,7 @@ describe('VacaySettings', () => {
 
     // Click Sun button (day=0, currently NOT in '6')
     const dayButtons = screen.getAllByRole('button').filter(b =>
-      b.style.padding === '4px 10px'
+      hasStyle(b, 'padding', '4px 10px')
     )
     const sunButton = dayButtons[6] // last button = Sunday
     await user.click(sunButton)

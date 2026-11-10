@@ -221,64 +221,60 @@ export default function DayLodgingModal({ day, days, tripId, onClose, onSaved, r
   const sourceLabel = (s: 'osm' | 'google') => (s === 'google' ? t('day.lodging.options.srcGoogle') : t('day.lodging.options.srcOsm'))
 
   return ReactDOM.createPortal(
-    <div role="dialog" aria-modal="true" aria-label={t('day.lodging.title')}
-      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    <div className="!fixed !inset-[0] !z-[99999] ![background:rgba(0,0,0,0.4)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[16px]" role="dialog" aria-modal="true" aria-label={t('day.lodging.title')}
       onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', borderRadius: 16, background: 'var(--bg-card)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', padding: 18 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+      <div className="!w-[100%] !max-w-[560px] !max-h-[92vh] !overflow-y-auto !rounded-[16px] ![background:var(--bg-card)] ![box-shadow:0_20px_60px_rgba(0,0,0,0.25)] !p-[18px]" onClick={e => e.stopPropagation()}>
+        <div className="!flex !items-center !gap-[8px] !mb-[14px]">
           <Hotel size={18} style={{ color: 'var(--text-primary)' }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{t('day.lodging.title')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <div className="!flex-[1] !min-w-[0]">
+            <div className="!text-[length:15px] !font-[800] ![color:var(--text-primary)]">{t('day.lodging.title')}</div>
+            <div className="!text-[length:12px] ![color:var(--text-muted)]">
               {hasDates ? `${dateLabel(checkin)} → ${dateLabel(checkout!)} · ${t('day.lodging.nightsCount', { n: nights })}` : t('day.lodging.noDates')}
             </div>
           </div>
-          <button type="button" aria-label={t('common.close')} onClick={onClose} style={{ ...btn, padding: 6, border: 'none', background: 'transparent' }}><X size={18} /></button>
+          <button className="!p-[6px] ![border:none] ![background:transparent]" type="button" aria-label={t('common.close')} onClick={onClose} style={{ ...btn }}><X size={18} /></button>
         </div>
 
         {/* 1. Buscar */}
-        <div style={{ marginBottom: 14 }}>
+        <div className="!mb-[14px]">
           <label style={label} htmlFor="lodging-locality">{t('day.lodging.locality')}</label>
           <input id="lodging-locality" style={input} value={locality} onChange={e => setLocality(e.target.value)} placeholder={t('day.lodging.localityPlaceholder')} />
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+          <div className="!flex !gap-[8px] !flex-wrap !mt-[8px]">
             <button type="button" style={btn} disabled={optState === 'loading' || !locality.trim()} onClick={loadOptions}>
               <Search size={14} />{optState === 'loading' ? t('day.lodging.options.loading') : t('day.lodging.options.show', { place: initial?.name || locality })}
             </button>
-            <a href={bookingHref} target="_blank" rel="noopener noreferrer" style={{ ...btn, background: '#1d4ed8', borderColor: 'transparent', color: '#fff' }}>
+            <a className="![background:#1d4ed8] ![border-color:transparent] ![color:#fff]" href={bookingHref} target="_blank" rel="noopener noreferrer" style={{ ...btn }}>
               <ExternalLink size={14} />{t('day.lodging.searchBooking')}
             </a>
             {lastPlace && (
               <a href={mapsHref} target="_blank" rel="noopener noreferrer" style={btn}><MapPin size={14} />{t('planner.stages.end.googleMaps')}</a>
             )}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t('day.lodging.searchHint', { n: adults })}</div>
+          <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[6px]">{t('day.lodging.searchHint', { n: adults })}</div>
 
           {/* Opciones de la localidad */}
-          {optState === 'error' && <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 8 }}>{optError}</div>}
+          {optState === 'error' && <div className="!text-[length:12px] ![color:#b91c1c] !mt-[8px]">{optError}</div>}
           {optState === 'done' && (
-            <div style={{ marginTop: 10 }}>
-              {meta?.osm === 'failed' && <div style={{ fontSize: 11, color: '#b45309', marginBottom: 4 }}>{t('day.lodging.options.osmFailed', { reason: meta.errors[0] ?? '' })}</div>}
-              {meta?.osm === 'partial' && <div style={{ fontSize: 11, color: '#b45309', marginBottom: 4 }}>{t('day.lodging.options.osmPartial')}</div>}
-              {meta?.google === 'failed' && <div style={{ fontSize: 11, color: '#b45309', marginBottom: 4 }}>{t('day.lodging.options.googleFailed')}</div>}
-              {meta?.google === 'no-key' && <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>{t('day.lodging.options.noKey')}</div>}
+            <div className="!mt-[10px]">
+              {meta?.osm === 'failed' && <div className="!text-[length:11px] ![color:#b45309] !mb-[4px]">{t('day.lodging.options.osmFailed', { reason: meta.errors[0] ?? '' })}</div>}
+              {meta?.osm === 'partial' && <div className="!text-[length:11px] ![color:#b45309] !mb-[4px]">{t('day.lodging.options.osmPartial')}</div>}
+              {meta?.google === 'failed' && <div className="!text-[length:11px] ![color:#b45309] !mb-[4px]">{t('day.lodging.options.googleFailed')}</div>}
+              {meta?.google === 'no-key' && <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[4px]">{t('day.lodging.options.noKey')}</div>}
               {options.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('day.lodging.options.none')}</div>
+                <div className="!text-[length:12px] ![color:var(--text-muted)]">{t('day.lodging.options.none')}</div>
               ) : (
-                <div role="list" style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid var(--border-primary)', borderRadius: 10 }}>
+                <div className="!max-h-[240px] !overflow-y-auto ![border:1px_solid_var(--border-primary)] !rounded-[10px]" role="list">
                   {options.map(o => {
                     const active = selected?.id === o.id
                     return (
-                      <div key={o.id} role="listitem" style={{
-                        display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', borderBottom: '1px solid var(--border-faint)',
-                        background: active ? 'rgba(34,197,94,0.10)' : 'transparent',
-                      }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                      <div className="!flex !items-center !gap-[8px] !p-[7px_10px] ![border-bottom:1px_solid_var(--border-faint)]" key={o.id} role="listitem" style={{ background: active ? 'rgba(34,197,94,0.10)' : 'transparent' }}>
+                        <div className="!flex-[1] !min-w-[0]">
+                          <div className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{o.name}</div>
+                          <div className="!text-[length:10px] ![color:var(--text-muted)]">
                             {fmtDistance(o.distance_m)} · {o.sources.map(sourceLabel).join(' + ')}
                           </div>
                         </div>
-                        <a href={bookingSearchUrl(`${o.name}, ${locality}`, locale, night)} target="_blank" rel="noopener noreferrer" style={{ ...small, color: '#1d4ed8' }}
+                        <a className="![color:#1d4ed8]" href={bookingSearchUrl(`${o.name}, ${locality}`, locale, night)} target="_blank" rel="noopener noreferrer" style={{ ...small }}
                           aria-label={`Booking: ${o.name}`}>Booking</a>
                         <button type="button" style={{ ...small, ...(active ? { background: '#16a34a', color: '#fff', borderColor: 'transparent' } : {}) }}
                           onClick={() => pick(o)} aria-pressed={active} aria-label={`${t('day.lodging.options.pick')}: ${o.name}`}>
@@ -289,21 +285,21 @@ export default function DayLodgingModal({ day, days, tripId, onClose, onSaved, r
                   })}
                 </div>
               )}
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>{t('day.lodging.options.priceNote')}</div>
+              <div className="!text-[length:11px] ![color:var(--text-muted)] !mt-[6px]">{t('day.lodging.options.priceNote')}</div>
             </div>
           )}
         </div>
 
-        <div style={{ height: 1, background: 'var(--border-faint)', margin: '4px 0 14px' }} />
+        <div className="!h-[1px] ![background:var(--border-faint)] !m-[4px_0_14px]" />
 
         {/* 2. Añadir el elegido */}
-        <div style={{ display: 'grid', gap: 10 }}>
+        <div className="!grid !gap-[10px]">
           <div>
             <label style={label} htmlFor="lodging-url"><Link2 size={11} style={{ verticalAlign: -1 }} /> {t('day.lodging.url')}</label>
             <input id="lodging-url" style={input} value={url} onChange={e => setUrl(e.target.value)} placeholder="https://www.booking.com/hotel/es/…" />
-            {url.trim() && parsed && !parsed.valid && <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>{t('day.lodging.urlNotBooking')}</div>}
+            {url.trim() && parsed && !parsed.valid && <div className="!text-[length:11px] ![color:#b45309] !mt-[4px]">{t('day.lodging.urlNotBooking')}</div>}
             {datesMismatch && (
-              <div style={{ fontSize: 11, color: '#b45309', marginTop: 4, display: 'flex', gap: 4 }}>
+              <div className="!text-[length:11px] ![color:#b45309] !mt-[4px] !flex !gap-[4px]">
                 <AlertTriangle size={12} style={{ flexShrink: 0, marginTop: 1 }} />
                 {t('day.lodging.datesMismatch', { from: dateLabel(parsed!.checkin!), to: parsed!.checkout ? dateLabel(parsed!.checkout) : '?' })}
               </div>
@@ -313,7 +309,7 @@ export default function DayLodgingModal({ day, days, tripId, onClose, onSaved, r
             <label style={label} htmlFor="lodging-name">{t('day.lodging.name')} *</label>
             <input id="lodging-name" style={input} value={name} onChange={e => setName(e.target.value)} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px]">
             <div>
               <label style={label} htmlFor="lodging-nights">{t('day.lodging.nights')}</label>
               <input id="lodging-nights" style={input} type="number" min={1} max={maxNights} value={nights}
@@ -326,7 +322,7 @@ export default function DayLodgingModal({ day, days, tripId, onClose, onSaved, r
               </div>
             )}
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px]">
             <div>
               <label style={label} htmlFor="lodging-status">{t('day.lodging.status')}</label>
               <select id="lodging-status" style={input} value={status} onChange={e => setStatus(e.target.value as 'pending' | 'confirmed')}>
@@ -341,10 +337,10 @@ export default function DayLodgingModal({ day, days, tripId, onClose, onSaved, r
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+        <div className="!flex !gap-[8px] !justify-end !mt-[16px]">
           <button type="button" style={btn} onClick={onClose}>{t('common.cancel')}</button>
-          <button type="button" disabled={!canSave}
-            style={{ ...btn, background: 'var(--accent, #e85d24)', borderColor: 'transparent', color: '#fff', opacity: canSave ? 1 : 0.5 }}
+          <button className="![background:var(--accent,_#e85d24)] ![border-color:transparent] ![color:#fff]" type="button" disabled={!canSave}
+            style={{ ...btn, opacity: canSave ? 1 : 0.5 }}
             onClick={save}>{saving ? t('day.lodging.saving') : reservation ? t('day.lodging.use') : t('day.lodging.add')}</button>
         </div>
       </div>

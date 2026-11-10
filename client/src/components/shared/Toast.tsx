@@ -100,42 +100,21 @@ export function ToastContainer() {
         .nomad-toast-close { color: rgba(107, 104, 128, 0.6); }
         .dark .nomad-toast-close { color: rgba(90, 90, 120, 0.6); }
       `}</style>
-      <div style={{
-        position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-        zIndex: 9999, display: 'flex', flexDirection: 'column-reverse', gap: 8,
-        pointerEvents: 'none', maxWidth: 420, width: '100%', padding: '0 16px',
-      }}>
+      <div className="!fixed !bottom-[24px] !left-[50%] !z-[9999] !flex !flex-col-reverse !gap-[8px] !pointer-events-none !max-w-[420px] !w-[100%] !p-[0_16px]" style={{ transform: 'translateX(-50%)' }}>
         {toasts.map(toast => (
           <div
             key={toast.id}
-            className="nomad-toast"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 10,
-              padding: '10px 14px',
-              borderRadius: 14,
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              pointerEvents: 'auto',
-              animation: toast.removing ? 'toast-out 0.35s ease forwards' : 'toast-in 0.35s cubic-bezier(0.16,1,0.3,1) forwards',
-            }}
+            className="nomad-toast !flex !items-center !gap-[10px] !p-[10px_14px] !rounded-[14px] ![backdrop-filter:blur(24px)_saturate(180%)] ![-webkit-backdrop-filter:blur(24px)_saturate(180%)] !pointer-events-auto"
+            style={{ animation: toast.removing ? 'toast-out 0.35s ease forwards' : 'toast-in 0.35s cubic-bezier(0.16,1,0.3,1) forwards' }}
           >
             {icons[toast.type] || icons.info}
-            <span style={{
-              flex: 1, fontSize: 13, fontWeight: 500, color: 'rgba(255, 255, 255, 0.9)',
-              lineHeight: 1.4,
-              fontFamily: "inherit",
-            }}>
+            <span className="!flex-[1] !text-[length:13px] !font-[500] ![color:rgba(255,_255,_255,_0.9)] !leading-[1.4] ![font-family:inherit]">
               {toast.message}
             </span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="trek-hover-o70 nomad-toast-close"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                display: 'flex', padding: 2,
-                flexShrink: 0, borderRadius: 6, transition: 'opacity 0.15s',
-                opacity: 0.35,
-              }} >
+              className="trek-hover-o70 nomad-toast-close ![background:none] ![border:none] !cursor-pointer !flex !p-[2px] !shrink-[0] !rounded-[6px] ![transition:opacity_0.15s]"
+              style={{ opacity: 0.35 }} >
               <X size={14} />
             </button>
           </div>

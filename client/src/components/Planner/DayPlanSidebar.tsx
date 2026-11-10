@@ -89,69 +89,54 @@ function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }
     : available
 
   return (
-    <div className="md:hidden" style={{ padding: '8px 12px 12px' }}>
+    <div className="md:hidden !p-[8px_12px_12px]">
       {!open ? (
-        <button
+        <button className="!w-[100%] !flex !items-center !justify-center !gap-[6px] !p-[10px_0] !rounded-[12px] ![border:1.5px_dashed_var(--border-primary)] ![color:var(--text-muted)] !text-[length:12px] !font-[600] ![font-family:inherit] !cursor-pointer"
           onClick={e => { e.stopPropagation(); setOpen(true) }}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            padding: '10px 0', borderRadius: 12,
-            border: '1.5px dashed var(--border-primary)',
-            background: 'transparent', color: 'var(--text-muted)',
-            fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-          }}
+          style={{ background: 'transparent' }}
         >
           <Plus size={14} />
           Add Place
         </button>
       ) : (
-        <div style={{ borderRadius: 14, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', overflow: 'hidden' }}>
-          <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border-faint)', display: 'flex', gap: 6 }}>
-            <input
+        <div className="!rounded-[14px] ![border:1px_solid_var(--border-primary)] !overflow-hidden" style={{ background: 'var(--bg-card)' }}>
+          <div className="!p-[8px_10px] ![border-bottom:1px_solid_var(--border-faint)] !flex !gap-[6px]">
+            <input className="!flex-[1] ![border:none] ![outline:none] !text-[length:13px] ![font-family:inherit] ![color:var(--text-primary)]"
               autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={t('dayplan.mobile.searchPlaces')}
-              style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 13, fontFamily: 'inherit', color: 'var(--text-primary)' }}
+              style={{ background: 'transparent' }}
             />
-            <button onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}>
+            <button className="![border:none] !cursor-pointer !p-[2px] ![color:var(--text-faint)]" onClick={() => { setOpen(false); setSearch('') }} style={{ background: 'none' }}>
               <X size={14} />
             </button>
           </div>
-          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+          <div className="!max-h-[200px] !overflow-y-auto">
             {filtered.length === 0 && (
-              <div style={{ padding: '16px 12px', textAlign: 'center', fontSize: 12, color: 'var(--text-faint)' }}>
+              <div className="!p-[16px_12px] !text-center !text-[length:12px] ![color:var(--text-faint)]">
                 {available.length === 0 ? t('dayplan.mobile.allAssigned') : t('dayplan.mobile.noMatch')}
               </div>
             )}
             {filtered.slice(0, 20).map(p => (
-              <button
+              <button className="!w-[100%] !flex !items-center !gap-[8px] !p-[10px_12px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left"
                 key={p.id}
                 onClick={() => {
                   onAssign?.(p.id, dayId)
                   setOpen(false)
                   setSearch('')
                 }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 12px', border: 'none', background: 'transparent',
-                  cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left',
-                }}
+                style={{ background: 'transparent' }}
               >
                 <MapPin size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                <span className="!text-[length:13px] !font-[500] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{p.name}</span>
               </button>
             ))}
           </div>
           {onAddNew && (
-            <button
+            <button className="!w-[100%] !flex !items-center !justify-center !gap-[6px] !p-[10px_0] ![border-top:1px_solid_var(--border-faint)] ![border:none] ![color:var(--text-muted)] !text-[length:12px] !font-[600] ![font-family:inherit] !cursor-pointer"
               onClick={() => { onAddNew(); setOpen(false); setSearch('') }}
-              style={{
-                width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                padding: '10px 0', borderTop: '1px solid var(--border-faint)',
-                background: 'transparent', border: 'none', color: 'var(--text-muted)',
-                fontSize: 12, fontWeight: 600, fontFamily: 'inherit', cursor: 'pointer',
-              }}
+              style={{ background: 'transparent' }}
             >
               <Plus size={13} />
               Create new place
@@ -899,11 +884,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
   const anyGeoPlace = anyGeoAssignment || (places || []).find(p => p.lat && p.lng)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+    <div className="!flex !flex-col !h-[100%] !relative" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Toolbar */}
-      <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div className="!p-[12px_16px] ![border-bottom:1px_solid_var(--border-faint)] !shrink-[0]">
+        <div className="!flex !items-center !justify-end !gap-[8px]">
+          <div className="!relative !shrink-[0]">
             <button
               onClick={async () => {
                 const flatNotes = Object.entries(dayNotes).flatMap(([dayId, notes]) =>
@@ -929,19 +914,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               {t('dayplan.pdf')}
             </button>
             {pdfHover && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-faint, #e5e7eb)',
-              }}>
+              <div className="!absolute !top-[calc(100%_+_6px)] !right-[0] !whitespace-nowrap !pointer-events-none !z-[200] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint,_#e5e7eb)]" style={{ background: 'var(--bg-card, white)' }}>
                 {t('dayplan.pdfTooltip')}
               </div>
             )}
           </div>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className="!relative !shrink-[0]">
             <button
               onClick={async () => {
                 try {
@@ -972,32 +950,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               ICS
             </button>
             {icsHover && (
-              <div style={{
-                position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                border: '1px solid var(--border-faint, #e5e7eb)',
-              }}>
+              <div className="!absolute !top-[calc(100%_+_6px)] !right-[0] !whitespace-nowrap !pointer-events-none !z-[200] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint,_#e5e7eb)]" style={{ background: 'var(--bg-card, white)' }}>
                 {t('dayplan.icsTooltip')}
               </div>
             )}
           </div>
           <Tooltip label={t('dayplan.gpxTooltip')} placement="bottom">
-            <button
+            <button className="!flex !items-center !gap-[5px] !shrink-[0] !p-[5px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-muted)] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]"
               onClick={async () => {
                 try { await exportTripGpx(tripId, trip?.title || 'trip') }
                 catch { toast.error(t('dayplan.gpxExportFailed')) }
               }}
               aria-label={t('dayplan.gpxTooltip')}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5, flexShrink: 0,
-                padding: '5px 10px', borderRadius: 8,
-                border: '1px solid var(--border-primary)', background: 'none',
-                color: 'var(--text-muted)', fontSize: 11, fontWeight: 500,
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}
+              style={{ background: 'none' }}
             >
               <FileDown size={13} strokeWidth={2} />
               GPX
@@ -1008,7 +973,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
             const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')
             return (
               <Tooltip label={label} placement="bottom">
-                <button className="trek-hover"
+                <button className="trek-hover !relative !shrink-[0] !flex !items-center !justify-center !w-[30px] !h-[30px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)] !cursor-pointer ![font-family:inherit] !p-[0] ![transition:color_0.15s,_border-color_0.15s,_background_0.15s] !overflow-hidden"
                   onClick={() => {
                     const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                     setExpandedDays(next)
@@ -1016,29 +981,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   }}
                   aria-label={label}
                   aria-pressed={allExpanded}
-                  style={{
-                    position: 'relative', flexShrink: 0,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 8,
-                    border: '1px solid var(--border-primary)', background: 'none',
-                    color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
-                    transition: 'color 0.15s, border-color 0.15s, background 0.15s',
-                    overflow: 'hidden',
-                  }} >
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: allExpanded ? 0 : 1,
-                    transform: allExpanded ? 'translateY(-8px) scale(0.6)' : 'translateY(0) scale(1)',
-                  }}>
+                  style={{ background: 'none' }} >
+                  <span className="!absolute !inset-[0] !flex !items-center !justify-center ![transition:opacity_0.2s_ease,_transform_0.25s_cubic-bezier(0.34,_1.56,_0.64,_1)]" style={{ opacity: allExpanded ? 0 : 1, transform: allExpanded ? 'translateY(-8px) scale(0.6)' : 'translateY(0) scale(1)' }}>
                     <ChevronsUpDown size={14} strokeWidth={2} />
                   </span>
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: allExpanded ? 1 : 0,
-                    transform: allExpanded ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.6)',
-                  }}>
+                  <span className="!absolute !inset-[0] !flex !items-center !justify-center ![transition:opacity_0.2s_ease,_transform_0.25s_cubic-bezier(0.34,_1.56,_0.64,_1)]" style={{ opacity: allExpanded ? 1 : 0, transform: allExpanded ? 'translateY(0) scale(1)' : 'translateY(8px) scale(0.6)' }}>
                     <ChevronsDownUp size={14} strokeWidth={2} />
                   </span>
                 </button>
@@ -1046,7 +993,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
             )
           })()}
           {onUndo && (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div className="!relative !shrink-[0]">
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
@@ -1065,34 +1012,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                 <Undo2 size={14} strokeWidth={2} />
               </button>
               {undoHover && (
-                <div style={{
-                  position: 'absolute', top: 'calc(100% + 6px)', right: 0,
-                  whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 200,
-                  background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                  fontSize: 11, fontWeight: 500, padding: '5px 10px',
-                  borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                  border: '1px solid var(--border-faint, #e5e7eb)',
-                }}>
+                <div className="!absolute !top-[calc(100%_+_6px)] !right-[0] !whitespace-nowrap !pointer-events-none !z-[200] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint,_#e5e7eb)]" style={{ background: 'var(--bg-card, white)' }}>
                   {canUndo && lastActionLabel ? t('undo.tooltip', { action: lastActionLabel }) : t('undo.button')}
                 </div>
               )}
             </div>
           )}
           {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div className="!relative !shrink-[0]">
               <Tooltip label={t('dayplan.reorderDays')} placement="bottom">
-                <button className={(!reorderOpen) ? 'trek-hover' : undefined}
+                <button className={[(!reorderOpen) ? 'trek-hover' : undefined, '!flex !items-center !justify-center !w-[30px] !h-[30px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)] !cursor-pointer ![font-family:inherit] !p-[0] ![transition:color_0.15s,_border-color_0.15s,_background_0.15s]'].join(' ')}
                   onClick={() => setReorderOpen(v => !v)}
                   aria-label={t('dayplan.reorderDays')}
                   aria-pressed={reorderOpen}
-                  style={{
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    width: 30, height: 30, borderRadius: 8,
-                    border: '1px solid var(--border-primary)',
-                    background: reorderOpen ? 'var(--bg-hover)' : 'none',
-                    color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
-                    transition: 'color 0.15s, border-color 0.15s, background 0.15s',
-                  }} >
+                  style={{ background: reorderOpen ? 'var(--bg-hover)' : 'none' }} >
                   <ArrowUpDown size={14} strokeWidth={2} />
                 </button>
               </Tooltip>
@@ -1126,7 +1059,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
           const placeItems = merged.filter(i => i.type === 'place')
 
           return (
-            <div key={day.id} style={{ borderBottom: '1px solid var(--border-faint)' }}>
+            <div className="![border-bottom:1px_solid_var(--border-faint)]" key={day.id}>
               {/* Tages-Header — akzeptiert Drops aus der PlacesSidebar */}
               <div
                 onClick={() => { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }}
@@ -1157,17 +1090,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                 onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = isDragTarget ? 'rgba(17,24,39,0.07)' : 'transparent' }}
               >
                 {/* Tages-Badge */}
-                <div style={{
-                  width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-                  background: isSelected ? 'var(--accent)' : 'var(--bg-hover)',
-                  color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 11, fontWeight: 700,
-                }}>
+                <div className="!w-[26px] !h-[26px] !rounded-[50%] !shrink-[0] !flex !items-center !justify-center !text-[length:11px] !font-[700]" style={{ background: isSelected ? 'var(--accent)' : 'var(--bg-hover)', color: isSelected ? 'var(--accent-text)' : 'var(--text-muted)' }}>
                   {index + 1}
                 </div>
 
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="!flex-[1] !min-w-[0]">
                   {editingDayId === day.id ? (
                     <input
                       ref={inputRef}
@@ -1184,19 +1111,19 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                       }}
                     />
                   ) : (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flexShrink: 1, minWidth: 0 }}>
+                    <div className="!flex !items-center !gap-[5px] !min-w-[0]">
+                      <span className="!text-[length:14px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap !shrink-[1] !min-w-[0]">
                         {dayDateFirst && formattedDate ? formattedDate : (day.title || t('dayplan.dayN', { n: index + 1 }))}
                       </span>
-                      {canEditDays && <button
+                      {canEditDays && <button className="!shrink-[0] ![border:none] !p-[4px] !cursor-pointer !flex !items-center"
                         onClick={e => startEditTitle(day, e)}
-                        style={{ flexShrink: 0, background: 'none', border: 'none', padding: '4px', cursor: 'pointer', opacity: 0.35, display: 'flex', alignItems: 'center' }}
+                        style={{ background: 'none', opacity: 0.35 }}
                       >
                         <Pencil size={15} strokeWidth={1.8} color="var(--text-secondary)" />
                       </button>}
                       {canEditDays && (
                         <Tooltip label={t('dayplan.addToDay')} placement="top">
-                        <button className="trek-hover-opaque"
+                        <button className="trek-hover-opaque !shrink-[0] ![border:none] !p-[4px] !cursor-pointer !flex !items-center !rounded-[4px]"
                           data-testid={`day-add-menu-${day.id}`}
                           onClick={e => {
                             e.stopPropagation()
@@ -1208,17 +1135,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             ])
                           }}
                           aria-label={t('dayplan.addToDay')}
-                          style={{
-                            flexShrink: 0,
-                            background: 'none',
-                            border: 'none',
-                            padding: '4px',
-                            cursor: 'pointer',
-                            opacity: 0.45,
-                            display: 'flex',
-                            alignItems: 'center',
-                            borderRadius: 4,
-                          }} >
+                          style={{ background: 'none', opacity: 0.45 }} >
                           <Plus size={15} strokeWidth={1.8} color="var(--text-secondary)" />
                         </button>
                         </Tooltip>
@@ -1245,9 +1162,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                           const border = isCheckOut && !isCheckIn ? 'rgba(239,68,68,0.2)' : isCheckIn ? 'rgba(34,197,94,0.2)' : 'var(--border-primary)'
                           const iconColor = isCheckOut && !isCheckIn ? '#ef4444' : isCheckIn ? '#22c55e' : 'var(--text-muted)'
                           return (
-                            <span key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 5, background: bg, border: `1px solid ${border}`, flexShrink: 1, minWidth: 0, maxWidth: '40%', cursor: (acc as any).place_id ? 'pointer' : 'default' }}>
+                            <span className="!inline-flex !items-center !gap-[3px] !p-[2px_7px] !rounded-[5px] !shrink-[1] !min-w-[0] !max-w-[40%]" key={acc.id} onClick={e => { e.stopPropagation(); if ((acc as any).place_id) onPlaceClick((acc as any).place_id) }} style={{ background: bg, border: `1px solid ${border}`, cursor: (acc as any).place_id ? 'pointer' : 'default' }}>
                               <Hotel size={8} style={{ color: iconColor, flexShrink: 0 }} />
-                              <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{(acc as any).place_name || (acc as any).reservation_title}</span>
+                              <span className="!text-[length:9px] ![color:var(--text-muted)] !font-[600] !overflow-hidden !text-ellipsis !whitespace-nowrap">{(acc as any).place_name || (acc as any).reservation_title}</span>
                             </span>
                           )
                         })
@@ -1257,20 +1174,20 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         const activeRentals = getActiveRentalsForDay(day.id)
                         if (activeRentals.length === 0) return null
                         return activeRentals.map(r => (
-                          <span key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 7px', borderRadius: 5, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)', flexShrink: 1, minWidth: 0, maxWidth: '40%', cursor: 'pointer' }}>
+                          <span className="!inline-flex !items-center !gap-[3px] !p-[2px_7px] !rounded-[5px] ![border:1px_solid_rgba(59,130,246,0.2)] !shrink-[1] !min-w-[0] !max-w-[40%] !cursor-pointer" key={`rental-${r.id}`} onClick={e => { e.stopPropagation(); setTransportDetail(r) }} style={{ background: 'rgba(59,130,246,0.08)' }}>
                             <Car size={8} style={{ color: '#3b82f6', flexShrink: 0 }} />
-                            <span style={{ fontSize: 9, color: 'var(--text-muted)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title}</span>
+                            <span className="!text-[length:9px] ![color:var(--text-muted)] !font-[600] !overflow-hidden !text-ellipsis !whitespace-nowrap">{r.title}</span>
                           </span>
                         ))
                       })()}
                     </div>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2, flexWrap: 'wrap' }}>
+                  <div className="!flex !items-center !gap-[8px] !mt-[2px] !flex-wrap">
                     {dayDateFirst && formattedDate
-                      ? <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{day.title || t('dayplan.dayN', { n: index + 1 })}</span>
-                      : formattedDate && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{formattedDate}</span>}
-                    {cost && <span style={{ fontSize: 11, color: '#059669' }}>{cost}</span>}
-                    {day.date && anyGeoPlace && <span style={{ width: 1, height: 10, background: 'var(--text-faint)', opacity: 0.3, flexShrink: 0 }} />}
+                      ? <span className="!text-[length:11px] ![color:var(--text-faint)]">{day.title || t('dayplan.dayN', { n: index + 1 })}</span>
+                      : formattedDate && <span className="!text-[length:11px] ![color:var(--text-faint)]">{formattedDate}</span>}
+                    {cost && <span className="!text-[length:11px] ![color:#059669]">{cost}</span>}
+                    {day.date && anyGeoPlace && <span className="!w-[1px] !h-[10px] !shrink-[0]" style={{ background: 'var(--text-faint)', opacity: 0.3 }} />}
                     {day.date && anyGeoPlace && (() => {
                       // anyGeoPlace is an assignment (with .place) or a bare place.
                       const geo = anyGeoPlace && 'place' in anyGeoPlace ? anyGeoPlace.place : anyGeoPlace as Place | undefined
@@ -1281,15 +1198,15 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   </div>
                 </div>
 
-                {canEditDays && <Tooltip label={t('dayplan.addNote')} placement="top"><button className="trek-hover-text"
+                {canEditDays && <Tooltip label={t('dayplan.addNote')} placement="top"><button className="trek-hover-text !shrink-[0] ![border:none] !p-[6px] !cursor-pointer !flex !items-center ![color:var(--text-faint)]"
                   onClick={e => openAddNote(day.id, e)}
                   aria-label={t('dayplan.addNote')}
-                  style={{ flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }} >
+                  style={{ background: 'none' }} >
                   <FileText size={16} strokeWidth={2} />
                 </button></Tooltip>}
-                <button
+                <button className="!shrink-[0] ![border:none] !p-[6px] !cursor-pointer !flex !items-center ![color:var(--text-faint)]"
                   onClick={e => toggleDay(day.id, e)}
-                  style={{ flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }}
+                  style={{ background: 'none' }}
                 >
                   {isExpanded ? <ChevronDown size={18} strokeWidth={2} /> : <ChevronRight size={18} strokeWidth={2} />}
                 </button>
@@ -1297,8 +1214,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
               {/* Aufgeklappte Orte + Notizen */}
               {isExpanded && (
-                <div
-                  style={{ background: 'var(--bg-hover)', paddingTop: 6 }}
+                <div className="!pt-[6px]"
+                  style={{ background: 'var(--bg-hover)' }}
                   onDragOver={e => { e.preventDefault(); const cur = dropTargetRef.current; if (draggingId && (!cur || cur.startsWith('end-'))) setDropTargetKey(`end-${day.id}`) }}
                   onDrop={e => {
                     e.preventDefault()
@@ -1358,15 +1275,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   }}
                 >
                   {merged.length === 0 && !dayNoteUi ? (
-                    <div
+                    <div className="!p-[16px] !text-center !rounded-[8px]"
                       onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
                       onDrop={e => handleDropOnDay(e, day.id)}
-                      style={{ padding: '16px', textAlign: 'center', borderRadius: 8,
-                        background: dragOverDayId === day.id ? 'rgba(17,24,39,0.05)' : 'transparent',
-                        border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent',
-                      }}
+                      style={{ background: dragOverDayId === day.id ? 'rgba(17,24,39,0.05)' : 'transparent', border: dragOverDayId === day.id ? '2px dashed rgba(17,24,39,0.2)' : '2px dashed transparent' }}
                     >
-                      <span style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('dayplan.emptyDay')}</span>
+                      <span className="!text-[length:12px] ![color:var(--text-faint)]">{t('dayplan.emptyDay')}</span>
                     </div>
                   ) : (
                     merged.map((item, idx) => {
@@ -1516,7 +1430,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                               opacity: isDraggingThis ? 0.4 : 1,
                             }}
                           >
-                            {canEditDays && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
+                            {canEditDays && <div className="dp-grip !shrink-[0] ![color:var(--text-faint)] !flex !items-center ![transition:opacity_0.15s] !cursor-grab" style={{ opacity: 0.3 }}>
                               <GripVertical size={13} strokeWidth={1.8} />
                             </div>}
                             <div
@@ -1528,53 +1442,42 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                               <PlaceAvatar place={place} category={cat} size={28} />
                               {/* Hover/locked overlay */}
                               {(lockHoverId === assignment.id || lockedIds.has(assignment.id)) && (
-                                <div style={{
-                                  position: 'absolute', inset: 0, borderRadius: '50%',
-                                  background: lockedIds.has(assignment.id) ? 'rgba(220,38,38,0.6)' : 'rgba(220,38,38,0.4)',
-                                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                  transition: 'background 0.15s',
-                                }}>
+                                <div className="!absolute !inset-[0] !rounded-[50%] !flex !items-center !justify-center ![transition:background_0.15s]" style={{ background: lockedIds.has(assignment.id) ? 'rgba(220,38,38,0.6)' : 'rgba(220,38,38,0.4)' }}>
                                   <Lock size={14} strokeWidth={2.5} style={{ color: 'white', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.3))' }} />
                                 </div>
                               )}
                               {/* Custom tooltip */}
                               {lockHoverId === assignment.id && (
-                                <div style={{
-                                  position: 'absolute', left: '100%', top: '50%', transform: 'translateY(-50%)',
-                                  marginLeft: 8, whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 50,
-                                  background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-                                  fontSize: 11, fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-                                  boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
-                                }}>
+                                <div className="!absolute !left-[100%] !top-[50%] !ml-[8px] !whitespace-nowrap !pointer-events-none !z-[50] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint,_#e5e7eb)]" style={{ transform: 'translateY(-50%)', background: 'var(--bg-card, white)' }}>
                                   {lockedIds.has(assignment.id)
                                     ? t('planner.clickToUnlock')
                                     : t('planner.keepPosition')}
                                 </div>
                               )}
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
+                            <div className="!flex-[1] !min-w-[0]">
+                              <div className="!flex !items-center !gap-[4px] !overflow-hidden">
                                 {cat && (() => {
                                   const CatIcon = getCategoryIcon(cat.icon)
                                   return <CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} aria-label={cat.name} style={{ flexShrink: 0 }} />
                                 })()}
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+                                <span className="!text-[length:12.5px] !font-[500] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap !leading-[1.2]">
                                   {place.name}
                                 </span>
                                 {assignment.route_excluded && (
-                                  <span title={t('dayplan.offRouteHint')} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 9.5, fontWeight: 600, color: 'var(--text-muted)', border: '1px dashed var(--border-primary)', borderRadius: 999, padding: '0 6px', marginLeft: 6, lineHeight: '15px' }}>
+                                  <span className="!inline-flex !items-center !gap-[3px] !shrink-[0] !text-[length:9.5px] !font-[600] ![color:var(--text-muted)] ![border:1px_dashed_var(--border-primary)] !rounded-[999px] !p-[0_6px] !ml-[6px] !leading-[15px]" title={t('dayplan.offRouteHint')}>
                                     <MapPinOff size={9} strokeWidth={2.2} />{t('dayplan.offRoute')}
                                   </span>
                                 )}
                                 {place.place_time && (
-                                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                  <span className="!inline-flex !items-center !gap-[3px] !shrink-[0] !text-[length:10px] ![color:var(--text-faint)] !font-[400] !ml-[6px]">
                                     <Clock size={9} strokeWidth={2} />
                                     {formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}
                                   </span>
                                 )}
                               </div>
                               {(place.description || place.address || cat?.name) && (
-                                <div className="collab-note-md" style={{ marginTop: 2, fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2, maxHeight: '1.2em' }}>
+                                <div className="collab-note-md !mt-[2px] !text-[length:10px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap !leading-[1.2] !max-h-[1.2em]">
                                   <Markdown remarkPlugins={[remarkGfm]}>{place.description || place.address || cat?.name || ''}</Markdown>
                                 </div>
                               )}
@@ -1585,11 +1488,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 const hasEndpoints = onToggleConnection && (res.endpoints || []).length >= 2
                                 const active = hasEndpoints ? visibleConnectionIds.includes(res.id) : false
                                 return (
-                                  <div style={{ marginTop: 3, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 6px', borderRadius: 5, fontSize: 9, fontWeight: 600,
-                                      background: confirmed ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)',
-                                      color: confirmed ? '#16a34a' : '#d97706',
-                                    }}>
+                                  <div className="!mt-[3px] !inline-flex !items-center !gap-[4px]">
+                                    <div className="!inline-flex !items-center !gap-[3px] !p-[1px_6px] !rounded-[5px] !text-[length:9px] !font-[600]" style={{ background: confirmed ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)', color: confirmed ? '#16a34a' : '#d97706' }}>
                                       {(() => { const RI = RES_ICONS[res.type] || Ticket; return <RI size={8} /> })()}
                                       <span className="hidden sm:inline">{confirmed ? t('planner.resConfirmed') : t('planner.resPending')}</span>
                                       {(() => {
@@ -1597,7 +1497,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                         const { time: et } = splitReservationDateTime(res.reservation_end_time)
                                         if (!st && !et) return null
                                         return (
-                                          <span style={{ fontWeight: 400 }}>
+                                          <span className="!font-[400]">
                                             {st ? formatTime(st, locale, timeFormat) : ''}
                                             {et ? ` – ${formatTime(et, locale, timeFormat)}` : ''}
                                           </span>
@@ -1606,26 +1506,18 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                       {(() => {
                                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                                         if (!meta) return null
-                                        if (meta.airline && meta.flight_number) return <span style={{ fontWeight: 400 }}>{meta.airline} {meta.flight_number}</span>
-                                        if (meta.flight_number) return <span style={{ fontWeight: 400 }}>{meta.flight_number}</span>
-                                        if (meta.train_number) return <span style={{ fontWeight: 400 }}>{meta.train_number}</span>
+                                        if (meta.airline && meta.flight_number) return <span className="!font-[400]">{meta.airline} {meta.flight_number}</span>
+                                        if (meta.flight_number) return <span className="!font-[400]">{meta.flight_number}</span>
+                                        if (meta.train_number) return <span className="!font-[400]">{meta.train_number}</span>
                                         return null
                                       })()}
                                     </div>
                                     {hasEndpoints && (
-                                      <button className={(!active) ? 'trek-hover-text' : undefined}
+                                      <button className={[(!active) ? 'trek-hover-text' : undefined, '!shrink-[0] ![appearance:none] !w-[20px] !h-[20px] !rounded-[4px] !grid ![place-items:center] !cursor-pointer ![border:none] ![transition:color_120ms_cubic-bezier(0.23,1,0.32,1),_background_120ms_cubic-bezier(0.23,1,0.32,1)]'].join(' ')}
                                         type="button"
                                         onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
                                         title={t(active ? 'map.hideConnections' : 'map.showConnections')}
-                                        style={{
-                                          flexShrink: 0, appearance: 'none',
-                                          width: 20, height: 20, borderRadius: 4,
-                                          display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                          border: 'none',
-                                          background: active ? '#3b82f6' : 'transparent',
-                                          color: active ? '#fff' : 'var(--text-faint)',
-                                          transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                        }} >
+                                        style={{ background: active ? '#3b82f6' : 'transparent', color: active ? '#fff' : 'var(--text-faint)' }} >
                                         <RouteIcon size={11} />
                                       </button>
                                     )}
@@ -1634,18 +1526,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                       const handler = isTransport ? onEditTransport : onEditReservation
                                       if (!handler) return null
                                       return (
-                                        <button className="trek-hover-text"
+                                        <button className="trek-hover-text !shrink-[0] ![appearance:none] !w-[20px] !h-[20px] !rounded-[4px] !grid ![place-items:center] !cursor-pointer ![border:none] ![color:var(--text-faint)] ![transition:color_120ms_cubic-bezier(0.23,1,0.32,1),_background_120ms_cubic-bezier(0.23,1,0.32,1)]"
                                           type="button"
                                           onClick={e => { e.stopPropagation(); handler(res) }}
                                           title={t('common.edit')}
-                                          style={{
-                                            flexShrink: 0, appearance: 'none',
-                                            width: 20, height: 20, borderRadius: 4,
-                                            display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                            border: 'none', background: 'transparent',
-                                            color: 'var(--text-faint)',
-                                            transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                          }} >
+                                          style={{ background: 'transparent' }} >
                                           <Pencil size={11} />
                                         </button>
                                       )
@@ -1654,53 +1539,34 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 )
                               })()}
                               {assignment.participants?.length > 0 && (
-                                <div style={{ marginTop: 3, display: 'flex', alignItems: 'center', gap: -4 }}>
+                                <div className="!mt-[3px] !flex !items-center !gap-[-4px]">
                                   {assignment.participants.slice(0, 5).map((p, pi) => (
-                                    <div key={p.user_id} style={{
-                                      width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-tertiary)', border: '1.5px solid var(--bg-card)',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700, color: 'var(--text-muted)',
-                                      marginLeft: pi > 0 ? -4 : 0, flexShrink: 0,
-                                      overflow: 'hidden',
-                                    }}>
-                                      {p.avatar ? <img src={`/uploads/avatars/${p.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : p.username?.[0]?.toUpperCase()}
+                                    <div className="!w-[16px] !h-[16px] !rounded-[50%] ![border:1.5px_solid_var(--bg-card)] !flex !items-center !justify-center !text-[length:7px] !font-[700] ![color:var(--text-muted)] !shrink-[0] !overflow-hidden" key={p.user_id} style={{ background: 'var(--bg-tertiary)', marginLeft: pi > 0 ? -4 : 0 }}>
+                                      {p.avatar ? <img className="!w-[100%] !h-[100%] !object-cover" src={`/uploads/avatars/${p.avatar}`} /> : p.username?.[0]?.toUpperCase()}
                                     </div>
                                   ))}
                                   {assignment.participants.length > 5 && (
-                                    <span style={{ fontSize: 8, color: 'var(--text-faint)', marginLeft: 2 }}>+{assignment.participants.length - 5}</span>
+                                    <span className="!text-[length:8px] ![color:var(--text-faint)] !ml-[2px]">+{assignment.participants.length - 5}</span>
                                   )}
                                 </div>
                               )}
                             </div>
-                            {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                              <button onClick={moveUp} disabled={idx === 0} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}>
+                            {canEditDays && <div className="reorder-buttons !shrink-[0] !flex !gap-[1px] ![transition:opacity_0.15s]">
+                              <button className="![border:none] !p-[1px_2px] !flex !leading-[1]" onClick={moveUp} disabled={idx === 0} style={{ background: 'none', cursor: idx === 0 ? 'default' : 'pointer', color: idx === 0 ? 'var(--border-primary)' : 'var(--text-faint)' }}>
                                 <ChevronUp size={12} strokeWidth={2} />
                               </button>
-                              <button onClick={moveDown} disabled={idx === merged.length - 1} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: idx === merged.length - 1 ? 'default' : 'pointer', color: idx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}>
+                              <button className="![border:none] !p-[1px_2px] !flex !leading-[1]" onClick={moveDown} disabled={idx === merged.length - 1} style={{ background: 'none', cursor: idx === merged.length - 1 ? 'default' : 'pointer', color: idx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)' }}>
                                 <ChevronDown size={12} strokeWidth={2} />
                               </button>
                             </div>}
                             {canEditDays && onAddBookingToAssignment && hoveredAssignmentId === assignment.id && (
-                              <button
+                              <button className="!shrink-[0] ![border:1px_solid_var(--border-primary)] !rounded-[5px] !p-[2px_6px] !cursor-pointer !flex !items-center !gap-[3px] !text-[length:10px] !font-[500] ![color:var(--text-muted)] ![font-family:inherit]"
                                 onClick={e => {
                                   e.stopPropagation()
                                   onAddBookingToAssignment(day.id, assignment.id)
                                 }}
                                 title={t('reservations.addBooking')}
-                                style={{
-                                  flexShrink: 0,
-                                  background: 'none',
-                                  border: '1px solid var(--border-primary)',
-                                  borderRadius: 5,
-                                  padding: '2px 6px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 3,
-                                  fontSize: 10,
-                                  fontWeight: 500,
-                                  color: 'var(--text-muted)',
-                                  fontFamily: 'inherit',
-                                }}
+                                style={{ background: 'none' }}
                               >
                                 <Plus size={11} strokeWidth={2} />
                               </button>
@@ -1800,27 +1666,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             }}
                           >
                             {canEditDays && spanPhase !== 'middle' && (
-                              <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
+                              <div className="dp-grip !shrink-[0] ![color:var(--text-faint)] !flex !items-center ![transition:opacity_0.15s] !cursor-grab" style={{ opacity: 0.3 }}>
                                 <GripVertical size={13} strokeWidth={1.8} />
                               </div>
                             )}
-                            <div style={{
-                              width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              borderRadius: '50%', background: `${color}18`,
-                            }}>
+                            <div className="!w-[28px] !h-[28px] !shrink-[0] !flex !items-center !justify-center !rounded-[50%]" style={{ background: `${color}18` }}>
                               <TransportIcon size={14} strokeWidth={1.8} color={color} />
                             </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div className="!flex-[1] !min-w-[0]">
+                              <div className="!flex !items-center !gap-[4px]">
                                 {spanLabel && (
-                                  <span style={{
-                                    fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4, flexShrink: 0,
-                                    background: `${color}20`, color: color, textTransform: 'uppercase', letterSpacing: '0.03em',
-                                  }}>
+                                  <span className="!text-[length:9px] !font-[700] !p-[1px_5px] !rounded-[4px] !shrink-[0] !uppercase !tracking-[0.03em]" style={{ background: `${color}20`, color: color }}>
                                     {spanLabel}
                                   </span>
                                 )}
-                                <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span className="!text-[length:12.5px] !font-[500] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                                   {res.title}
                                 </span>
                                 {(() => {
@@ -1828,7 +1688,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                   const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
                                   if (!dispTime && !endTime) return null
                                   return (
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexShrink: 0, fontSize: 10, color: 'var(--text-faint)', fontWeight: 400, marginLeft: 6 }}>
+                                    <span className="!inline-flex !items-center !gap-[3px] !shrink-[0] !text-[length:10px] ![color:var(--text-faint)] !font-[400] !ml-[6px]">
                                       <Clock size={9} strokeWidth={2} />
                                       {dispTime ? formatTime(dispTime, locale, timeFormat) : ''}
                                       {spanPhase === 'single' && endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
@@ -1839,7 +1699,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                 })()}
                               </div>
                               {subtitle && (
-                                <div style={{ fontSize: 10, color: 'var(--text-faint)', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div className="!text-[length:10px] ![color:var(--text-faint)] !mt-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                                   {subtitle}
                                 </div>
                               )}
@@ -1847,19 +1707,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             {onToggleConnection && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
-                                <button className={(!active) ? 'trek-hover-text' : undefined}
+                                <button className={[(!active) ? 'trek-hover-text' : undefined, '!shrink-[0] ![appearance:none] !w-[26px] !h-[26px] !rounded-[6px] !grid ![place-items:center] !cursor-pointer ![border:none] ![transition:color_120ms_cubic-bezier(0.23,1,0.32,1),_background_120ms_cubic-bezier(0.23,1,0.32,1)]'].join(' ')}
                                   type="button"
                                   onClick={e => { e.stopPropagation(); onToggleConnection(res.id) }}
                                   title={t(active ? 'map.hideConnections' : 'map.showConnections')}
-                                  style={{
-                                    flexShrink: 0, appearance: 'none',
-                                    width: 26, height: 26, borderRadius: 6,
-                                    display: 'grid', placeItems: 'center', cursor: 'pointer',
-                                    border: 'none',
-                                    background: active ? color : 'transparent',
-                                    color: active ? '#fff' : 'var(--text-faint)',
-                                    transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                  }} >
+                                  style={{ background: active ? color : 'transparent', color: active ? '#fff' : 'var(--text-faint)' }} >
                                   <RouteIcon size={13} />
                                 </button>
                               )
@@ -1946,27 +1798,27 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             transition: 'background 0.1s', cursor: 'grab', userSelect: 'none',
                           }}
                         >
-                          {canEditDays && <div className="dp-grip" style={{ flexShrink: 0, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', opacity: 0.3, transition: 'opacity 0.15s', cursor: 'grab' }}>
+                          {canEditDays && <div className="dp-grip !shrink-[0] ![color:var(--text-faint)] !flex !items-center ![transition:opacity_0.15s] !cursor-grab" style={{ opacity: 0.3 }}>
                             <GripVertical size={13} strokeWidth={1.8} />
                           </div>}
-                          <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%', background: noteSkin.iconBackground, overflow: 'hidden' }}>
+                          <div className="!w-[28px] !h-[28px] !shrink-[0] !flex !items-center !justify-center !rounded-[50%] !overflow-hidden" style={{ background: noteSkin.iconBackground }}>
                             <NoteIcon size={13} strokeWidth={1.8} color={noteSkin.iconColor} />
                           </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                          <div className="!flex-[1] !min-w-[0]">
+                            <span className="!text-[length:12.5px] !font-[500] ![color:var(--text-primary)] !break-words">
                               {note.text}
                             </span>
                             {note.time && (
-                              <div className="collab-note-md" style={{ fontSize: 10.5, fontWeight: 400, color: 'var(--text-faint)', lineHeight: '1.3', marginTop: 2, wordBreak: 'break-word' }}><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
+                              <div className="collab-note-md !text-[length:10.5px] !font-[400] ![color:var(--text-faint)] !leading-[1.3] !mt-[2px] !break-words"><Markdown remarkPlugins={[remarkGfm]}>{note.time}</Markdown></div>
                             )}
                           </div>
-                          {canEditDays && <div className="note-edit-buttons" style={{ display: 'flex', gap: 1, flexShrink: 0, opacity: 0, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => openEditNote(day.id, note, e)} style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><Pencil size={10} /></button>
-                            <button onClick={e => deleteNote(day.id, note.id, e)} style={{ background: 'none', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><Trash2 size={10} /></button>
+                          {canEditDays && <div className="note-edit-buttons !flex !gap-[1px] !shrink-[0] ![transition:opacity_0.15s]" style={{ opacity: 0 }}>
+                            <button className="![border:none] !p-[2px] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={e => openEditNote(day.id, note, e)} style={{ background: 'none' }}><Pencil size={10} /></button>
+                            <button className="![border:none] !p-[2px] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={e => deleteNote(day.id, note.id, e)} style={{ background: 'none' }}><Trash2 size={10} /></button>
                           </div>}
-                          {canEditDays && <div className="reorder-buttons" style={{ flexShrink: 0, display: 'flex', gap: 1, transition: 'opacity 0.15s' }}>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === 0 ? 'default' : 'pointer', color: noteIdx === 0 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}><ChevronUp size={12} strokeWidth={2} /></button>
-                            <button onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} style={{ background: 'none', border: 'none', padding: '1px 2px', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', color: noteIdx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)', display: 'flex', lineHeight: 1 }}><ChevronDown size={12} strokeWidth={2} /></button>
+                          {canEditDays && <div className="reorder-buttons !shrink-[0] !flex !gap-[1px] ![transition:opacity_0.15s]">
+                            <button className="![border:none] !p-[1px_2px] !flex !leading-[1]" onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'up') }} disabled={noteIdx === 0} style={{ background: 'none', cursor: noteIdx === 0 ? 'default' : 'pointer', color: noteIdx === 0 ? 'var(--border-primary)' : 'var(--text-faint)' }}><ChevronUp size={12} strokeWidth={2} /></button>
+                            <button className="![border:none] !p-[1px_2px] !flex !leading-[1]" onClick={e => { e.stopPropagation(); moveNote(day.id, note.id, 'down') }} disabled={noteIdx === merged.length - 1} style={{ background: 'none', cursor: noteIdx === merged.length - 1 ? 'default' : 'pointer', color: noteIdx === merged.length - 1 ? 'var(--border-primary)' : 'var(--text-faint)' }}><ChevronDown size={12} strokeWidth={2} /></button>
                           </div>}
                         </div>
                         </React.Fragment>
@@ -1974,8 +1826,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     })
                   )}
                   {/* Drop-Zone am Listenende — immer vorhanden als Drop-Target */}
-                  <div
-                    style={{ minHeight: 12, padding: '2px 8px' }}
+                  <div className="!min-h-[12px] !p-[2px_8px]"
                     onDragOver={e => { e.preventDefault(); e.stopPropagation(); if (dropTargetKey !== `end-${day.id}`) setDropTargetKey(`end-${day.id}`) }}
                     onDrop={e => {
                       e.preventDefault(); e.stopPropagation()
@@ -2009,44 +1860,35 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     }}
                   >
                     {dropTargetKey === `end-${day.id}` && (
-                      <div style={{ height: 2, background: 'var(--text-primary)', borderRadius: 1 }} />
+                      <div className="!h-[2px] !rounded-[1px]" style={{ background: 'var(--text-primary)' }} />
                     )}
                   </div>
 
                   {/* Routen-Werkzeuge (ausgewählter Tag, 2+ Orte) */}
                   {isSelected && getDayAssignments(day.id).length >= 2 && (
-                    <div style={{ padding: '10px 16px 12px', borderTop: '1px solid var(--border-faint)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <div className="!p-[10px_16px_12px] ![border-top:1px_solid_var(--border-faint)] !flex !flex-col !gap-[7px]">
                       {routeInfo && (
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, fontSize: 12, color: 'var(--text-secondary)', background: 'var(--bg-hover)', borderRadius: 8, padding: '5px 10px' }}>
+                        <div className="!flex !justify-center !gap-[12px] !text-[length:12px] ![color:var(--text-secondary)] !rounded-[8px] !p-[5px_10px]" style={{ background: 'var(--bg-hover)' }}>
                           <span>{routeInfo.distance}</span>
-                          <span style={{ color: 'var(--text-faint)' }}>·</span>
+                          <span className="![color:var(--text-faint)]">·</span>
                           <span>{routeInfo.duration}</span>
                         </div>
                       )}
 
-                      <div role="group" aria-label={t('dayplan.routeProfile')} style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 9, background: 'var(--bg-hover)' }}>
+                      <div className="!flex !gap-[2px] !p-[2px] !rounded-[9px]" role="group" aria-label={t('dayplan.routeProfile')} style={{ background: 'var(--bg-hover)' }}>
                         {([['default', Footprints, t('dayplan.routeProfile.default')], ['cycling', Bike, t('dayplan.routeProfile.cycling')]] as const).map(([id, Icon, label]) => (
-                          <button key={id} onClick={() => useSettingsStore.getState().updateSetting('day_route_profile', id)} aria-pressed={dayRouteProfile === id}
-                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '5px 0', fontSize: 11, fontWeight: dayRouteProfile === id ? 600 : 500, borderRadius: 7, border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                              background: dayRouteProfile === id ? 'var(--bg-card)' : 'transparent', color: dayRouteProfile === id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                          <button className="!flex-[1] !flex !items-center !justify-center !gap-[5px] !p-[5px_0] !rounded-[7px] ![border:none] !cursor-pointer" key={id} onClick={() => useSettingsStore.getState().updateSetting('day_route_profile', id)} aria-pressed={dayRouteProfile === id}
+                            style={{ fontSize: 11, fontWeight: dayRouteProfile === id ? 600 : 500, fontFamily: 'inherit', background: dayRouteProfile === id ? 'var(--bg-card)' : 'transparent', color: dayRouteProfile === id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                             <Icon size={12} strokeWidth={2} />{label}
                           </button>
                         ))}
                       </div>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button onClick={handleOptimize} style={{
-                          flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-                          padding: '6px 0', fontSize: 11, fontWeight: 500, borderRadius: 8, border: 'none',
-                          background: 'var(--bg-hover)', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
-                        }}>
+                      <div className="!flex !gap-[6px]">
+                        <button className="!flex-[1] !flex !items-center !justify-center !gap-[5px] !p-[6px_0] !text-[length:11px] !font-[500] !rounded-[8px] ![border:none] ![color:var(--text-secondary)] !cursor-pointer ![font-family:inherit]" onClick={handleOptimize} style={{ background: 'var(--bg-hover)' }}>
                           <RotateCcw size={12} strokeWidth={2} />
                           {t('dayplan.optimize')}
                         </button>
-                        <button onClick={handleGoogleMaps} style={{
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          padding: '6px 10px', fontSize: 11, fontWeight: 500, borderRadius: 8,
-                          border: '1px solid var(--border-faint)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer', fontFamily: 'inherit',
-                        }}>
+                        <button className="!flex !items-center !justify-center !p-[6px_10px] !text-[length:11px] !font-[500] !rounded-[8px] ![border:1px_solid_var(--border-faint)] ![color:var(--text-secondary)] !cursor-pointer ![font-family:inherit]" onClick={handleGoogleMaps} style={{ background: 'transparent' }}>
                           <ExternalLink size={12} strokeWidth={2} />
                         </button>
                       </div>
@@ -2070,49 +1912,32 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
       {/* Notiz-Popup-Modal — über Portal gerendert, um den backdropFilter-Stapelkontext zu umgehen */}
       {Object.entries(noteUi).map(([dayId, ui]) => ui && ReactDOM.createPortal(
-        <div key={dayId} style={{
-          position: 'fixed', inset: 0, zIndex: 10000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--modal-backdrop)',
-          backdropFilter: 'blur(12px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        }} onClick={() => cancelNote(Number(dayId))}>
-          <div style={{
-            width: 340,
-            background: 'var(--modal-bg)',
-            backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)',
-            border: '1px solid var(--modal-border)',
-            borderRadius: 16,
-            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 12,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+        <div className="!fixed !inset-[0] !z-[10000] !flex !items-center !justify-center ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]" key={dayId} style={{ background: 'var(--modal-backdrop)' }} onClick={() => cancelNote(Number(dayId))}>
+          <div className="!w-[340px] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[16px] ![box-shadow:var(--modal-shadow)] !p-[22px_22px_18px] !flex !flex-col !gap-[12px]" style={{ background: 'var(--modal-bg)' }} onClick={e => e.stopPropagation()}>
+            <div className="!text-[length:14px] !font-[600] ![color:var(--text-primary)]">
               {ui.mode === 'add' ? t('dayplan.noteAdd') : t('dayplan.noteEdit')}
             </div>
             {/* Icon-Auswahl */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+            <div className="!flex !flex-wrap !gap-[5px]">
               {NOTE_ICONS.map(({ id, Icon }) => (
-                <button key={id} onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], icon: id } }))}
+                <button className="!w-[45px] !h-[45px] !rounded-[8px] !cursor-pointer !flex !items-center !justify-center !p-[0]" key={id} onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], icon: id } }))}
                   title={id}
-                  style={{ width: 45, height: 45, borderRadius: 8, border: ui.icon === id ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)', background: ui.icon === id ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}>
+                  style={{ border: ui.icon === id ? '2px solid var(--text-primary)' : '2px solid var(--border-faint)', background: ui.icon === id ? 'var(--bg-hover)' : 'transparent' }}>
                   <Icon size={18} strokeWidth={1.8} color={ui.icon === id ? 'var(--text-primary)' : 'var(--text-muted)'} />
                 </button>
               ))}
             </div>
             {/* Colour — a note is a label as much as a reminder */}
-            <div role="radiogroup" aria-label={t('dayplan.noteColor')} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 7 }}>
-              <button type="button" role="radio" aria-checked={!ui.color} aria-label={t('dayplan.noteColor.none')} title={t('dayplan.noteColor.none')}
+            <div className="!flex !flex-wrap !items-center !gap-[7px]" role="radiogroup" aria-label={t('dayplan.noteColor')}>
+              <button className="!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] !flex !items-center !justify-center" type="button" role="radio" aria-checked={!ui.color} aria-label={t('dayplan.noteColor.none')} title={t('dayplan.noteColor.none')}
                 onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: null } }))}
-                style={{ width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-hover)',
-                  border: !ui.color ? '2px solid var(--text-primary)' : '2px dashed var(--border-primary)' }}>
+                style={{ background: 'var(--bg-hover)', border: !ui.color ? '2px solid var(--text-primary)' : '2px dashed var(--border-primary)' }}>
                 <Ban size={11} color="var(--text-faint)" />
               </button>
               {NOTE_COLORS.map(c => (
-                <button key={c} type="button" role="radio" aria-checked={ui.color === c} aria-label={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)} title={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)}
+                <button className="!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] ![border:none]" key={c} type="button" role="radio" aria-checked={ui.color === c} aria-label={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)} title={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)}
                   onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: c } }))}
-                  style={{ width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0, background: c,
-                    border: 'none', outline: ui.color === c ? '2px solid var(--text-primary)' : 'none', outlineOffset: 2 }} />
+                  style={{ background: c, outline: ui.color === c ? '2px solid var(--text-primary)' : 'none', outlineOffset: 2 }} />
               ))}
             </div>
             <input
@@ -2125,22 +1950,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               required
               style={{ fontSize: 13, fontWeight: 500, border: `1px solid ${!ui.text?.trim() ? 'var(--border-primary)' : 'var(--border-primary)'}`, borderRadius: 8, padding: '8px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--text-primary)' }}
             />
-            <textarea
+            <textarea className="!text-[length:12px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[7px_10px] ![font-family:inherit] ![outline:none] !w-[100%] !box-border ![color:var(--text-primary)] ![resize:none] !leading-[1.4]"
               value={ui.time}
               maxLength={1000}
               rows={5}
               onChange={e => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], time: e.target.value } }))}
               onKeyDown={e => { if (e.key === 'Escape') cancelNote(Number(dayId)) }}
               placeholder={t('dayplan.noteSubtitle')}
-              style={{ fontSize: 12, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '7px 10px', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box', color: 'var(--text-primary)', resize: 'none', lineHeight: 1.4 }}
             />
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 11, color: 'var(--text-faint)', marginTop: -2 }}>
+            <div className="!flex !justify-between !gap-[8px] !text-[length:11px] ![color:var(--text-faint)] !mt-[-2px]">
               <span>{t('dayplan.noteFormatHint')}</span>
               <span style={{ color: (ui.time?.length || 0) >= 950 ? '#d97706' : undefined }}>{ui.time?.length || 0}/1000</span>
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => cancelNote(Number(dayId))} style={{ fontSize: 12, background: 'none', border: '1px solid var(--border-primary)', borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit' }}>{t('common.cancel')}</button>
-              <button onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} style={{ fontSize: 12, background: !ui.text?.trim() ? 'var(--border-primary)' : 'var(--accent)', color: !ui.text?.trim() ? 'var(--text-faint)' : 'var(--accent-text)', border: 'none', borderRadius: 8, padding: '6px 16px', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer', fontWeight: 600, fontFamily: 'inherit', transition: 'background 0.15s, color 0.15s' }}>
+            <div className="!flex !gap-[8px] !justify-end">
+              <button className="!text-[length:12px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[6px_14px] !cursor-pointer ![color:var(--text-muted)] ![font-family:inherit]" onClick={() => cancelNote(Number(dayId))} style={{ background: 'none' }}>{t('common.cancel')}</button>
+              <button className="!text-[length:12px] ![border:none] !rounded-[8px] !p-[6px_16px] !font-[600] ![font-family:inherit] ![transition:background_0.15s,_color_0.15s]" onClick={() => saveNote(Number(dayId))} disabled={!ui.text?.trim()} style={{ background: !ui.text?.trim() ? 'var(--border-primary)' : 'var(--accent)', color: !ui.text?.trim() ? 'var(--text-faint)' : 'var(--accent-text)', cursor: !ui.text?.trim() ? 'not-allowed' : 'pointer' }}>
                 {ui.mode === 'add' ? t('common.add') : t('common.save')}
               </button>
             </div>
@@ -2151,46 +1975,22 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
       {/* Confirm: remove time when reordering a timed place */}
       {timeConfirm && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--modal-backdrop)',
-          backdropFilter: 'blur(12px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        }} onClick={() => setTimeConfirm(null)}>
-          <div style={{
-            width: 340,
-            background: 'var(--modal-bg)',
-            backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)',
-            border: '1px solid var(--modal-border)',
-            borderRadius: 16,
-            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 12,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{
-                width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                borderRadius: '50%', background: 'rgba(239,68,68,0.12)',
-              }}>
+        <div className="!fixed !inset-[0] !z-[1000] !flex !items-center !justify-center ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]" style={{ background: 'var(--modal-backdrop)' }} onClick={() => setTimeConfirm(null)}>
+          <div className="!w-[340px] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[16px] ![box-shadow:var(--modal-shadow)] !p-[22px_22px_18px] !flex !flex-col !gap-[12px]" style={{ background: 'var(--modal-bg)' }} onClick={e => e.stopPropagation()}>
+            <div className="!flex !items-center !gap-[10px]">
+              <div className="!w-[36px] !h-[36px] !shrink-[0] !flex !items-center !justify-center !rounded-[50%]" style={{ background: 'rgba(239,68,68,0.12)' }}>
                 <Clock size={18} strokeWidth={1.8} color="#ef4444" />
               </div>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="!text-[length:14px] !font-[600] ![color:var(--text-primary)]">
                 {t('dayplan.confirmRemoveTimeTitle')}
               </div>
             </div>
-            <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <div className="!text-[length:12.5px] ![color:var(--text-secondary)] !leading-[1.5]">
               {t('dayplan.confirmRemoveTimeBody', { time: timeConfirm.time })}
             </div>
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
-              <button onClick={() => setTimeConfirm(null)} style={{
-                fontSize: 12, background: 'none', border: '1px solid var(--border-primary)',
-                borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
-              }}>{t('common.cancel')}</button>
-              <button onClick={confirmTimeRemoval} style={{
-                fontSize: 12, background: '#ef4444', color: 'white',
-                border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-              }}>{t('common.confirm')}</button>
+            <div className="!flex !gap-[8px] !justify-end !mt-[4px]">
+              <button className="!text-[length:12px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[6px_14px] !cursor-pointer ![color:var(--text-muted)] ![font-family:inherit]" onClick={() => setTimeConfirm(null)} style={{ background: 'none' }}>{t('common.cancel')}</button>
+              <button className="!text-[length:12px] ![color:white] ![border:none] !rounded-[8px] !p-[6px_16px] !cursor-pointer !font-[600] ![font-family:inherit]" onClick={confirmTimeRemoval} style={{ background: '#ef4444' }}>{t('common.confirm')}</button>
             </div>
           </div>
         </div>,
@@ -2199,23 +1999,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
       {/* Transport-Detail-Modal */}
       {transportDetail && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--modal-backdrop)',
-          backdropFilter: 'blur(12px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        }} onClick={() => setTransportDetail(null)}>
-          <div style={{
-            width: 380, maxHeight: '80vh', overflowY: 'auto',
-            background: 'var(--modal-bg)',
-            backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)',
-            border: '1px solid var(--modal-border)',
-            borderRadius: 16,
-            boxShadow: 'var(--modal-shadow)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 14,
-          }} onClick={e => e.stopPropagation()}>
+        <div className="!fixed !inset-[0] !z-[1000] !flex !items-center !justify-center ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]" style={{ background: 'var(--modal-backdrop)' }} onClick={() => setTransportDetail(null)}>
+          <div className="!w-[380px] !max-h-[80vh] !overflow-y-auto ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[16px] ![box-shadow:var(--modal-shadow)] !p-[22px_22px_18px] !flex !flex-col !gap-[14px]" style={{ background: 'var(--modal-bg)' }} onClick={e => e.stopPropagation()}>
             {(() => {
               const res = transportDetail
               const TransportIcon = RES_ICONS[res.type] || Ticket
@@ -2241,16 +2026,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               return (
                 <>
                   {/* Header */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{
-                      width: 36, height: 36, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      borderRadius: '50%', background: `${color}18`,
-                    }}>
+                  <div className="!flex !items-center !gap-[10px]">
+                    <div className="!w-[36px] !h-[36px] !shrink-[0] !flex !items-center !justify-center !rounded-[50%]" style={{ background: `${color}18` }}>
                       <TransportIcon size={18} strokeWidth={1.8} color={color} />
                     </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{res.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 2 }}>
+                    <div className="!flex-[1]">
+                      <div className="!text-[length:15px] !font-[600] ![color:var(--text-primary)]">{res.title}</div>
+                      <div className="!text-[length:11px] ![color:var(--text-faint)] !mt-[2px]">
                         {(() => {
                           const { date, time } = splitReservationDateTime(res.reservation_time)
                           const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
@@ -2266,30 +2048,21 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         })()}
                       </div>
                     </div>
-                    <div style={{
-                      padding: '3px 8px', borderRadius: 6, fontSize: 10, fontWeight: 600,
-                      background: res.status === 'confirmed' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)',
-                      color: res.status === 'confirmed' ? '#16a34a' : '#d97706',
-                    }}>
+                    <div className="!p-[3px_8px] !rounded-[6px] !text-[length:10px] !font-[600]" style={{ background: res.status === 'confirmed' ? 'rgba(22,163,74,0.1)' : 'rgba(217,119,6,0.1)', color: res.status === 'confirmed' ? '#16a34a' : '#d97706' }}>
                       {(res.status === 'confirmed' ? t('planner.resConfirmed') : t('planner.resPending')).replace(/\s*·\s*$/, '')}
                     </div>
                   </div>
 
                   {/* Detail-Felder */}
                   {detailFields.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[8px]">
                       {detailFields.map((f, i) => {
                         const shouldBlur = f.sensitive && useSettingsStore.getState().settings.blur_booking_codes
                         return (
-                          <div key={i} style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-                            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
-                            <div className={(shouldBlur) ? 'trek-h-filter-6e247f' : undefined} onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
-                              style={{
-                                fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word',
-                                filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
-                                cursor: shouldBlur ? 'pointer' : 'default',
-                                userSelect: shouldBlur ? 'none' : 'auto',
-                              }}
+                          <div className="!p-[8px_10px] !rounded-[8px]" key={i} style={{ background: 'var(--bg-tertiary)' }}>
+                            <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.03em] !mb-[3px]">{f.label}</div>
+                            <div className={[(shouldBlur) ? 'trek-h-filter-6e247f' : undefined, '!text-[length:12px] !font-[500] ![color:var(--text-primary)] !break-words ![transition:filter_0.2s]'].join(' ')} onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
+                              style={{ filter: shouldBlur ? 'blur(5px)' : 'none', cursor: shouldBlur ? 'pointer' : 'default', userSelect: shouldBlur ? 'none' : 'auto' }}
                             >{f.value}</div>
                           </div>
                         )
@@ -2299,9 +2072,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
                   {/* Notizen */}
                   {res.notes && (
-                    <div style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
-                      <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{t('reservations.notes')}</div>
-                      <div className="collab-note-md" style={{ fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
+                    <div className="!p-[8px_10px] !rounded-[8px]" style={{ background: 'var(--bg-tertiary)' }}>
+                      <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.03em] !mb-[3px]">{t('reservations.notes')}</div>
+                      <div className="collab-note-md !text-[length:12px] ![color:var(--text-primary)] !break-words ![overflow-wrap:anywhere]"><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>
                     </div>
                   )}
 
@@ -2316,18 +2089,14 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     if (resFiles.length === 0) return null
                     return (
                       <div>
-                        <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.03em] !mb-[6px]">{t('files.title')}</div>
+                        <div className="!flex !flex-col !gap-[4px]">
                           {resFiles.map(f => (
-                            <div className="trek-hover" key={f.id}
+                            <div className="trek-hover !flex !items-center !gap-[8px] !p-[6px_10px] !rounded-[8px] !cursor-pointer ![transition:background_0.1s]" key={f.id}
                               onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
-                              style={{
-                                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
-                                background: 'var(--bg-tertiary)', borderRadius: 8, cursor: 'pointer',
-                                transition: 'background 0.1s',
-                              }} >
+                              style={{ background: 'var(--bg-tertiary)' }} >
                               <FileText size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                              <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span className="!flex-[1] !text-[length:12px] !font-[500] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                                 {f.original_name}
                               </span>
                               <ExternalLink size={11} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
@@ -2339,11 +2108,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   })()}
 
                   {/* Schließen */}
-                  <div style={{ textAlign: 'right' }}>
-                    <button onClick={() => setTransportDetail(null)} style={{
-                      fontSize: 12, background: 'var(--accent)', color: 'var(--accent-text)',
-                      border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600, fontFamily: 'inherit',
-                    }}>
+                  <div className="!text-right">
+                    <button className="!text-[length:12px] ![color:var(--accent-text)] ![border:none] !rounded-[8px] !p-[6px_16px] !cursor-pointer !font-[600] ![font-family:inherit]" onClick={() => setTransportDetail(null)} style={{ background: 'var(--accent)' }}>
                       {t('common.close')}
                     </button>
                   </div>
@@ -2357,9 +2123,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
       {/* Budget-Fußzeile */}
       {totalCost > 0 && (
-        <div style={{ flexShrink: 0, padding: '10px 16px', borderTop: '1px solid var(--border-faint)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('dayplan.totalCost')}</span>
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{totalCost.toFixed(currencyDecimals(currency))} {currency}</span>
+        <div className="!shrink-[0] !p-[10px_16px] ![border-top:1px_solid_var(--border-faint)] !flex !justify-between !items-center">
+          <span className="!text-[length:11px] ![color:var(--text-faint)]">{t('dayplan.totalCost')}</span>
+          <span className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">{totalCost.toFixed(currencyDecimals(currency))} {currency}</span>
         </div>
       )}
       <ContextMenu menu={ctxMenu.menu} onClose={ctxMenu.close} />

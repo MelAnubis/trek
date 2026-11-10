@@ -160,51 +160,50 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
   const allSelected = suggestions.length > 0 && selected.size === suggestions.length
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(3px)' }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 ![background:rgba(0,0,0,0.55)] ![backdrop-filter:blur(3px)]">
       <div
-        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full"
-        style={{ maxWidth: 540, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        className="bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl w-full !max-w-[540px] !max-h-[90vh] !flex-col"
+        style={{ display: 'flex' }}
       >
 
         {/* ── Header ── */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 20px 12px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
+        <div className="!items-center !gap-[8px] !p-[16px_20px_12px] ![border-bottom:1px_solid_var(--border-faint)] !shrink-[0]" style={{ display: 'flex' }}>
           <Sparkles size={18} style={{ color: '#f59e0b' }} />
-          <span style={{ fontWeight: 700, fontSize: 15, flex: 1, color: 'var(--text-primary)' }}>
+          <span className="!font-[700] !text-[length:15px] !flex-[1] ![color:var(--text-primary)]">
             Lugares imprescindibles
           </span>
-          <button
+          <button className="!items-center !justify-center !w-[28px] !h-[28px] !rounded-[8px] ![border:none] ![background:var(--bg-hover)] ![color:var(--text-muted)] !cursor-pointer"
             onClick={onClose}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'var(--bg-hover)', color: 'var(--text-muted)', cursor: 'pointer' }}
+            style={{ display: 'flex' }}
           >
             <X size={15} />
           </button>
         </div>
 
         {/* ── Body ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px' }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[0_20px]">
 
           {/* Loading */}
           {step === 'loading' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '48px 0', color: 'var(--text-muted)' }}>
+            <div className="!flex-col !items-center !justify-center !gap-[14px] !p-[48px_0] ![color:var(--text-muted)]" style={{ display: 'flex' }}>
               <Loader2 size={32} className="animate-spin" style={{ color: '#f59e0b' }} />
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)' }}>Consultando con la IA…</div>
-                <div style={{ fontSize: 12 }}>Esto puede tardar unos segundos</div>
+              <div className="!text-center">
+                <div className="!font-[600] !text-[length:14px] !mb-[4px] ![color:var(--text-primary)]">Consultando con la IA…</div>
+                <div className="!text-[length:12px]">Esto puede tardar unos segundos</div>
               </div>
             </div>
           )}
 
           {/* Error */}
           {step === 'error' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '40px 0' }}>
+            <div className="!flex-col !items-center !justify-center !gap-[12px] !p-[40px_0]" style={{ display: 'flex' }}>
               <AlertCircle size={32} style={{ color: '#ef4444' }} />
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6, color: 'var(--text-primary)' }}>No se pudieron obtener sugerencias</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 320 }}>{error}</div>
+              <div className="!text-center">
+                <div className="!font-[600] !text-[length:14px] !mb-[6px] ![color:var(--text-primary)]">No se pudieron obtener sugerencias</div>
+                <div className="!text-[length:12px] ![color:var(--text-muted)] !max-w-[320px]">{error}</div>
               </div>
-              <button
+              <button className="!mt-[8px] !p-[8px_20px] !rounded-[10px] ![background:var(--accent)] ![color:var(--accent-text)] ![border:none] !text-[length:13px] !font-[600] !cursor-pointer"
                 onClick={fetchSuggestions}
-                style={{ marginTop: 8, padding: '8px 20px', borderRadius: 10, background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
               >
                 Reintentar
               </button>
@@ -213,101 +212,84 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
 
           {/* Done */}
           {step === 'done' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '48px 0', color: '#16a34a' }}>
+            <div className="!flex-col !items-center !justify-center !gap-[12px] !p-[48px_0] ![color:#16a34a]" style={{ display: 'flex' }}>
               <CheckCircle2 size={40} />
-              <span style={{ fontWeight: 700, fontSize: 15 }}>¡Lugares añadidos!</span>
+              <span className="!font-[700] !text-[length:15px]">¡Lugares añadidos!</span>
             </div>
           )}
 
           {/* Adding (progress) */}
           {step === 'adding' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: '48px 0' }}>
+            <div className="!flex-col !items-center !justify-center !gap-[14px] !p-[48px_0]" style={{ display: 'flex' }}>
               <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
-              <div style={{ width: '60%', height: 6, borderRadius: 99, background: 'var(--border-faint)', overflow: 'hidden' }}>
-                <div style={{ width: `${addingProgress}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.3s ease', borderRadius: 99 }} />
+              <div className="!w-[60%] !h-[6px] !rounded-[99px] ![background:var(--border-faint)] !overflow-hidden">
+                <div className="!h-[100%] ![background:var(--accent)] ![transition:width_0.3s_ease] !rounded-[99px]" style={{ width: `${addingProgress}%` }} />
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Añadiendo lugares… {addingProgress}%</span>
+              <span className="!text-[length:12px] ![color:var(--text-muted)]">Añadiendo lugares… {addingProgress}%</span>
             </div>
           )}
 
           {/* Results */}
           {step === 'results' && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 0 8px' }}>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+              <div className="!items-center !justify-between !p-[12px_0_8px]" style={{ display: 'flex' }}>
+                <span className="!text-[length:12px] ![color:var(--text-muted)]">
                   {selected.size} de {suggestions.length} seleccionados
                 </span>
-                <button
+                <button className="!text-[length:12px] ![color:var(--accent)] ![background:none] ![border:none] !cursor-pointer !font-[500] !p-[0]"
                   onClick={toggleAll}
-                  style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500, padding: 0 }}
                 >
                   {allSelected ? 'Deseleccionar todos' : 'Seleccionar todos'}
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingBottom: 16 }}>
+              <div className="!flex-col !gap-[8px] !pb-[16px]" style={{ display: 'flex' }}>
                 {suggestions.map((s, idx) => {
                   const isSelected = selected.has(idx)
                   const catColor = getCategoryColor(s.category)
                   return (
-                    <div
+                    <div className="!gap-[0] !rounded-[12px] !overflow-hidden !cursor-pointer ![transition:border-color_0.15s]"
                       key={idx}
                       onClick={() => toggleSelect(idx)}
-                      style={{
-                        display: 'flex', gap: 0, borderRadius: 12, overflow: 'hidden',
-                        border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-faint)'}`,
-                        cursor: 'pointer', transition: 'border-color 0.15s',
-                        background: isSelected ? 'var(--accent-bg, rgba(99,102,241,0.04))' : 'var(--bg-primary)',
-                      }}
+                      style={{ display: 'flex', border: `2px solid ${isSelected ? 'var(--accent)' : 'var(--border-faint)'}`, background: isSelected ? 'var(--accent-bg, rgba(99,102,241,0.04))' : 'var(--bg-primary)' }}
                     >
                       {/* Photo */}
-                      <div style={{ width: 72, flexShrink: 0, background: '#f1f5f9', overflow: 'hidden', position: 'relative' }}>
+                      <div className="!w-[72px] !shrink-[0] ![background:#f1f5f9] !overflow-hidden !relative">
                         {s.photo_url ? (
-                          <img
+                          <img className="!w-[100%] !h-[100%] !object-cover"
                             src={s.photo_url}
                             alt={s.name}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                             onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                         ) : (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#94a3b8' }}>
+                          <div className="!items-center !justify-center !h-[100%] ![color:#94a3b8]" style={{ display: 'flex' }}>
                             <ImageOff size={20} />
                           </div>
                         )}
                         {/* Selection indicator */}
-                        <div style={{
-                          position: 'absolute', top: 4, right: 4,
-                          width: 18, height: 18, borderRadius: '50%',
-                          background: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.85)',
-                          border: `2px solid ${isSelected ? 'var(--accent)' : 'rgba(0,0,0,0.2)'}`,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          transition: 'all 0.15s',
-                        }}>
+                        <div className="!absolute !top-[4px] !right-[4px] !w-[18px] !h-[18px] !rounded-[50%] !items-center !justify-center ![transition:all_0.15s]" style={{ background: isSelected ? 'var(--accent)' : 'rgba(255,255,255,0.85)', border: `2px solid ${isSelected ? 'var(--accent)' : 'rgba(0,0,0,0.2)'}`, display: 'flex' }}>
                           {isSelected && <CheckCircle2 size={11} style={{ color: '#fff' }} />}
                         </div>
                       </div>
 
                       {/* Content */}
-                      <div style={{ flex: 1, padding: '10px 12px', minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginBottom: 3 }}>
-                          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', flex: 1, lineHeight: 1.3 }}>{s.name}</span>
-                          <span style={{
-                            flexShrink: 0, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 99,
-                            background: catColor + '22', color: catColor,
-                          }}>
+                      <div className="!flex-[1] !p-[10px_12px] !min-w-[0]">
+                        <div className="!items-start !gap-[6px] !mb-[3px]" style={{ display: 'flex' }}>
+                          <span className="!font-[600] !text-[length:13px] ![color:var(--text-primary)] !flex-[1] !leading-[1.3]">{s.name}</span>
+                          <span className="!shrink-[0] !text-[length:10px] !font-[600] !p-[2px_7px] !rounded-[99px]" style={{ background: catColor + '22', color: catColor }}>
                             {s.category}
                           </span>
                         </div>
                         {s.near_place && (
-                          <div style={{ fontSize: 10, color: 'var(--text-faint)', marginBottom: 3, fontStyle: 'italic' }}>
+                          <div className="!text-[length:10px] ![color:var(--text-faint)] !mb-[3px] !italic">
                             cerca de {s.near_place.split(',')[0]}
                           </div>
                         )}
-                        <p style={{ fontSize: 11.5, color: 'var(--text-muted)', margin: 0, lineHeight: 1.45 }}>{s.description}</p>
+                        <p className="!text-[length:11.5px] ![color:var(--text-muted)] !m-[0] !leading-[1.45]">{s.description}</p>
                         {s.address && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 5 }}>
+                          <div className="!items-center !gap-[3px] !mt-[5px]" style={{ display: 'flex' }}>
                             <MapPin size={10} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-                            <span style={{ fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span className="!text-[length:10px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                               {s.address}
                             </span>
                           </div>
@@ -323,27 +305,16 @@ export default function MustSeeSuggestionsModal({ tripId, onClose, onAdded, lang
 
         {/* ── Footer ── */}
         {step === 'results' && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8,
-            padding: '12px 20px', borderTop: '1px solid var(--border-faint)', flexShrink: 0,
-          }}>
-            <button
+          <div className="!items-center !justify-end !gap-[8px] !p-[12px_20px] ![border-top:1px_solid_var(--border-faint)] !shrink-[0]" style={{ display: 'flex' }}>
+            <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-secondary)] !text-[length:13px] !cursor-pointer"
               onClick={onClose}
-              style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-secondary)', fontSize: 13, cursor: 'pointer' }}
             >
               Cancelar
             </button>
-            <button
+            <button className="!items-center !gap-[6px] !p-[8px_18px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] ![transition:background_0.15s]"
               onClick={handleAdd}
               disabled={selected.size === 0}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '8px 18px', borderRadius: 10, border: 'none',
-                background: selected.size === 0 ? 'var(--border-faint)' : 'var(--accent)',
-                color: selected.size === 0 ? 'var(--text-muted)' : 'var(--accent-text)',
-                fontSize: 13, fontWeight: 600, cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-              }}
+              style={{ display: 'flex', background: selected.size === 0 ? 'var(--border-faint)' : 'var(--accent)', color: selected.size === 0 ? 'var(--text-muted)' : 'var(--accent-text)', cursor: selected.size === 0 ? 'not-allowed' : 'pointer' }}
             >
               <MapPin size={13} />
               Añadir {selected.size} lugar{selected.size !== 1 ? 'es' : ''}

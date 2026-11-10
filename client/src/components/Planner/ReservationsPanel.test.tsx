@@ -351,7 +351,7 @@ describe('ReservationsPanel', () => {
     // Dialog is visible
     await screen.findByText('Cancel');
     // Click the fixed backdrop (the outermost div of the portal)
-    const backdrop = document.querySelector('[style*="position: fixed"]') as HTMLElement;
+    const backdrop = document.querySelector('[style*="position: fixed"], [class~="!fixed"]') as HTMLElement;
     await user.click(backdrop!);
     await waitFor(() => expect(screen.queryByText('Cancel')).not.toBeInTheDocument());
   });

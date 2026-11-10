@@ -12,11 +12,10 @@ export function CopyField({ value, label, mono, testId }: { value: string; label
     } catch { /* the field stays selectable for a manual copy */ }
   }
   return (
-    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm"
-      style={{ background: 'var(--glass-bg-subtle, var(--bg-tertiary))', border: '1px solid var(--glass-border-inner, var(--border-primary))', color: 'var(--text-primary)' }}>
+    <div className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm ![background:var(--glass-bg-subtle,_var(--bg-tertiary))] ![border:1px_solid_var(--glass-border-inner,_var(--border-primary))] ![color:var(--text-primary)]">
       <input readOnly value={value} aria-label={label} data-testid={testId} onFocus={e => e.currentTarget.select()}
         className="flex-1 min-w-0 bg-transparent outline-none" style={{ fontFamily: mono ? 'ui-monospace, monospace' : undefined, fontSize: mono ? 12 : undefined }} />
-      <button type="button" onClick={copy} aria-label={label} title={label} style={{ color: 'var(--text-secondary)' }}>
+      <button className="![color:var(--text-secondary)]" type="button" onClick={copy} aria-label={label} title={label}>
         {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
       </button>
     </div>

@@ -265,114 +265,76 @@ export default function DemoBanner(): React.ReactElement | null {
   if (dismissed) return null
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 99999,
-      background: 'var(--modal-backdrop)',
-      backdropFilter: 'blur(12px) saturate(150%)',
-      WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      paddingTop: 'max(16px, env(safe-area-inset-top))',
-      paddingBottom: 'max(16px, calc(env(safe-area-inset-bottom) + 80px))',
-      paddingLeft: 16, paddingRight: 16,
-      overflow: 'auto',
-      fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-    }} onClick={() => setDismissed(true)}>
-      <div style={{
-        background: 'var(--modal-bg)',
-        backdropFilter: 'var(--glass-blur-lg)',
-        WebkitBackdropFilter: 'var(--glass-blur-lg)',
-        border: '1px solid var(--modal-border)',
-        borderRadius: 20, padding: '28px 24px 0',
-        maxWidth: 480, width: '100%',
-        boxShadow: 'var(--modal-shadow)',
-        maxHeight: 'min(90vh, calc(100dvh - 96px))',
-        overflow: 'auto',
-        display: 'flex', flexDirection: 'column',
-      }} onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
+    <div className="!fixed !inset-[0] !z-[99999] ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-center !justify-center !pt-[max(16px,_env(safe-area-inset-top))] !pb-[max(16px,_calc(env(safe-area-inset-bottom)_+_80px))] !pl-[16px] !pr-[16px] !overflow-auto" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }} onClick={() => setDismissed(true)}>
+      <div className="![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[20px] !p-[28px_24px_0] !max-w-[480px] !w-[100%] ![box-shadow:var(--modal-shadow)] !max-h-[min(90vh,_calc(100dvh_-_96px))] !overflow-auto !flex !flex-col" onClick={(e: React.MouseEvent<HTMLDivElement>) => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <img src="/icons/icon-dark.svg" alt="" style={{ width: 36, height: 36, borderRadius: 10 }} />
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 5 }}>
-            {t.titleBefore}<img src="/text-dark.svg" alt="Trek Wanderer" style={{ height: 18 }} />{t.titleAfter}
+        <div className="!flex !items-center !gap-[10px] !mb-[14px]">
+          <img className="!w-[36px] !h-[36px] !rounded-[10px]" src="/icons/icon-dark.svg" alt="" />
+          <h2 className="!m-[0] !text-[length:17px] !font-[700] ![color:var(--text-primary)] !flex !items-center !gap-[5px]">
+            {t.titleBefore}<img className="!h-[18px]" src="/text-dark.svg" alt="Trek Wanderer" />{t.titleAfter}
           </h2>
         </div>
 
-        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 12px' }}>
+        <p className="!text-[length:13px] ![color:var(--text-muted)] !leading-[1.6] !m-[0_0_12px]">
           {t.description}
         </p>
 
         {/* Timer + Upload note */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(2,132,199,0.08)', border: '1px solid rgba(2,132,199,0.20)', borderRadius: 10, padding: '8px 10px',
-          }}>
+        <div className="!flex !gap-[8px] !mb-[16px]">
+          <div className="!flex-[1] !flex !items-center !gap-[6px] ![background:rgba(2,132,199,0.08)] ![border:1px_solid_rgba(2,132,199,0.20)] !rounded-[10px] !p-[8px_10px]">
             <Clock size={13} style={{ flexShrink: 0, color: '#0284c7' }} />
-            <span style={{ fontSize: 11, color: '#0284c7', fontWeight: 600 }}>
+            <span className="!text-[length:11px] ![color:#0284c7] !font-[600]">
               {t.resetIn} {minutesLeft} {t.minutes}
             </span>
           </div>
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', gap: 6,
-            background: 'rgba(180,83,9,0.07)', border: '1px solid rgba(180,83,9,0.18)', borderRadius: 10, padding: '8px 10px',
-          }}>
+          <div className="!flex-[1] !flex !items-center !gap-[6px] ![background:rgba(180,83,9,0.07)] ![border:1px_solid_rgba(180,83,9,0.18)] !rounded-[10px] !p-[8px_10px]">
             <Upload size={13} style={{ flexShrink: 0, color: '#b45309' }} />
-            <span style={{ fontSize: 11, color: '#b45309' }}>{t.uploadNote}</span>
+            <span className="!text-[length:11px] ![color:#b45309]">{t.uploadNote}</span>
           </div>
         </div>
 
         {/* What is TREK */}
-        <div style={{
-          background: 'var(--glass-bg-subtle)',
-          backdropFilter: 'var(--glass-blur)',
-          WebkitBackdropFilter: 'var(--glass-blur)',
-          border: '1px solid var(--glass-border-inner)',
-          borderRadius: 12, padding: '12px 14px', marginBottom: 16,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+        <div className="![background:var(--glass-bg-subtle)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border-inner)] !rounded-[12px] !p-[12px_14px] !mb-[16px]">
+          <div className="!flex !items-center !gap-[8px] !mb-[6px]">
             <Map size={14} style={{ color: 'var(--text-primary)' }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !flex !items-center !gap-[4px]">
               {t.whatIs}
             </span>
           </div>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>{t.whatIsDesc}</p>
+          <p className="!text-[length:12px] ![color:var(--text-muted)] !leading-[1.5] !m-[0]">{t.whatIsDesc}</p>
         </div>
 
         {/* Addons */}
-        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p className="!text-[length:10px] !font-[700] ![color:var(--text-secondary)] !m-[0_0_8px] !uppercase !tracking-[0.08em] !flex !items-center !gap-[6px]">
           <Puzzle size={12} />
           {t.addonsTitle}
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mb-[16px]">
           {t.addons.map(([name, desc], i) => {
             const Icon = addonIcons[i]
             return (
-              <div key={name} style={{
-                background: 'var(--glass-bg-subtle)',
-                border: '1px solid var(--glass-border-inner)',
-                borderRadius: 10, padding: '8px 10px',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+              <div className="![background:var(--glass-bg-subtle)] ![border:1px_solid_var(--glass-border-inner)] !rounded-[10px] !p-[8px_10px]" key={name}>
+                <div className="!flex !items-center !gap-[6px] !mb-[2px]">
                   <Icon size={12} style={{ flexShrink: 0, color: 'var(--text-primary)' }} />
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)' }}>{name}</span>
+                  <span className="!text-[length:11px] !font-[700] ![color:var(--text-primary)]">{name}</span>
                 </div>
-                <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: 0, lineHeight: 1.3, paddingLeft: 18 }}>{desc}</p>
+                <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[0] !leading-[1.3] !pl-[18px]">{desc}</p>
               </div>
             )
           })}
         </div>
 
         {/* Full version features */}
-        <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <p className="!text-[length:10px] !font-[700] ![color:var(--text-secondary)] !m-[0_0_8px] !uppercase !tracking-[0.08em] !flex !items-center !gap-[6px]">
           <Shield size={12} />
           {t.fullVersionTitle}
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 16 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mb-[16px]">
           {t.features.map((text, i) => {
             const Icon = featureIcons[i]
             return (
-              <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-secondary)', padding: '4px 0' }}>
+              <div className="!flex !items-center !gap-[8px] !text-[length:11px] ![color:var(--text-secondary)] !p-[4px_0]" key={text}>
                 <Icon size={13} style={{ flexShrink: 0, color: 'var(--text-faint)' }} />
                 <span>{text}</span>
               </div>
@@ -381,28 +343,15 @@ export default function DemoBanner(): React.ReactElement | null {
         </div>
 
         {/* Footer */}
-        <div style={{
-          padding: '14px 0 20px', borderTop: '1px solid var(--modal-border)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          position: 'sticky', bottom: 0,
-          background: 'var(--modal-bg)',
-          backdropFilter: 'var(--glass-blur)',
-          WebkitBackdropFilter: 'var(--glass-blur)',
-          marginTop: 'auto',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--text-faint)' }}>
+        <div className="!p-[14px_0_20px] ![border-top:1px_solid_var(--modal-border)] !flex !items-center !justify-between !sticky !bottom-[0] ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] !mt-[auto]">
+          <div className="!flex !items-center !gap-[6px] !text-[length:11px] ![color:var(--text-faint)]">
             <Github size={13} />
             <span>{t.selfHost}</span>
-            <a href="https://github.com/MelAnubis/trek" target="_blank" rel="noopener noreferrer"
-              style={{ color: 'var(--text-primary)', fontWeight: 600, textDecoration: 'none' }}>
+            <a className="![color:var(--text-primary)] !font-[600] ![text-decoration:none]" href="https://github.com/MelAnubis/trek" target="_blank" rel="noopener noreferrer">
               {t.selfHostLink}
             </a>
           </div>
-          <button onClick={() => setDismissed(true)} style={{
-            background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none',
-            borderRadius: 10, padding: '8px 20px', fontSize: 12,
-            fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-          }}>
+          <button className="![background:var(--text-primary)] ![color:var(--bg-primary)] ![border:none] !rounded-[10px] !p-[8px_20px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit]" onClick={() => setDismissed(true)}>
             {t.close}
           </button>
         </div>

@@ -32,11 +32,11 @@ const api = {
 // ── Modal ──────────────────────────────────────────────────────────────────
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2000 }}>
-      <div style={{ background:'#fff', borderRadius:12, padding:24, width:380, maxWidth:'90vw', maxHeight:'80vh', overflowY:'auto', boxShadow:'0 20px 60px rgba(0,0,0,0.2)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:18 }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'#2C2C2A' }}>{title}</span>
-          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', fontSize:18, color:'#888780', lineHeight:1 }}>×</button>
+    <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.4)] !flex !items-center !justify-center !z-[2000]">
+      <div className="![background:#fff] !rounded-[12px] !p-[24px] !w-[380px] !max-w-[90vw] !max-h-[80vh] !overflow-y-auto ![box-shadow:0_20px_60px_rgba(0,0,0,0.2)]">
+        <div className="!flex !items-center !justify-between !mb-[18px]">
+          <span className="!text-[length:14px] !font-[700] ![color:#2C2C2A]">{title}</span>
+          <button className="![background:none] ![border:none] !cursor-pointer !text-[length:18px] ![color:#888780] !leading-[1]" onClick={onClose}>×</button>
         </div>
         {children}
       </div>
@@ -46,8 +46,8 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom:12 }}>
-      <label style={{ display:'block', fontSize:10, fontWeight:700, color:'#888780', ...mono, letterSpacing:'0.5px', textTransform:'uppercase', marginBottom:4 }}>{label}</label>
+    <div className="!mb-[12px]">
+      <label className="!tracking-[0.5px] !uppercase !mb-[4px]" style={{ display:'block', fontSize:10, fontWeight:700, color:'#888780', ...mono }}>{label}</label>
       {children}
     </div>
   )
@@ -56,13 +56,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 const COLORS = ['#E85D24','#C04828','#1B6CA8','#0C447C','#3B6D11','#BA7517','#854F0B','#993556','#534AB7','#888780']
 function ColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+    <div className="!flex !flex-wrap !gap-[6px]">
       {COLORS.map(c => (
-        <div key={c} onClick={() => onChange(c)}
-          style={{ width:22, height:22, borderRadius:4, background:c, cursor:'pointer', border: value===c ? '2px solid #2C2C2A' : '2px solid transparent', transition:'border .1s' }}
+        <div className="!w-[22px] !h-[22px] !rounded-[4px] !cursor-pointer ![transition:border_.1s]" key={c} onClick={() => onChange(c)}
+          style={{ background:c, border: value===c ? '2px solid #2C2C2A' : '2px solid transparent' }}
         />
       ))}
-      <input type="color" value={value} onChange={e => onChange(e.target.value)} style={{ width:22, height:22, padding:0, border:'0.5px solid #D3D1C7', borderRadius:4, cursor:'pointer' }}/>
+      <input className="!w-[22px] !h-[22px] !p-[0] ![border:0.5px_solid_#D3D1C7] !rounded-[4px] !cursor-pointer" type="color" value={value} onChange={e => onChange(e.target.value)}/>
     </div>
   )
 }
@@ -104,7 +104,7 @@ function BikeSVGContent({ bags, byBag, scale = 1 }: { bags: Bag[]; byBag: Record
 
 function BikeSVG({ bags, byBag, onClick }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]>; onClick?: () => void }) {
   return (
-    <svg width="100%" viewBox="0 0 308 203" style={{ display:'block', cursor: onClick ? 'zoom-in' : 'default' }} onClick={onClick}>
+    <svg className="!block" width="100%" viewBox="0 0 308 203" style={{ cursor: onClick ? 'zoom-in' : 'default' }} onClick={onClick}>
       <BikeSVGContent bags={bags} byBag={byBag} scale={1}/>
     </svg>
   )
@@ -112,22 +112,22 @@ function BikeSVG({ bags, byBag, onClick }: { bags: Bag[]; byBag: Record<string, 
 
 function BikeSVGModal({ bags, byBag, onClose }: { bags: Bag[]; byBag: Record<string, {name:string;uds:number;peso:number}[]>; onClose: () => void }) {
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:3000 }} onClick={onClose}>
-      <div style={{ position:'relative', width:'min(90vw, 820px)', padding:8 }} onClick={e => e.stopPropagation()}>
-        <button onClick={onClose} style={{ position:'absolute', top:-12, right:-12, zIndex:1, background:'#fff', border:'none', borderRadius:'50%', width:28, height:28, fontSize:16, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 2px 8px rgba(0,0,0,0.3)' }}>×</button>
-        <svg width="100%" viewBox="0 0 308 203" style={{ display:'block', borderRadius:10, boxShadow:'0 8px 40px rgba(0,0,0,0.5)' }}>
+    <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.75)] !flex !items-center !justify-center !z-[3000]" onClick={onClose}>
+      <div className="!relative !w-[min(90vw,_820px)] !p-[8px]" onClick={e => e.stopPropagation()}>
+        <button className="!absolute !top-[-12px] !right-[-12px] !z-[1] ![background:#fff] ![border:none] !rounded-[50%] !w-[28px] !h-[28px] !text-[length:16px] !cursor-pointer !flex !items-center !justify-center ![box-shadow:0_2px_8px_rgba(0,0,0,0.3)]" onClick={onClose}>×</button>
+        <svg className="!block !rounded-[10px] ![box-shadow:0_8px_40px_rgba(0,0,0,0.5)]" width="100%" viewBox="0 0 308 203">
           <BikeSVGContent bags={bags} byBag={byBag} scale={3}/>
         </svg>
-        <div style={{ marginTop:10, display:'flex', flexWrap:'wrap', gap:6, justifyContent:'center' }}>
+        <div className="!mt-[10px] !flex !flex-wrap !gap-[6px] !justify-center">
           {bags.filter(b=>b.has_pos).map(b=>{
             const items = byBag[b.name]||[], total=items.reduce((s,i)=>s+i.peso,0)
             if(!items.length) return null
             return (
-              <div key={b.id} style={{ background:'rgba(255,255,255,0.12)', border:`1px solid ${b.color}66`, borderRadius:6, padding:'3px 10px', display:'flex', alignItems:'center', gap:6 }}>
-                <div style={{ width:8, height:8, borderRadius:2, background:b.color }}/>
-                <span style={{ ...mono, fontSize:11, color:'#fff', fontWeight:700 }}>{abbrevBag(b.name)}</span>
-                <span style={{ ...mono, fontSize:10, color:'rgba(255,255,255,0.7)' }}>{b.name}</span>
-                <span style={{ ...mono, fontSize:11, color:b.color, fontWeight:600 }}>{total.toFixed(3)} kg</span>
+              <div className="![background:rgba(255,255,255,0.12)] !rounded-[6px] !p-[3px_10px] !flex !items-center !gap-[6px]" key={b.id} style={{ border:`1px solid ${b.color}66` }}>
+                <div className="!w-[8px] !h-[8px] !rounded-[2px]" style={{ background:b.color }}/>
+                <span className="!text-[length:11px] ![color:#fff] !font-[700]" style={{ ...mono }}>{abbrevBag(b.name)}</span>
+                <span className="!text-[length:10px] ![color:rgba(255,255,255,0.7)]" style={{ ...mono }}>{b.name}</span>
+                <span className="!text-[length:11px] !font-[600]" style={{ ...mono, color:b.color }}>{total.toFixed(3)} kg</span>
               </div>
             )
           })}
@@ -188,14 +188,14 @@ function BagEditor({ bags, onSave, onClose }: { bags: Bag[]; onSave: (b: Bag) =>
   }
 
   return (
-    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2100 }}>
-      <div style={{ background:'#fff', borderRadius:12, width:'min(760px,95vw)', maxHeight:'90vh', display:'flex', flexDirection:'column', overflow:'hidden', boxShadow:'0 20px 60px rgba(0,0,0,0.25)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'0.5px solid #D3D1C7' }}>
-          <span style={{ fontSize:14, fontWeight:700, color:'#2C2C2A' }}>Editar posiciones de bolsas</span>
-          <button onClick={onClose} style={{ background:'none', border:'none', cursor:'pointer', fontSize:18, color:'#888780' }}>×</button>
+    <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.5)] !flex !items-center !justify-center !z-[2100]">
+      <div className="![background:#fff] !rounded-[12px] !w-[min(760px,95vw)] !max-h-[90vh] !flex !flex-col !overflow-hidden ![box-shadow:0_20px_60px_rgba(0,0,0,0.25)]">
+        <div className="!flex !items-center !justify-between !p-[14px_18px] ![border-bottom:0.5px_solid_#D3D1C7]">
+          <span className="!text-[length:14px] !font-[700] ![color:#2C2C2A]">Editar posiciones de bolsas</span>
+          <button className="![background:none] ![border:none] !cursor-pointer !text-[length:18px] ![color:#888780]" onClick={onClose}>×</button>
         </div>
-        <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
-          <div style={{ flex:1, overflow:'hidden', padding:12 }}>
+        <div className="!flex !flex-[1] !overflow-hidden">
+          <div className="!flex-[1] !overflow-hidden !p-[12px]">
             <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`}
               style={{ display:'block', userSelect:'none', cursor:dragging?'grabbing':'default', borderRadius:6 }}
               onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
@@ -210,14 +210,14 @@ function BagEditor({ bags, onSave, onClose }: { bags: Bag[]; onSave: (b: Bag) =>
                       style={{ cursor:isDrag?'grabbing':'grab' }}
                       onMouseDown={e => startDrag(e,b.id,'move')} onTouchStart={e => startDrag(e,b.id,'move')}/>
                     <clipPath id={`eclip-${b.id}`}><rect x={b.pos_x!+1} y={b.pos_y!+1} width={b.pos_w!-2} height={b.pos_h!-2} rx={Math.min(4,(b.pos_h??0)/2)}/></clipPath>
-                    <text x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*0.38} textAnchor="middle" dominantBaseline="central"
+                    <text className="!pointer-events-none" x={b.pos_x!+b.pos_w!/2} y={b.pos_y!+b.pos_h!*0.38} textAnchor="middle" dominantBaseline="central"
                       fontSize={Math.min(7,Math.max(5,(b.pos_w??0)/5))} fontFamily="DM Mono,monospace" fontWeight="700" fill="white"
-                      clipPath={`url(#eclip-${b.id})`} style={{ pointerEvents:'none' }}>
+                      clipPath={`url(#eclip-${b.id})`}>
                       {b.name.replace('Alforja ','Af.').replace('Bolsa ','').replace('Delantera','Del.').replace('Trasera','Tras.')}
                     </text>
                     {isSel && (
-                      <rect x={b.pos_x!+b.pos_w!-6} y={b.pos_y!+b.pos_h!-6} width={8} height={8} rx={2}
-                        fill="#fff" stroke={b.color} strokeWidth={1} style={{ cursor:'se-resize' }}
+                      <rect className="![cursor:se-resize]" x={b.pos_x!+b.pos_w!-6} y={b.pos_y!+b.pos_h!-6} width={8} height={8} rx={2}
+                        fill="#fff" stroke={b.color} strokeWidth={1}
                         onMouseDown={e => startDrag(e,b.id,'resize')} onTouchStart={e => startDrag(e,b.id,'resize')}/>
                     )}
                   </g>
@@ -225,21 +225,21 @@ function BagEditor({ bags, onSave, onClose }: { bags: Bag[]; onSave: (b: Bag) =>
               })}
             </svg>
           </div>
-          <div style={{ width:190, borderLeft:'0.5px solid #D3D1C7', overflowY:'auto', padding:10, flexShrink:0 }}>
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1px', color:'#888780', ...mono, textTransform:'uppercase', marginBottom:8 }}>Bolsas</div>
+          <div className="!w-[190px] ![border-left:0.5px_solid_#D3D1C7] !overflow-y-auto !p-[10px] !shrink-[0]">
+            <div className="!uppercase !mb-[8px]" style={{ fontSize:10, fontWeight:700, letterSpacing:'1px', color:'#888780', ...mono }}>Bolsas</div>
             {localBags.map(b => (
-              <div key={b.id} onClick={() => b.has_pos && setSelected(b.id)}
-                style={{ display:'flex', alignItems:'center', gap:7, padding:'6px 8px', borderRadius:6, marginBottom:4, background:selected===b.id?'#FFF0E8':'#F7F6F2', cursor:b.has_pos?'pointer':'default', border:selected===b.id?'0.5px solid #E85D24':'0.5px solid transparent' }}>
-                <div style={{ width:10, height:10, borderRadius:2, background:b.color, flexShrink:0 }}/>
-                <span style={{ fontSize:11, color:'#2C2C2A', flex:1, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{b.name}</span>
-                <button onClick={e => { e.stopPropagation(); toggleVisible(b.id) }}
-                  style={{ background:'none', border:'none', fontSize:14, cursor:'pointer', color:b.has_pos?'#E85D24':'#C2C0B6', padding:0, lineHeight:1 }}>
+              <div className="!flex !items-center !gap-[7px] !p-[6px_8px] !rounded-[6px] !mb-[4px]" key={b.id} onClick={() => b.has_pos && setSelected(b.id)}
+                style={{ background:selected===b.id?'#FFF0E8':'#F7F6F2', cursor:b.has_pos?'pointer':'default', border:selected===b.id?'0.5px solid #E85D24':'0.5px solid transparent' }}>
+                <div className="!w-[10px] !h-[10px] !rounded-[2px] !shrink-[0]" style={{ background:b.color }}/>
+                <span className="!text-[length:11px] ![color:#2C2C2A] !flex-[1] !overflow-hidden !text-ellipsis !whitespace-nowrap">{b.name}</span>
+                <button className="![background:none] ![border:none] !text-[length:14px] !cursor-pointer !p-[0] !leading-[1]" onClick={e => { e.stopPropagation(); toggleVisible(b.id) }}
+                  style={{ color:b.has_pos?'#E85D24':'#C2C0B6' }}>
                   {b.has_pos ? 'o' : '-'}
                 </button>
               </div>
             ))}
-            <div style={{ marginTop:12, padding:8, background:'#F1EFE8', borderRadius:6 }}>
-              <div style={{ fontSize:9, color:'#888780', ...mono, lineHeight:1.5 }}>
+            <div className="!mt-[12px] !p-[8px] ![background:#F1EFE8] !rounded-[6px]">
+              <div className="!leading-[1.5]" style={{ fontSize:9, color:'#888780', ...mono }}>
                 Clic para seleccionar.<br/>Arrastra para mover.<br/>Esquina blanca para redimensionar.<br/>o/- muestra u oculta la bolsa.
               </div>
             </div>
@@ -258,12 +258,12 @@ function CollapsibleSection({ sectionKey, color, label, weight, count, collapsed
   const open = !collapsed[sectionKey]
   return (
     <div>
-      <div onClick={() => onToggle(sectionKey)} style={{ display:'flex', alignItems:'center', gap:8, padding:'9px 14px', background:'#F1EFE8', borderTop:'0.5px solid #D3D1C7', borderBottom:open?'0.5px solid #D3D1C7':'none', cursor:'pointer', userSelect:'none' }}>
-        <div style={{ width:9, height:9, borderRadius:'50%', background:color, flexShrink:0 }}/>
-        <span style={{ fontSize:11, fontWeight:700, color:'#444441', ...mono, letterSpacing:'0.5px' }}>{label}</span>
+      <div className="!flex !items-center !gap-[8px] !p-[9px_14px] ![background:#F1EFE8] !cursor-pointer !select-none" onClick={() => onToggle(sectionKey)} style={{ borderTop:'0.5px solid #D3D1C7', borderBottom:open?'0.5px solid #D3D1C7':'none' }}>
+        <div className="!w-[9px] !h-[9px] !rounded-[50%] !shrink-[0]" style={{ background:color }}/>
+        <span className="!tracking-[0.5px]" style={{ fontSize:11, fontWeight:700, color:'#444441', ...mono }}>{label}</span>
         <span style={{ fontSize:10, color:'#B4B2A9', ...mono }}>({count})</span>
-        <span style={{ marginLeft:'auto', fontSize:11, ...mono, color:'#888780' }}>{weight} kg</span>
-        <span style={{ fontSize:10, color:'#B4B2A9', marginLeft:4 }}>{open ? '▲' : '▼'}</span>
+        <span className="![color:#888780]" style={{ marginLeft:'auto', fontSize:11, ...mono }}>{weight} kg</span>
+        <span className="!text-[length:10px] ![color:#B4B2A9] !ml-[4px]">{open ? '▲' : '▼'}</span>
       </div>
       {open && children}
     </div>
@@ -280,7 +280,7 @@ function ItemForm({ item, groupKeys, bagNamesC1, bagNamesC2, onSave, onDelete }:
   return (
     <>
       <Field label="Nombre"><input style={inp} value={f.name} onChange={e=>set('name',e.target.value)}/></Field>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+      <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px]">
         <Field label="Peso (kg)"><input type="number" step="0.001" min="0" style={inp} value={f.peso} onChange={e=>set('peso',parseFloat(e.target.value)||0)}/></Field>
         <Field label="Categoria">
           <select style={inp} value={f.grupo} onChange={e=>set('grupo',e.target.value)}>
@@ -288,7 +288,7 @@ function ItemForm({ item, groupKeys, bagNamesC1, bagNamesC2, onSave, onDelete }:
           </select>
         </Field>
       </div>
-      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+      <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px]">
         <Field label="Bolsa Config 1">
           <select style={inp} value={f.loc_c1} onChange={e=>set('loc_c1',e.target.value)}>
             {bagNamesC1.map(n=><option key={n}>{n}</option>)}
@@ -301,13 +301,13 @@ function ItemForm({ item, groupKeys, bagNamesC1, bagNamesC2, onSave, onDelete }:
         </Field>
       </div>
       {item.id && (
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px]">
           <Field label="Uds Config 1"><input type="number" min="0" style={inp} value={f.uds_c1} onChange={e=>set('uds_c1',parseInt(e.target.value)||0)}/></Field>
           <Field label="Uds Config 2"><input type="number" min="0" style={inp} value={f.uds_c2} onChange={e=>set('uds_c2',parseInt(e.target.value)||0)}/></Field>
         </div>
       )}
-      <div style={{ display:'flex', gap:8, marginTop:18 }}>
-        <button onClick={()=>onSave(f)} style={{ ...btn(), flex:1 }}>{item.id?'Guardar':'Crear'}</button>
+      <div className="!flex !gap-[8px] !mt-[18px]">
+        <button className="!flex-[1]" onClick={()=>onSave(f)} style={{ ...btn() }}>{item.id?'Guardar':'Crear'}</button>
         {onDelete && item.id && <button onClick={()=>onDelete!(item.id!)} style={btn('#FCEBEB','#A32D2D')}>Eliminar</button>}
       </div>
     </>
@@ -319,14 +319,14 @@ function GroupList({ groups, onEdit, onNew }: { groups: Group[]; onEdit: (g:Grou
   return (
     <>
       {groups.map(g => (
-        <div key={g.id} onClick={()=>onEdit({...g})} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'0.5px solid #D3D1C7', marginBottom:7, background:'#fff', cursor:'pointer' }}>
-          <div style={{ width:14, height:14, borderRadius:'50%', background:g.color, flexShrink:0 }}/>
-          <span style={{ fontSize:13, fontWeight:500, color:'#2C2C2A', flex:1 }}>{g.name}</span>
-          <span style={{ fontSize:10, ...mono, color:'#B4B2A9' }}>orden {g.sort_order}</span>
-          <span style={{ fontSize:12, color:'#B4B2A9' }}>›</span>
+        <div className="!flex !items-center !gap-[10px] !p-[10px_12px] !rounded-[8px] ![border:0.5px_solid_#D3D1C7] !mb-[7px] ![background:#fff] !cursor-pointer" key={g.id} onClick={()=>onEdit({...g})}>
+          <div className="!w-[14px] !h-[14px] !rounded-[50%] !shrink-[0]" style={{ background:g.color }}/>
+          <span className="!text-[length:13px] !font-[500] ![color:#2C2C2A] !flex-[1]">{g.name}</span>
+          <span className="![color:#B4B2A9]" style={{ fontSize:10, ...mono }}>orden {g.sort_order}</span>
+          <span className="!text-[length:12px] ![color:#B4B2A9]">›</span>
         </div>
       ))}
-      <button onClick={onNew} style={{ ...btn(), width:'100%', marginTop:4 }}>+ Nueva categoria</button>
+      <button className="!w-[100%] !mt-[4px]" onClick={onNew} style={{ ...btn() }}>+ Nueva categoria</button>
     </>
   )
 }
@@ -336,12 +336,12 @@ function GroupForm({ group, onSave, onDelete, onCancel }: { group: Partial<Group
   const set = (k: string, v: unknown) => setF((p: any) => ({...p,[k]:v}))
   return (
     <>
-      <button onClick={onCancel} style={{ background:'none', border:'none', color:'#888780', cursor:'pointer', fontSize:12, ...mono, marginBottom:14, padding:0 }}>← volver</button>
+      <button className="!mb-[14px] !p-[0]" onClick={onCancel} style={{ background:'none', border:'none', color:'#888780', cursor:'pointer', fontSize:12, ...mono }}>← volver</button>
       <Field label="Nombre de la categoria"><input style={inp} value={f.name} onChange={e=>set('name',e.target.value)}/></Field>
       <Field label="Color"><ColorPicker value={f.color} onChange={v=>set('color',v)}/></Field>
       <Field label="Orden (menor = primero)"><input type="number" style={inp} value={f.sort_order} onChange={e=>set('sort_order',parseInt(e.target.value)||99)}/></Field>
-      <div style={{ display:'flex', gap:8, marginTop:18 }}>
-        <button onClick={()=>onSave(f)} style={{ ...btn(), flex:1 }}>{group.id?'Guardar':'Crear'}</button>
+      <div className="!flex !gap-[8px] !mt-[18px]">
+        <button className="!flex-[1]" onClick={()=>onSave(f)} style={{ ...btn() }}>{group.id?'Guardar':'Crear'}</button>
         {onDelete && group.id && <button onClick={()=>onDelete!(group.id!)} style={btn('#FCEBEB','#A32D2D')}>Eliminar</button>}
       </div>
     </>
@@ -352,16 +352,16 @@ function GroupForm({ group, onSave, onDelete, onCancel }: { group: Partial<Group
 function BagList({ bags, onEdit, onNew }: { bags: Bag[]; onEdit: (b:Bag)=>void; onNew: ()=>void }) {
   return (
     <>
-      {bags.length===0 && <p style={{ fontSize:12, color:'#B4B2A9', ...mono, textAlign:'center', padding:12 }}>Sin bolsas</p>}
+      {bags.length===0 && <p className="!text-center !p-[12px]" style={{ fontSize:12, color:'#B4B2A9', ...mono }}>Sin bolsas</p>}
       {bags.map(b => (
-        <div key={b.id} onClick={()=>onEdit({...b})} style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:8, border:'0.5px solid #D3D1C7', marginBottom:7, background:'#fff', cursor:'pointer' }}>
-          <div style={{ width:12, height:12, borderRadius:3, background:b.color, flexShrink:0 }}/>
-          <span style={{ fontSize:13, fontWeight:500, color:'#2C2C2A', flex:1 }}>{b.name}</span>
-          {b.has_pos ? <span style={{ fontSize:10, ...mono, color:'#B4B2A9' }}>{Math.round(b.pos_x!)},{Math.round(b.pos_y!)} {Math.round(b.pos_w!)}x{Math.round(b.pos_h!)}</span> : <span style={{ fontSize:10, ...mono, color:'#C2C0B6' }}>sin pos.</span>}
-          <span style={{ fontSize:12, color:'#B4B2A9' }}>›</span>
+        <div className="!flex !items-center !gap-[10px] !p-[10px_12px] !rounded-[8px] ![border:0.5px_solid_#D3D1C7] !mb-[7px] ![background:#fff] !cursor-pointer" key={b.id} onClick={()=>onEdit({...b})}>
+          <div className="!w-[12px] !h-[12px] !rounded-[3px] !shrink-[0]" style={{ background:b.color }}/>
+          <span className="!text-[length:13px] !font-[500] ![color:#2C2C2A] !flex-[1]">{b.name}</span>
+          {b.has_pos ? <span className="![color:#B4B2A9]" style={{ fontSize:10, ...mono }}>{Math.round(b.pos_x!)},{Math.round(b.pos_y!)} {Math.round(b.pos_w!)}x{Math.round(b.pos_h!)}</span> : <span className="![color:#C2C0B6]" style={{ fontSize:10, ...mono }}>sin pos.</span>}
+          <span className="!text-[length:12px] ![color:#B4B2A9]">›</span>
         </div>
       ))}
-      <button onClick={onNew} style={{ ...btn(), width:'100%', marginTop:4 }}>+ Nueva bolsa</button>
+      <button className="!w-[100%] !mt-[4px]" onClick={onNew} style={{ ...btn() }}>+ Nueva bolsa</button>
     </>
   )
 }
@@ -371,19 +371,19 @@ function BagForm({ bag, config, onSave, onDelete, onCancel }: { bag: Partial<Bag
   const set = (k: string, v: unknown) => setF((p: any) => ({...p,[k]:v}))
   return (
     <>
-      <button onClick={onCancel} style={{ background:'none', border:'none', color:'#888780', cursor:'pointer', fontSize:12, ...mono, marginBottom:14, padding:0 }}>← volver</button>
+      <button className="!mb-[14px] !p-[0]" onClick={onCancel} style={{ background:'none', border:'none', color:'#888780', cursor:'pointer', fontSize:12, ...mono }}>← volver</button>
       <Field label="Nombre de la bolsa"><input style={inp} value={f.name} onChange={e=>set('name',e.target.value)}/></Field>
       <Field label="Color"><ColorPicker value={f.color} onChange={v=>set('color',v)}/></Field>
       <Field label="Visible en bici">
-        <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
-          <input type="checkbox" checked={!!f.has_pos} onChange={e=>set('has_pos',e.target.checked?1:0)} style={{ width:16, height:16 }}/>
-          <span style={{ fontSize:12, color:'#2C2C2A' }}>Mostrar en el dibujo</span>
+        <label className="!flex !items-center !gap-[8px] !cursor-pointer">
+          <input className="!w-[16px] !h-[16px]" type="checkbox" checked={!!f.has_pos} onChange={e=>set('has_pos',e.target.checked?1:0)}/>
+          <span className="!text-[length:12px] ![color:#2C2C2A]">Mostrar en el dibujo</span>
         </label>
       </Field>
       {!!f.has_pos && (
-        <div style={{ background:'#F7F6F2', borderRadius:8, padding:12, marginBottom:8 }}>
-          <div style={{ fontSize:10, fontWeight:700, color:'#888780', ...mono, marginBottom:10, letterSpacing:'0.5px', textTransform:'uppercase' }}>Posicion (viewBox 308x230)</div>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8 }}>
+        <div className="![background:#F7F6F2] !rounded-[8px] !p-[12px] !mb-[8px]">
+          <div className="!mb-[10px] !tracking-[0.5px] !uppercase" style={{ fontSize:10, fontWeight:700, color:'#888780', ...mono }}>Posicion (viewBox 308x230)</div>
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[8px]">
             <Field label="X"><input type="number" style={inp} value={f.pos_x??0} onChange={e=>set('pos_x',Number(e.target.value))}/></Field>
             <Field label="Y"><input type="number" style={inp} value={f.pos_y??0} onChange={e=>set('pos_y',Number(e.target.value))}/></Field>
             <Field label="Ancho"><input type="number" style={inp} value={f.pos_w??30} onChange={e=>set('pos_w',Number(e.target.value))}/></Field>
@@ -391,8 +391,8 @@ function BagForm({ bag, config, onSave, onDelete, onCancel }: { bag: Partial<Bag
           </div>
         </div>
       )}
-      <div style={{ display:'flex', gap:8, marginTop:18 }}>
-        <button onClick={()=>onSave(f)} style={{ ...btn(), flex:1 }}>{bag.id?'Guardar':'Crear bolsa'}</button>
+      <div className="!flex !gap-[8px] !mt-[18px]">
+        <button className="!flex-[1]" onClick={()=>onSave(f)} style={{ ...btn() }}>{bag.id?'Guardar':'Crear bolsa'}</button>
         {onDelete && bag.id && <button onClick={()=>onDelete!(bag.id!)} style={btn('#FCEBEB','#A32D2D')}>Eliminar</button>}
       </div>
     </>
@@ -571,18 +571,18 @@ export default function BikepackApp() {
   const ItemRow = ({ it }: { it: Item }) => {
     const qty=getQty(it), loc=getLoc(it), color=groupMap[it.grupo]||'#888780'
     return (
-      <div style={{ display:'grid', gridTemplateColumns:'5px 1fr 56px 60px', alignItems:'center', borderBottom:'0.5px solid #E8E6E0', background:qty>0?'#fff':'#FAFAF8' }}>
-        <div style={{ background:color, opacity:qty>0?0.6:0.12, alignSelf:'stretch' }}/>
-        <div style={{ padding:'6px 8px 6px 10px', cursor:'pointer' }} onClick={()=>setEditItem({...it})}>
-          <div style={{ fontSize:13, fontWeight:500, color:qty>0?'#2C2C2A':'#B4B2A9', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{it.name}</div>
-          <div style={{ fontSize:10, color:'#C2C0B6', ...mono, marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{loc} - {it.peso} kg/u</div>
+      <div className="!grid ![grid-template-columns:5px_1fr_56px_60px] !items-center ![border-bottom:0.5px_solid_#E8E6E0]" style={{ background:qty>0?'#fff':'#FAFAF8' }}>
+        <div className="!self-stretch" style={{ background:color, opacity:qty>0?0.6:0.12 }}/>
+        <div className="!p-[6px_8px_6px_10px] !cursor-pointer" onClick={()=>setEditItem({...it})}>
+          <div className="!text-[length:13px] !font-[500] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color:qty>0?'#2C2C2A':'#B4B2A9' }}>{it.name}</div>
+          <div className="!mt-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ fontSize:10, color:'#C2C0B6', ...mono }}>{loc} - {it.peso} kg/u</div>
         </div>
-        <div style={{ display:'flex', alignItems:'center', background:'#F1EFE8', border:'0.5px solid #D3D1C7', borderRadius:5, overflow:'hidden', margin:'6px 4px' }}>
-          <button onClick={()=>changeQty(it,-1)} style={{ background:'none',border:'none',color:'#888780',padding:'4px 6px',fontSize:14,...mono,lineHeight:1,cursor:'pointer' }}>-</button>
+        <div className="!flex !items-center ![background:#F1EFE8] ![border:0.5px_solid_#D3D1C7] !rounded-[5px] !overflow-hidden !m-[6px_4px]">
+          <button className="!leading-[1] !cursor-pointer" onClick={()=>changeQty(it,-1)} style={{ background:'none', border:'none', color:'#888780', padding:'4px 6px', fontSize:14, ...mono }}>-</button>
           <span style={{ fontSize:12,fontWeight:600,minWidth:16,textAlign:'center',...mono,color:qty>0?'#E85D24':'#C2C0B6' }}>{qty}</span>
-          <button onClick={()=>changeQty(it,+1)} style={{ background:'none',border:'none',color:'#888780',padding:'4px 6px',fontSize:14,...mono,lineHeight:1,cursor:'pointer' }}>+</button>
+          <button className="!leading-[1] !cursor-pointer" onClick={()=>changeQty(it,+1)} style={{ background:'none', border:'none', color:'#888780', padding:'4px 6px', fontSize:14, ...mono }}>+</button>
         </div>
-        <div style={{ textAlign:'right', padding:'6px 10px 6px 2px' }}>
+        <div className="!text-right !p-[6px_10px_6px_2px]">
           <div style={{ fontSize:12,fontWeight:500,color:'#2C2C2A',...mono }}>{(it.peso*qty).toFixed(3)}</div>
           <div style={{ fontSize:10,color:'#B4B2A9',...mono }}>{it.peso.toFixed(3)}</div>
         </div>
@@ -609,113 +609,113 @@ export default function BikepackApp() {
     return filteredItems.map(it=><ItemRow key={it.id} it={it}/>)
   }
 
-  if (loading) return <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:300}}><span style={{...mono,fontSize:13,color:'#888780'}}>Cargando...</span></div>
+  if (loading) return <div className="!flex !items-center !justify-center !h-[300px]"><span className="!text-[length:13px] ![color:#888780]" style={{ ...mono }}>Cargando...</span></div>
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden', background:'#F7F6F2' }}>
+    <div className="!flex !flex-col !h-[100%] !overflow-hidden ![background:#F7F6F2]">
 
       {/* Config tabs */}
-      <div style={{ display:'flex', background:'#F1EFE8', borderBottom:'0.5px solid #D3D1C7', flexShrink:0 }}>
+      <div className="!flex ![background:#F1EFE8] ![border-bottom:0.5px_solid_#D3D1C7] !shrink-[0]">
         {([0,1] as const).map(i => (
-          <button key={i} onClick={()=>setConfig(i)} style={{ fontSize:13, fontWeight:500, color:config===i?'#E85D24':'#888780', padding:'9px 20px', cursor:'pointer', background:'none', border:'none', borderBottom:config===i?'2px solid #E85D24':'2px solid transparent', fontFamily:'Syne,sans-serif' }}>
+          <button className="!text-[length:13px] !font-[500] !p-[9px_20px] !cursor-pointer ![background:none] ![font-family:Syne,sans-serif]" key={i} onClick={()=>setConfig(i)} style={{ color:config===i?'#E85D24':'#888780', border:'none', borderBottom:config===i?'2px solid #E85D24':'2px solid transparent' }}>
             {i===0?'Config 1 - Alforjas':'Config 2 - Bikepacking'}
           </button>
         ))}
-        <div style={{ marginLeft:'auto', display:'flex', alignItems:'center', gap:6, padding:'0 12px' }}>
-          <button onClick={()=>setShowGroups(true)} style={{ ...mono, fontSize:11, color:'#3B6D11', background:'#EAF3DE', border:'0.5px solid #97C459', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>Categorias</button>
-          <button onClick={()=>setShowBags(true)} style={{ ...mono, fontSize:11, color:'#534AB7', background:'#EEEDFE', border:'0.5px solid #AFA9EC', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>Bolsas</button>
-          <button onClick={()=>printList(items,groups,configBags,byGroup,byBag,total,config,getQty,getLoc,groupMap)} style={{ ...mono, fontSize:11, color:'#888780', background:'#F1EFE8', border:'0.5px solid #C2C0B6', borderRadius:5, padding:'4px 10px', cursor:'pointer' }}>🖨️</button>
-          <span style={{ background:'#E85D24', color:'#fff', ...mono, fontSize:12, fontWeight:600, padding:'4px 12px', borderRadius:20 }}>{total.toFixed(3)} kg</span>
+        <div className="!ml-[auto] !flex !items-center !gap-[6px] !p-[0_12px]">
+          <button className="!text-[length:11px] ![color:#3B6D11] ![background:#EAF3DE] ![border:0.5px_solid_#97C459] !rounded-[5px] !p-[4px_10px] !cursor-pointer" onClick={()=>setShowGroups(true)} style={{ ...mono }}>Categorias</button>
+          <button className="!text-[length:11px] ![color:#534AB7] ![background:#EEEDFE] ![border:0.5px_solid_#AFA9EC] !rounded-[5px] !p-[4px_10px] !cursor-pointer" onClick={()=>setShowBags(true)} style={{ ...mono }}>Bolsas</button>
+          <button className="!text-[length:11px] ![color:#888780] ![background:#F1EFE8] ![border:0.5px_solid_#C2C0B6] !rounded-[5px] !p-[4px_10px] !cursor-pointer" onClick={()=>printList(items,groups,configBags,byGroup,byBag,total,config,getQty,getLoc,groupMap)} style={{ ...mono }}>🖨️</button>
+          <span className="!text-[length:12px] !font-[600] !p-[4px_12px] !rounded-[20px]" style={{ background:'#E85D24', color:'#fff', ...mono }}>{total.toFixed(3)} kg</span>
         </div>
       </div>
 
       {/* Panels */}
-      <div style={{ display:'flex', flex:1, overflow:'hidden' }}>
+      <div className="!flex !flex-[1] !overflow-hidden">
 
         {/* Left panel */}
-        <div style={{ display:'flex', flexDirection:'column', overflow:'hidden', background:'#fff', width:`${leftWidth}%`, flexShrink:0 }}>
-          <div style={{ padding:'10px 12px 8px', borderBottom:'0.5px solid #E8E6E0', background:'#FAFAF8', flexShrink:0 }}>
-            <input placeholder="Buscar elemento, categoria, bolsa..." value={search} onChange={e=>setSearch(e.target.value)} style={{ ...inp, marginBottom:7 }}/>
-            <div style={{ display:'flex', alignItems:'center', gap:5 }}>
-              <span style={{ fontSize:10, color:'#C2C0B6', ...mono, flexShrink:0 }}>orden:</span>
+        <div className="!flex !flex-col !overflow-hidden ![background:#fff] !shrink-[0]" style={{ width:`${leftWidth}%` }}>
+          <div className="!p-[10px_12px_8px] ![border-bottom:0.5px_solid_#E8E6E0] ![background:#FAFAF8] !shrink-[0]">
+            <input className="!mb-[7px]" placeholder="Buscar elemento, categoria, bolsa..." value={search} onChange={e=>setSearch(e.target.value)} style={{ ...inp }}/>
+            <div className="!flex !items-center !gap-[5px]">
+              <span className="!shrink-[0]" style={{ fontSize:10, color:'#C2C0B6', ...mono }}>orden:</span>
               {(['grupo','bolsa','nombre','peso'] as const).map(v=>(
                 <button key={v} onClick={()=>setSortBy(v)} style={pill(sortBy===v)}>{v.charAt(0).toUpperCase()+v.slice(1)}</button>
               ))}
               {search && <span style={{ marginLeft:'auto', fontSize:10, color:'#B4B2A9', ...mono }}>{filteredItems.length}</span>}
             </div>
           </div>
-          <div style={{ flex:1, overflowY:'auto' }}>
+          <div className="!flex-[1] !overflow-y-auto">
             {filteredItems.length===0
               ? <p style={{ textAlign:'center', padding:24, fontSize:12, color:'#B4B2A9', ...mono }}>Sin resultados</p>
               : renderList()}
           </div>
-          <div style={{ padding:'10px 12px', borderTop:'0.5px solid #D3D1C7', background:'#F7F6F2', flexShrink:0 }}>
-            <button onClick={()=>setEditItem({name:'',peso:0.1,grupo:groupKeys[0]||'',loc_c1:bagNamesC1[0]||'',loc_c2:bagNamesC2[0]||''})}
-              style={{ ...btn(), width:'100%', padding:'9px' }}>+ Nuevo elemento</button>
+          <div className="!p-[10px_12px] ![border-top:0.5px_solid_#D3D1C7] ![background:#F7F6F2] !shrink-[0]">
+            <button className="!w-[100%] !p-[9px]" onClick={()=>setEditItem({name:'',peso:0.1,grupo:groupKeys[0]||'',loc_c1:bagNamesC1[0]||'',loc_c2:bagNamesC2[0]||''})}
+              style={{ ...btn() }}>+ Nuevo elemento</button>
           </div>
         </div>
 
         {/* Resize handle */}
-        <div onMouseDown={startResize} style={{ background:'transparent', cursor:'col-resize', display:'flex', alignItems:'center', justifyContent:'center', userSelect:'none', zIndex:10, flexShrink:0, width:6 }}>
-          <div className="trek-h-background-2c9f8f" style={{ width:3, height:48, background:'#D3D1C7', borderRadius:2, transition:'background .15s' }}/>
+        <div className="![background:transparent] ![cursor:col-resize] !flex !items-center !justify-center !select-none !z-[10] !shrink-[0] !w-[6px]" onMouseDown={startResize}>
+          <div className="trek-h-background-2c9f8f !w-[3px] !h-[48px] ![background:#D3D1C7] !rounded-[2px] ![transition:background_.15s]"/>
         </div>
 
         {/* Right panel */}
-        <div style={{ overflowY:'auto', background:'#F7F6F2', flex:1, minWidth:0 }}>
-          <div style={{ padding:'12px 14px 8px', background:'#fff', borderBottom:'0.5px solid #D3D1C7' }}>
-            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+        <div className="!overflow-y-auto ![background:#F7F6F2] !flex-[1] !min-w-[0]">
+          <div className="!p-[12px_14px_8px] ![background:#fff] ![border-bottom:0.5px_solid_#D3D1C7]">
+            <div className="!flex !items-center !justify-between !mb-[8px]">
               <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#B4B2A9', ...mono }}>distribucion visual</div>
-              <button onClick={()=>setShowBagEditor(true)} style={{ ...mono, fontSize:10, color:'#E85D24', background:'#FFF0E8', border:'0.5px solid #E85D24', borderRadius:4, padding:'3px 8px', cursor:'pointer' }}>Editar posiciones</button>
+              <button className="!text-[length:10px] ![color:#E85D24] ![background:#FFF0E8] ![border:0.5px_solid_#E85D24] !rounded-[4px] !p-[3px_8px] !cursor-pointer" onClick={()=>setShowBagEditor(true)} style={{ ...mono }}>Editar posiciones</button>
             </div>
             <BikeSVG bags={configBags} byBag={byBag} onClick={()=>setShowBikeZoom(true)}/>
           </div>
 
-          <div style={{ padding:'10px 14px 0' }}>
-            <div style={{ fontSize:10, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#B4B2A9', ...mono, marginBottom:8 }}>bolsas activas</div>
+          <div className="!p-[10px_14px_0]">
+            <div className="!mb-[8px]" style={{ fontSize:10, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#B4B2A9', ...mono }}>bolsas activas</div>
           </div>
-          <div style={{ padding:'0 14px 12px' }}>
+          <div className="!p-[0_14px_12px]">
             {Object.entries(byBag).sort((a,b)=>b[1].reduce((s,i)=>s+i.peso,0)-a[1].reduce((s,i)=>s+i.peso,0)).map(([name,bi])=>{
               const t=bi.reduce((s,i)=>s+i.peso,0), color=configBags.find(b=>b.name===name)?.color||'#888780'
               return (
-                <div key={name} style={{ border:'0.5px solid #D3D1C7', borderRadius:8, marginBottom:7, overflow:'hidden', background:'#fff' }}>
-                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'6px 10px', background:'#F7F6F2' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:7 }}><div style={{ width:7,height:7,borderRadius:2,background:color }}/><span style={{ fontSize:11,fontWeight:700,color:'#2C2C2A' }}>{name}</span></div>
+                <div className="![border:0.5px_solid_#D3D1C7] !rounded-[8px] !mb-[7px] !overflow-hidden ![background:#fff]" key={name}>
+                  <div className="!flex !items-center !justify-between !p-[6px_10px] ![background:#F7F6F2]">
+                    <div className="!flex !items-center !gap-[7px]"><div className="!w-[7px] !h-[7px] !rounded-[2px]" style={{ background:color }}/><span className="!text-[length:11px] !font-[700] ![color:#2C2C2A]">{name}</span></div>
                     <span style={{ fontSize:11,fontWeight:600,color:'#E85D24',...mono }}>{t.toFixed(3)} kg</span>
                   </div>
-                  <div style={{ padding:'4px 10px 7px' }}>
+                  <div className="!p-[4px_10px_7px]">
                     {bi.map((item,idx)=>(
-                      <div key={idx} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'1px 0', ...mono, color:'#888780' }}>
+                      <div className="![color:#888780]" key={idx} style={{ display:'flex', justifyContent:'space-between', fontSize:11, padding:'1px 0', ...mono }}>
                         <span>{item.uds>1?`${item.uds}x `:''}{item.name}</span>
-                        <span style={{ color:'#B4B2A9' }}>{item.peso.toFixed(3)}</span>
+                        <span className="![color:#B4B2A9]">{item.peso.toFixed(3)}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )
             })}
-            {Object.keys(byBag).length===0 && <p style={{ fontSize:12,color:'#B4B2A9',...mono,textAlign:'center',padding:16 }}>Sin elementos activos</p>}
+            {Object.keys(byBag).length===0 && <p className="!text-center !p-[16px]" style={{ fontSize:12, color:'#B4B2A9', ...mono }}>Sin elementos activos</p>}
           </div>
 
-          <div style={{ padding:'8px 14px 0', borderTop:'0.5px solid #D3D1C7' }}>
-            <div style={{ fontSize:10,fontWeight:700,letterSpacing:'1.5px',textTransform:'uppercase',color:'#B4B2A9',...mono,marginBottom:8 }}>peso por categoria</div>
+          <div className="!p-[8px_14px_0] ![border-top:0.5px_solid_#D3D1C7]">
+            <div className="!mb-[8px]" style={{ fontSize:10, fontWeight:700, letterSpacing:'1.5px', textTransform:'uppercase', color:'#B4B2A9', ...mono }}>peso por categoria</div>
           </div>
-          <div style={{ padding:'0 14px 24px' }}>
+          <div className="!p-[0_14px_24px]">
             {groupKeys.map(grp=>{
               const w=byGroup[grp]||0
               return (
-                <div key={grp} style={{ marginBottom:9 }}>
+                <div className="!mb-[9px]" key={grp}>
                   <div style={{ display:'flex', justifyContent:'space-between', marginBottom:3, fontSize:11, ...mono }}>
-                    <span style={{ color:'#888780' }}>{grp}</span><span style={{ color:'#B4B2A9' }}>{w.toFixed(3)} kg</span>
+                    <span className="![color:#888780]">{grp}</span><span className="![color:#B4B2A9]">{w.toFixed(3)} kg</span>
                   </div>
-                  <div style={{ height:5, background:'#F1EFE8', borderRadius:3, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${(w/maxGW)*100}%`, background:groupMap[grp]||'#888', borderRadius:3, transition:'width .4s' }}/>
+                  <div className="!h-[5px] ![background:#F1EFE8] !rounded-[3px] !overflow-hidden">
+                    <div className="!h-[100%] !rounded-[3px] ![transition:width_.4s]" style={{ width:`${(w/maxGW)*100}%`, background:groupMap[grp]||'#888' }}/>
                   </div>
                 </div>
               )
             })}
-            <div style={{ marginTop:14,paddingTop:10,borderTop:'0.5px solid #D3D1C7',display:'flex',justifyContent:'space-between',...mono,fontSize:12 }}>
-              <span style={{ color:'#888780',fontWeight:500 }}>Total</span>
-              <span style={{ color:'#E85D24',fontWeight:700 }}>{total.toFixed(3)} kg</span>
+            <div className="!text-[length:12px]" style={{ marginTop:14, paddingTop:10, borderTop:'0.5px solid #D3D1C7', display:'flex', justifyContent:'space-between', ...mono }}>
+              <span className="![color:#888780] !font-[500]">Total</span>
+              <span className="![color:#E85D24] !font-[700]">{total.toFixed(3)} kg</span>
             </div>
           </div>
         </div>

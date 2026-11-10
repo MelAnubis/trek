@@ -49,39 +49,27 @@ export function DayReorderPopup({ days, t, locale, onReorder, onAddDay, onClose 
   return (
     <>
       {/* outside-click catcher */}
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 250 }} />
-      <div
+      <div className="!fixed !inset-[0] !z-[250]" onClick={onClose} />
+      <div className="!absolute !top-[calc(100%_+_6px)] !right-[0] !z-[251] !w-[290px] !max-h-[360px] !flex !flex-col ![background:var(--bg-card,_white)] ![color:var(--text-primary)] ![border:1px_solid_var(--border-faint)] !rounded-[12px] ![box-shadow:0_12px_32px_rgba(0,0,0,0.18)] !overflow-hidden"
         onClick={e => e.stopPropagation()}
-        style={{
-          position: 'absolute', top: 'calc(100% + 6px)', right: 0, zIndex: 251,
-          width: 290, maxHeight: 360, display: 'flex', flexDirection: 'column',
-          background: 'var(--bg-card, white)', color: 'var(--text-primary)',
-          border: '1px solid var(--border-faint)', borderRadius: 12,
-          boxShadow: '0 12px 32px rgba(0,0,0,0.18)', overflow: 'hidden',
-        }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 12px 8px' }}>
-          <span style={{ fontSize: 12.5, fontWeight: 600 }}>{t('dayplan.reorderTitle')}</span>
+        <div className="!flex !items-center !justify-between !gap-[8px] !p-[11px_12px_8px]">
+          <span className="!text-[length:12.5px] !font-[600]">{t('dayplan.reorderTitle')}</span>
           <button
             onClick={onAddDay}
-            className="bg-accent text-accent-text"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px',
-              borderRadius: 7, border: 'none', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            className="bg-accent text-accent-text !flex !items-center !gap-[4px] !p-[4px_9px] !rounded-[7px] ![border:none] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]"
           >
             <Plus size={13} strokeWidth={2} />
             {t('dayplan.addDay')}
           </button>
         </div>
-        <div style={{ padding: '0 12px 8px', fontSize: 10.5, color: 'var(--text-faint)', lineHeight: 1.35 }}>
+        <div className="!p-[0_12px_8px] !text-[length:10.5px] ![color:var(--text-faint)] !leading-[1.35]">
           {t('dayplan.reorderHint')}
         </div>
 
-        <div className="scroll-container" style={{ overflowY: 'auto', padding: '0 8px 8px', minHeight: 0 }}>
+        <div className="scroll-container !overflow-y-auto !p-[0_8px_8px] !min-h-[0]">
           {ordered.map((day, index) => (
-            <div
+            <div className="!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[8px] !mt-[2px]"
               key={day.id}
               draggable
               onDragStart={() => setDragIndex(index)}
@@ -92,24 +80,13 @@ export function DayReorderPopup({ days, t, locale, onReorder, onAddDay, onClose 
                 if (dragIndex !== null && dragIndex !== index) move(dragIndex, index)
                 setDragIndex(null); setOverIndex(null)
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px',
-                borderRadius: 8, marginTop: 2,
-                background: overIndex === index && dragIndex !== null && dragIndex !== index ? 'var(--bg-hover)' : 'transparent',
-                opacity: dragIndex === index ? 0.5 : 1,
-                outline: overIndex === index && dragIndex !== null && dragIndex !== index ? '2px dashed var(--border-primary)' : 'none',
-                outlineOffset: -2,
-              }}
+              style={{ background: overIndex === index && dragIndex !== null && dragIndex !== index ? 'var(--bg-hover)' : 'transparent', opacity: dragIndex === index ? 0.5 : 1, outline: overIndex === index && dragIndex !== null && dragIndex !== index ? '2px dashed var(--border-primary)' : 'none', outlineOffset: -2 }}
             >
               <GripVertical size={14} strokeWidth={1.8} style={{ cursor: 'grab', color: 'var(--text-faint)', flexShrink: 0 }} />
-              <span style={{
-                flexShrink: 0, width: 22, height: 22, borderRadius: '50%',
-                background: 'var(--bg-hover)', color: 'var(--text-muted)',
-                display: 'grid', placeItems: 'center', fontSize: 10.5, fontWeight: 700,
-              }}>
+              <span className="!shrink-[0] !w-[22px] !h-[22px] !rounded-[50%] ![background:var(--bg-hover)] ![color:var(--text-muted)] !grid ![place-items:center] !text-[length:10.5px] !font-[700]">
                 {index + 1}
               </span>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span className="!flex-[1] !min-w-[0] !text-[length:12.5px] !font-[500] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                 {label(day, index)}
               </span>
               <button

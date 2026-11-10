@@ -106,16 +106,12 @@ export default function CustomSelect({
         onMouseEnter={e => { if (!disabled) e.currentTarget.style.borderColor = 'var(--text-faint)' }}
         onMouseLeave={e => { if (!open) e.currentTarget.style.borderColor = 'var(--border-primary)' }}
       >
-        {selected?.icon && <span style={{ display: 'flex', flexShrink: 0 }}>{selected.icon}</span>}
-        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: selected ? 'var(--text-primary)' : 'var(--text-faint)' }}>
+        {selected?.icon && <span className="!flex !shrink-[0]">{selected.icon}</span>}
+        <span className="!flex-[1] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color: selected ? 'var(--text-primary)' : 'var(--text-faint)' }}>
           {selected ? selected.label : placeholder}
         </span>
         {selected?.badge && (
-          <span style={{
-            flexShrink: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
-            background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 999,
-            letterSpacing: '0.01em',
-          }}>{selected.badge}</span>
+          <span className="!shrink-[0] !text-[length:10px] !font-[600] ![color:var(--text-muted)] ![background:var(--bg-tertiary)] !p-[2px_7px] !rounded-[999px] !tracking-[0.01em]">{selected.badge}</span>
         )}
         <ChevronDown size={sm ? 12 : 14} style={{ flexShrink: 0, color: 'var(--text-faint)', transition: 'transform 200ms cubic-bezier(0.23,1,0.32,1)', transform: open ? 'rotate(180deg)' : 'none' }} />
       </button>
@@ -147,7 +143,7 @@ export default function CustomSelect({
         }}>
           {/* Search */}
           {searchable && (
-            <div style={{ padding: '6px 6px 2px' }}>
+            <div className="!p-[6px_6px_2px]">
               <input
                 ref={searchRef}
                 type="text"
@@ -165,43 +161,29 @@ export default function CustomSelect({
           )}
 
           {/* Options */}
-          <div style={{ maxHeight: 220, overflowY: 'auto', padding: '4px' }}>
+          <div className="!max-h-[220px] !overflow-y-auto !p-[4px]">
             {filtered.length === 0 ? (
-              <div style={{ padding: '10px 12px', fontSize: 12, color: 'var(--text-faint)', textAlign: 'center' }}>—</div>
+              <div className="!p-[10px_12px] !text-[length:12px] ![color:var(--text-faint)] !text-center">—</div>
             ) : (
               filtered.map(option => {
                 if (option.isHeader) {
                   return (
-                    <div key={option.value} style={{
-                      padding: '5px 10px', fontSize: 10, fontWeight: 700, color: 'var(--text-faint)',
-                      textTransform: 'uppercase', letterSpacing: '0.03em',
-                      background: 'var(--bg-tertiary)', borderRadius: 4, margin: '2px 0',
-                    }}>
+                    <div className="!p-[5px_10px] !text-[length:10px] !font-[700] ![color:var(--text-faint)] !uppercase !tracking-[0.03em] ![background:var(--bg-tertiary)] !rounded-[4px] !m-[2px_0]" key={option.value}>
                       {option.label}
                     </div>
                   )
                 }
                 const isSelected = option.value === value
                 return (
-                  <button className="trek-hover"
+                  <button className="trek-hover !w-[100%] !flex !items-center !gap-[8px] !p-[7px_10px] !rounded-[6px] ![color:var(--text-primary)] !text-[length:13px] ![font-family:inherit] !cursor-pointer !text-left ![transition:background_0.1s]"
                     key={option.value}
                     type="button"
                     onClick={() => { onChange(option.value); setOpen(false); setSearch('') }}
-                    style={{
-                      width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-                      padding: '7px 10px', borderRadius: 6,
-                      border: 'none', background: isSelected ? 'var(--bg-hover)' : 'transparent',
-                      color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit',
-                      cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
-                    }} >
-                    {option.icon && <span style={{ display: 'flex', flexShrink: 0 }}>{option.icon}</span>}
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
+                    style={{ border: 'none', background: isSelected ? 'var(--bg-hover)' : 'transparent' }} >
+                    {option.icon && <span className="!flex !shrink-[0]">{option.icon}</span>}
+                    <span className="!flex-[1] !overflow-hidden !text-ellipsis !whitespace-nowrap">{option.label}</span>
                     {option.badge && (
-                      <span style={{
-                        flexShrink: 0, fontSize: 10, fontWeight: 600, color: 'var(--text-muted)',
-                        background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 999,
-                        letterSpacing: '0.01em',
-                      }}>{option.badge}</span>
+                      <span className="!shrink-[0] !text-[length:10px] !font-[600] ![color:var(--text-muted)] ![background:var(--bg-tertiary)] !p-[2px_7px] !rounded-[999px] !tracking-[0.01em]">{option.badge}</span>
                     )}
                     {isSelected && <Check size={13} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />}
                   </button>

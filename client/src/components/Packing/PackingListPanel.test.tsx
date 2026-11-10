@@ -533,7 +533,7 @@ describe('PackingListPanel', () => {
 
     // Close by clicking backdrop (covers the onClick on the backdrop div)
     const modalTitle = screen.getByText('Import Packing List');
-    const modalContent = modalTitle.closest('div[style*="width: 420"]');
+    const modalContent = modalTitle.closest('div[style*="width: 420"], div[class*="!w-[420"]');
     // Dismiss via Cancel button
     await user.click(screen.getByText('Cancel'));
     await waitFor(() => expect(screen.queryByText('Import Packing List')).not.toBeInTheDocument());
@@ -906,7 +906,7 @@ describe('PackingListPanel', () => {
 
     // Click on the backdrop (the outer div that closes the modal)
     // The backdrop div has no specific identifier so we use the document.body portal
-    const backdrop = document.querySelector('[style*="backdrop-filter"]') as HTMLElement;
+    const backdrop = document.querySelector('[style*="backdrop-filter"], [class*="backdrop-filter"]') as HTMLElement;
     expect(backdrop).toBeTruthy();
     fireEvent.click(backdrop!);
 
@@ -1281,7 +1281,7 @@ describe('PackingListPanel', () => {
     // bag name <span> → header row <div> → outer BagCard <div> → querySelector for dashed button
     const bagNameEl = screen.getAllByText('Day Pack')[0];
     const bagCardOuter = bagNameEl.parentElement!.parentElement!;
-    const bagCardPlusBtn = bagCardOuter.querySelector('button[style*="dashed"]') as HTMLElement;
+    const bagCardPlusBtn = bagCardOuter.querySelector('button[style*="dashed"], button[class*="dashed"]') as HTMLElement;
     expect(bagCardPlusBtn).toBeTruthy();
     await user.click(bagCardPlusBtn);
 
@@ -1324,7 +1324,7 @@ describe('PackingListPanel', () => {
     // bag name <span> → header row <div> → outer BagCard <div> → find dashed button
     const bagNameEl = screen.getAllByText('Weekend Bag')[0];
     const bagCardOuter = bagNameEl.parentElement!.parentElement!;
-    const bagCardPlusBtn = bagCardOuter.querySelector('button[style*="dashed"]') as HTMLElement;
+    const bagCardPlusBtn = bagCardOuter.querySelector('button[style*="dashed"], button[class*="dashed"]') as HTMLElement;
     expect(bagCardPlusBtn).toBeTruthy();
     fireEvent.click(bagCardPlusBtn);
 

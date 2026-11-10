@@ -651,25 +651,18 @@ export const MapView = memo(function MapView({
         </Tooltip>
         {onAssignTrackDay && (
           <Popup>
-            <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 6 }}>{track.track_name}</div>
+            <div className="!text-[length:12px] !font-[600] !mb-[6px]">{track.track_name}</div>
             {selectedDayId != null && track.day_id !== selectedDayId && (
-              <button
+              <button className="!text-[length:11px] !p-[4px_8px] !rounded-[6px] ![border:none] ![color:#fff] !cursor-pointer"
                 onClick={() => onAssignTrackDay(track.id, selectedDayId)}
-                style={{
-                  fontSize: 11, padding: '4px 8px', borderRadius: 6, border: 'none',
-                  background: track.color || '#3b82f6', color: '#fff', cursor: 'pointer',
-                }}
+                style={{ background: track.color || '#3b82f6' }}
               >
                 Asignar día seleccionado a este track
               </button>
             )}
             {track.day_id != null && (
-              <button
+              <button className="!text-[length:11px] !p-[4px_8px] !rounded-[6px] ![border:none] ![background:transparent] ![color:#64748b] !cursor-pointer !mt-[4px]"
                 onClick={() => onAssignTrackDay(track.id, null)}
-                style={{
-                  fontSize: 11, padding: '4px 8px', borderRadius: 6, border: 'none',
-                  background: 'transparent', color: '#64748b', cursor: 'pointer', marginTop: 4,
-                }}
               >
                 Quitar asignación de día
               </button>
@@ -799,31 +792,18 @@ export const MapView = memo(function MapView({
     </div>
 
     {TooltipOverlay && (
-      <div data-testid="tooltip" style={{
-        position: 'fixed',
-        left: tooltipPos.x + 14,
-        top: tooltipPos.y - 10,
-        zIndex: 9999,
-        pointerEvents: 'none',
-        background: 'white',
-        borderRadius: 8,
-        boxShadow: '0 2px 10px rgba(0,0,0,0.15)',
-        padding: '6px 10px',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-        maxWidth: 220,
-        whiteSpace: 'nowrap',
-      }}>
-        <div style={{ fontWeight: 600, fontSize: 12, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+      <div className="!fixed !z-[9999] !pointer-events-none ![background:white] !rounded-[8px] ![box-shadow:0_2px_10px_rgba(0,0,0,0.15)] !p-[6px_10px] !max-w-[220px] !whitespace-nowrap" data-testid="tooltip" style={{ left: tooltipPos.x + 14, top: tooltipPos.y - 10, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
+        <div className="!font-[600] !text-[length:12px] ![color:#111827] !overflow-hidden !text-ellipsis">
           {hoveredPlace.name}
         </div>
         {hoveredPlace.category_name && CatIcon && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 1 }}>
+          <div className="!flex !items-center !gap-[3px] !mt-[1px]">
             <CatIcon size={10} style={{ color: hoveredPlace.category_color || '#6b7280', flexShrink: 0 }} />
-            <span style={{ fontSize: 11, color: '#6b7280' }}>{hoveredPlace.category_name}</span>
+            <span className="!text-[length:11px] ![color:#6b7280]">{hoveredPlace.category_name}</span>
           </div>
         )}
         {hoveredPlace.address && (
-          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="!text-[length:11px] ![color:#9ca3af] !mt-[2px] !overflow-hidden !text-ellipsis">
             {hoveredPlace.address}
           </div>
         )}

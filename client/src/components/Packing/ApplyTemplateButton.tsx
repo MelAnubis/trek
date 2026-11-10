@@ -69,25 +69,14 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
       </button>
       {open && (
         <div
-          className="trek-menu-enter"
-          style={{
-            position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 50,
-            background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-            boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220,
-            transformOrigin: 'top right',
-          }}
+          className="trek-menu-enter !absolute !right-[0] !top-[100%] !mt-[6px] !z-[50] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[220px] ![transform-origin:top_right]"
         >
           {templates.map(tmpl => (
-            <button className="trek-hover-tertiary" key={tmpl.id} onClick={() => handleApply(tmpl.id)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'transparent', fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-              }} >
+            <button className="trek-hover-tertiary !flex !items-center !gap-[8px] !w-[100%] !p-[8px_12px] !rounded-[8px] ![border:none] !cursor-pointer ![background:transparent] ![font-family:inherit] !text-[length:12px] ![color:var(--text-primary)]" key={tmpl.id} onClick={() => handleApply(tmpl.id)} >
               <Package size={13} style={{ color: 'var(--text-faint)' }} />
-              <div style={{ flex: 1, textAlign: 'left' }}>
-                <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+              <div className="!flex-[1] !text-left">
+                <div className="!font-[600]">{tmpl.name}</div>
+                <div className="!text-[length:10px] ![color:var(--text-faint)]">
                   {tmpl.item_count} {t('admin.packingTemplates.items')}
                 </div>
               </div>

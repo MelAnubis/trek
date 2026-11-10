@@ -89,10 +89,10 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
   }
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 200, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="!fixed !inset-[0] ![background:#0a0a14] !z-[200] !flex !flex-col !overflow-hidden">
 
       {/* Map preview */}
-      <div className="nav-summary-dark-tiles" style={{ flex: '0 0 220px', position: 'relative' }}>
+      <div className="nav-summary-dark-tiles !flex-[0_0_220px] !relative">
         {latlngs.length > 1 ? (
           <MapContainer
             center={center}
@@ -110,12 +110,12 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
             <AutoFit points={latlngs} />
           </MapContainer>
         ) : (
-          <div style={{ width: '100%', height: '100%', background: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ color: '#475569', fontSize: 13 }}>Sin puntos GPS</span>
+          <div className="!w-[100%] !h-[100%] ![background:#0f172a] !flex !items-center !justify-center">
+            <span className="![color:#475569] !text-[length:13px]">Sin puntos GPS</span>
           </div>
         )}
         {/* Title overlay */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(10,10,20,0.9))', padding: '20px 16px 12px', zIndex: 10 }}>
+        <div className="!absolute !bottom-[0] !left-[0] !right-[0] ![background:linear-gradient(transparent,_rgba(10,10,20,0.9))] !p-[20px_16px_12px] !z-[10]">
           <input
             ref={inputRef}
             value={name}
@@ -131,10 +131,10 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px' }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[16px]">
 
         {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[10px] !mb-[16px]">
           <StatCard icon={<Route size={16} color="#22d96e" />} label="Distancia" value={fmt(stats.distanceTraveledM)} />
           <StatCard icon={<Clock size={16} color="#3b82f6" />} label="Tiempo" value={fmtTime(stats.elapsedSeconds)} />
           <StatCard icon={<Zap size={16} color="#f59e0b" />} label="Vel. media" value={`${stats.avgSpeedKmh.toFixed(1)} km/h`} />
@@ -143,14 +143,13 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
 
         {/* Photos strip */}
         {navPhotos.length > 0 && (
-          <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 12, color: '#64748b', fontWeight: 600, marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div className="!mb-[16px]">
+            <div className="!text-[length:12px] ![color:#64748b] !font-[600] !mb-[8px] !flex !items-center !gap-[6px]">
               <Camera size={13} /> {navPhotos.length} foto{navPhotos.length !== 1 ? 's' : ''}
             </div>
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+            <div className="!flex !gap-[8px] !overflow-x-auto !pb-[4px]">
               {navPhotos.map(p => (
-                <img key={p.id} src={p.url} alt=""
-                  style={{ width: 72, height: 72, borderRadius: 8, objectFit: 'cover', flexShrink: 0, border: '1px solid rgba(255,255,255,0.1)' }}
+                <img className="!w-[72px] !h-[72px] !rounded-[8px] !object-cover !shrink-[0] ![border:1px_solid_rgba(255,255,255,0.1)]" key={p.id} src={p.url} alt=""
                 />
               ))}
             </div>
@@ -158,74 +157,46 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
         )}
 
         {/* Actions */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="!flex !flex-col !gap-[10px]">
           {saveNote && tripId && (
-            <div data-testid="nav-save-note" style={{ fontSize: 12, color: '#fdba74', background: 'rgba(249,115,22,0.1)', border: '1px solid rgba(249,115,22,0.25)', borderRadius: 10, padding: '8px 12px' }}>{saveNote}</div>
+            <div className="!text-[length:12px] ![color:#fdba74] ![background:rgba(249,115,22,0.1)] ![border:1px_solid_rgba(249,115,22,0.25)] !rounded-[10px] !p-[8px_12px]" data-testid="nav-save-note">{saveNote}</div>
           )}
           {/* Save to trip: direct when tripId is known, or via selector for free navigation */}
           {tripId ? (
-            <button onClick={handleSave} disabled={saving || saved} style={{
-              background: saved ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)',
-              border: `1px solid ${saved ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`,
-              borderRadius: 12, padding: '14px 16px',
-              color: saved ? '#22d96e' : '#3b82f6',
-              fontWeight: 700, fontSize: 15, cursor: saving ? 'wait' : 'pointer',
-              display: 'flex', alignItems: 'center', gap: 10,
-            }}>
+            <button className="!rounded-[12px] !p-[14px_16px] !font-[700] !text-[length:15px] !flex !items-center !gap-[10px]" onClick={handleSave} disabled={saving || saved} style={{ background: saved ? 'rgba(34,217,110,0.15)' : 'rgba(59,130,246,0.15)', border: `1px solid ${saved ? 'rgba(34,217,110,0.3)' : 'rgba(59,130,246,0.3)'}`, color: saved ? '#22d96e' : '#3b82f6', cursor: saving ? 'wait' : 'pointer' }}>
               <Save size={18} />
               {saved ? '¡Guardado en el viaje!' : saving ? 'Guardando…' : 'Guardar en el viaje'}
             </button>
           ) : trips.length > 0 && !saved && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ position: 'relative' }}>
-                <select
+            <div className="!flex !flex-col !gap-[8px]">
+              <div className="!relative">
+                <select className="!w-[100%] ![appearance:none] ![-webkit-appearance:none] ![background:rgba(255,255,255,0.06)] ![border:1px_solid_rgba(255,255,255,0.15)] !rounded-[10px] !p-[12px_36px_12px_14px] !text-[length:14px] !cursor-pointer ![outline:none]"
                   value={selectedTripId}
                   onChange={e => setSelectedTripId(e.target.value === '' ? '' : Number(e.target.value))}
-                  style={{
-                    width: '100%', appearance: 'none', WebkitAppearance: 'none',
-                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
-                    borderRadius: 10, padding: '12px 36px 12px 14px',
-                    color: selectedTripId === '' ? '#64748b' : '#f1f5f9',
-                    fontSize: 14, cursor: 'pointer', outline: 'none',
-                  }}
+                  style={{ color: selectedTripId === '' ? '#64748b' : '#f1f5f9' }}
                 >
-                  <option value="" style={{ background: '#0f172a' }}>Seleccionar viaje…</option>
+                  <option className="![background:#0f172a]" value="">Seleccionar viaje…</option>
                   {trips.map(t => (
-                    <option key={t.id} value={t.id} style={{ background: '#0f172a' }}>{t.title}</option>
+                    <option className="![background:#0f172a]" key={t.id} value={t.id}>{t.title}</option>
                   ))}
                 </select>
                 <ChevronDown size={16} color="#64748b" style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               </div>
-              <button
+              <button className="![background:rgba(59,130,246,0.15)] ![border:1px_solid_rgba(59,130,246,0.3)] !rounded-[12px] !p-[14px_16px] ![color:#3b82f6] !font-[700] !text-[length:15px] !flex !items-center !gap-[10px]"
                 onClick={handleSave}
                 disabled={saving || selectedTripId === ''}
-                style={{
-                  background: 'rgba(59,130,246,0.15)', border: '1px solid rgba(59,130,246,0.3)',
-                  borderRadius: 12, padding: '14px 16px',
-                  color: '#3b82f6', fontWeight: 700, fontSize: 15,
-                  cursor: saving || selectedTripId === '' ? 'not-allowed' : 'pointer',
-                  opacity: selectedTripId === '' ? 0.5 : 1,
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}
+                style={{ cursor: saving || selectedTripId === '' ? 'not-allowed' : 'pointer', opacity: selectedTripId === '' ? 0.5 : 1 }}
               >
                 <Save size={18} />
                 {saving ? 'Guardando…' : 'Guardar en el viaje'}
               </button>
             </div>
           )}
-          <button onClick={() => onDownload(name)} style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-            borderRadius: 12, padding: '14px 16px', color: '#94a3b8',
-            fontWeight: 600, fontSize: 15, cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: 10,
-          }}>
+          <button className="![background:rgba(255,255,255,0.06)] ![border:1px_solid_rgba(255,255,255,0.12)] !rounded-[12px] !p-[14px_16px] ![color:#94a3b8] !font-[600] !text-[length:15px] !cursor-pointer !flex !items-center !gap-[10px]" onClick={() => onDownload(name)}>
             <Download size={18} />
             Descargar GPX
           </button>
-          <button onClick={onDiscard} style={{
-            background: 'none', border: 'none', color: '#475569',
-            fontSize: 13, cursor: 'pointer', padding: '8px',
-          }}>
+          <button className="![background:none] ![border:none] ![color:#475569] !text-[length:13px] !cursor-pointer !p-[8px]" onClick={onDiscard}>
             <X size={14} style={{ verticalAlign: 'middle', marginRight: 4 }} />
             Descartar y salir
           </button>
@@ -237,15 +208,12 @@ export default function NavSummary({ trackName, recordedPoints, stats, navPhotos
 
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
-      borderRadius: 12, padding: '12px 14px',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+    <div className="![background:rgba(255,255,255,0.04)] ![border:1px_solid_rgba(255,255,255,0.08)] !rounded-[12px] !p-[12px_14px]">
+      <div className="!flex !items-center !gap-[6px] !mb-[4px]">
         {icon}
-        <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{label}</span>
+        <span className="!text-[length:11px] ![color:#64748b] !font-[600]">{label}</span>
       </div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#f1f5f9' }}>{value}</div>
+      <div className="!text-[length:20px] !font-[800] ![color:#f1f5f9]">{value}</div>
     </div>
   )
 }

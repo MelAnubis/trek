@@ -28,11 +28,10 @@ export function Skeleton({
 export function SpotlightSkeleton(): React.ReactElement {
   return (
     <div
-      className="relative rounded-3xl overflow-hidden mb-8"
-      style={{ minHeight: 340, background: 'var(--bg-tertiary)' }}
+      className="relative rounded-3xl overflow-hidden mb-8 !min-h-[340px] ![background:var(--bg-tertiary)]"
     >
-      <div className="trek-skeleton absolute inset-0" style={{ borderRadius: 24 }} />
-      <div className="relative p-6 flex flex-col justify-end" style={{ minHeight: 340 }}>
+      <div className="trek-skeleton absolute inset-0 !rounded-[24px]" />
+      <div className="relative p-6 flex flex-col justify-end !min-h-[340px]">
         <Skeleton width={160} height={40} radius={8} style={{ marginBottom: 8 }} />
         <Skeleton width={220} height={16} radius={4} />
       </div>
@@ -44,8 +43,7 @@ export function SpotlightSkeleton(): React.ReactElement {
 export function TripCardSkeleton(): React.ReactElement {
   return (
     <div
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden"
-      style={{ background: 'var(--bg-card)' }}
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-700 overflow-hidden ![background:var(--bg-card)]"
     >
       <Skeleton height={140} radius={0} />
       <div className="p-4 flex flex-col gap-2">
@@ -59,7 +57,7 @@ export function TripCardSkeleton(): React.ReactElement {
 // Day sidebar skeleton row
 export function DaySkeleton(): React.ReactElement {
   return (
-    <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div className="!p-[12px_16px] !flex !flex-col !gap-[8px]">
       <Skeleton width={120} height={16} />
       <Skeleton width="80%" height={12} />
       <Skeleton width="60%" height={12} />

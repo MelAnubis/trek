@@ -14,8 +14,7 @@ export function LoadingImage({
     <div className={containerClassName} style={{ position: 'relative', overflow: 'hidden', ...containerStyle }}>
       {!loaded && (
         <div
-          className="trek-skeleton"
-          style={{ position: 'absolute', inset: 0, borderRadius: 0 }}
+          className="trek-skeleton !absolute !inset-[0] !rounded-[0]"
           aria-hidden
         />
       )}

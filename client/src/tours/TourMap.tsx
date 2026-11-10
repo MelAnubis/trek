@@ -136,18 +136,17 @@ function MapSearch({ onPick }: { onPick: (lat: number, lng: number) => void }) {
     return () => { clearTimeout(timer); ctrl.abort() }
   }, [q, language])
   return (
-    <div style={{ position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)', zIndex: 500, width: 'min(360px, calc(100% - 120px))' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 999, padding: '9px 14px', boxShadow: 'var(--shadow-card)' }}>
+    <div className="!absolute !top-[12px] !left-[50%] !z-[500] !w-[min(360px,_calc(100%_-_120px))]" style={{ transform: 'translateX(-50%)' }}>
+      <div className="!flex !items-center !gap-[8px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[999px] !p-[9px_14px] ![box-shadow:var(--shadow-card)]">
         <Search size={15} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-        <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('tours.planner.mapSearch')}
-          style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit', minWidth: 0 }} />
-        {q && <button onClick={() => setQ('')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 0, display: 'flex' }}><X size={14} /></button>}
+        <input className="!flex-[1] ![border:none] ![outline:none] ![background:transparent] ![color:var(--text-primary)] !text-[length:13px] ![font-family:inherit] !min-w-[0]" value={q} onChange={e => setQ(e.target.value)} placeholder={t('tours.planner.mapSearch')} />
+        {q && <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !p-[0] !flex" onClick={() => setQ('')}><X size={14} /></button>}
       </div>
       {results.length > 0 && (
-        <div style={{ marginTop: 6, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, overflow: 'hidden', boxShadow: 'var(--shadow-elevated)' }}>
+        <div className="!mt-[6px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[12px] !overflow-hidden ![box-shadow:var(--shadow-elevated)]">
           {results.map((r, i) => (
-            <button key={i} onClick={() => { onPick(r.lat, r.lng); setResults([]); setQ('') }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', borderTop: i ? '1px solid var(--border-faint)' : 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'inherit', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <button className="!block !w-[100%] !text-left !p-[8px_12px] ![background:none] !cursor-pointer !text-[length:12px] ![color:var(--text-primary)] ![font-family:inherit] !whitespace-nowrap !overflow-hidden !text-ellipsis" key={i} onClick={() => { onPick(r.lat, r.lng); setResults([]); setQ('') }}
+              style={{ border: 'none', borderTop: i ? '1px solid var(--border-faint)' : 'none' }}>
               {r.name}
             </button>
           ))}
@@ -188,7 +187,7 @@ export default function TourMap(props: Props) {
   ]
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', cursor: addMode ? 'crosshair' : undefined }} className={addMode ? 'tour-map-adding' : undefined}>
+    <div style={{ cursor: addMode ? 'crosshair' : undefined }} className={[addMode ? 'tour-map-adding' : undefined, '!relative !w-[100%] !h-[100%]'].join(' ')}>
       <MapContainer center={[46.5, 11.3]} zoom={6} zoomControl={false} style={{ width: '100%', height: '100%' }} attributionControl>
         <TileLayer key={baseLayer} url={layer.url} attribution={layer.attribution} maxZoom={layer.maxZoom} subdomains="abc" />
         {layer.overlay && <TileLayer key={`${baseLayer}-o`} url={layer.overlay.url} attribution={layer.overlay.attribution} opacity={0.75} />}
@@ -242,19 +241,19 @@ export default function TourMap(props: Props) {
 
       <MapSearch onPick={(lat, lng) => setFly({ lat, lng, key: Date.now() })} />
 
-      <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', zIndex: 500, display: 'flex', alignItems: 'center', gap: 2, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 14, padding: 4, boxShadow: 'var(--shadow-card)', maxWidth: 'calc(100% - 24px)', overflowX: 'auto' }}>
+      <div className="!absolute !bottom-[24px] !left-[50%] !z-[500] !flex !items-center !gap-[2px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[14px] !p-[4px] ![box-shadow:var(--shadow-card)] !max-w-[calc(100%_-_24px)] !overflow-x-auto" style={{ transform: 'translateX(-50%)' }}>
         {layerButtons.map(b => {
           const active = baseLayer === b.id
           return (
-            <button key={b.id} onClick={() => props.onBaseLayer(b.id)} title={b.label}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 10, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: active ? 600 : 500, whiteSpace: 'nowrap', background: active ? 'var(--bg-tertiary)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+            <button className="!flex !items-center !gap-[6px] !p-[7px_10px] !rounded-[10px] ![border:none] !cursor-pointer !whitespace-nowrap" key={b.id} onClick={() => props.onBaseLayer(b.id)} title={b.label}
+              style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: active ? 600 : 500, background: active ? 'var(--bg-tertiary)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
               <b.icon size={14} /> <span className="hidden sm:inline">{b.label}</span>
             </button>
           )
         })}
         {editing && (
-          <button onClick={props.onToggleAddMode} title={addMode ? t('tours.planner.addPointActive') : t('tours.planner.addPoint')}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, marginLeft: 4, borderRadius: 999, border: 'none', cursor: 'pointer', background: addMode ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: addMode ? 'var(--bg-card)' : 'var(--text-primary)' }}>
+          <button className="!flex !items-center !justify-center !w-[34px] !h-[34px] !ml-[4px] !rounded-[999px] ![border:none] !cursor-pointer" onClick={props.onToggleAddMode} title={addMode ? t('tours.planner.addPointActive') : t('tours.planner.addPoint')}
+            style={{ background: addMode ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: addMode ? 'var(--bg-card)' : 'var(--text-primary)' }}>
             <Crosshair size={16} />
           </button>
         )}

@@ -201,10 +201,10 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
   const topBarHeight = nav.navMode !== 'idle' ? 96 : 52
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 100, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div className="!fixed !inset-[0] ![background:#0a0a14] !z-[100] !flex !flex-col !overflow-hidden">
 
       {/* ── Map fills all space ── */}
-      <div style={{ position: 'absolute', inset: 0 }}>
+      <div className="!absolute !inset-[0]">
         <NavigationMap
           position={nav.position}
           trackPoints={nav.trackPoints}
@@ -225,8 +225,8 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
         />
         {/* Photo captured flash */}
         {photoFlash && (
-          <div style={{ position: 'absolute', inset: 0, background: 'rgba(34,217,110,0.25)', zIndex: 50, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: 'rgba(34,217,110,0.9)', borderRadius: 12, padding: '10px 20px', color: '#0a0a14', fontWeight: 800, fontSize: 14 }}>📷 Foto guardada</div>
+          <div className="!absolute !inset-[0] ![background:rgba(34,217,110,0.25)] !z-[50] !pointer-events-none !flex !items-center !justify-center">
+            <div className="![background:rgba(34,217,110,0.9)] !rounded-[12px] !p-[10px_20px] ![color:#0a0a14] !font-[800] !text-[length:14px]">📷 Foto guardada</div>
           </div>
         )}
       </div>
@@ -244,33 +244,13 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
       />
 
       {/* ── Bottom panel ── */}
-      <div style={{
-        position: 'absolute',
-        bottom: 0, left: 0, right: 0,
-        zIndex: 20,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      <div className="!absolute !bottom-[0] !left-[0] !right-[0] !z-[20] !flex !flex-col">
         {/* Elevation toggle button (floating, above bottom panel) */}
         {(hasTrack || nav.recordedPoints.length > 5) && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 12px 6px' }}>
-            <button
+          <div className="!flex !justify-end !p-[0_12px_6px]">
+            <button className="![background:rgba(10,10,20,0.85)] ![backdrop-filter:blur(12px)] ![-webkit-backdrop-filter:blur(12px)] ![border:1px_solid_rgba(255,255,255,0.12)] !rounded-[10px] !p-[6px_10px] !flex !items-center !gap-[5px] !cursor-pointer !text-[length:12px] !font-[600]"
               onClick={() => setShowElevation(s => !s)}
-              style={{
-                background: 'rgba(10,10,20,0.85)',
-                backdropFilter: 'blur(12px)',
-                WebkitBackdropFilter: 'blur(12px)',
-                border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 10,
-                padding: '6px 10px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                color: showElevation ? '#38bdf8' : '#64748b',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: 600,
-              }}
+              style={{ color: showElevation ? '#38bdf8' : '#64748b' }}
             >
               <Mountain size={14} />
               {showElevation ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
@@ -281,36 +261,18 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
         {/* Approach banner — shown when user is >150 m from track and not yet navigating to it */}
         {nav.navMode === 'following' && nav.position &&
           nav.distanceToTrackM !== null && nav.distanceToTrackM > 150 && !nav.isApproaching && (
-          <div style={{
-            background: 'rgba(251,191,36,0.15)',
-            borderTop: '1px solid rgba(251,191,36,0.35)',
-            padding: '10px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-          }}>
+          <div className="![background:rgba(251,191,36,0.15)] ![border-top:1px_solid_rgba(251,191,36,0.35)] !p-[10px_16px] !flex !items-center !gap-[10px]">
             <MapPin size={16} color="#fbbf24" style={{ flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700 }}>
+            <div className="!flex-[1]">
+              <div className="!text-[length:12px] ![color:#fbbf24] !font-[700]">
                 Estás a {nav.distanceToTrackM < 1000
                   ? `${Math.round(nav.distanceToTrackM / 10) * 10} m`
                   : `${(nav.distanceToTrackM / 1000).toFixed(1)} km`} del track
               </div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>Navega hasta el punto más cercano</div>
+              <div className="!text-[length:11px] ![color:#94a3b8]">Navega hasta el punto más cercano</div>
             </div>
-            <button
+            <button className="![background:rgba(251,191,36,0.2)] ![border:1px_solid_rgba(251,191,36,0.4)] !rounded-[8px] !p-[6px_12px] ![color:#fbbf24] !text-[length:12px] !font-[700] !cursor-pointer !whitespace-nowrap"
               onClick={() => nav.navigateToTrack()}
-              style={{
-                background: 'rgba(251,191,36,0.2)',
-                border: '1px solid rgba(251,191,36,0.4)',
-                borderRadius: 8,
-                padding: '6px 12px',
-                color: '#fbbf24',
-                fontSize: 12,
-                fontWeight: 700,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
             >
               Ir al track
             </button>
@@ -319,16 +281,9 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
         {/* Approach in-progress indicator */}
         {nav.navMode === 'following' && nav.isApproaching && (
-          <div style={{
-            background: 'rgba(56,189,248,0.12)',
-            borderTop: '1px solid rgba(56,189,248,0.3)',
-            padding: '8px 16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}>
+          <div className="![background:rgba(56,189,248,0.12)] ![border-top:1px_solid_rgba(56,189,248,0.3)] !p-[8px_16px] !flex !items-center !gap-[8px]">
             <Navigation size={14} color="#38bdf8" />
-            <span style={{ fontSize: 12, color: '#38bdf8', fontWeight: 600 }}>Aproximándose al track…</span>
+            <span className="!text-[length:12px] ![color:#38bdf8] !font-[600]">Aproximándose al track…</span>
           </div>
         )}
 
@@ -360,17 +315,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
         )}
 
         {/* Controls bar */}
-        <div style={{
-          background: 'rgba(10,10,20,0.92)',
-          backdropFilter: 'blur(16px)',
-          WebkitBackdropFilter: 'blur(16px)',
-          borderTop: '1px solid rgba(255,255,255,0.08)',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          paddingBottom: `max(12px, env(safe-area-inset-bottom, 12px))`,
-        }}>
+        <div className="![background:rgba(10,10,20,0.92)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] ![border-top:1px_solid_rgba(255,255,255,0.08)] !p-[12px_16px] !flex !items-center !gap-[10px] !pb-[max(12px,_env(safe-area-inset-bottom,_12px))]">
 
           {nav.navMode === 'idle' && (
             <>
@@ -393,16 +338,16 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
           {nav.navMode === 'recording' && (
             <>
-              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
+              <div className="!flex-[1] !flex !items-center !gap-[8px]">
+                <div className="!w-[8px] !h-[8px] !rounded-[50%] ![background:#ef4444]" style={{ animation: 'navpulse 1.2s ease-in-out infinite' }} />
                 <div>
                   {nav.geoRecordingError ? (
-                    <div style={{ fontSize: 10, color: '#f97316', fontWeight: 600, maxWidth: 140, lineHeight: 1.3 }}>{nav.geoRecordingError}</div>
+                    <div className="!text-[length:10px] ![color:#f97316] !font-[600] !max-w-[140px] !leading-[1.3]">{nav.geoRecordingError}</div>
                   ) : (
                     <>
-                      <div style={{ fontSize: 13, color: '#f1f5f9', fontWeight: 600 }}>{nav.recordedPoints.length} pts</div>
+                      <div className="!text-[length:13px] ![color:#f1f5f9] !font-[600]">{nav.recordedPoints.length} pts</div>
                       {nav.navPhotos.length > 0 && (
-                        <div style={{ fontSize: 10, color: '#22d96e' }}>{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
+                        <div className="!text-[length:10px] ![color:#22d96e]">{nav.navPhotos.length} foto{nav.navPhotos.length !== 1 ? 's' : ''}</div>
                       )}
                     </>
                   )}
@@ -425,21 +370,21 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
           {nav.navMode === 'following' && (
             <>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="!flex-[1]">
+                <div className="!text-[length:11px] ![color:#64748b] !flex !items-center !gap-[6px]">
                   Progreso
                   {nav.isRecording && (
-                    <span data-testid="nav-rec" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#f87171', fontWeight: 700 }}>
-                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444', animation: 'navpulse 1.2s ease-in-out infinite' }} />
+                    <span className="!inline-flex !items-center !gap-[4px] ![color:#f87171] !font-[700]" data-testid="nav-rec">
+                      <span className="!w-[7px] !h-[7px] !rounded-[50%] ![background:#ef4444]" style={{ animation: 'navpulse 1.2s ease-in-out infinite' }} />
                       REC · {nav.recordedPoints.length} pts
                     </span>
                   )}
                 </div>
-                {nav.geoRecordingError && <div style={{ fontSize: 10, color: '#f97316', fontWeight: 600, lineHeight: 1.3 }}>{nav.geoRecordingError}</div>}
-                <div style={{ marginTop: 3, height: 4, background: 'rgba(255,255,255,0.1)', borderRadius: 2, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${nav.progressPct.toFixed(1)}%`, background: '#3b82f6', borderRadius: 2, transition: 'width 0.5s' }} />
+                {nav.geoRecordingError && <div className="!text-[length:10px] ![color:#f97316] !font-[600] !leading-[1.3]">{nav.geoRecordingError}</div>}
+                <div className="!mt-[3px] !h-[4px] ![background:rgba(255,255,255,0.1)] !rounded-[2px] !overflow-hidden">
+                  <div className="!h-[100%] ![background:#3b82f6] !rounded-[2px] ![transition:width_0.5s]" style={{ width: `${nav.progressPct.toFixed(1)}%` }} />
                 </div>
-                <div style={{ fontSize: 10, color: '#475569', marginTop: 2 }}>{nav.progressPct.toFixed(0)}%</div>
+                <div className="!text-[length:10px] ![color:#475569] !mt-[2px]">{nav.progressPct.toFixed(0)}%</div>
               </div>
               <CtrlButton
                 icon={<Camera size={18} color="#22d96e" />}
@@ -458,37 +403,19 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
           {/* Wake lock toggle — keep screen on */}
           {'wakeLock' in navigator && (
-            <button
+            <button className="!rounded-[10px] !p-[8px_10px] !cursor-pointer !flex !items-center !justify-center"
               onClick={() => setWakeLock(s => !s)}
               title={wakeLock ? 'Pantalla encendida (activo)' : 'Mantener pantalla encendida'}
-              style={{
-                background: wakeLock ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.08)',
-                border: `1px solid ${wakeLock ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}`,
-                borderRadius: 10,
-                padding: '8px 10px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
+              style={{ background: wakeLock ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${wakeLock ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.1)'}` }}
             >
               <Sun size={18} color={wakeLock ? '#fbbf24' : '#64748b'} />
             </button>
           )}
 
           {/* Re-center button */}
-          <button
+          <button className="!rounded-[10px] !p-[8px_10px] !cursor-pointer !flex !items-center !justify-center"
             onClick={() => setAutoFollow(true)}
-            style={{
-              background: autoFollow ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.08)',
-              border: `1px solid ${autoFollow ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.1)'}`,
-              borderRadius: 10,
-              padding: '8px 10px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            style={{ background: autoFollow ? 'rgba(59,130,246,0.2)' : 'rgba(255,255,255,0.08)', border: `1px solid ${autoFollow ? 'rgba(59,130,246,0.4)' : 'rgba(255,255,255,0.1)'}` }}
           >
             <Crosshair size={18} color={autoFollow ? '#3b82f6' : '#64748b'} />
           </button>
@@ -497,7 +424,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
 
       {/* ── Route summary (after stop recording) ── */}
       {showSummary && (
-        <Suspense fallback={<div style={{ position: 'fixed', inset: 0, background: '#0a0a14', zIndex: 200 }} />}>
+        <Suspense fallback={<div className="!fixed !inset-[0] ![background:#0a0a14] !z-[200]" />}>
           <NavSummary
             trackName={recordWhileFollowing ? trackName : DEFAULT_ROUTE_NAME()}
             saveNote={saveNote}
@@ -527,23 +454,12 @@ function CtrlButton({ icon, label, onClick, accent }: {
   accent?: string
 }) {
   return (
-    <button
+    <button className="!rounded-[10px] !p-[8px_14px] !cursor-pointer !flex !flex-col !items-center !gap-[3px] !min-w-[64px]"
       onClick={onClick}
-      style={{
-        background: accent ? `${accent}18` : 'rgba(255,255,255,0.08)',
-        border: `1px solid ${accent ? accent + '35' : 'rgba(255,255,255,0.12)'}`,
-        borderRadius: 10,
-        padding: '8px 14px',
-        cursor: 'pointer',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: 3,
-        minWidth: 64,
-      }}
+      style={{ background: accent ? `${accent}18` : 'rgba(255,255,255,0.08)', border: `1px solid ${accent ? accent + '35' : 'rgba(255,255,255,0.12)'}` }}
     >
       {icon}
-      <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap' }}>{label}</span>
+      <span className="!text-[length:10px] ![color:#94a3b8] !font-[600] !whitespace-nowrap">{label}</span>
     </button>
   )
 }

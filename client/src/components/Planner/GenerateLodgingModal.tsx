@@ -77,32 +77,28 @@ export default function GenerateLodgingModal({ tripId, days, assignments, reserv
   }
 
   return ReactDOM.createPortal(
-    <div role="dialog" aria-modal="true" aria-label={t('lodging.generate.title')}
-      style={{ position: 'fixed', inset: 0, zIndex: 99999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+    <div className="!fixed !inset-[0] !z-[99999] ![background:rgba(0,0,0,0.4)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[16px]" role="dialog" aria-modal="true" aria-label={t('lodging.generate.title')}
       onClick={onClose}>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column', borderRadius: 16, background: 'var(--bg-card)', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '16px 18px 8px' }}>
+      <div className="!w-[100%] !max-w-[520px] !max-h-[90vh] !flex !flex-col !rounded-[16px] ![background:var(--bg-card)] ![box-shadow:0_20px_60px_rgba(0,0,0,0.25)]" onClick={e => e.stopPropagation()}>
+        <div className="!flex !items-center !gap-[8px] !p-[16px_18px_8px]">
           <Hotel size={18} style={{ color: 'var(--text-primary)' }} />
-          <div style={{ flex: 1, fontSize: 15, fontWeight: 800, color: 'var(--text-primary)' }}>{t('lodging.generate.title')}</div>
-          <button type="button" aria-label={t('common.close')} onClick={onClose} style={{ ...btn, padding: 6, border: 'none', background: 'transparent' }}><X size={18} /></button>
+          <div className="!flex-[1] !text-[length:15px] !font-[800] ![color:var(--text-primary)]">{t('lodging.generate.title')}</div>
+          <button className="!p-[6px] ![border:none] ![background:transparent]" type="button" aria-label={t('common.close')} onClick={onClose} style={{ ...btn }}><X size={18} /></button>
         </div>
-        <div style={{ padding: '0 18px 10px', fontSize: 12, color: 'var(--text-muted)' }}>{t('lodging.generate.intro')}</div>
+        <div className="!p-[0_18px_10px] !text-[length:12px] ![color:var(--text-muted)]">{t('lodging.generate.intro')}</div>
 
-        <div style={{ overflowY: 'auto', padding: '0 18px', flex: 1 }}>
+        <div className="!overflow-y-auto !p-[0_18px] !flex-[1]">
           {rows.length === 0 || !rows.some(selectable) ? (
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '12px 0' }}>{t('lodging.generate.none')}</div>
+            <div className="!text-[length:13px] ![color:var(--text-muted)] !p-[12px_0]">{t('lodging.generate.none')}</div>
           ) : rows.map(r => (
-            <label key={r.day.id} style={{
-              display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '1px solid var(--border-faint)',
-              opacity: selectable(r) ? 1 : 0.5, cursor: selectable(r) ? 'pointer' : 'default',
-            }}>
+            <label className="!flex !items-center !gap-[10px] !p-[8px_0] ![border-bottom:1px_solid_var(--border-faint)]" key={r.day.id} style={{ opacity: selectable(r) ? 1 : 0.5, cursor: selectable(r) ? 'pointer' : 'default' }}>
               <input type="checkbox" disabled={!selectable(r)} checked={selectable(r) && checked.has(r.day.id)} onChange={() => toggle(r.day.id)}
                 aria-label={`${t('lodging.generate.day', { n: r.day.day_number })} ${r.loc?.name ?? ''}`} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+              <div className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">
                   {t('lodging.generate.day', { n: r.day.day_number })}{r.day.date ? ` · ${dateLabel(r.day.date)}` : ''}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                <div className="!text-[length:12px] ![color:var(--text-muted)]">
                   {r.loc ? r.loc.search : t('lodging.generate.noLocality')}
                   {r.covered ? ` · ${t('lodging.generate.covered')}` : r.last ? ` · ${t('lodging.generate.lastDay')}` : ''}
                 </div>
@@ -111,10 +107,10 @@ export default function GenerateLodgingModal({ tripId, days, assignments, reserv
           ))}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: 16 }}>
+        <div className="!flex !gap-[8px] !justify-end !p-[16px]">
           <button type="button" style={btn} onClick={onClose}>{t('common.cancel')}</button>
-          <button type="button" disabled={!count || busy}
-            style={{ ...btn, background: 'var(--accent, #e85d24)', borderColor: 'transparent', color: '#fff', opacity: count && !busy ? 1 : 0.5 }}
+          <button className="![background:var(--accent,_#e85d24)] ![border-color:transparent] ![color:#fff]" type="button" disabled={!count || busy}
+            style={{ ...btn, opacity: count && !busy ? 1 : 0.5 }}
             onClick={create}>{busy ? t('lodging.generate.creating') : t('lodging.generate.create', { n: count })}</button>
         </div>
       </div>

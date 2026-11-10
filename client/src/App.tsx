@@ -92,7 +92,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId, fullscreen =
   }
 
   if (fullscreen) {
-    return <div style={{ position: 'fixed', inset: 0, zIndex: 50 }}>{children}</div>
+    return <div className="!fixed !inset-[0] !z-[50]">{children}</div>
   }
 
   return (

@@ -141,7 +141,7 @@ describe('TodoListPanel', () => {
     const checkboxes = screen.getAllByRole('button');
     // Find the checkbox button near the item
     const checkboxBtn = checkboxes.find(btn => {
-      const parent = btn.closest('[style*="cursor: pointer"]');
+      const parent = btn.closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]');
       return parent && parent.textContent?.includes('Toggle Me');
     });
     if (checkboxBtn) {

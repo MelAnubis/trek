@@ -49,10 +49,10 @@ export default function PhotoGallery({ photos, onUpload, onDelete, onUpdate, pla
   return (
     <div className="flex flex-col h-full" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
       {/* Header */}
-      <div style={{ padding: '16px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, flexWrap: 'wrap' }}>
-        <div style={{ marginRight: 'auto' }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#111827' }}>Fotos</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12.5, color: '#9ca3af' }}>
+      <div className="!p-[16px_24px] ![border-bottom:1px_solid_rgba(0,0,0,0.06)] !items-center !gap-[12px] !shrink-[0] !flex-wrap" style={{ display: 'flex' }}>
+        <div className="!mr-[auto]">
+          <h2 className="!m-[0] !text-[length:18px] !font-[700] ![color:#111827]">Fotos</h2>
+          <p className="!m-[2px_0_0] !text-[length:12.5px] ![color:#9ca3af]">
             {photos.length} {photos.length !== 1 ? 'Fotos' : 'Foto'}
           </p>
         </div>
@@ -91,14 +91,14 @@ export default function PhotoGallery({ photos, onUpload, onDelete, onUpdate, pla
       {/* Gallery Grid */}
       <div className="flex-1 overflow-y-auto p-4">
         {filteredPhotos.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#9ca3af' }}>
+          <div className="!text-center !p-[60px_20px] ![color:#9ca3af]">
             <Camera size={40} style={{ color: '#d1d5db', display: 'block', margin: '0 auto 12px' }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: '#374151', margin: '0 0 4px' }}>{t('photos.noPhotos')}</p>
-            <p style={{ fontSize: 13, color: '#9ca3af', margin: '0 0 20px' }}>{t('photos.uploadHint')}</p>
+            <p className="!text-[length:14px] !font-[600] ![color:#374151] !m-[0_0_4px]">{t('photos.noPhotos')}</p>
+            <p className="!text-[length:13px] ![color:#9ca3af] !m-[0_0_20px]">{t('photos.uploadHint')}</p>
             <button
               onClick={() => setShowUpload(true)}
-              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-700 font-medium"
-              style={{ display: 'inline-flex', margin: '0 auto' }}
+              className="flex items-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-xl hover:bg-slate-700 font-medium !m-[0_auto]"
+              style={{ display: 'inline-flex' }}
             >
               <Upload className="w-4 h-4" />
               {t('common.upload')}

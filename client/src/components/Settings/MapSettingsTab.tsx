@@ -474,7 +474,7 @@ export default function MapSettingsTab(): React.ReactElement {
       </div>
 
       <div>
-        <div style={{ position: 'relative', inset: 0, height: '200px', width: '100%' }}>
+        <div className="!relative !inset-[0] !h-[200px] !w-[100%]">
           {provider !== 'leaflet' ? (
             <MapboxPreview
               engine={provider === 'maplibre' ? 'maplibre' : 'mapbox'}

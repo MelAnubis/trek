@@ -55,17 +55,17 @@ export default function FilesPage(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center page-bg" style={{ background: 'var(--bg-secondary)' }}>
+      <div className="min-h-screen flex items-center justify-center page-bg ![background:var(--bg-secondary)]">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-700 rounded-full animate-spin"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar tripTitle={trip?.title} tripId={tripId} showBack onBack={() => navigate(`/trips/${tripId}`)} />
 
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+      <div className="!pt-[var(--nav-h)]">
         <div className="max-w-5xl mx-auto px-4 py-6">
           <div className="flex items-center gap-3 mb-6">
             <Link

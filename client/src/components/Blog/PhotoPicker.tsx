@@ -31,9 +31,8 @@ export default function PhotoPicker({ meta, multiple, onPickFiles, onPickExistin
 
   return createPortal(
     <div className="fixed inset-0 z-[300] bg-black/50 flex items-end sm:items-center justify-center" onClick={onClose}>
-      <div className="w-full sm:max-w-[640px] max-h-[88vh] flex flex-col bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('blog.photos.pick')}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="w-full sm:max-w-[640px] max-h-[88vh] flex flex-col bg-white dark:bg-zinc-900 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden !pb-[env(safe-area-inset-bottom)]"
+        onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-label={t('blog.photos.pick')}>
         <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800">
           <h2 className="text-[15px] font-semibold">{t('blog.photos.pick')}</h2>
           <button type="button" onClick={onClose} aria-label={t('common.cancel')} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800"><X size={18} /></button>

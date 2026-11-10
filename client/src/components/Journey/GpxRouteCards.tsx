@@ -56,7 +56,7 @@ export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoCl
   return (
     <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900">
       {mapSrc && (
-        <img src={mapSrc} alt="" className="w-full block" style={{ height: 140, objectFit: 'cover' }} />
+        <img src={mapSrc} alt="" className="w-full block !h-[140px] !object-cover" />
       )}
       {elevationSvg && (
         <div className="px-3 pt-2">
@@ -66,8 +66,8 @@ export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoCl
               <button key={p.photo.photo_id} type="button" data-testid="route-photo-dot"
                 title={placeLabel(p)} aria-label={placeLabel(p)}
                 onClick={() => onPhotoClick?.(i)}
-                className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md overflow-hidden bg-zinc-200 transition-transform hover:scale-[2.2] hover:z-10 focus:scale-[2.2] focus:z-10"
-                style={{ left: `${(geo.px(p.d) / geo.W) * 100}%`, top: `${(geo.py(p.e) / geo.H) * 100}%`, width: 20, height: 20, padding: 0, cursor: 'pointer' }}>
+                className="group absolute -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-md overflow-hidden bg-zinc-200 transition-transform hover:scale-[2.2] hover:z-10 focus:scale-[2.2] focus:z-10 !w-[20px] !h-[20px] !p-[0] !cursor-pointer"
+                style={{ left: `${(geo.px(p.d) / geo.W) * 100}%`, top: `${(geo.py(p.e) / geo.H) * 100}%` }}>
                 <img src={src(p)} alt="" loading="lazy" className="w-full h-full object-cover block" />
               </button>
             ))}
@@ -103,8 +103,8 @@ export function DayRouteCard({ tracks, tileUrl, photos = [], photoSrc, onPhotoCl
             {photos.map((p, i) => (
               <button key={p.photo.photo_id} type="button" onClick={() => onPhotoClick?.(i)}
                 title={p.by === 'time' ? t('journey.route.photoByTime') : undefined}
-                className="flex-shrink-0 text-left" style={{ width: 84, padding: 0, background: 'none', border: 'none', cursor: 'pointer' }}>
-                <img src={src(p)} alt="" loading="lazy" className="block rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800" style={{ width: 84, height: 64 }} />
+                className="flex-shrink-0 text-left !w-[84px] !p-[0] ![background:none] ![border:none] !cursor-pointer">
+                <img src={src(p)} alt="" loading="lazy" className="block rounded-lg object-cover bg-zinc-100 dark:bg-zinc-800 !w-[84px] !h-[64px]" />
                 <span data-testid="route-photo-label" className="block mt-1 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{placeLabel(p)}</span>
               </button>
             ))}
@@ -144,8 +144,8 @@ export function JourneyRouteSummary({ tracks, tileUrl }: { tracks: PdfGpxTrack[]
   return (
     <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 mb-2">
       {mapSrc
-        ? <img src={mapSrc} alt="" className="w-full block" style={{ height: 220, objectFit: 'cover' }} />
-        : <div className="w-full animate-pulse bg-zinc-100 dark:bg-zinc-800" style={{ height: 220 }} />}
+        ? <img src={mapSrc} alt="" className="w-full block !h-[220px] !object-cover" />
+        : <div className="w-full animate-pulse bg-zinc-100 dark:bg-zinc-800 !h-[220px]" />}
       <div className="flex items-center gap-6 px-4 py-3 text-[13px] font-semibold text-zinc-700 dark:text-zinc-200">
         <span className="flex items-center gap-1.5"><RouteIcon size={14} /> {totalKm.toFixed(1)} {t('journey.route.km')}</span>
         <span className="flex items-center gap-1.5"><Mountain size={14} /> +{Math.round(totalGain)} {t('journey.route.m')}</span>

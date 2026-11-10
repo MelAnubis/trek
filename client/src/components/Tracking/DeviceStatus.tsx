@@ -35,8 +35,8 @@ export function DeviceStatusChip({ device }: { device: Pick<TrackingDevice, 'sta
   else if (motion && motion !== 'stationary') { label = t(`tracking.motion.${motion}`); color = '#16a34a' }
   else { label = t('tracking.motion.stationary') }
   return (
-    <span data-testid="device-status" className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full"
-      style={{ color, background: 'var(--bg-tertiary)' }}>
+    <span data-testid="device-status" className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ![background:var(--bg-tertiary)]"
+      style={{ color }}>
       <Icon className="w-3 h-3" /> {label}
     </span>
   )

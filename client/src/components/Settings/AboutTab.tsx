@@ -239,14 +239,14 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           50% { transform: scale(1.15); }
         }
       `}</style>
-      <p style={{ fontSize: 13, lineHeight: 1.6, color: 'var(--text-secondary)', marginBottom: 6, marginTop: -4 }}>
+      <p className="!text-[length:13px] !leading-[1.6] ![color:var(--text-secondary)] !mb-[6px] !mt-[-4px]">
         {t('settings.about.description')}
       </p>
-      <p style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--text-faint)', marginBottom: 16 }}>
+      <p className="!text-[length:12px] !leading-[1.6] ![color:var(--text-faint)] !mb-[16px]">
         {t('settings.about.madeWith')}{' '}
         <Heart size={11} fill="#991b1b" stroke="#991b1b" style={{ display: 'inline-block', verticalAlign: '-1px', animation: 'heartPulse 1.5s ease-in-out infinite' }} />
         {' '}{t('settings.about.madeBy')}{' '}
-        <span style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-tertiary)', borderRadius: 99, padding: '1px 7px', fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', verticalAlign: '1px' }}>v{appVersion}</span>
+        <span className="!inline-flex !items-center ![background:var(--bg-tertiary)] !rounded-[99px] !p-[1px_7px] !text-[length:10px] !font-[600] ![color:var(--text-faint)] ![vertical-align:1px]">v{appVersion}</span>
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
@@ -254,14 +254,14 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/issues/new"
           target="_blank"
           rel="noopener noreferrer"
-          className="trek-h-border-color-96af4f trek-h-box-shadow-cdf48e rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#ef444415', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          className="trek-h-border-color-96af4f trek-h-box-shadow-cdf48e rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ![background:var(--bg-card)] ![text-decoration:none]"
+          style={{ borderColor: 'var(--border-primary)' }} >
+          <div className="!w-[40px] !h-[40px] !rounded-[10px] ![background:#ef444415] !flex !items-center !justify-center !shrink-[0]">
             <Bug size={20} style={{ color: '#ef4444' }} />
           </div>
           <div>
-            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.about.reportBug')}</div>
-            <div className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('settings.about.reportBugHint')}</div>
+            <div className="text-sm font-semibold ![color:var(--text-primary)]">{t('settings.about.reportBug')}</div>
+            <div className="text-xs ![color:var(--text-faint)]">{t('settings.about.reportBugHint')}</div>
           </div>
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
@@ -269,14 +269,14 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/discussions"
           target="_blank"
           rel="noopener noreferrer"
-          className="trek-h-border-color-add850 trek-h-box-shadow-d3a4d7 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f59e0b15', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          className="trek-h-border-color-add850 trek-h-box-shadow-d3a4d7 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ![background:var(--bg-card)] ![text-decoration:none]"
+          style={{ borderColor: 'var(--border-primary)' }} >
+          <div className="!w-[40px] !h-[40px] !rounded-[10px] ![background:#f59e0b15] !flex !items-center !justify-center !shrink-[0]">
             <Lightbulb size={20} style={{ color: '#f59e0b' }} />
           </div>
           <div>
-            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('settings.about.featureRequest')}</div>
-            <div className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('settings.about.featureRequestHint')}</div>
+            <div className="text-sm font-semibold ![color:var(--text-primary)]">{t('settings.about.featureRequest')}</div>
+            <div className="text-xs ![color:var(--text-faint)]">{t('settings.about.featureRequestHint')}</div>
           </div>
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>
@@ -284,14 +284,14 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/wiki"
           target="_blank"
           rel="noopener noreferrer"
-          className="trek-h-border-color-ffa2aa trek-h-box-shadow-c46881 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
-          <div style={{ width: 40, height: 40, borderRadius: 10, background: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          className="trek-h-border-color-ffa2aa trek-h-box-shadow-c46881 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ![background:var(--bg-card)] ![text-decoration:none]"
+          style={{ borderColor: 'var(--border-primary)' }} >
+          <div className="!w-[40px] !h-[40px] !rounded-[10px] ![background:#6366f115] !flex !items-center !justify-center !shrink-[0]">
             <BookOpen size={20} style={{ color: '#6366f1' }} />
           </div>
           <div>
-            <div className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Wiki</div>
-            <div className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('settings.about.wikiHint')}</div>
+            <div className="text-sm font-semibold ![color:var(--text-primary)]">Wiki</div>
+            <div className="text-xs ![color:var(--text-faint)]">{t('settings.about.wikiHint')}</div>
           </div>
           <ExternalLink size={14} className="ml-auto flex-shrink-0" style={{ color: 'var(--text-faint)' }} />
         </a>

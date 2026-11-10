@@ -90,7 +90,7 @@ export default function PlaceAbout({ place, categoryName, language, locale, t }:
 
   if (!canAsk) return null
   if (loading && !data) {
-    return <div data-testid="place-about-loading" style={{ height: 14, width: '40%', borderRadius: 6, background: 'var(--bg-hover)', opacity: 0.7 }} />
+    return <div className="!h-[14px] !w-[40%] !rounded-[6px] ![background:var(--bg-hover)]" data-testid="place-about-loading" style={{ opacity: 0.7 }} />
   }
   if (!data || data.disabled) return null
 
@@ -103,8 +103,8 @@ export default function PlaceAbout({ place, categoryName, language, locale, t }:
   const long = !!d && d.text.length > 280
 
   return (
-    <section aria-label={t('place.about.title')} style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-hover)', borderRadius: 10, padding: '8px 12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)' }}>
+    <section className="!flex !flex-col !gap-[8px] ![background:var(--bg-hover)] !rounded-[10px] !p-[8px_12px]" aria-label={t('place.about.title')}>
+      <div className="!flex !items-center !gap-[6px] !text-[length:11px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)]">
         <BookOpen size={12} /> {t('place.about.title')}
       </div>
 
@@ -114,15 +114,15 @@ export default function PlaceAbout({ place, categoryName, language, locale, t }:
             margin: 0, fontSize: 12, lineHeight: 1.5, color: 'var(--text-muted)',
             ...(long && !expanded ? { display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', overflow: 'hidden' } : {}),
           }}>{d.text}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+          <div className="!flex !items-center !gap-[8px] !mt-[4px] !flex-wrap">
             {long && (
-              <button type="button" onClick={() => setExpanded(v => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 2, background: 'none', border: 'none', padding: 0, fontSize: 11, color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit' }}>
+              <button className="!inline-flex !items-center !gap-[2px] ![background:none] ![border:none] !p-[0] !text-[length:11px] ![color:var(--text-primary)] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => setExpanded(v => !v)}>
                 {expanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />} {expanded ? t('place.about.less') : t('place.about.more')}
               </button>
             )}
-            <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>
+            <span className="!text-[length:10px] ![color:var(--text-faint)]">
               {d.sourceUrl
-                ? <a href={d.sourceUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit' }}>{SOURCE_LABEL[d.source]}</a>
+                ? <a className="![color:inherit]" href={d.sourceUrl} target="_blank" rel="noopener noreferrer">{SOURCE_LABEL[d.source]}</a>
                 : SOURCE_LABEL[d.source]}
               {' · '}{d.license}
             </span>
@@ -131,31 +131,29 @@ export default function PlaceAbout({ place, categoryName, language, locale, t }:
       )}
 
       {(facts.length > 0 || website || wikidata) && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+        <div className="!flex !flex-wrap !gap-[4px]">
           {facts.map(({ f, label }) => (
-            <span key={`${f.kind}-${label}`} data-fact={f.kind} style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-card)', color: 'var(--text-secondary, var(--text-muted))', border: '1px solid var(--border-faint)' }}>{label}</span>
+            <span className="!text-[length:11px] !p-[2px_8px] !rounded-[99px] ![background:var(--bg-card)] ![color:var(--text-secondary,_var(--text-muted))] ![border:1px_solid_var(--border-faint)]" key={`${f.kind}-${label}`} data-fact={f.kind}>{label}</span>
           ))}
           {website && (
-            <a href={website} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, padding: '2px 8px', borderRadius: 99, background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border-faint)', textDecoration: 'none' }}>
+            <a className="!inline-flex !items-center !gap-[3px] !text-[length:11px] !p-[2px_8px] !rounded-[99px] ![background:var(--bg-card)] ![color:var(--text-primary)] ![border:1px_solid_var(--border-faint)] ![text-decoration:none]" href={website} target="_blank" rel="noopener noreferrer">
               <ExternalLink size={10} /> {t('place.about.website')}
             </a>
           )}
           {wikidata && (
-            <a href={wikidata} target="_blank" rel="noopener noreferrer" style={{ fontSize: 11, padding: '2px 8px', borderRadius: 99, color: 'var(--text-faint)', border: '1px solid var(--border-faint)', textDecoration: 'none' }}>Wikidata</a>
+            <a className="!text-[length:11px] !p-[2px_8px] !rounded-[99px] ![color:var(--text-faint)] ![border:1px_solid_var(--border-faint)] ![text-decoration:none]" href={wikidata} target="_blank" rel="noopener noreferrer">Wikidata</a>
           )}
         </div>
       )}
 
       {data.photos.length > 0 && (
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 2 }}>
+        <div className="!flex !gap-[6px] !overflow-x-auto !pb-[2px]">
           {data.photos.map(p => {
             const credit = [p.author, p.license].filter(Boolean).join(' · ')
             return (
-              <a key={p.sourceUrl} href={p.sourceUrl} target="_blank" rel="noopener noreferrer" title={credit ? `${p.title} — ${credit}` : p.title}
-                style={{ flex: '0 0 auto', width: 112, textDecoration: 'none', color: 'var(--text-faint)' }}>
-                <img src={p.thumbUrl} alt={p.title} loading="lazy" referrerPolicy="no-referrer"
-                  style={{ width: 112, height: 80, objectFit: 'cover', borderRadius: 6, display: 'block', background: 'var(--bg-card)' }} />
-                <span style={{ display: 'block', fontSize: 9, lineHeight: 1.3, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <a className="!flex-[0_0_auto] !w-[112px] ![text-decoration:none] ![color:var(--text-faint)]" key={p.sourceUrl} href={p.sourceUrl} target="_blank" rel="noopener noreferrer" title={credit ? `${p.title} — ${credit}` : p.title}>
+                <img className="!w-[112px] !h-[80px] !object-cover !rounded-[6px] !block ![background:var(--bg-card)]" src={p.thumbUrl} alt={p.title} loading="lazy" referrerPolicy="no-referrer" />
+                <span className="!block !text-[length:9px] !leading-[1.3] !mt-[2px] !whitespace-nowrap !overflow-hidden !text-ellipsis">
                   {credit || 'Wikimedia Commons'}
                 </span>
               </a>

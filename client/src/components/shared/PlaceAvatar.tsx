@@ -82,11 +82,10 @@ export default React.memo(function PlaceAvatar({ place, size = 32, category }: P
   if (photoSrc) {
     return (
       <div ref={ref} style={containerStyle}>
-        <img
+        <img className="!w-[100%] !h-[100%] !object-cover"
           src={photoSrc}
           alt={place.name}
           decoding="async"
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           onError={() => {
             if (!imageUrlFailed.current && photoSrc === place.image_url && (place.google_place_id || place.osm_id)) {
               imageUrlFailed.current = true

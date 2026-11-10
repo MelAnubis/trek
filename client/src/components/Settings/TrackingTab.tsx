@@ -74,14 +74,14 @@ export default function TrackingTab(): React.ReactElement {
 
   return (
     <Section title={t('tracking.title')} icon={Radio}>
-      <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('tracking.intro')}</p>
+      <p className="text-sm ![color:var(--text-muted)]">{t('tracking.intro')}</p>
 
       <div className="space-y-1.5">
-        <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--text-faint)' }}>{t('tracking.endpoint')}</div>
+        <div className="text-xs font-semibold uppercase tracking-wide ![color:var(--text-faint)]">{t('tracking.endpoint')}</div>
         <CopyField value={endpoint} label={t('tracking.copyEndpoint')} mono testId="overland-endpoint" />
       </div>
 
-      <ol className="text-sm space-y-1 list-decimal pl-5" style={{ color: 'var(--text-secondary)' }}>
+      <ol className="text-sm space-y-1 list-decimal pl-5 ![color:var(--text-secondary)]">
         <li>{t('tracking.step1')}</li>
         <li>{t('tracking.step2')}</li>
         <li>{t('tracking.step3')}</li>
@@ -91,39 +91,38 @@ export default function TrackingTab(): React.ReactElement {
       <div className="flex gap-2">
         <input value={newName} onChange={e => setNewName(e.target.value)} maxLength={60} placeholder={t('tracking.newDevicePlaceholder')}
           onKeyDown={e => { if (e.key === 'Enter') void add() }} aria-label={t('tracking.newDevicePlaceholder')}
-          className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }} />
+          className="flex-1 min-w-0 px-3 py-2 rounded-xl text-sm ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]" />
         <button type="button" onClick={() => void add()} disabled={busy || !newName.trim()}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium"
-          style={{ background: 'var(--accent)', color: 'white', opacity: busy || !newName.trim() ? 0.6 : 1 }}>
+          className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium ![background:var(--accent)] ![color:white]"
+          style={{ opacity: busy || !newName.trim() ? 0.6 : 1 }}>
           <Plus className="w-4 h-4" /> {t('tracking.addDevice')}
         </button>
       </div>
 
       {devices && devices.length === 0 && (
-        <p className="text-sm" style={{ color: 'var(--text-faint)' }}>{t('tracking.noDevices')}</p>
+        <p className="text-sm ![color:var(--text-faint)]">{t('tracking.noDevices')}</p>
       )}
 
       <div className="space-y-3">
         {devices?.map(d => (
-          <div key={d.id} data-testid="tracking-device" className="rounded-xl p-3 space-y-2" style={{ border: '1px solid var(--border-primary)' }}>
+          <div key={d.id} data-testid="tracking-device" className="rounded-xl p-3 space-y-2 ![border:1px_solid_var(--border-primary)]">
             <div className="flex items-center gap-2 flex-wrap">
               <Smartphone className="w-4 h-4" style={{ color: 'var(--text-muted)' }} />
               <input defaultValue={d.name} aria-label={t('tracking.deviceName')} maxLength={60}
                 onBlur={e => void rename(d, e.target.value)} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur() }}
-                className="flex-1 min-w-[120px] bg-transparent text-sm font-semibold outline-none" style={{ color: 'var(--text-primary)' }} />
+                className="flex-1 min-w-[120px] bg-transparent text-sm font-semibold outline-none ![color:var(--text-primary)]" />
               <DeviceStatusChip device={d} />
               <BatteryBadge level={d.battery_level} state={d.battery_state} />
             </div>
-            <div className="text-xs" style={{ color: 'var(--text-muted)' }}>
+            <div className="text-xs ![color:var(--text-muted)]">
               {t('tracking.lastPoint')}: {ago(d.last_position?.recorded_at)}
               {d.overland_device_id ? ` · ${d.overland_device_id}` : ''}
               {d.token_hint ? ` · ${t('tracking.tokenEnds', { hint: d.token_hint })}` : ''}
             </div>
 
             {revealed?.id === d.id && (
-              <div className="space-y-1.5 rounded-lg p-2" style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid #f59e0b' }}>
-                <div className="text-xs font-semibold" style={{ color: '#b45309' }}>{t('tracking.tokenOnce')}</div>
+              <div className="space-y-1.5 rounded-lg p-2 ![background:rgba(245,158,11,0.10)] ![border:1px_solid_#f59e0b]">
+                <div className="text-xs font-semibold ![color:#b45309]">{t('tracking.tokenOnce')}</div>
                 <CopyField value={revealed.token} label={t('tracking.copyToken')} mono testId="device-token" />
               </div>
             )}
@@ -133,19 +132,18 @@ export default function TrackingTab(): React.ReactElement {
                 style={{ background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
                 <MapIcon className="w-3.5 h-3.5" /> {t('tracking.openMap')}
               </Link>
-              <button type="button" onClick={() => void regenerate(d)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs"
-                style={{ border: '1px solid var(--border-primary)', color: 'var(--text-secondary)' }}>
+              <button type="button" onClick={() => void regenerate(d)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs ![border:1px_solid_var(--border-primary)] ![color:var(--text-secondary)]">
                 <KeyRound className="w-3.5 h-3.5" /> {t('tracking.newToken')}
               </button>
-              <label className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--text-secondary)' }}>
+              <label className="flex items-center gap-1.5 text-xs ![color:var(--text-secondary)]">
                 {t('tracking.keep')}
                 <select value={d.retention_days ?? ''} onChange={e => void setRetention(d, e.target.value)}
-                  className="px-2 py-1 rounded-lg text-xs" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)' }}>
+                  className="px-2 py-1 rounded-lg text-xs ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)]">
                   {RETENTION.map(r => <option key={String(r)} value={r ?? ''}>{r == null ? t('tracking.keepForever') : t('tracking.keepDays', { n: r })}</option>)}
                 </select>
               </label>
               <button type="button" onClick={() => void remove(d)} aria-label={t('tracking.deleteDevice')} title={t('tracking.deleteDevice')}
-                className="ml-auto p-1.5 rounded-lg" style={{ color: '#dc2626' }}>
+                className="ml-auto p-1.5 rounded-lg ![color:#dc2626]">
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>

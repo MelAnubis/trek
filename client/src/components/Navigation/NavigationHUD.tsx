@@ -27,54 +27,20 @@ export default function NavigationHUD({ mode, trackName, stats, onExit }: Props)
   const isFollowing = mode === 'following'
 
   return (
-    <div style={{
-      position: 'absolute',
-      top: 0, left: 0, right: 0,
-      zIndex: 20,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 0,
-    }}>
+    <div className="!absolute !top-[0] !left-[0] !right-[0] !z-[20] !flex !flex-col !gap-[0]">
       {/* Top bar: title + exit */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '12px 16px 10px',
-        background: 'rgba(10,10,20,0.82)',
-        backdropFilter: 'blur(16px)',
-        WebkitBackdropFilter: 'blur(16px)',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
+      <div className="!flex !items-center !gap-[10px] !p-[12px_16px_10px] ![background:rgba(10,10,20,0.82)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] ![border-bottom:1px_solid_rgba(255,255,255,0.08)]">
         {isRecording && (
           <Circle size={12} fill="#ef4444" color="#ef4444" style={{ flexShrink: 0, animation: 'navpulse 1.2s ease-in-out infinite' }} />
         )}
         {isFollowing && (
           <Navigation size={14} color="#3b82f6" style={{ flexShrink: 0 }} />
         )}
-        <span style={{
-          flex: 1,
-          fontSize: 14,
-          fontWeight: 600,
-          color: '#f1f5f9',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
-        }}>
+        <span className="!flex-[1] !text-[length:14px] !font-[600] ![color:#f1f5f9] !overflow-hidden !text-ellipsis !whitespace-nowrap">
           {isRecording ? 'Grabando ruta' : trackName}
         </span>
-        <button
+        <button className="![background:rgba(255,255,255,0.1)] ![border:none] !rounded-[8px] !p-[6px] !cursor-pointer !flex !items-center ![color:#94a3b8]"
           onClick={onExit}
-          style={{
-            background: 'rgba(255,255,255,0.1)',
-            border: 'none',
-            borderRadius: 8,
-            padding: 6,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            color: '#94a3b8',
-          }}
         >
           <X size={16} />
         </button>
@@ -82,16 +48,7 @@ export default function NavigationHUD({ mode, trackName, stats, onExit }: Props)
 
       {/* Stats strip */}
       {(isRecording || isFollowing) && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '8px 16px',
-          background: 'rgba(10,10,20,0.75)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          gap: 0,
-        }}>
+        <div className="!flex !items-center !p-[8px_16px] ![background:rgba(10,10,20,0.75)] ![backdrop-filter:blur(12px)] ![-webkit-backdrop-filter:blur(12px)] ![border-bottom:1px_solid_rgba(255,255,255,0.06)] !gap-[0]">
           <Stat label="Tiempo" value={fmt(stats.elapsedSeconds)} />
           <Divider />
           {isFollowing ? (
@@ -128,9 +85,9 @@ export default function NavigationHUD({ mode, trackName, stats, onExit }: Props)
 
 function Stat({ label, value, color, icon }: { label: string; value: string; color?: string; icon?: React.ReactNode }) {
   return (
-    <div style={{ flex: 1, textAlign: 'center', minWidth: 0 }}>
-      <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 1 }}>{label}</div>
-      <div style={{ fontSize: 13, fontWeight: 700, color: color ?? '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="!flex-[1] !text-center !min-w-[0]">
+      <div className="!text-[length:9px] ![color:#64748b] !uppercase !tracking-[0.5px] !mb-[1px]">{label}</div>
+      <div className="!text-[length:13px] !font-[700] !flex !items-center !justify-center" style={{ color: color ?? '#f1f5f9' }}>
         {icon}{value}
       </div>
     </div>
@@ -138,5 +95,5 @@ function Stat({ label, value, color, icon }: { label: string; value: string; col
 }
 
 function Divider() {
-  return <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)', flexShrink: 0, margin: '0 4px' }} />
+  return <div className="!w-[1px] !h-[28px] ![background:rgba(255,255,255,0.1)] !shrink-[0] !m-[0_4px]" />
 }

@@ -185,32 +185,17 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
   if (!isOpen) return null
 
   return ReactDOM.createPortal(
-    <div
+    <div className="!fixed !inset-[0] !z-[99999] ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-center !justify-center !p-[16px]"
       onClick={handleClose}
-      style={{
-        position: 'fixed', inset: 0, zIndex: 99999,
-        background: 'var(--modal-backdrop)',
-        backdropFilter: 'blur(12px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-      }}
     >
-      <div
+      <div className="![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[16px] !w-[100%] !max-w-[520px] !p-[24px] ![box-shadow:var(--modal-shadow)]"
         onClick={e => e.stopPropagation()}
-        style={{
-          background: 'var(--modal-bg)',
-          backdropFilter: 'var(--glass-blur-lg)',
-          WebkitBackdropFilter: 'var(--glass-blur-lg)',
-          border: '1px solid var(--modal-border)',
-          borderRadius: 16, width: '100%', maxWidth: 520, padding: 24,
-          boxShadow: 'var(--modal-shadow)',
-          fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-        }}
+        style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
       >
-        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+        <div className="!text-[length:15px] !font-[700] ![color:var(--text-primary)] !mb-[6px]">
           {t('places.importFile')}
         </div>
-        <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
+        <div className="!text-[length:12px] ![color:var(--text-faint)] !mb-[14px] !leading-[1.45]">
           {t('places.importFileHint')}
         </div>
 
@@ -222,101 +207,69 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
           onChange={handleInputChange}
         />
 
-        <div
+        <div className="!w-[100%] !min-h-[88px] !rounded-[12px] !flex !flex-col !items-center !justify-center !gap-[6px] !text-[length:13px] !font-[500] !cursor-pointer !mb-[12px] ![font-family:inherit] ![transition:border-color_0.15s,_background_0.15s] !box-border !p-[16px]"
           onClick={() => fileInputRef.current?.click()}
           onDragOver={handleDragOver}
           onDragEnter={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          style={{
-            width: '100%',
-            minHeight: 88,
-            borderRadius: 12,
-            border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}`,
-            background: isDragOver ? 'var(--bg-tertiary)' : 'transparent',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 6,
-            fontSize: 13,
-            fontWeight: 500,
-            cursor: 'pointer',
-            marginBottom: 12,
-            fontFamily: 'inherit',
-            transition: 'border-color 0.15s, background 0.15s',
-            boxSizing: 'border-box',
-            padding: 16,
-          }}
+          style={{ border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}`, background: isDragOver ? 'var(--bg-tertiary)' : 'transparent' }}
         >
           <Upload size={18} strokeWidth={1.8} color={isDragOver ? 'var(--accent)' : 'var(--text-faint)'} style={{ pointerEvents: 'none' }} />
           {isDragOver ? (
-            <span style={{ color: 'var(--accent)', pointerEvents: 'none' }}>{t('places.importFileDropActive')}</span>
+            <span className="![color:var(--accent)] !pointer-events-none">{t('places.importFileDropActive')}</span>
           ) : file ? (
-            <span style={{ color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-all', pointerEvents: 'none' }}>{file.name}</span>
+            <span className="![color:var(--text-primary)] !text-center !break-all !pointer-events-none">{file.name}</span>
           ) : (
-            <span style={{ color: 'var(--text-faint)', textAlign: 'center', pointerEvents: 'none' }}>{t('places.importFileDropHere')}</span>
+            <span className="![color:var(--text-faint)] !text-center !pointer-events-none">{t('places.importFileDropHere')}</span>
           )}
         </div>
 
         {isGpx && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="!mb-[12px]">
+            <div className="!text-[length:11px] !font-[600] ![color:var(--text-muted)] !mb-[6px] !uppercase !tracking-[0.05em]">
               {t('places.gpxImportTypes')}
             </div>
             {(['waypoints', 'routes', 'tracks'] as const).map(key => (
-              <label key={key} onClick={() => setGpxOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
-                <div style={{
-                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                  border: gpxOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
-                  background: gpxOpts[key] ? 'var(--accent)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <label className="!flex !items-center !gap-[8px] !p-[4px_0] !cursor-pointer" key={key} onClick={() => setGpxOpts(prev => ({ ...prev, [key]: !prev[key] }))}>
+                <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: gpxOpts[key] ? 'none' : '1.5px solid var(--border-primary)', background: gpxOpts[key] ? 'var(--accent)' : 'transparent' }}>
                   {gpxOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-primary)', userSelect: 'none' }}>
+                <span className="!text-[length:12px] ![color:var(--text-primary)] !select-none">
                   {t(key === 'waypoints' ? 'places.gpxImportWaypoints' : key === 'routes' ? 'places.gpxImportRoutes' : 'places.gpxImportTracks')}
                 </span>
               </label>
             ))}
             {gpxNoneSelected && (
-              <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>{t('places.gpxImportNoneSelected')}</div>
+              <div className="!text-[length:11px] ![color:#b45309] !mt-[4px]">{t('places.gpxImportNoneSelected')}</div>
             )}
           </div>
         )}
 
         {isKml && (
-          <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          <div className="!mb-[12px]">
+            <div className="!text-[length:11px] !font-[600] ![color:var(--text-muted)] !mb-[6px] !uppercase !tracking-[0.05em]">
               {t('places.kmlImportTypes')}
             </div>
             {(['points', 'paths'] as const).map(key => (
-              <label key={key} onClick={() => setKmlOpts(prev => ({ ...prev, [key]: !prev[key] }))} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', cursor: 'pointer' }}>
-                <div style={{
-                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                  border: kmlOpts[key] ? 'none' : '1.5px solid var(--border-primary)',
-                  background: kmlOpts[key] ? 'var(--accent)' : 'transparent',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
+              <label className="!flex !items-center !gap-[8px] !p-[4px_0] !cursor-pointer" key={key} onClick={() => setKmlOpts(prev => ({ ...prev, [key]: !prev[key] }))}>
+                <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: kmlOpts[key] ? 'none' : '1.5px solid var(--border-primary)', background: kmlOpts[key] ? 'var(--accent)' : 'transparent' }}>
                   {kmlOpts[key] && <svg width="10" height="10" viewBox="0 0 10 10"><polyline points="1.5,5 4,7.5 8.5,2" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>}
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-primary)', userSelect: 'none' }}>
+                <span className="!text-[length:12px] ![color:var(--text-primary)] !select-none">
                   {t(key === 'points' ? 'places.kmlImportPoints' : 'places.kmlImportPaths')}
                 </span>
               </label>
             ))}
             {kmlNoneSelected && (
-              <div style={{ fontSize: 11, color: '#b45309', marginTop: 4 }}>{t('places.kmlImportNoneSelected')}</div>
+              <div className="!text-[length:11px] ![color:#b45309] !mt-[4px]">{t('places.kmlImportNoneSelected')}</div>
             )}
           </div>
         )}
 
         {summary && (
-          <div style={{
-            border: '1px solid var(--border-primary)', borderRadius: 10,
-            background: 'var(--bg-tertiary)', padding: 10, marginBottom: 10,
-          }}>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <div className="![border:1px_solid_var(--border-primary)] !rounded-[10px] ![background:var(--bg-tertiary)] !p-[10px] !mb-[10px]">
+            <div className="!text-[length:12px] ![color:var(--text-muted)]">
               {t('places.kmlKmzSummaryValues', {
                 total: summary.totalPlacemarks,
                 created: summary.createdCount,
@@ -324,7 +277,7 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
               })}
             </div>
             {summary.warnings?.length > 0 && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#b45309', whiteSpace: 'pre-wrap' }}>
+              <div className="!mt-[8px] !text-[length:12px] ![color:#b45309] !whitespace-pre-wrap">
                 {summary.warnings.join('\n')}
               </div>
             )}
@@ -332,36 +285,21 @@ export default function FileImportModal({ isOpen, onClose, tripId, pushUndo, ini
         )}
 
         {error && (
-          <div style={{
-            border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10,
-            background: 'rgba(239,68,68,0.08)', padding: '8px 10px',
-            fontSize: 12, color: '#b91c1c', whiteSpace: 'pre-wrap', marginBottom: 10,
-          }}>
+          <div className="![border:1px_solid_rgba(239,68,68,0.35)] !rounded-[10px] ![background:rgba(239,68,68,0.08)] !p-[8px_10px] !text-[length:12px] ![color:#b91c1c] !whitespace-pre-wrap !mb-[10px]">
             {error}
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-          <button
+        <div className="!flex !gap-[8px] !justify-end">
+          <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-primary)] !text-[length:13px] !font-[500] !cursor-pointer ![font-family:inherit]"
             onClick={handleClose}
-            style={{
-              padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-              background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
           >
             {t('common.cancel')}
           </button>
-          <button
+          <button className="!p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[500] ![font-family:inherit]"
             onClick={handleImport}
             disabled={!canImport}
-            style={{
-              padding: '8px 16px', borderRadius: 10, border: 'none',
-              background: canImport ? 'var(--accent)' : 'var(--bg-tertiary)',
-              color: canImport ? 'var(--accent-text)' : 'var(--text-faint)',
-              fontSize: 13, fontWeight: 500, cursor: canImport ? 'pointer' : 'default',
-              fontFamily: 'inherit',
-            }}
+            style={{ background: canImport ? 'var(--accent)' : 'var(--bg-tertiary)', color: canImport ? 'var(--accent-text)' : 'var(--text-faint)', cursor: canImport ? 'pointer' : 'default' }}
           >
             {loading ? t('common.loading') : t('common.import')}
           </button>

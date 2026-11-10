@@ -211,54 +211,25 @@ export default function PlaceInspector({
   }, [onFileUpload, place.id])
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: 20,
-        left: `calc(${leftWidth}px + (100% - ${leftWidth}px - ${rightWidth}px) / 2)`,
-        transform: 'translateX(-50%)',
-        width: `min(800px, calc(100% - ${leftWidth}px - ${rightWidth}px - 32px))`,
-        zIndex: 50,
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif",
-      }}
+    <div className="!absolute !z-[50]"
+      style={{ bottom: 20, left: `calc(${leftWidth}px + (100% - ${leftWidth}px - ${rightWidth}px) / 2)`, transform: 'translateX(-50%)', width: `min(800px, calc(100% - ${leftWidth}px - ${rightWidth}px - 32px))`, fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
     >
-      <div style={{
-        background: 'var(--bg-elevated)',
-        backdropFilter: 'blur(40px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(40px) saturate(180%)',
-        borderRadius: 20,
-        boxShadow: '0 8px 40px rgba(0,0,0,0.14), 0 0 0 1px rgba(0,0,0,0.06)',
-        overflow: 'hidden',
-        maxHeight: '60vh',
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      <div className="![backdrop-filter:blur(40px)_saturate(180%)] ![-webkit-backdrop-filter:blur(40px)_saturate(180%)] !rounded-[20px] ![box-shadow:0_8px_40px_rgba(0,0,0,0.14),_0_0_0_1px_rgba(0,0,0,0.06)] !overflow-hidden !max-h-[60vh] !flex !flex-col" style={{ background: 'var(--bg-elevated)' }}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px', borderBottom: '1px solid var(--border-faint)' }}>
+        <div className="!flex !items-center ![border-bottom:1px_solid_var(--border-faint)]" style={{ gap: openNow !== null ? 26 : 14, padding: openNow !== null ? '18px 16px 14px 28px' : '18px 16px 14px' }}>
           {/* Avatar with open/closed ring + tag */}
-          <div style={{ position: 'relative', flexShrink: 0, marginBottom: openNow !== null ? 8 : 0 }}>
-            <div style={{
-              borderRadius: '50%', padding: 2.5,
-              background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent',
-            }}>
+          <div className="!relative !shrink-[0]" style={{ marginBottom: openNow !== null ? 8 : 0 }}>
+            <div className="!rounded-[50%] !p-[2.5px]" style={{ background: openNow === true ? '#22c55e' : openNow === false ? '#ef4444' : 'transparent' }}>
               <PlaceAvatar place={place} category={category} size={52} />
             </div>
             {openNow !== null && (
-              <span style={{
-                position: 'absolute', bottom: -7, left: '50%', transform: 'translateX(-50%)',
-                fontSize: 9, fontWeight: 500, letterSpacing: '0.02em',
-                color: 'white',
-                background: openNow ? '#16a34a' : '#dc2626',
-                padding: '1.5px 7px', borderRadius: 99,
-                whiteSpace: 'nowrap',
-                boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-              }}>
+              <span className="!absolute !bottom-[-7px] !left-[50%] !text-[length:9px] !font-[500] !tracking-[0.02em] ![color:white] !p-[1.5px_7px] !rounded-[99px] !whitespace-nowrap ![box-shadow:0_1px_4px_rgba(0,0,0,0.2)]" style={{ transform: 'translateX(-50%)', background: openNow ? '#16a34a' : '#dc2626' }}>
                 {openNow ? t('inspector.opened') : t('inspector.closed')}
               </span>
             )}
           </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+          <div className="!flex-[1] !min-w-[0]">
+            <div className="!flex !items-center !gap-[6px] !flex-wrap">
               {editingName ? (
                 <input
                   ref={nameInputRef}
@@ -269,22 +240,15 @@ export default function PlaceInspector({
                   style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, padding: '1px 6px', fontFamily: 'inherit', outline: 'none', width: '100%' }}
                 />
               ) : (
-                <span
+                <span className="!font-[600] !text-[length:15px] ![color:var(--text-primary)] !leading-[1.3]"
                   onDoubleClick={startNameEdit}
-                  style={{ fontWeight: 600, fontSize: 15, color: 'var(--text-primary)', lineHeight: '1.3', cursor: onUpdatePlace ? 'text' : 'default' }}
+                  style={{ cursor: onUpdatePlace ? 'text' : 'default' }}
                 >{place.name}</span>
               )}
               {category && (() => {
                 const CatIcon = getCategoryIcon(category.icon)
                 return (
-                  <span style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 4,
-                    fontSize: 11, fontWeight: 500,
-                    color: category.color || '#6b7280',
-                    background: category.color ? `${category.color}18` : 'rgba(0,0,0,0.06)',
-                    border: `1px solid ${category.color ? `${category.color}30` : 'transparent'}`,
-                    padding: '2px 8px', borderRadius: 99,
-                  }}>
+                  <span className="!inline-flex !items-center !gap-[4px] !text-[length:11px] !font-[500] !p-[2px_8px] !rounded-[99px]" style={{ color: category.color || '#6b7280', background: category.color ? `${category.color}18` : 'rgba(0,0,0,0.06)', border: `1px solid ${category.color ? `${category.color}30` : 'transparent'}` }}>
                     <CatIcon size={10} />
                     <span className="hidden sm:inline">{category.name}</span>
                   </span>
@@ -292,35 +256,35 @@ export default function PlaceInspector({
               })()}
             </div>
             {place.address && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, marginTop: 6 }}>
+              <div className="!flex !items-start !gap-[4px] !mt-[6px]">
                 <MapPin size={11} color="var(--text-faint)" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.4', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{place.address}</span>
+                <span className="!text-[length:12px] ![color:var(--text-muted)] !leading-[1.4] ![display:-webkit-box] ![-webkit-line-clamp:2px] ![-webkit-box-orient:vertical] !overflow-hidden">{place.address}</span>
               </div>
             )}
             {place.place_time && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
+              <div className="!flex !items-center !gap-[4px] !mt-[3px]">
                 <Clock size={10} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
+                <span className="!text-[length:12px] ![color:var(--text-muted)]">{formatTime(place.place_time, locale, timeFormat)}{place.end_time ? ` – ${formatTime(place.end_time, locale, timeFormat)}` : ''}</span>
               </div>
             )}
             {place.lat && place.lng && (
-              <div className="hidden sm:block" style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: 4, fontVariantNumeric: 'tabular-nums' }}>
+              <div className="hidden sm:block !text-[length:11px] ![color:var(--text-faint)] !mt-[4px] ![font-variant-numeric:tabular-nums]">
                 {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
               </div>
             )}
           </div>
-          <button className="trek-hover-tertiary"
+          <button className="trek-hover-tertiary !w-[28px] !h-[28px] !rounded-[50%] ![border:none] !flex !items-center !justify-center !cursor-pointer !shrink-[0] !self-start ![transition:background_0.15s]"
             onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }} >
+            style={{ background: 'var(--bg-hover)' }} >
             <X size={14} strokeWidth={2} color="var(--text-secondary)" />
           </button>
         </div>
 
         {/* Content — scrollable */}
-        <div style={{ overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="!overflow-y-auto !p-[12px_16px] !flex !flex-col !gap-[10px]">
 
           {/* Info-Chips — hidden on mobile, shown on desktop */}
-          <div className="hidden sm:flex" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+          <div className="hidden sm:flex !flex-wrap !gap-[6px] !items-center">
             {googleDetails?.rating && (() => {
               const shortReview = (googleDetails.reviews || []).find(r => r.text && r.text.length > 5)
               return (
@@ -329,7 +293,7 @@ export default function PlaceInspector({
                   text={<>
                     {googleDetails.rating.toFixed(1)}
                     {googleDetails.rating_count ? <span style={{ opacity: 0.5 }}> ({googleDetails.rating_count.toLocaleString(locale)})</span> : ''}
-                    {shortReview && <span className="hidden md:inline" style={{ opacity: 0.6, fontWeight: 400, fontStyle: 'italic', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}> · „{shortReview.text}"</span>}
+                    {shortReview && <span className="hidden md:inline !font-[400] !italic !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ opacity: 0.6 }}> · „{shortReview.text}"</span>}
                   </>}
                   color="var(--text-secondary)" bg="var(--bg-hover)"
                 />
@@ -342,9 +306,8 @@ export default function PlaceInspector({
 
           {/* Telefon */}
           {(place.phone || googleDetails?.phone) && (
-            <div style={{ display: 'flex', gap: 12 }}>
-              <a href={`tel:${place.phone || googleDetails.phone}`}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', textDecoration: 'none' }}>
+            <div className="!flex !gap-[12px]">
+              <a className="!inline-flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-primary)] ![text-decoration:none]" href={`tel:${place.phone || googleDetails.phone}`}>
                 <Phone size={12} /> {place.phone || googleDetails.phone}
               </a>
             </div>
@@ -352,14 +315,14 @@ export default function PlaceInspector({
 
           {/* Description / Summary */}
           {(place.description || googleDetails?.summary) && (
-            <div className="collab-note-md" style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden', fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', padding: '8px 12px' }}>
+            <div className="collab-note-md !rounded-[10px] !overflow-hidden !text-[length:12px] ![color:var(--text-muted)] !leading-[1.5] !p-[8px_12px]" style={{ background: 'var(--bg-hover)' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.description || googleDetails?.summary || ''}</Markdown>
             </div>
           )}
 
           {/* Notes */}
           {place.notes && (
-            <div className="collab-note-md" style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden', fontSize: 12, color: 'var(--text-muted)', lineHeight: '1.5', padding: '8px 12px', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
+            <div className="collab-note-md !rounded-[10px] !overflow-hidden !text-[length:12px] ![color:var(--text-muted)] !leading-[1.5] !p-[8px_12px] !break-words ![overflow-wrap:anywhere]" style={{ background: 'var(--bg-hover)' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{place.notes}</Markdown>
             </div>
           )}
@@ -388,14 +351,14 @@ export default function PlaceInspector({
                 {res && (() => {
                   const confirmed = res.status === 'confirmed'
                   return (
-                    <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px', background: confirmed ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: confirmed ? '#16a34a' : '#d97706' }} />
-                        <span style={{ fontSize: 10, fontWeight: 700, color: confirmed ? '#16a34a' : '#d97706' }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                        <span style={{ flex: 1 }} />
-                        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{res.title}</span>
+                    <div className="!rounded-[12px] !overflow-hidden" style={{ border: `1px solid ${confirmed ? 'rgba(22,163,74,0.2)' : 'rgba(217,119,6,0.2)'}` }}>
+                      <div className="!flex !items-center !gap-[8px] !p-[6px_10px]" style={{ background: confirmed ? 'rgba(22,163,74,0.08)' : 'rgba(217,119,6,0.08)' }}>
+                        <div className="!w-[6px] !h-[6px] !rounded-[50%] !shrink-[0]" style={{ background: confirmed ? '#16a34a' : '#d97706' }} />
+                        <span className="!text-[length:10px] !font-[700]" style={{ color: confirmed ? '#16a34a' : '#d97706' }}>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
+                        <span className="!flex-[1]" />
+                        <span className="!text-[length:11px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{res.title}</span>
                       </div>
-                      <div style={{ padding: '6px 10px', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                      <div className="!p-[6px_10px] !flex !gap-[12px] !flex-wrap">
                         {(() => {
                           const { date, time: startTime } = splitReservationDateTime(res.reservation_time)
                           const { time: endTime } = splitReservationDateTime(res.reservation_end_time)
@@ -403,14 +366,14 @@ export default function PlaceInspector({
                             <>
                               {date && (
                                 <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.date')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
+                                  <div className="!text-[length:8px] !font-[600] ![color:var(--text-faint)] !uppercase">{t('reservations.date')}</div>
+                                  <div className="!text-[length:10px] !font-[500] ![color:var(--text-primary)] !mt-[1px]">{new Date(date + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</div>
                                 </div>
                               )}
                               {(startTime || endTime) && (
                                 <div>
-                                  <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.time')}</div>
-                                  <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>
+                                  <div className="!text-[length:8px] !font-[600] ![color:var(--text-faint)] !uppercase">{t('reservations.time')}</div>
+                                  <div className="!text-[length:10px] !font-[500] ![color:var(--text-primary)] !mt-[1px]">
                                     {startTime ? formatTime(startTime, locale, timeFormat) : ''}
                                     {endTime ? ` – ${formatTime(endTime, locale, timeFormat)}` : ''}
                                   </div>
@@ -421,12 +384,12 @@ export default function PlaceInspector({
                         })()}
                         {res.confirmation_number && (
                           <div>
-                            <div style={{ fontSize: 8, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase' }}>{t('reservations.confirmationCode')}</div>
-                            <div style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-primary)', marginTop: 1 }}>{res.confirmation_number}</div>
+                            <div className="!text-[length:8px] !font-[600] ![color:var(--text-faint)] !uppercase">{t('reservations.confirmationCode')}</div>
+                            <div className="!text-[length:10px] !font-[500] ![color:var(--text-primary)] !mt-[1px]">{res.confirmation_number}</div>
                           </div>
                         )}
                       </div>
-                      {res.notes && <div className="collab-note-md" style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4, wordBreak: 'break-word', overflowWrap: 'anywhere' }}><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
+                      {res.notes && <div className="collab-note-md !p-[0_10px_6px] !text-[length:10px] ![color:var(--text-faint)] !leading-[1.4] !break-words ![overflow-wrap:anywhere]"><Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{res.notes}</Markdown></div>}
                       {(() => {
                         const meta = typeof res.metadata === 'string' ? JSON.parse(res.metadata || '{}') : (res.metadata || {})
                         if (!meta || Object.keys(meta).length === 0) return null
@@ -439,7 +402,7 @@ export default function PlaceInspector({
                         if (meta.check_in_time) parts.push(`Check-in ${meta.check_in_time}`)
                         if (meta.check_out_time) parts.push(`Check-out ${meta.check_out_time}`)
                         if (parts.length === 0) return null
-                        return <div style={{ padding: '0 10px 6px', fontSize: 10, color: 'var(--text-muted)', fontWeight: 500 }}>{parts.join(' · ')}</div>
+                        return <div className="!p-[0_10px_6px] !text-[length:10px] ![color:var(--text-muted)] !font-[500]">{parts.join(' · ')}</div>
                       })()}
                     </div>
                   )
@@ -464,31 +427,23 @@ export default function PlaceInspector({
           {/* Opening hours + Files — side by side on desktop only if both exist */}
           <div className={`grid grid-cols-1 ${openingHours?.length > 0 ? 'sm:grid-cols-2' : ''} gap-2`}>
           {openingHours && openingHours.length > 0 && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
-              <button
+            <div className="!rounded-[10px] !overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+              <button className="!w-[100%] !flex !items-center !justify-between !p-[8px_12px] ![border:none] !cursor-pointer ![font-family:inherit]"
                 onClick={() => setHoursExpanded(h => !h)}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '8px 12px', background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
+                style={{ background: 'none' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="!flex !items-center !gap-[6px]">
                   <Clock size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  <span className="!text-[length:12px] ![color:var(--text-secondary)] !font-[500]">
                     {hoursExpanded ? t('inspector.openingHours') : (convertHoursLine(openingHours[weekdayIndex] || '', timeFormat) || t('inspector.showHours'))}
                   </span>
                 </div>
                 {hoursExpanded ? <ChevronUp size={13} color="#9ca3af" /> : <ChevronDown size={13} color="#9ca3af" />}
               </button>
               {hoursExpanded && (
-                <div style={{ padding: '0 12px 10px' }}>
+                <div className="!p-[0_12px_10px]">
                   {openingHours.map((line, i) => (
-                    <div key={i} style={{
-                      fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)',
-                      fontWeight: i === weekdayIndex ? 600 : 400,
-                      padding: '2px 0',
-                    }}>{convertHoursLine(line, timeFormat)}</div>
+                    <div className="!p-[2px_0]" key={i} style={{ fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: i === weekdayIndex ? 600 : 400 }}>{convertHoursLine(line, timeFormat)}</div>
                   ))}
                 </div>
               )}
@@ -545,34 +500,34 @@ export default function PlaceInspector({
               }
 
               return (
-                <div style={{ background: 'var(--bg-hover)', borderRadius: 10, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div className="!rounded-[10px] !p-[10px_12px] !flex !flex-col !gap-[8px]" style={{ background: 'var(--bg-hover)' }}>
+                  <div className="!flex !items-center !gap-[6px]">
                     <TrendingUp size={13} color="#9ca3af" />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>{t('inspector.trackStats')}</span>
+                    <span className="!text-[length:12px] ![color:var(--text-secondary)] !font-[500]">{t('inspector.trackStats')}</span>
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                  <div className="!flex !flex-wrap !gap-[8px]">
+                    <div className="!flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-primary)] !font-[600]">
                       <MapPin size={12} color="#3b82f6" />
                       {distKm < 1 ? `${Math.round(totalDist)} m` : `${distKm.toFixed(1)} km`}
                     </div>
                     {hasEle && (
                       <>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <div className="!flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-primary)] !font-[600]">
                           <Mountain size={12} color="#22c55e" />
                           {Math.round(maxEle)} m
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-primary)', fontWeight: 600 }}>
+                        <div className="!flex !items-center !gap-[4px] !text-[length:12px] ![color:var(--text-primary)] !font-[600]">
                           <Mountain size={12} color="#ef4444" />
                           {Math.round(minEle)} m
                         </div>
-                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        <div className="!text-[length:12px] ![color:var(--text-muted)]">
                           ↑{Math.round(totalUp)} m &nbsp;↓{Math.round(totalDown)} m
                         </div>
                       </>
                     )}
                   </div>
                   {pathD && (
-                    <svg width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ display: 'block', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                    <svg className="!block !rounded-[6px]" width="100%" viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ background: 'var(--bg-tertiary)' }}>
                       <defs>
                         <linearGradient id={`ele-grad-${place.id}`} x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.25" />
@@ -590,23 +545,23 @@ export default function PlaceInspector({
 
           {/* Files section */}
           {(placeFiles.length > 0 || onFileUpload) && (
-            <div style={{ background: 'var(--bg-hover)', borderRadius: 10, overflow: 'hidden' }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px', gap: 6 }}>
-                <button
+            <div className="!rounded-[10px] !overflow-hidden" style={{ background: 'var(--bg-hover)' }}>
+              <div className="!flex !items-center !p-[8px_12px] !gap-[6px]">
+                <button className="!flex-[1] !flex !items-center !gap-[6px] ![border:none] !cursor-pointer !p-[0] ![font-family:inherit] !text-left"
                   onClick={() => setFilesExpanded(f => !f)}
-                  style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit', textAlign: 'left' }}
+                  style={{ background: 'none' }}
                 >
                   <FileText size={13} color="#9ca3af" />
-                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 500 }}>
+                  <span className="!text-[length:12px] ![color:var(--text-secondary)] !font-[500]">
                     {placeFiles.length > 0 ? t('inspector.filesCount', { count: placeFiles.length }) : t('inspector.files')}
                   </span>
                   {filesExpanded ? <ChevronUp size={12} color="#9ca3af" /> : <ChevronDown size={12} color="#9ca3af" />}
                 </button>
                 {onFileUpload && (
-                  <label style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', padding: '2px 6px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+                  <label className="!cursor-pointer !flex !items-center !gap-[4px] !text-[length:11px] ![color:var(--text-muted)] !p-[2px_6px] !rounded-[6px]" style={{ background: 'var(--bg-tertiary)' }}>
                     <input ref={fileInputRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileUpload} />
                     {isUploading ? (
-                      <span style={{ fontSize: 11 }}>…</span>
+                      <span className="!text-[length:11px]">…</span>
                     ) : (
                       <><Upload size={11} strokeWidth={2} /> {t('common.upload')}</>
                     )}
@@ -614,12 +569,12 @@ export default function PlaceInspector({
                 )}
               </div>
               {filesExpanded && placeFiles.length > 0 && (
-                <div style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div className="!p-[0_12px_10px] !flex !flex-col !gap-[4px]">
                   {placeFiles.map(f => (
-                    <button key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left' }}>
+                    <button className="!flex !items-center !gap-[8px] ![text-decoration:none] !cursor-pointer ![border:none] !w-[100%] !text-left" key={f.id} onClick={() => openFile(f.url).catch(() => {})} style={{ background: 'none' }}>
                       {(f.mime_type || '').startsWith('image/') ? <FileImage size={12} color="#6b7280" /> : <File size={12} color="#6b7280" />}
-                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
-                      {f.file_size && <span style={{ fontSize: 11, color: 'var(--text-faint)', flexShrink: 0 }}>{formatFileSize(f.file_size)}</span>}
+                      <span className="!text-[length:12px] ![color:var(--text-secondary)] !flex-[1] !overflow-hidden !text-ellipsis !whitespace-nowrap">{f.original_name}</span>
+                      {f.file_size && <span className="!text-[length:11px] ![color:var(--text-faint)] !shrink-[0]">{formatFileSize(f.file_size)}</span>}
                     </button>
                   ))}
                 </div>
@@ -631,7 +586,7 @@ export default function PlaceInspector({
         </div>
 
         {/* Footer actions */}
-        <div style={{ padding: '10px 16px', borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="!p-[10px_16px] ![border-top:1px_solid_var(--border-faint)] !flex !gap-[6px] !items-center !flex-wrap">
           {selectedDayId && (
             assignmentInDay ? (
               <ActionButton onClick={() => onRemoveAssignment(selectedDayId, assignmentInDay.id)} variant="ghost" icon={<Minus size={13} />}
@@ -658,7 +613,7 @@ export default function PlaceInspector({
             <ActionButton onClick={() => window.open(place.website || googleDetails?.website, '_blank')} variant="ghost" icon={<ExternalLink size={13} />}
               label={<span className="hidden sm:inline">{t('inspector.website')}</span>} />
           )}
-          <div style={{ flex: 1 }} />
+          <div className="!flex-[1]" />
           <ActionButton onClick={onEdit} variant="ghost" icon={<Edit2 size={13} />} label={<span className="hidden sm:inline">{t('common.edit')}</span>} />
           <ActionButton onClick={onDelete} variant="danger" icon={<Trash2 size={13} />} label={<span className="hidden sm:inline">{t('common.delete')}</span>} />
         </div>
@@ -677,9 +632,9 @@ interface ChipProps {
 
 function Chip({ icon, text, color = 'var(--text-secondary)', bg = 'var(--bg-hover)' }: ChipProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 99, background: bg, color, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
-      <span style={{ flexShrink: 0, display: 'flex' }}>{icon}</span>
-      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{text}</span>
+    <div className="!flex !items-center !gap-[4px] !p-[3px_9px] !rounded-[99px] !text-[length:12px] !overflow-hidden !text-ellipsis !whitespace-nowrap !min-w-[0]" style={{ background: bg, color }}>
+      <span className="!shrink-[0] !flex">{icon}</span>
+      <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{text}</span>
     </div>
   )
 }
@@ -691,9 +646,9 @@ interface RowProps {
 
 function Row({ icon, children }: RowProps) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-      <div style={{ flexShrink: 0 }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+    <div className="!flex !items-center !gap-[8px]">
+      <div className="!shrink-[0]">{icon}</div>
+      <div className="!flex-[1] !min-w-[0]">{children}</div>
     </div>
   )
 }
@@ -772,11 +727,11 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
   }
 
   return (
-    <div style={{ borderRadius: 12, border: '1px solid var(--border-faint)', padding: '8px 10px' }}>
-      <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+    <div className="!rounded-[12px] ![border:1px_solid_var(--border-faint)] !p-[8px_10px]">
+      <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.03em] !mb-[6px] !flex !items-center !gap-[4px]">
         <Users size={10} /> {t('inspector.participants')}
       </div>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+      <div className="!flex !flex-wrap !gap-[4px] !items-center">
         {activeMembers.map(member => {
           const isHovered = hoveredId === member.id
           const canRemove = activeMembers.length > 1
@@ -794,12 +749,8 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
                 cursor: canRemove ? 'pointer' : 'default',
                 transition: 'all 0.15s',
               }}>
-              <div style={{
-                width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-tertiary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 7, fontWeight: 700,
-                color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
-              }}>
-                {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || `/uploads/avatars/${member.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
+              <div className="!w-[16px] !h-[16px] !rounded-[50%] !flex !items-center !justify-center !text-[length:7px] !font-[700] ![color:var(--text-muted)] !overflow-hidden !shrink-[0]" style={{ background: 'var(--bg-tertiary)' }}>
+                {(member.avatar_url || member.avatar) ? <img className="!w-[100%] !h-[100%] !object-cover" src={member.avatar_url || `/uploads/avatars/${member.avatar}`} /> : member.username?.[0]?.toUpperCase()}
               </div>
               <span style={{ textDecoration: isHovered && canRemove ? 'line-through' : 'none' }}>{member.username}</span>
             </div>
@@ -808,32 +759,15 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
 
         {/* Add button */}
         {availableToAdd.length > 0 && (
-          <div style={{ position: 'relative' }}>
-            <button className="trek-hover-border-muted trek-hover-text" onClick={() => setShowAdd(!showAdd)} style={{
-              width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
-              background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-faint)', fontSize: 12, transition: 'all 0.12s',
-            }} >+</button>
+          <div className="!relative">
+            <button className="trek-hover-border-muted trek-hover-text !w-[22px] !h-[22px] !rounded-[50%] ![border:1.5px_dashed_var(--border-primary)] !cursor-pointer !flex !items-center !justify-center ![color:var(--text-faint)] !text-[length:12px] ![transition:all_0.12s]" onClick={() => setShowAdd(!showAdd)} style={{ background: 'none' }} >+</button>
 
             {showAdd && (
-              <div style={{
-                position: 'absolute', top: 26, left: 0, zIndex: 100,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 140,
-              }}>
+              <div className="!absolute !top-[26px] !left-[0] !z-[100] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[140px]" style={{ background: 'var(--bg-card)' }}>
                 {availableToAdd.map(member => (
-                  <button className="trek-hover" key={member.id} onClick={() => handleAdd(member.id)} style={{
-                    display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
-                    borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer',
-                    fontFamily: 'inherit', fontSize: 11, color: 'var(--text-primary)', textAlign: 'left',
-                    transition: 'background 0.1s',
-                  }} >
-                    <div style={{
-                      width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700,
-                      color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
-                    }}>
-                      {(member.avatar_url || member.avatar) ? <img src={member.avatar_url || `/uploads/avatars/${member.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : member.username?.[0]?.toUpperCase()}
+                  <button className="trek-hover !flex !items-center !gap-[6px] !w-[100%] !p-[5px_8px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:11px] ![color:var(--text-primary)] !text-left ![transition:background_0.1s]" key={member.id} onClick={() => handleAdd(member.id)} style={{ background: 'none' }} >
+                    <div className="!w-[18px] !h-[18px] !rounded-[50%] !flex !items-center !justify-center !text-[length:8px] !font-[700] ![color:var(--text-muted)] !overflow-hidden !shrink-[0]" style={{ background: 'var(--bg-tertiary)' }}>
+                      {(member.avatar_url || member.avatar) ? <img className="!w-[100%] !h-[100%] !object-cover" src={member.avatar_url || `/uploads/avatars/${member.avatar}`} /> : member.username?.[0]?.toUpperCase()}
                     </div>
                     {member.username}
                   </button>

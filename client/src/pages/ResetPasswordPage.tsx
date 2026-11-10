@@ -60,86 +60,60 @@ const ResetPasswordPage: React.FC = () => {
   }
 
   const shell = (inner: React.ReactNode) => (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'linear-gradient(180deg, #f9fafb, #ffffff)', padding: 24, fontFamily: 'inherit',
-    }}>
-      <div style={{
-        width: '100%', maxWidth: 440, background: 'white', borderRadius: 20,
-        boxShadow: '0 12px 40px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)',
-        padding: '32px 28px',
-      }}>{inner}</div>
+    <div className="!min-h-[100vh] !flex !items-center !justify-center ![background:linear-gradient(180deg,_#f9fafb,_#ffffff)] !p-[24px] ![font-family:inherit]">
+      <div className="!w-[100%] !max-w-[440px] ![background:white] !rounded-[20px] ![box-shadow:0_12px_40px_rgba(0,0,0,0.06),_0_2px_8px_rgba(0,0,0,0.04)] !p-[32px_28px]">{inner}</div>
     </div>
   )
 
   if (success) {
     return shell(
-      <div style={{ textAlign: 'center', padding: '12px 0' }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: '50%', background: '#ecfdf5',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          color: '#059669', marginBottom: 16,
-        }}><CheckCircle2 size={28} /></div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 10px 0' }}>
+      <div className="!text-center !p-[12px_0]">
+        <div className="!w-[56px] !h-[56px] !rounded-[50%] ![background:#ecfdf5] !inline-flex !items-center !justify-center ![color:#059669] !mb-[16px]"><CheckCircle2 size={28} /></div>
+        <h1 className="!text-[length:22px] !font-[700] ![color:#111827] !m-[0_0_10px_0]">
           {t('login.resetPasswordSuccessTitle')}
         </h1>
-        <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.55, margin: 0 }}>
+        <p className="!text-[length:14px] ![color:#4b5563] !leading-[1.55] !m-[0]">
           {t('login.resetPasswordSuccessBody')}
         </p>
-        <button type="button" onClick={() => navigate('/login')} style={{
-          marginTop: 24, padding: '11px 22px', background: '#111827', color: 'white',
-          border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>{t('login.signIn')}</button>
+        <button className="!mt-[24px] !p-[11px_22px] ![background:#111827] ![color:white] !rounded-[12px] !text-[length:14px] !font-[700] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => navigate('/login')} style={{ border: 'none' }}>{t('login.signIn')}</button>
       </div>
     )
   }
 
   if (!token) {
     return shell(
-      <div style={{ textAlign: 'center', padding: '12px 0' }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: '50%', background: '#fef2f2',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          color: '#dc2626', marginBottom: 16,
-        }}><AlertTriangle size={28} /></div>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 10px 0' }}>
+      <div className="!text-center !p-[12px_0]">
+        <div className="!w-[56px] !h-[56px] !rounded-[50%] ![background:#fef2f2] !inline-flex !items-center !justify-center ![color:#dc2626] !mb-[16px]"><AlertTriangle size={28} /></div>
+        <h1 className="!text-[length:22px] !font-[700] ![color:#111827] !m-[0_0_10px_0]">
           {t('login.resetPasswordInvalidLink')}
         </h1>
-        <p style={{ fontSize: 14, color: '#4b5563', lineHeight: 1.55, margin: 0 }}>
+        <p className="!text-[length:14px] ![color:#4b5563] !leading-[1.55] !m-[0]">
           {t('login.resetPasswordInvalidLinkBody')}
         </p>
-        <button type="button" onClick={() => navigate('/forgot-password')} style={{
-          marginTop: 24, padding: '11px 22px', background: '#111827', color: 'white',
-          border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'inherit',
-        }}>{t('login.forgotPasswordSubmit')}</button>
+        <button className="!mt-[24px] !p-[11px_22px] ![background:#111827] ![color:white] !rounded-[12px] !text-[length:14px] !font-[700] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => navigate('/forgot-password')} style={{ border: 'none' }}>{t('login.forgotPasswordSubmit')}</button>
       </div>
     )
   }
 
   return shell(
     <>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#111827', margin: '0 0 8px 0' }}>
+      <h1 className="!text-[length:22px] !font-[700] ![color:#111827] !m-[0_0_8px_0]">
         {t('login.resetPasswordTitle')}
       </h1>
-      <p style={{ fontSize: 13.5, color: '#6b7280', lineHeight: 1.55, margin: '0 0 22px 0' }}>
+      <p className="!text-[length:13.5px] ![color:#6b7280] !leading-[1.55] !m-[0_0_22px_0]">
         {mfaRequired ? t('login.resetPasswordMfaBody') : t('login.resetPasswordBody')}
       </p>
       {error && (
-        <div style={{
-          padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca',
-          borderRadius: 10, color: '#991b1b', fontSize: 13, marginBottom: 14,
-        }}>{error}</div>
+        <div className="!p-[10px_12px] ![background:#fef2f2] !rounded-[10px] ![color:#991b1b] !text-[length:13px] !mb-[14px]" style={{ border: '1px solid #fecaca' }}>{error}</div>
       )}
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <form className="!flex !flex-col !gap-[16px]" onSubmit={handleSubmit}>
         {!mfaRequired && (
           <>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              <label className="!block !text-[length:12.5px] !font-[600] ![color:#374151] !mb-[6px]">
                 {t('login.newPassword')}
               </label>
-              <div style={{ position: 'relative' }}>
+              <div className="!relative">
                 <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                 <input
                   type={showPw ? 'text' : 'password'} value={pw}
@@ -148,17 +122,14 @@ const ResetPasswordPage: React.FC = () => {
                   onFocus={(e) => { e.currentTarget.style.borderColor = '#111827' }}
                   onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e7eb' }}
                 />
-                <button type="button" onClick={() => setShowPw(v => !v)} style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af',
-                }}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
+                <button className="!absolute !right-[12px] !top-[50%] ![background:none] !cursor-pointer !p-[2px] ![color:#9ca3af]" type="button" onClick={() => setShowPw(v => !v)} style={{ transform: 'translateY(-50%)', border: 'none' }}>{showPw ? <EyeOff size={16} /> : <Eye size={16} />}</button>
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+              <label className="!block !text-[length:12.5px] !font-[600] ![color:#374151] !mb-[6px]">
                 {t('login.confirmPassword')}
               </label>
-              <div style={{ position: 'relative' }}>
+              <div className="!relative">
                 <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                 <input
                   type={showPw ? 'text' : 'password'} value={pw2}
@@ -173,15 +144,15 @@ const ResetPasswordPage: React.FC = () => {
         )}
         {mfaRequired && (
           <div>
-            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>
+            <label className="!block !text-[length:12.5px] !font-[600] ![color:#374151] !mb-[6px]">
               {t('login.mfaCode')}
             </label>
-            <div style={{ position: 'relative' }}>
+            <div className="!relative">
               <KeyRound size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
-              <input
+              <input className="!pr-[12px]"
                 type="text" inputMode="numeric" value={mfaCode}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value)}
-                required placeholder="123456 or backup-code" style={{ ...inputBase, paddingRight: 12 }}
+                required placeholder="123456 or backup-code" style={{ ...inputBase }}
                 autoFocus
                 onFocus={(e) => { e.currentTarget.style.borderColor = '#111827' }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = '#e5e7eb' }}
@@ -189,12 +160,7 @@ const ResetPasswordPage: React.FC = () => {
             </div>
           </div>
         )}
-        <button type="submit" disabled={isLoading} style={{
-          width: '100%', padding: '12px', background: '#111827', color: 'white',
-          border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700,
-          cursor: isLoading ? 'default' : 'pointer', fontFamily: 'inherit',
-          opacity: isLoading ? 0.7 : 1,
-        }}>
+        <button className="!w-[100%] !p-[12px] ![background:#111827] ![color:white] !rounded-[12px] !text-[length:14px] !font-[700] ![font-family:inherit]" type="submit" disabled={isLoading} style={{ border: 'none', cursor: isLoading ? 'default' : 'pointer', opacity: isLoading ? 0.7 : 1 }}>
           {isLoading ? '…' : (mfaRequired ? t('login.resetPasswordVerify') : t('login.resetPasswordSubmit'))}
         </button>
       </form>

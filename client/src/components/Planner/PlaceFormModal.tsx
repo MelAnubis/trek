@@ -395,26 +395,25 @@ export default function PlaceFormModal({
   const pickedImage = picked?.photo_url || picked?.image_url
 
   const header = (
-    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, minWidth: 0 }}>
-      <span style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--bg-card)', border: '1px solid var(--border-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+    <div className="!flex !items-start !gap-[14px] !min-w-[0]">
+      <span className="!w-[46px] !h-[46px] !rounded-[14px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-faint)] !flex !items-center !justify-center !shrink-[0]">
         <MapPin size={20} style={{ color: 'var(--text-secondary)' }} />
       </span>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>{place ? t('places.editPlace') : t('places.addPlace')}</div>
-        <input
+      <div className="!min-w-[0] !flex-[1]">
+        <div className="!text-[length:10.5px] !font-[600] !tracking-[0.06em] !uppercase ![color:var(--text-faint)]">{place ? t('places.editPlace') : t('places.addPlace')}</div>
+        <input className="!w-[100%] ![border:none] ![outline:none] ![background:transparent] !text-[length:21px] !font-[700] ![color:var(--text-primary)] ![font-family:inherit] !p-[2px_0] !tracking-[-0.01em]"
           data-testid="place-name"
           type="text"
           value={form.name}
           onChange={e => handleChange('name', e.target.value)}
           placeholder={t('places.formNamePlaceholder')}
           aria-label={t('places.formName')}
-          style={{ width: '100%', border: 'none', outline: 'none', background: 'transparent', fontSize: 21, fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'inherit', padding: '2px 0', letterSpacing: '-0.01em' }}
         />
-        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div className="!text-[length:11.5px] ![color:var(--text-faint)] !flex !items-center !gap-[6px]">
           {t('places.formName')} *
           {isSearchingMaps && <Loader2 className="w-3.5 h-3.5 animate-spin" aria-label={t('places.loadingDetails')} />}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 10 }}>
+        <div className="!flex !items-center !gap-[6px] !mt-[10px]">
           {!showNewCategory ? (
             <>
               <CustomSelect
@@ -425,16 +424,15 @@ export default function PlaceFormModal({
                 style={{ minWidth: 150 }}
                 size="sm"
               />
-              <button type="button" onClick={() => setShowNewCategory(true)} title={t('places.newCategory')} aria-label={t('places.newCategory')}
-                style={{ width: 30, height: 30, borderRadius: 15, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
+              <button className="!w-[30px] !h-[30px] !rounded-[15px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !cursor-pointer !flex !items-center !justify-center ![color:var(--text-secondary)]" type="button" onClick={() => setShowNewCategory(true)} title={t('places.newCategory')} aria-label={t('places.newCategory')}>
                 <Plus size={14} />
               </button>
             </>
           ) : (
             <>
-              <input type="text" autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder={t('places.categoryNamePlaceholder')} className="form-input" style={{ maxWidth: 220 }} />
-              <button type="button" onClick={handleCreateCategory} className="px-3 py-1.5 rounded-lg text-sm" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>OK</button>
-              <button type="button" onClick={() => setShowNewCategory(false)} className="px-2 text-sm" style={{ color: 'var(--text-muted)' }}>{t('common.cancel')}</button>
+              <input type="text" autoFocus value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder={t('places.categoryNamePlaceholder')} className="form-input !max-w-[220px]" />
+              <button type="button" onClick={handleCreateCategory} className="px-3 py-1.5 rounded-lg text-sm ![background:var(--accent)] ![color:var(--accent-text)]">OK</button>
+              <button type="button" onClick={() => setShowNewCategory(false)} className="px-2 text-sm ![color:var(--text-muted)]">{t('common.cancel')}</button>
             </>
           )}
         </div>
@@ -451,11 +449,11 @@ export default function PlaceFormModal({
       size="4xl"
       footer={
         <div className="flex justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg border ![border-color:var(--border-primary)] ![color:var(--text-secondary)] ![background:var(--bg-card)]">
             {t('common.cancel')}
           </button>
           <button type="button" data-testid="place-save" onClick={handleSubmit} disabled={isSaving || hasTimeError}
-            className="px-6 py-2 text-sm rounded-lg font-medium disabled:opacity-60" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
+            className="px-6 py-2 text-sm rounded-lg font-medium disabled:opacity-60 ![background:var(--accent)] ![color:var(--accent-text)]">
             {isSaving ? t('common.saving') : place ? t('common.update') : t('common.add')}
           </button>
         </div>
@@ -464,56 +462,52 @@ export default function PlaceFormModal({
       <div className="place-form-grid" onPaste={handlePaste}>
         {/* Left: the place's picture and what the result picked tells */}
         <div className={PANEL} style={panelStyle} data-testid="place-details-column">
-          <div style={{ ...LABEL, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 0 }}><Landmark size={13} />{t('places.details.title')}</div>
+          <div className="!flex !items-center !gap-[6px] !mb-[0]" style={{ ...LABEL }}><Landmark size={13} />{t('places.details.title')}</div>
           <div>
-            <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }}>{t('places.details.pickImage')}</div>
+            <div className="!text-[length:10.5px] !font-[600] !tracking-[0.06em] !uppercase ![color:var(--text-faint)] !mb-[6px]">{t('places.details.pickImage')}</div>
             <input ref={imageRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handlePickImage} data-testid="place-image-input" />
             {form.image_url ? (
-              <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-faint)' }}>
-                <img src={form.image_url} alt="" style={{ display: 'block', width: '100%', height: 140, objectFit: 'cover' }} />
-                <button type="button" onClick={() => handleChange('image_url', '')} aria-label={t('common.delete')}
-                  style={{ position: 'absolute', top: 6, right: 6, width: 26, height: 26, borderRadius: 13, border: 'none', background: 'rgba(0,0,0,0.55)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><X size={13} /></button>
+              <div className="!relative !rounded-[12px] !overflow-hidden ![border:1px_solid_var(--border-faint)]">
+                <img className="!block !w-[100%] !h-[140px] !object-cover" src={form.image_url} alt="" />
+                <button className="!absolute !top-[6px] !right-[6px] !w-[26px] !h-[26px] !rounded-[13px] ![border:none] ![background:rgba(0,0,0,0.55)] ![color:#fff] !cursor-pointer !flex !items-center !justify-center" type="button" onClick={() => handleChange('image_url', '')} aria-label={t('common.delete')}><X size={13} /></button>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" onClick={() => imageRef.current?.click()} disabled={uploadingImage}
-                  style={{ width: 90, height: 90, borderRadius: 12, border: '1.5px dashed var(--border-primary)', background: 'var(--bg-card)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', fontFamily: 'inherit' }}>
+              <div className="!flex !gap-[8px] !flex-wrap">
+                <button className="!w-[90px] !h-[90px] !rounded-[12px] ![border:1.5px_dashed_var(--border-primary)] ![background:var(--bg-card)] !cursor-pointer !flex !flex-col !items-center !justify-center !gap-[4px] !text-[length:12px] ![color:var(--text-muted)] ![font-family:inherit]" type="button" onClick={() => imageRef.current?.click()} disabled={uploadingImage}>
                   {uploadingImage ? <Loader2 size={16} className="animate-spin" /> : <ImagePlus size={16} />}
                   {t('places.uploadImage')}
                 </button>
                 {pickedImage && (
-                  <button type="button" onClick={() => handleChange('image_url', pickedImage)} title={t('places.useImage')}
-                    style={{ width: 90, height: 90, borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border-faint)', padding: 0, cursor: 'pointer' }}>
-                    <img src={pickedImage} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button className="!w-[90px] !h-[90px] !rounded-[12px] !overflow-hidden ![border:1px_solid_var(--border-faint)] !p-[0] !cursor-pointer" type="button" onClick={() => handleChange('image_url', pickedImage)} title={t('places.useImage')}>
+                    <img className="!w-[100%] !h-[100%] !object-cover" src={pickedImage} alt="" />
                   </button>
                 )}
               </div>
             )}
           </div>
           {picked ? (
-            <div style={{ borderRadius: 12, border: '1px solid var(--border-faint)', background: 'var(--bg-card)', padding: 10, fontSize: 12, color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>{picked.name}</div>
+            <div className="!rounded-[12px] ![border:1px_solid_var(--border-faint)] ![background:var(--bg-card)] !p-[10px] !text-[length:12px] ![color:var(--text-secondary)] !flex !flex-col !gap-[4px]">
+              <div className="!font-[600] ![color:var(--text-primary)] !text-[length:13px]">{picked.name}</div>
               {picked.address && <div>{picked.address}</div>}
               {picked.phone && <div>{picked.phone}</div>}
-              {picked.website && <a href={picked.website} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--text-primary)', textDecoration: 'underline', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{picked.website}</a>}
+              {picked.website && <a className="![color:var(--text-primary)] ![text-decoration:underline] !overflow-hidden !text-ellipsis !whitespace-nowrap" href={picked.website} target="_blank" rel="noopener noreferrer">{picked.website}</a>}
               {picked.lat && picked.lng && (
-                <a href={`https://www.openstreetmap.org/?mlat=${picked.lat}&mlon=${picked.lng}#map=17/${picked.lat}/${picked.lng}`} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-muted)', marginTop: 2 }}><ExternalLink size={11} />{t('places.openInMaps')}</a>
+                <a className="!inline-flex !items-center !gap-[4px] ![color:var(--text-muted)] !mt-[2px]" href={`https://www.openstreetmap.org/?mlat=${picked.lat}&mlon=${picked.lng}#map=17/${picked.lat}/${picked.lng}`} target="_blank" rel="noopener noreferrer"><ExternalLink size={11} />{t('places.openInMaps')}</a>
               )}
             </div>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1.5px dashed var(--border-faint)', padding: '12px 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>
-              <span style={{ width: 30, height: 30, borderRadius: 15, background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><ImageIcon size={14} /></span>
+            <div className="!flex !items-center !gap-[10px] !rounded-[12px] ![border:1.5px_dashed_var(--border-faint)] !p-[12px_12px] !text-[length:12.5px] ![color:var(--text-muted)]">
+              <span className="!w-[30px] !h-[30px] !rounded-[15px] ![background:var(--bg-card)] !flex !items-center !justify-center !shrink-[0]"><ImageIcon size={14} /></span>
               {t('places.details.empty')}
             </div>
           )}
         </div>
 
         {/* Middle: search, where it is, and what it is */}
-        <form onSubmit={handleSubmit} className="space-y-3" style={{ minWidth: 0 }}>
+        <form onSubmit={handleSubmit} className="space-y-3 !min-w-[0]">
           <div className={PANEL} style={panelStyle}>
             <label style={LABEL}>{t('common.search')}</label>
-            {!hasMapsKey && <p className="text-xs" style={{ color: 'var(--text-faint)', marginTop: -4 }}>{t('places.osmActive')}</p>}
+            {!hasMapsKey && <p className="text-xs ![color:var(--text-faint)] !mt-[-4px]">{t('places.osmActive')}</p>}
             <div className="relative">
               <div className="flex gap-2">
                 <input
@@ -532,28 +526,28 @@ export default function PlaceFormModal({
                   className="form-input flex-1"
                 />
                 <button type="button" onClick={() => { setAcSuggestions([]); handleMapsSearch() }} disabled={isSearchingMaps} aria-label={t('common.search')}
-                  className="px-3 rounded-lg disabled:opacity-60" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
+                  className="px-3 rounded-lg disabled:opacity-60 ![background:var(--accent)] ![color:var(--accent-text)]">
                   {isSearchingMaps ? '...' : <Search className="w-4 h-4" />}
                 </button>
               </div>
               {acSuggestions.length > 0 && (
-                <div className="absolute left-0 right-0 z-20 mt-1 rounded-lg border shadow-lg overflow-hidden" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+                <div className="absolute left-0 right-0 z-20 mt-1 rounded-lg border shadow-lg overflow-hidden ![background:var(--bg-card)] ![border-color:var(--border-primary)]">
                   {acSuggestions.map((sg, idx) => (
                     <button key={sg.placeId} type="button" onMouseDown={() => handleSelectSuggestion(sg)} onMouseEnter={() => setAcHighlight(idx)}
                       className="w-full text-left px-3 py-2" style={{ background: idx === acHighlight ? 'var(--bg-tertiary)' : 'transparent', borderBottom: '1px solid var(--border-faint)' }}>
-                      <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{sg.mainText}</div>
-                      {sg.secondaryText && <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{sg.secondaryText}</div>}
+                      <div className="font-medium text-sm ![color:var(--text-primary)]">{sg.mainText}</div>
+                      {sg.secondaryText && <div className="text-xs truncate ![color:var(--text-muted)]">{sg.secondaryText}</div>}
                     </button>
                   ))}
                 </div>
               )}
             </div>
             {mapsResults.length > 0 && (
-              <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-faint)' }}>
+              <div className="rounded-lg border overflow-hidden max-h-40 overflow-y-auto ![background:var(--bg-card)] ![border-color:var(--border-faint)]">
                 {mapsResults.map((result, idx) => (
-                  <button key={idx} type="button" onClick={() => handleSelectMapsResult(result)} className="w-full text-left px-3 py-2" style={{ borderBottom: '1px solid var(--border-faint)' }}>
-                    <div className="font-medium text-sm" style={{ color: 'var(--text-primary)' }}>{result.name}</div>
-                    <div className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{result.address}</div>
+                  <button key={idx} type="button" onClick={() => handleSelectMapsResult(result)} className="w-full text-left px-3 py-2 ![border-bottom:1px_solid_var(--border-faint)]">
+                    <div className="font-medium text-sm ![color:var(--text-primary)]">{result.name}</div>
+                    <div className="text-xs truncate ![color:var(--text-muted)]">{result.address}</div>
                   </button>
                 ))}
               </div>
@@ -585,11 +579,11 @@ export default function PlaceFormModal({
 
           <div>
             <label style={LABEL}>{t('places.formDescription')}</label>
-            <textarea value={form.description} onChange={e => handleChange('description', e.target.value)} rows={3} placeholder={t('places.formDescriptionPlaceholder')} className="form-input" style={{ resize: 'vertical' }} />
+            <textarea value={form.description} onChange={e => handleChange('description', e.target.value)} rows={3} placeholder={t('places.formDescriptionPlaceholder')} className="form-input ![resize:vertical]" />
           </div>
           <div>
             <label style={LABEL}>{t('places.formNotes')}</label>
-            <textarea value={form.notes} onChange={e => handleChange('notes', e.target.value)} rows={3} maxLength={2000} placeholder={t('places.formNotesPlaceholder')} className="form-input" style={{ resize: 'vertical' }} />
+            <textarea value={form.notes} onChange={e => handleChange('notes', e.target.value)} rows={3} maxLength={2000} placeholder={t('places.formNotesPlaceholder')} className="form-input ![resize:vertical]" />
           </div>
 
           {place && (
@@ -605,21 +599,21 @@ export default function PlaceFormModal({
               <label style={LABEL}>{t('files.title')}</label>
               {canUploadFiles ? (
                 <>
-                  <button type="button" onClick={() => fileRef.current?.click()} className="form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', fontWeight: 600 }}>
+                  <button type="button" onClick={() => fileRef.current?.click()} className="form-input !flex !items-center !justify-center !gap-[6px] !cursor-pointer !font-[600]">
                     <Paperclip size={14} /> {t('files.attach')}
                   </button>
                   <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={handleFileAdd} />
                 </>
-              ) : <div className="text-xs" style={{ color: 'var(--text-faint)' }}>—</div>}
+              ) : <div className="text-xs ![color:var(--text-faint)]">—</div>}
             </div>
           </div>
           {pendingFiles.length > 0 && (
             <div className="space-y-1">
               {pendingFiles.map((file, idx) => (
-                <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-secondary)' }}>
+                <div key={idx} className="flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs ![background:var(--bg-secondary)]">
                   <Paperclip size={10} className="shrink-0" style={{ color: 'var(--text-faint)' }} />
-                  <span className="truncate flex-1" style={{ color: 'var(--text-secondary)' }}>{file.name}</span>
-                  <button type="button" onClick={() => handleRemoveFile(idx)} className="shrink-0" style={{ color: 'var(--text-faint)' }}><X size={12} /></button>
+                  <span className="truncate flex-1 ![color:var(--text-secondary)]">{file.name}</span>
+                  <button type="button" onClick={() => handleRemoveFile(idx)} className="shrink-0 ![color:var(--text-faint)]"><X size={12} /></button>
                 </div>
               ))}
             </div>
@@ -682,41 +676,40 @@ function SavedPlacesColumn({ tripId, onPick }: { tripId: number | string; onPick
   }, [tripId, q, trip, status])
   const LABEL: React.CSSProperties = { display: 'block', fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', marginBottom: 6 }
   return (
-    <div className="rounded-2xl border p-3 space-y-3" style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-faint)', minWidth: 0 }} data-testid="saved-places-column">
-      <div style={{ ...LABEL, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 0 }}><Bookmark size={13} />{t('places.saved.title')}</div>
+    <div className="rounded-2xl border p-3 space-y-3 ![background:var(--bg-secondary)] ![border-color:var(--border-faint)] !min-w-[0]" data-testid="saved-places-column">
+      <div className="!flex !items-center !gap-[6px] !mb-[0]" style={{ ...LABEL }}><Bookmark size={13} />{t('places.saved.title')}</div>
       <div>
         <label style={LABEL}>{t('common.search')}</label>
-        <div style={{ position: 'relative' }}>
+        <div className="!relative">
           <Search size={14} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-faint)' }} />
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('places.saved.search')} className="form-input" style={{ paddingLeft: 30 }} />
+          <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('places.saved.search')} className="form-input !pl-[30px]" />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2">
         <div>
           <label style={LABEL}>{t('places.saved.collections')}</label>
-          <select value={trip} onChange={e => setTrip(e.target.value)} className="form-input" style={{ padding: '6px 8px', fontSize: 12.5 }}>
+          <select value={trip} onChange={e => setTrip(e.target.value)} className="form-input !p-[6px_8px] !text-[length:12.5px]">
             <option value="">{t('places.saved.allTrips')}</option>
             {data?.trips.map(tr => <option key={tr.id} value={tr.id}>{tr.title}</option>)}
           </select>
         </div>
         <div>
           <label style={LABEL}>{t('places.saved.status')}</label>
-          <select value={status} onChange={e => setStatus(e.target.value as typeof status)} className="form-input" style={{ padding: '6px 8px', fontSize: 12.5 }}>
+          <select value={status} onChange={e => setStatus(e.target.value as typeof status)} className="form-input !p-[6px_8px] !text-[length:12.5px]">
             <option value="all">{t('places.all')}</option>
             <option value="planned">{t('places.saved.planned')}</option>
             <option value="unplanned">{t('places.unplanned')}</option>
           </select>
         </div>
       </div>
-      <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {data && data.places.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-faint)', padding: '8px 2px' }}>{t('places.saved.empty')}</div>}
+      <div className="!max-h-[420px] !overflow-y-auto !flex !flex-col !gap-[2px]">
+        {data && data.places.length === 0 && <div className="!text-[length:12px] ![color:var(--text-faint)] !p-[8px_2px]">{t('places.saved.empty')}</div>}
         {data?.places.map(sp => (
-          <button className="trek-hover" key={sp.id} type="button" onClick={() => onPick(sp)} data-testid={`saved-place-${sp.id}`}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '6px 4px', borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
+          <button className="trek-hover !flex !items-center !gap-[10px] !w-[100%] !p-[6px_4px] !rounded-[10px] ![border:none] ![background:transparent] !cursor-pointer !text-left ![font-family:inherit]" key={sp.id} type="button" onClick={() => onPick(sp)} data-testid={`saved-place-${sp.id}`}>
             <PlaceAvatar place={sp} size={34} />
-            <span style={{ minWidth: 0, flex: 1 }}>
-              <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</span>
-              <span style={{ display: 'block', fontSize: 11.5, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.address || sp.trip_title}</span>
+            <span className="!min-w-[0] !flex-[1]">
+              <span className="!block !text-[length:13px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{sp.name}</span>
+              <span className="!block !text-[length:11.5px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{sp.address || sp.trip_title}</span>
             </span>
           </button>
         ))}
@@ -775,13 +768,13 @@ function TimeSection({ form, handleChange, assignmentId, dayAssignments, hasTime
         </div>
       </div>
       {hasTimeError && (
-        <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-warning, #fef3c7)', color: 'var(--text-warning, #92400e)' }}>
+        <div className="flex items-center gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs ![background:var(--bg-warning,_#fef3c7)] ![color:var(--text-warning,_#92400e)]">
           <AlertTriangle size={13} className="shrink-0" />
           {t('places.endTimeBeforeStart')}
         </div>
       )}
       {collisions.length > 0 && (
-        <div className="flex items-start gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs" style={{ background: 'var(--bg-warning, #fef3c7)', color: 'var(--text-warning, #92400e)' }}>
+        <div className="flex items-start gap-1.5 mt-2 px-2.5 py-1.5 rounded-lg text-xs ![background:var(--bg-warning,_#fef3c7)] ![color:var(--text-warning,_#92400e)]">
           <AlertTriangle size={13} className="shrink-0 mt-0.5" />
           <span>
             {t('places.timeCollision')}{' '}

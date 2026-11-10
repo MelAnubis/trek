@@ -386,36 +386,20 @@ const JourneyMap = forwardRef<JourneyMapHandle, Props>(function JourneyMap(
   const zoomOut = () => mapRef.current?.zoomOut()
 
   return (
-    <div style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
+    <div className="!relative !w-[100%] !rounded-[inherit] !overflow-hidden" style={{ height: height === 9999 ? '100%' : height }}>
       <div
         ref={containerRef}
         className={dark && !mapTileUrl ? 'journey-map-dark-tiles' : undefined}
         style={{ width: '100%', height: '100%' }}
       />
-      <div style={{ position: 'absolute', bottom: 12, right: 12, zIndex: 400, display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <button
+      <div className="!absolute !bottom-[12px] !right-[12px] !z-[400] !flex !flex-col !gap-[4px]">
+        <button className="!w-[32px] !h-[32px] !rounded-[8px] ![backdrop-filter:blur(8px)] !flex !items-center !justify-center !cursor-pointer !text-[length:16px] !font-[700] !leading-[1]"
           onClick={zoomIn}
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(8px)',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
-            color: dark ? '#fff' : '#18181B',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 16, fontWeight: 700, lineHeight: 1,
-          }}
+          style={{ background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)', border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`, color: dark ? '#fff' : '#18181B' }}
         >+</button>
-        <button
+        <button className="!w-[32px] !h-[32px] !rounded-[8px] ![backdrop-filter:blur(8px)] !flex !items-center !justify-center !cursor-pointer !text-[length:16px] !font-[700] !leading-[1]"
           onClick={zoomOut}
-          style={{
-            width: 32, height: 32, borderRadius: 8,
-            background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)',
-            backdropFilter: 'blur(8px)',
-            border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`,
-            color: dark ? '#fff' : '#18181B',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 16, fontWeight: 700, lineHeight: 1,
-          }}
+          style={{ background: dark ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.9)', border: `1px solid ${dark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)'}`, color: dark ? '#fff' : '#18181B' }}
         >−</button>
       </div>
     </div>

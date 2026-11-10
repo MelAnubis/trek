@@ -85,27 +85,25 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
   }, [days, assignments, tripMembers])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+    <div className="!flex !flex-col !h-[100%] !overflow-hidden">
       {/* Header */}
-      <div style={{
-        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 7, flexShrink: 0,
-      }}>
+      <div className="!p-[10px_14px] !flex !items-center !gap-[7px] !shrink-[0]">
         <Sparkles size={14} color="var(--text-faint)" />
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', letterSpacing: 0.3, textTransform: 'uppercase' }}>
+        <span className="!text-[length:12px] !font-[600] ![color:var(--text-muted)] !tracking-[0.3px] !uppercase">
           {t('collab.whatsNext.title') || "What's Next"}
         </span>
       </div>
 
       {/* List */}
-      <div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+      <div className="chat-scroll !flex-[1] !overflow-y-auto !p-[8px_10px]">
         {upcoming.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: '48px 20px', textAlign: 'center' }}>
+          <div className="!flex !flex-col !items-center !justify-center !h-[100%] !p-[48px_20px] !text-center">
             <Calendar size={36} color="var(--text-faint)" strokeWidth={1.3} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.whatsNext.empty')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('collab.whatsNext.emptyHint')}</div>
+            <div className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">{t('collab.whatsNext.empty')}</div>
+            <div className="!text-[length:12px] ![color:var(--text-faint)]">{t('collab.whatsNext.emptyHint')}</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div className="!flex !flex-col !gap-[6px]">
             {upcoming.map((item, idx) => {
               const prevItem = upcoming[idx - 1]
               const showDayHeader = !prevItem || prevItem.date !== item.date
@@ -113,31 +111,24 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
               return (
                 <React.Fragment key={item.id}>
                   {showDayHeader && (
-                    <div style={{
-                      fontSize: 10, fontWeight: 500, color: 'var(--text-faint)',
-                      textTransform: 'uppercase', letterSpacing: 0.5,
-                      padding: idx === 0 ? '0 4px 4px' : '8px 4px 4px',
-                    }}>
+                    <div className="!text-[length:10px] !font-[500] ![color:var(--text-faint)] !uppercase !tracking-[0.5px]" style={{ padding: idx === 0 ? '0 4px 4px' : '8px 4px 4px' }}>
                       {formatDayLabel(item.date, t, locale)}
                       {item.dayTitle ? ` — ${item.dayTitle}` : ''}
                     </div>
                   )}
 
-                  <div className="trek-hover" style={{
-                    display: 'flex', gap: 10, padding: '8px 10px', borderRadius: 10,
-                    background: 'var(--bg-secondary)', transition: 'background 0.1s',
-                  }} >
+                  <div className="trek-hover !flex !gap-[10px] !p-[8px_10px] !rounded-[10px] ![background:var(--bg-secondary)] ![transition:background_0.1s]" >
                     {/* Time column */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 44, flexShrink: 0 }}>
-                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', lineHeight: 1 }}>
+                    <div className="!flex !flex-col !items-center !justify-center !min-w-[44px] !shrink-[0]">
+                      <span className="!text-[length:11px] !font-[700] ![color:var(--text-primary)] !whitespace-nowrap !leading-[1]">
                         {item.time ? formatTime(item.time, is12h) : 'TBD'}
                       </span>
                       {item.endTime && (
                         <>
-                          <span style={{ fontSize: 7, color: 'var(--text-faint)', fontWeight: 600, letterSpacing: 0.3, margin: '2px 0', textTransform: 'uppercase' }}>
+                          <span className="!text-[length:7px] ![color:var(--text-faint)] !font-[600] !tracking-[0.3px] !m-[2px_0] !uppercase">
                             {t('collab.whatsNext.until') || 'bis'}
                           </span>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', lineHeight: 1 }}>
+                          <span className="!text-[length:11px] !font-[700] ![color:var(--text-primary)] !whitespace-nowrap !leading-[1]">
                             {formatTime(item.endTime, is12h)}
                           </span>
                         </>
@@ -145,17 +136,17 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
                     </div>
 
                     {/* Divider */}
-                    <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--border-faint)', flexShrink: 0, margin: '2px 0' }} />
+                    <div className="!w-[1px] !self-stretch ![background:var(--border-faint)] !shrink-[0] !m-[2px_0]" />
 
                     {/* Details */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="!flex-[1] !min-w-[0]">
+                      <div className="!text-[length:12px] !font-[600] ![color:var(--text-primary)] !leading-[1.3] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                         {item.name}
                       </div>
                       {item.address && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginTop: 2 }}>
+                        <div className="!flex !items-center !gap-[3px] !mt-[2px]">
                           <MapPin size={9} color="var(--text-faint)" style={{ flexShrink: 0 }} />
-                          <span style={{ fontSize: 10, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span className="!text-[length:10px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                             {item.address}
                           </span>
                         </div>
@@ -163,24 +154,16 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
 
                       {/* Participants */}
                       {item.participants.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+                        <div className="!flex !flex-wrap !gap-[4px] !mt-[5px]">
                           {item.participants.map(p => (
-                            <div key={p.user_id} style={{
-                              display: 'flex', alignItems: 'center', gap: 4, padding: '2px 8px 2px 3px',
-                              borderRadius: 99, background: 'var(--bg-tertiary)', border: '1px solid var(--border-faint)',
-                            }}>
-                              <div style={{
-                                width: 16, height: 16, borderRadius: '50%', background: 'var(--bg-secondary)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                fontSize: 7, fontWeight: 700, color: 'var(--text-muted)',
-                                overflow: 'hidden', flexShrink: 0,
-                              }}>
+                            <div className="!flex !items-center !gap-[4px] !p-[2px_8px_2px_3px] !rounded-[99px] ![background:var(--bg-tertiary)] ![border:1px_solid_var(--border-faint)]" key={p.user_id}>
+                              <div className="!w-[16px] !h-[16px] !rounded-[50%] ![background:var(--bg-secondary)] !flex !items-center !justify-center !text-[length:7px] !font-[700] ![color:var(--text-muted)] !overflow-hidden !shrink-[0]">
                                 {p.avatar
-                                  ? <img src={`/uploads/avatars/${p.avatar}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ? <img className="!w-[100%] !h-[100%] !object-cover" src={`/uploads/avatars/${p.avatar}`} />
                                   : p.username?.[0]?.toUpperCase()
                                 }
                               </div>
-                              <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--text-muted)' }}>{p.username}</span>
+                              <span className="!text-[length:10px] !font-[500] ![color:var(--text-muted)]">{p.username}</span>
                             </div>
                           ))}
                         </div>

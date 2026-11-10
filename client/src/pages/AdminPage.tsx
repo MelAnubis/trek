@@ -89,7 +89,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
     adminApi.getNotificationPreferences().then((data: any) => setMatrix(data)).catch(() => {})
   }, [])
 
-  if (!matrix) return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic', padding: 16 }}>Loading…</p>
+  if (!matrix) return <p className="!text-[length:12px] ![color:var(--text-faint)] !italic !p-[16px]">Loading…</p>
 
   const visibleChannels = (['inapp', 'email', 'webhook', 'ntfy'] as const).filter(ch => {
     if (!matrix.available_channels[ch]) return false
@@ -114,7 +114,7 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
   if (matrix.event_types.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 p-6">
-        <p style={{ fontSize: 13, color: 'var(--text-faint)' }}>{t('settings.notificationPreferences.noChannels')}</p>
+        <p className="!text-[length:13px] ![color:var(--text-faint)]">{t('settings.notificationPreferences.noChannels')}</p>
       </div>
     )
   }
@@ -127,12 +127,12 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
           <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.adminNotificationsHint')}</p>
         </div>
         <div className="p-6">
-          {saving && <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>Saving…</p>}
+          {saving && <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[8px]">Saving…</p>}
           {/* Header row */}
-          <div style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid var(--border-primary)' }}>
+          <div className="!grid !gap-[4px] !pb-[6px] !mb-[4px] ![border-bottom:1px_solid_var(--border-primary)]" style={{ gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}` }}>
             <span />
             {visibleChannels.map(ch => (
-              <span key={ch} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <span className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !text-center !uppercase !tracking-[0.04em]" key={ch}>
                 {t(ADMIN_CHANNEL_LABEL_KEYS[ch]) || ch}
               </span>
             ))}
@@ -141,17 +141,17 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
           {matrix.event_types.map((eventType: string) => {
             const implementedForEvent = matrix.implemented_combos[eventType] ?? []
             return (
-              <div key={eventType} style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}`, gap: 4, alignItems: 'center', padding: '8px 0', borderBottom: '1px solid var(--border-primary)' }}>
-                <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+              <div className="!grid !gap-[4px] !items-center !p-[8px_0] ![border-bottom:1px_solid_var(--border-primary)]" key={eventType} style={{ gridTemplateColumns: `1fr ${visibleChannels.map(() => '80px').join(' ')}` }}>
+                <span className="!text-[length:13px] ![color:var(--text-primary)]">
                   {t(ADMIN_EVENT_LABEL_KEYS[eventType]) || eventType}
                 </span>
                 {visibleChannels.map(ch => {
                   if (!implementedForEvent.includes(ch)) {
-                    return <span key={ch} style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 14 }}>—</span>
+                    return <span className="!text-center ![color:var(--text-faint)] !text-[length:14px]" key={ch}>—</span>
                   }
                   const isOn = matrix.preferences[eventType]?.[ch] ?? true
                   return (
-                    <div key={ch} style={{ display: 'flex', justifyContent: 'center' }}>
+                    <div className="!flex !justify-center" key={ch}>
                       <button
                         onClick={() => toggle(eventType, ch)}
                         className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors flex-shrink-0"
@@ -175,12 +175,12 @@ function AdminNotificationsPanel({ t, toast }: { t: (k: string) => string; toast
 function AdminStatCard({ label, value, icon: Icon }: { label: string; value: number; icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }> }): React.ReactElement {
   const animated = useCountUp(value, 900)
   return (
-    <div className="rounded-xl border p-4" style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)' }}>
+    <div className="rounded-xl border p-4 ![background:var(--bg-card)] ![border-color:var(--border-primary)]">
       <div className="flex items-center gap-4">
         <Icon className="w-5 h-5" style={{ color: 'var(--text-primary)' }} />
         <div>
-          <p className="text-xl font-bold tabular-nums" style={{ color: 'var(--text-primary)' }}>{animated}</p>
-          <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{label}</p>
+          <p className="text-xl font-bold tabular-nums ![color:var(--text-primary)]">{animated}</p>
+          <p className="text-xs ![color:var(--text-muted)]">{label}</p>
         </div>
       </div>
     </div>
@@ -564,10 +564,10 @@ export default function AdminPage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar />
 
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+      <div className="!pt-[var(--nav-h)]">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
@@ -709,7 +709,7 @@ export default function AdminPage(): React.ReactElement {
                                     {u.username.charAt(0).toUpperCase()}
                                   </div>
                                 )}
-                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2" style={{ borderColor: 'var(--bg-card)', background: u.online ? '#22c55e' : '#94a3b8' }} />
+                                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ![border-color:var(--bg-card)]" style={{ background: u.online ? '#22c55e' : '#94a3b8' }} />
                               </div>
                               <div>
                                 <p className="text-sm font-medium text-slate-900">{u.username}</p>
@@ -1584,7 +1584,7 @@ export default function AdminPage(): React.ReactElement {
                         />
                       </div>
                     ))}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 0' }}>
+                    <div className="!flex !items-center !justify-between !p-[4px_0]">
                       <div>
                         <span className="text-xs font-medium text-slate-500">Skip TLS certificate check</span>
                         <p className="text-[10px] text-slate-400 mt-0.5">Enable for self-signed certificates on local mail servers</p>
@@ -1668,8 +1668,8 @@ export default function AdminPage(): React.ReactElement {
                       <h2 className="font-semibold text-slate-900">{t('admin.notifications.inappPanel.title')}</h2>
                       <p className="text-xs text-slate-400 mt-1">{t('admin.notifications.inappPanel.hint')}</p>
                     </div>
-                    <div className="relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0"
-                      style={{ background: 'var(--text-primary)', opacity: 0.5, cursor: 'not-allowed' }}>
+                    <div className="relative inline-flex h-6 w-11 items-center rounded-full flex-shrink-0 ![background:var(--text-primary)] !cursor-not-allowed"
+                      style={{ opacity: 0.5 }}>
                       <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-200"
                         style={{ transform: 'translateX(20px)' }} />
                     </div>
@@ -2027,34 +2027,32 @@ export default function AdminPage(): React.ReactElement {
 
       {/* Update instructions popup */}
       {showUpdateModal && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        <div className="!fixed !inset-[0] !z-[9999] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[16px]"
           onClick={() => setShowUpdateModal(false)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !w-[100%] !max-w-[440px] !rounded-[16px] !overflow-hidden"
           >
-            <div style={{ background: 'linear-gradient(135deg, #0f172a, #1e293b)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="![background:linear-gradient(135deg,_#0f172a,_#1e293b)] !p-[20px_24px] !flex !items-center !gap-[12px]">
+              <div className="!w-[40px] !h-[40px] !rounded-[10px] ![background:rgba(255,255,255,0.2)] !flex !items-center !justify-center !shrink-[0]">
                 <ArrowUpCircle size={20} style={{ color: 'white' }} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>{t('admin.update.howTo')}</h3>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                <h3 className="!m-[0] !text-[length:16px] !font-[700] ![color:white]">{t('admin.update.howTo')}</h3>
+                <p className="!m-[2px_0_0] !text-[length:12px] ![color:rgba(255,255,255,0.8)]">
                   v{updateInfo?.current} → v{updateInfo?.latest}
                 </p>
               </div>
             </div>
 
-            <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+            <div className="!p-[20px_24px]">
+              <p className="text-gray-700 dark:text-gray-300 !text-[length:13px] !leading-[1.6] !m-[0]">
                 {t('admin.update.dockerText').replace('{version}', `v${updateInfo?.latest ?? ''}`)}
               </p>
 
-              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, fontSize: 12, lineHeight: 1.8, fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-                className="bg-gray-900 dark:bg-gray-950 text-gray-100 border border-gray-700"
+              <div
+                className="bg-gray-900 dark:bg-gray-950 text-gray-100 border border-gray-700 !mt-[14px] !p-[12px_14px] !rounded-[10px] !text-[length:12px] !leading-[1.8] ![font-family:monospace] !whitespace-pre-wrap !break-all"
               >
 {`docker pull melanubis/trek:latest
 docker stop trek && docker rm trek
@@ -2066,8 +2064,8 @@ docker run -d --name trek \\
   melanubis/trek:latest`}
               </div>
 
-              <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5 }}
-                className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800"
+              <div
+                className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 !mt-[10px] !p-[10px_12px] !rounded-[10px] !text-[length:12px] !leading-[1.5]"
               >
                 <div className="flex items-start gap-2">
                   <CheckCircle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -2076,8 +2074,8 @@ docker run -d --name trek \\
               </div>
 
               {updateInfo?.release_url && (
-                <div style={{ marginTop: 10, padding: '10px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5 }}
-                  className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800"
+                <div
+                  className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 !mt-[10px] !p-[10px_12px] !rounded-[10px] !text-[length:12px] !leading-[1.5]"
                 >
                   <div className="flex items-start gap-2">
                     <ExternalLink className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
@@ -2091,11 +2089,10 @@ docker run -d --name trek \\
               )}
             </div>
 
-            <div style={{ padding: '0 24px 20px', display: 'flex', justifyContent: 'flex-end' }}>
+            <div className="!p-[0_24px_20px] !flex !justify-end">
               <button
                 onClick={() => setShowUpdateModal(false)}
-                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                className="bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-slate-700 dark:hover:bg-gray-200 !p-[9px_20px] !rounded-[10px] !text-[length:13px] !font-[600] ![border:none] !cursor-pointer ![font-family:inherit]"
               >
                 {t('common.close')}
               </button>

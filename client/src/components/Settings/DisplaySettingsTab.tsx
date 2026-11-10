@@ -33,8 +33,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
     <Section title={t('settings.display')} icon={Palette}>
       {/* Color Mode */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.colorMode')}</label>
-        <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.colorMode')}</label>
+        <div className="flex gap-3 !flex-wrap">
           {[
             { value: 'light', label: t('settings.light'), icon: Sun },
             { value: 'dark', label: t('settings.dark'), icon: Moon },
@@ -43,22 +43,14 @@ export default function DisplaySettingsTab(): React.ReactElement {
             const current = settings.dark_mode
             const isActive = current === opt.value || (opt.value === 'light' && current === false) || (opt.value === 'dark' && current === true)
             return (
-              <button
+              <button className="!flex !items-center !gap-[6px] !p-[10px_14px] !rounded-[10px] !cursor-pointer !flex-[1_1_0] !justify-center !min-w-[0] ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
                 key={opt.value}
                 onClick={async () => {
                   try {
                     await updateSetting('dark_mode', opt.value)
                   } catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
                 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '10px 14px', borderRadius: 10, cursor: 'pointer', flex: '1 1 0', justifyContent: 'center', minWidth: 0,
-                  fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                  border: isActive ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                  background: isActive ? 'var(--bg-hover)' : 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.15s',
-                }}
+                style={{ border: isActive ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: isActive ? 'var(--bg-hover)' : 'var(--bg-card)' }}
               >
                 <span className="hidden sm:inline-flex"><opt.icon size={16} /></span>
                 {opt.value === 'auto' ? (
@@ -81,25 +73,17 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Language */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.language')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.language')}</label>
         {/* Desktop: Button grid */}
         <div className="hidden sm:flex flex-wrap gap-3">
           {SUPPORTED_LANGUAGES.map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('language', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: settings.language === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: settings.language === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: settings.language === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: settings.language === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
@@ -110,32 +94,21 @@ export default function DisplaySettingsTab(): React.ReactElement {
           {(() => {
             const current = SUPPORTED_LANGUAGES.find(o => o.value === settings.language) || SUPPORTED_LANGUAGES[0]
             return (
-              <button
+              <button className="!w-[100%] !flex !items-center !justify-between !p-[10px_14px] !rounded-[10px] ![border:2px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:14px] !font-[500] ![font-family:inherit] !cursor-pointer"
                 type="button"
                 onClick={() => setLangOpen(v => !v)}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  padding: '10px 14px', borderRadius: 10,
-                  border: '2px solid var(--border-primary)',
-                  background: 'var(--bg-card)', color: 'var(--text-primary)',
-                  fontSize: 14, fontWeight: 500, fontFamily: 'inherit', cursor: 'pointer',
-                }}
               >
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{current?.label}</span>
+                <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{current?.label}</span>
                 <ChevronDown size={14} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: langOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </button>
             )
           })()}
           {langOpen && (
-            <div style={{
-              position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 50,
-              background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 4, maxHeight: 280, overflowY: 'auto',
-            }}>
+            <div className="!absolute !top-[calc(100%_+_4px)] !left-[0] !right-[0] !z-[50] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_8px_24px_rgba(0,0,0,0.15)] !p-[4px] !max-h-[280px] !overflow-y-auto">
               {SUPPORTED_LANGUAGES.map(opt => {
                 const active = settings.language === opt.value
                 return (
-                  <button
+                  <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[9px_12px] !rounded-[6px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !text-left"
                     key={opt.value}
                     type="button"
                     onClick={async () => {
@@ -143,15 +116,9 @@ export default function DisplaySettingsTab(): React.ReactElement {
                       try { await updateSetting('language', opt.value) }
                       catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
                     }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: '9px 12px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: active ? 'var(--bg-hover)' : 'transparent',
-                      fontFamily: 'inherit', fontSize: 14, color: 'var(--text-primary)',
-                      textAlign: 'left', fontWeight: active ? 600 : 500,
-                    }}
+                    style={{ background: active ? 'var(--bg-hover)' : 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: active ? 600 : 500 }}
                   >
-                    <span style={{ flex: 1 }}>{opt.label}</span>
+                    <span className="!flex-[1]">{opt.label}</span>
                     {active && <Check size={14} strokeWidth={2.5} color="var(--accent)" />}
                   </button>
                 )
@@ -163,28 +130,20 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Temperature */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.temperature')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.temperature')}</label>
         <div className="flex gap-3">
           {[
             { value: 'celsius', label: '°C Celsius' },
             { value: 'fahrenheit', label: '°F Fahrenheit' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={opt.value}
               onClick={async () => {
                 setTempUnit(opt.value)
                 try { await updateSetting('temperature_unit', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: tempUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: tempUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: tempUnit === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: tempUnit === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
@@ -194,27 +153,19 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Time Format */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.timeFormat')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.timeFormat')}</label>
         <div className="flex gap-3">
           {[
             { value: '24h', short: '24h', example: '14:30' },
             { value: '12h', short: '12h', example: '2:30 PM' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('time_format', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: settings.time_format === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: settings.time_format === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: settings.time_format === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: settings.time_format === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.short}
               <span className="hidden sm:inline">{` (${opt.example})`}</span>
@@ -225,8 +176,8 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Default Currency */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.defaultCurrency') || 'Moneda por defecto'}</label>
-        <div className="flex gap-3" style={{ flexWrap: 'wrap' }}>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.defaultCurrency') || 'Moneda por defecto'}</label>
+        <div className="flex gap-3 !flex-wrap">
           {[
             { value: 'EUR', label: '€ EUR' },
             { value: 'USD', label: '$ USD' },
@@ -234,21 +185,13 @@ export default function DisplaySettingsTab(): React.ReactElement {
             { value: 'JPY', label: '¥ JPY' },
             { value: 'CHF', label: 'Fr CHF' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={opt.value}
               onClick={async () => {
                 try { await updateSetting('default_currency', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: (settings.default_currency || 'EUR') === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (settings.default_currency || 'EUR') === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: (settings.default_currency || 'EUR') === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: (settings.default_currency || 'EUR') === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
@@ -258,27 +201,19 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Route Calculation */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.routeCalculation')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.routeCalculation')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('route_calculation', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: (settings.route_calculation !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (settings.route_calculation !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: (settings.route_calculation !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: (settings.route_calculation !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
@@ -288,58 +223,42 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Booking route labels */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.bookingLabels')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.bookingLabels')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('map_booking_labels', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: (settings.map_booking_labels !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (settings.map_booking_labels !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: (settings.map_booking_labels !== false) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: (settings.map_booking_labels !== false) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
           ))}
         </div>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.bookingLabelsHint')}</p>
+        <p className="text-xs mt-1 ![color:var(--text-faint)]">{t('settings.bookingLabelsHint')}</p>
       </div>
 
       {/* Blur Booking Codes */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.blurBookingCodes')}</label>
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.blurBookingCodes')}</label>
         <div className="flex gap-3">
           {[
             { value: true, label: t('settings.on') || 'On' },
             { value: false, label: t('settings.off') || 'Off' },
           ].map(opt => (
-            <button
+            <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
               key={String(opt.value)}
               onClick={async () => {
                 try { await updateSetting('blur_booking_codes', opt.value) }
                 catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
               }}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 8,
-                padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                border: (!!settings.blur_booking_codes) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                background: (!!settings.blur_booking_codes) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                color: 'var(--text-primary)',
-                transition: 'all 0.15s',
-              }}
+              style={{ border: (!!settings.blur_booking_codes) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: (!!settings.blur_booking_codes) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
             >
               {opt.label}
             </button>
@@ -349,48 +268,39 @@ export default function DisplaySettingsTab(): React.ReactElement {
 
       {/* Travel & map (TREK v5) */}
       <div>
-        <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t('settings.preferredNavApp')}</label>
-        <select
+        <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t('settings.preferredNavApp')}</label>
+        <select className="!p-[10px_14px] !rounded-[10px] ![border:2px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] ![font-family:inherit] !text-[length:14px] !min-w-[220px]"
           data-testid="preferred-nav-app"
           value={settings.preferred_nav_app || ''}
           onChange={async e => {
             try { await updateSetting('preferred_nav_app', e.target.value) }
             catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
           }}
-          style={{ padding: '10px 14px', borderRadius: 10, border: '2px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 14, minWidth: 220 }}
         >
           <option value="">{t('settings.preferredNavAppAsk')}</option>
           {NAV_APPS.map(app => <option key={app.id} value={app.id}>{app.name}</option>)}
         </select>
-        <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t('settings.preferredNavAppHint')}</p>
+        <p className="text-xs mt-1 ![color:var(--text-faint)]">{t('settings.preferredNavAppHint')}</p>
       </div>
       {([['day_date_first', 'settings.dayDateFirst', 'settings.dayDateFirstHint'], ['compact_unplanned', 'settings.compactUnplanned', 'settings.compactUnplannedHint']] as const).map(([key, label, hint]) => (
         <div key={key}>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-secondary)' }}>{t(label)}</label>
+          <label className="block text-sm font-medium mb-2 ![color:var(--text-secondary)]">{t(label)}</label>
           <div className="flex gap-3">
             {[{ value: true, label: t('settings.on') || 'On' }, { value: false, label: t('settings.off') || 'Off' }].map(opt => (
-              <button
+              <button className="!flex !items-center !gap-[8px] !p-[10px_20px] !rounded-[10px] !cursor-pointer ![font-family:inherit] !text-[length:14px] !font-[500] ![color:var(--text-primary)] ![transition:all_0.15s]"
                 key={String(opt.value)}
                 data-testid={`${key}-${opt.value ? 'on' : 'off'}`}
                 onClick={async () => {
                   try { await updateSetting(key, opt.value) }
                   catch (e: unknown) { toast.error(e instanceof Error ? e.message : t('common.error')) }
                 }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  padding: '10px 20px', borderRadius: 10, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 14, fontWeight: 500,
-                  border: (!!settings[key]) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)',
-                  background: (!!settings[key]) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)',
-                  color: 'var(--text-primary)',
-                  transition: 'all 0.15s',
-                }}
+                style={{ border: (!!settings[key]) === opt.value ? '2px solid var(--text-primary)' : '2px solid var(--border-primary)', background: (!!settings[key]) === opt.value ? 'var(--bg-hover)' : 'var(--bg-card)' }}
               >
                 {opt.label}
               </button>
             ))}
           </div>
-          <p className="text-xs mt-1" style={{ color: 'var(--text-faint)' }}>{t(hint)}</p>
+          <p className="text-xs mt-1 ![color:var(--text-faint)]">{t(hint)}</p>
         </div>
       ))}
     </Section>

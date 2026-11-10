@@ -259,7 +259,7 @@ describe('Navbar', () => {
     await user.click(screen.getByText('testuser'));
     expect(screen.getByText('Settings')).toBeInTheDocument();
     // The backdrop overlay is a fixed-inset div rendered in the portal
-    const backdrop = document.querySelector('[style*="inset: 0"]') as HTMLElement;
+    const backdrop = document.querySelector('[style*="inset: 0"], [class*="!inset-[0"]') as HTMLElement;
     if (backdrop) {
       await user.click(backdrop);
       expect(screen.queryByText('Settings')).not.toBeInTheDocument();

@@ -116,34 +116,19 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
   return (
     <div ref={ref} style={{ position: 'relative', ...style }}>
-      <div style={{
-        width: '100%', display: 'flex', alignItems: 'center', gap: 0,
-        borderRadius: 10, border: '1px solid var(--border-primary)',
-        background: 'var(--bg-input)', overflow: 'hidden',
-        transition: 'border-color 0.15s',
-      }}>
-        <input
+      <div className="!w-[100%] !flex !items-center !gap-[0] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-input)] !overflow-hidden ![transition:border-color_0.15s]">
+        <input className="!flex-[1] ![border:none] ![outline:none] ![background:transparent] !p-[8px_10px_8px_14px] !text-[length:13px] ![font-family:inherit] !min-w-[0]"
           type="text"
           value={inputFocused ? value : formatDisplay(value, is12h)}
           onChange={handleInput}
           onFocus={() => setInputFocused(true)}
           onBlur={() => { setInputFocused(false); handleBlur() }}
           placeholder={is12h ? '2:30 PM' : placeholder}
-          style={{
-            flex: 1, border: 'none', outline: 'none', background: 'transparent',
-            padding: '8px 10px 8px 14px', fontSize: 13, fontFamily: 'inherit',
-            color: value ? 'var(--text-primary)' : 'var(--text-faint)',
-            minWidth: 0,
-          }}
+          style={{ color: value ? 'var(--text-primary)' : 'var(--text-faint)' }}
         />
-        <button className="trek-hover-text"
+        <button className="trek-hover-text ![background:none] ![border:none] !cursor-pointer !p-[8px_10px] !flex !items-center ![color:var(--text-faint)] ![transition:color_0.15s] !shrink-[0]"
           type="button"
-          onClick={() => setOpen(o => !o)}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
-            display: 'flex', alignItems: 'center', color: 'var(--text-faint)',
-            transition: 'color 0.15s', flexShrink: 0,
-          }}>
+          onClick={() => setOpen(o => !o)}>
           <Clock size={14} />
         </button>
       </div>
@@ -161,16 +146,11 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
           backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         }}>
           {/* Hours */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div className="!flex !flex-col !items-center !gap-[2px]">
             <button className="trek-hover-text" type="button" onClick={incHour} style={btnStyle}>
               <ChevronUp size={16} />
             </button>
-            <div style={{
-              width: 44, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, fontWeight: 700, color: 'var(--text-primary)',
-              background: 'var(--bg-hover)', borderRadius: 8,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
+            <div className="!w-[44px] !h-[40px] !flex !items-center !justify-center !text-[length:22px] !font-[700] ![color:var(--text-primary)] ![background:var(--bg-hover)] !rounded-[8px] ![font-variant-numeric:tabular-nums]">
               {hour !== null ? (is12h ? String(hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) : String(hour).padStart(2, '0')) : '--'}
             </div>
             <button className="trek-hover-text" type="button" onClick={decHour} style={btnStyle}>
@@ -178,19 +158,14 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
             </button>
           </div>
 
-          <span style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-faint)', marginTop: -2 }}>:</span>
+          <span className="!text-[length:22px] !font-[700] ![color:var(--text-faint)] !mt-[-2px]">:</span>
 
           {/* Minutes */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <div className="!flex !flex-col !items-center !gap-[2px]">
             <button className="trek-hover-text" type="button" onClick={incMin} style={btnStyle}>
               <ChevronUp size={16} />
             </button>
-            <div style={{
-              width: 44, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 22, fontWeight: 700, color: 'var(--text-primary)',
-              background: 'var(--bg-hover)', borderRadius: 8,
-              fontVariantNumeric: 'tabular-nums',
-            }}>
+            <div className="!w-[44px] !h-[40px] !flex !items-center !justify-center !text-[length:22px] !font-[700] ![color:var(--text-primary)] ![background:var(--bg-hover)] !rounded-[8px] ![font-variant-numeric:tabular-nums]">
               {minute !== null ? String(minute).padStart(2, '0') : '--'}
             </div>
             <button className="trek-hover-text" type="button" onClick={decMin} style={btnStyle}>
@@ -200,15 +175,11 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
           {/* AM/PM Toggle */}
           {is12h && hour !== null && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginLeft: 4 }}>
+            <div className="!flex !flex-col !items-center !gap-[2px] !ml-[4px]">
               <button className="trek-hover-text" type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}>
                 <ChevronUp size={16} />
               </button>
-              <div style={{
-                width: 36, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 14, fontWeight: 700, color: 'var(--text-primary)',
-                background: 'var(--bg-hover)', borderRadius: 8,
-              }}>
+              <div className="!w-[36px] !h-[40px] !flex !items-center !justify-center !text-[length:14px] !font-[700] ![color:var(--text-primary)] ![background:var(--bg-hover)] !rounded-[8px]">
                 {hour >= 12 ? 'PM' : 'AM'}
               </div>
               <button className="trek-hover-text" type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}>
@@ -219,8 +190,8 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
           {/* Clear */}
           {value && (
-            <button className="trek-hover-danger" type="button" onClick={() => { onChange(''); setOpen(false) }}
-              style={{ ...btnStyle, marginLeft: 4, fontSize: 11, color: 'var(--text-faint)', padding: '4px 6px' }}>
+            <button className="trek-hover-danger !ml-[4px] !text-[length:11px] ![color:var(--text-faint)] !p-[4px_6px]" type="button" onClick={() => { onChange(''); setOpen(false) }}
+              style={{ ...btnStyle }}>
               ✕
             </button>
           )}

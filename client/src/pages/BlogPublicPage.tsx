@@ -97,7 +97,7 @@ function PublicIndex({ token }: { token: string }) {
         )}
       </main>
       <footer className="flex flex-col items-center gap-2 pb-10">
-        <img src="/sticker-dark.svg" alt="#ESTODOBAJADA" style={{ height: 22 }} />
+        <img className="!h-[22px]" src="/sticker-dark.svg" alt="#ESTODOBAJADA" />
         <span className="text-[12px] text-zinc-500">{t('blog.public.footer')}</span>
       </footer>
     </Shell>

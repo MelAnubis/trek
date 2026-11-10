@@ -103,70 +103,70 @@ function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, canEdit
 
   return (
     <div style={{ marginBottom: sz.mb }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: sz.gap, marginBottom: 4 }}>
-        <span style={{ width: sz.dot, height: sz.dot, borderRadius: '50%', background: bag.color, flexShrink: 0 }} />
+      <div className="!flex !items-center !mb-[4px]" style={{ gap: sz.gap }}>
+        <span className="!rounded-[50%] !shrink-[0]" style={{ width: sz.dot, height: sz.dot, background: bag.color }} />
         {editingName && canEdit ? (
-          <input autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)}
+          <input className="!flex-[1] !p-[1px_4px] !rounded-[4px] ![border:1px_solid_var(--border-primary)] ![outline:none] ![color:var(--text-primary)]" autoFocus value={nameVal} onChange={e => setNameVal(e.target.value)}
             onBlur={saveName} onKeyDown={e => { if (e.key === 'Enter') saveName(); if (e.key === 'Escape') { setEditingName(false); setNameVal(bag.name) } }}
-            style={{ flex: 1, fontSize: sz.name, fontWeight: 600, padding: '1px 4px', borderRadius: 4, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit', color: 'var(--text-primary)', background: 'transparent' }} />
+            style={{ fontSize: sz.name, fontWeight: 600, fontFamily: 'inherit', background: 'transparent' }} />
         ) : (
-          <span onClick={() => canEdit && setEditingName(true)} style={{ flex: 1, fontSize: sz.name, fontWeight: 600, color: compact ? 'var(--text-secondary)' : 'var(--text-primary)', cursor: canEdit ? 'text' : 'default' }}>{bag.name}</span>
+          <span className="!flex-[1]" onClick={() => canEdit && setEditingName(true)} style={{ fontSize: sz.name, fontWeight: 600, color: compact ? 'var(--text-secondary)' : 'var(--text-primary)', cursor: canEdit ? 'text' : 'default' }}>{bag.name}</span>
         )}
-        <span style={{ fontSize: sz.weight, color: 'var(--text-faint)', fontWeight: 500 }}>
+        <span className="![color:var(--text-faint)]" style={{ fontSize: sz.weight, fontWeight: 500 }}>
           {totalWeight >= 1000 ? `${(totalWeight / 1000).toFixed(1)} kg` : `${totalWeight} g`}
         </span>
-        {canEdit && <button onClick={onDelete} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)', display: 'flex' }}><X size={sz.icon} /></button>}
+        {canEdit && <button className="![border:none] !cursor-pointer !p-[2px] ![color:var(--text-faint)] !flex" onClick={onDelete} style={{ background: 'none' }}><X size={sz.icon} /></button>}
       </div>
       {/* Members */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4, flexWrap: 'wrap', position: 'relative' }}>
+      <div className="!flex !items-center !gap-[4px] !mb-[4px] !flex-wrap !relative">
         {(bag.members || []).map(m => (
-          <span key={m.user_id} title={m.username} onClick={() => canEdit && toggleMember(m.user_id)} style={{ cursor: canEdit ? 'pointer' : 'default', display: 'inline-flex' }}>
+          <span className="!inline-flex" key={m.user_id} title={m.username} onClick={() => canEdit && toggleMember(m.user_id)} style={{ cursor: canEdit ? 'pointer' : 'default' }}>
             {m.avatar ? (
-              <img src={m.avatar} alt={m.username} style={{ width: sz.avatar, height: sz.avatar, borderRadius: '50%', objectFit: 'cover', border: `1.5px solid ${bag.color}`, boxSizing: 'border-box' }} />
+              <img className="!rounded-[50%] !object-cover !box-border" src={m.avatar} alt={m.username} style={{ width: sz.avatar, height: sz.avatar, border: `1.5px solid ${bag.color}` }} />
             ) : (
-              <span style={{ width: sz.avatar, height: sz.avatar, borderRadius: '50%', background: bag.color + '25', color: bag.color, fontSize: sz.avatar * 0.45, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${bag.color}`, boxSizing: 'border-box' }}>
+              <span className="!rounded-[50%] !inline-flex !items-center !justify-center !box-border" style={{ width: sz.avatar, height: sz.avatar, background: bag.color + '25', color: bag.color, fontSize: sz.avatar * 0.45, fontWeight: 700, border: `1.5px solid ${bag.color}` }}>
                 {m.username[0].toUpperCase()}
               </span>
             )}
           </span>
         ))}
         {canEdit && (
-          <button onClick={() => setShowUserPicker(v => !v)} style={{ width: sz.avatar, height: sz.avatar, borderRadius: '50%', border: '1.5px dashed var(--border-primary)', background: 'none', color: 'var(--text-faint)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, boxSizing: 'border-box' }}>
+          <button className="!rounded-[50%] ![border:1.5px_dashed_var(--border-primary)] ![color:var(--text-faint)] !cursor-pointer !flex !items-center !justify-center !p-[0] !box-border" onClick={() => setShowUserPicker(v => !v)} style={{ width: sz.avatar, height: sz.avatar, background: 'none' }}>
             <Plus size={sz.avatar * 0.5} />
           </button>
         )}
         {showUserPicker && (
-          <div style={{ position: 'absolute', left: 0, top: '100%', marginTop: 4, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', padding: 4, minWidth: 160 }}>
+          <div className="!absolute !left-[0] !top-[100%] !mt-[4px] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.1)] !p-[4px] !min-w-[160px]" style={{ background: 'var(--bg-card)' }}>
             {tripMembers.map(m => {
               const isSelected = memberIds.includes(m.id)
               return (
-                <button className={(!isSelected) ? 'trek-hover-secondary' : undefined} key={m.id} onClick={() => { toggleMember(m.id); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
+                <button className={[(!isSelected) ? 'trek-hover-secondary' : undefined, '!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px] ![color:var(--text-primary)] ![font-family:inherit]'].join(' ')} key={m.id} onClick={() => { toggleMember(m.id); }}
+                  style={{ background: isSelected ? 'var(--bg-tertiary)' : 'transparent' }}>
                   {m.avatar ? (
-                    <img src={m.avatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
+                    <img className="!w-[20px] !h-[20px] !rounded-[50%] !object-cover" src={m.avatar} alt="" />
                   ) : (
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--bg-tertiary)', fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-faint)' }}>
+                    <span className="!w-[20px] !h-[20px] !rounded-[50%] !text-[length:10px] !font-[700] !inline-flex !items-center !justify-center ![color:var(--text-faint)]" style={{ background: 'var(--bg-tertiary)' }}>
                       {m.username[0].toUpperCase()}
                     </span>
                   )}
-                  <span style={{ flex: 1, fontWeight: isSelected ? 600 : 400 }}>{m.username}</span>
+                  <span className="!flex-[1]" style={{ fontWeight: isSelected ? 600 : 400 }}>{m.username}</span>
                   {isSelected && <Check size={12} style={{ color: '#10b981' }} />}
                 </button>
               )
             })}
-            {tripMembers.length === 0 && <div style={{ padding: '8px 10px', fontSize: 11, color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>}
-            <div style={{ borderTop: '1px solid var(--border-secondary)', marginTop: 4, paddingTop: 4 }}>
-              <button onClick={() => setShowUserPicker(false)} style={{ width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-faint)', fontFamily: 'inherit', textAlign: 'center' }}>
+            {tripMembers.length === 0 && <div className="!p-[8px_10px] !text-[length:11px] ![color:var(--text-faint)]">{t('packing.noMembers')}</div>}
+            <div className="![border-top:1px_solid_var(--border-secondary)] !mt-[4px] !pt-[4px]">
+              <button className="!w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px] ![color:var(--text-faint)] ![font-family:inherit] !text-center" onClick={() => setShowUserPicker(false)} style={{ background: 'transparent' }}>
                 {t('common.close')}
               </button>
             </div>
           </div>
         )}
       </div>
-      <div style={{ height: sz.bar, background: 'var(--bg-tertiary)', borderRadius: 99, overflow: 'hidden' }}>
-        <div style={{ height: '100%', borderRadius: 99, background: bag.color, width: `${pct}%`, transition: 'width 0.3s' }} />
+      <div className="!rounded-[99px] !overflow-hidden" style={{ height: sz.bar, background: 'var(--bg-tertiary)' }}>
+        <div className="!h-[100%] !rounded-[99px] ![transition:width_0.3s]" style={{ background: bag.color, width: `${pct}%` }} />
       </div>
-      <div style={{ fontSize: sz.count, color: 'var(--text-faint)', marginTop: 2 }}>{bagItems.length} {t('admin.packingTemplates.items')}</div>
+      <div className="![color:var(--text-faint)] !mt-[2px]" style={{ fontSize: sz.count }}>{bagItems.length} {t('admin.packingTemplates.items')}</div>
     </div>
   )
 }
@@ -184,16 +184,16 @@ function QuantityInput({ value, onSave }: { value: number; onSave: (qty: number)
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent', flexShrink: 0 }}>
-      <input
+    <div className="!flex !items-center !gap-[2px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[3px_6px] !shrink-[0]" style={{ background: 'transparent' }}>
+      <input className="!w-[24px] ![border:none] ![outline:none] !text-[length:12px] !text-right ![font-family:inherit] ![color:var(--text-secondary)] !p-[0]"
         type="text" inputMode="numeric"
         value={local}
         onChange={e => setLocal(e.target.value.replace(/\D/g, ''))}
         onBlur={commit}
         onKeyDown={e => { if (e.key === 'Enter') { commit(); (e.target as HTMLInputElement).blur() } }}
-        style={{ width: 24, border: 'none', outline: 'none', background: 'transparent', fontSize: 12, textAlign: 'right', fontFamily: 'inherit', color: 'var(--text-secondary)', padding: 0 }}
+        style={{ background: 'transparent' }}
       />
-      <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>x</span>
+      <span className="!text-[length:10px] ![color:var(--text-faint)] !font-[500]">x</span>
     </div>
   )
 }
@@ -259,12 +259,7 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
         transition: 'background 0.1s',
       }}
     >
-      <button onClick={handleToggle} style={{
-        flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0, position: 'relative',
-        width: 18, height: 18,
-        color: item.checked ? '#10b981' : 'var(--text-faint)',
-        transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
-      }}>
+      <button className="!shrink-[0] ![border:none] !cursor-pointer !p-[0] !relative !w-[18px] !h-[18px] ![transition:color_200ms_cubic-bezier(0.23,1,0.32,1)]" onClick={handleToggle} style={{ background: 'none', color: item.checked ? '#10b981' : 'var(--text-faint)' }}>
         <Square size={18} style={{
           position: 'absolute', inset: 0,
           opacity: item.checked ? 0 : 1,
@@ -280,24 +275,17 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
       </button>
 
       {editing && canEdit ? (
-        <input
+        <input className="!flex-[1] !text-[length:13.5px] !p-[2px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![outline:none] ![font-family:inherit]"
           type="text" value={editName} autoFocus
           placeholder={isPlaceholder ? '...' : undefined}
           onChange={e => setEditName(e.target.value)}
           onBlur={handleSaveName}
           onKeyDown={e => { if (e.key === 'Enter') handleSaveName(); if (e.key === 'Escape') { setEditing(false); setEditName(isPlaceholder ? '' : item.name) } }}
-          style={{ flex: 1, fontSize: 13.5, padding: '2px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit' }}
         />
       ) : (
-        <span
+        <span className="!flex-[1] !text-[length:13.5px] ![transition:color_200ms_cubic-bezier(0.23,1,0.32,1)]"
           onClick={() => canEdit && !item.checked && setEditing(true)}
-          style={{
-            flex: 1, fontSize: 13.5,
-            cursor: !canEdit || item.checked ? 'default' : 'text',
-            color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'),
-            transition: 'color 200ms cubic-bezier(0.23,1,0.32,1)',
-            textDecoration: item.checked ? 'line-through' : 'none',
-          }}
+          style={{ cursor: !canEdit || item.checked ? 'default' : 'text', color: isPlaceholder ? 'var(--text-faint)' : (item.checked ? 'var(--text-faint)' : 'var(--text-primary)'), textDecoration: item.checked ? 'line-through' : 'none' }}
         >
           {item.name}
         </span>
@@ -308,9 +296,9 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
 
       {/* Weight + Bag (when enabled) */}
       {bagTrackingEnabled && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, border: '1px solid var(--border-primary)', borderRadius: 8, padding: '3px 6px', background: 'transparent' }}>
-            <input
+        <div className="!flex !items-center !gap-[6px] !shrink-[0]">
+          <div className="!flex !items-center !gap-[2px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[3px_6px]" style={{ background: 'transparent' }}>
+            <input className="!w-[36px] ![border:none] !text-[length:12px] !text-right ![font-family:inherit] ![outline:none] ![color:var(--text-secondary)] !p-[0]"
               type="text" inputMode="numeric"
               value={item.weight_grams ?? ''}
               readOnly={!canEdit}
@@ -321,50 +309,38 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                 try { await updatePackingItem(tripId, item.id, { weight_grams: v }) } catch {}
               }}
               placeholder="—"
-              style={{ width: 36, border: 'none', fontSize: 12, textAlign: 'right', fontFamily: 'inherit', outline: 'none', color: 'var(--text-secondary)', background: 'transparent', padding: 0 }}
+              style={{ background: 'transparent' }}
             />
-            <span style={{ fontSize: 10, color: 'var(--text-faint)', userSelect: 'none' }}>g</span>
+            <span className="!text-[length:10px] ![color:var(--text-faint)] !select-none">g</span>
           </div>
-          <div style={{ position: 'relative' }}>
-            <button
+          <div className="!relative">
+            <button className="!w-[22px] !h-[22px] !rounded-[50%] !p-[0] !flex !items-center !justify-center"
               onClick={() => canEdit && setShowBagPicker(p => !p)}
-              style={{
-                width: 22, height: 22, borderRadius: '50%', cursor: canEdit ? 'pointer' : 'default', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                border: item.bag_id ? `2.5px solid ${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}` : '2px dashed var(--border-primary)',
-                background: item.bag_id ? `${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}30` : 'transparent',
-              }}
+              style={{ cursor: canEdit ? 'pointer' : 'default', border: item.bag_id ? `2.5px solid ${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}` : '2px dashed var(--border-primary)', background: item.bag_id ? `${bags.find(b => b.id === item.bag_id)?.color || 'var(--border-primary)'}30` : 'transparent' }}
             >
               {!item.bag_id && <Package size={9} style={{ color: 'var(--text-faint)' }} />}
             </button>
             {showBagPicker && (
-              <div style={{
-                position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 50,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 160,
-              }}>
+              <div className="!absolute !right-[0] !top-[100%] !mt-[4px] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[160px]" style={{ background: 'var(--bg-card)' }}>
                 {item.bag_id && (
-                  <button onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch {} }}
-                    style={{ display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)' }} />
+                  <button className="!flex !items-center !gap-[7px] !w-[100%] !p-[6px_10px] ![border:none] !cursor-pointer !text-[length:12px] ![font-family:inherit] ![color:var(--text-faint)] !rounded-[7px]" onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: null }) } catch {} }}
+                    style={{ background: 'none' }}>
+                    <span className="!w-[10px] !h-[10px] !rounded-[50%] ![border:2px_dashed_var(--border-primary)]" />
                     {t('packing.noBag')}
                   </button>
                 )}
                 {bags.map(b => (
-                  <button className={(item.bag_id !== b.id) ? 'trek-hover-tertiary' : undefined} key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch {} }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px',
-                      background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none',
-                      border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', color: 'var(--text-secondary)', borderRadius: 7,
-                    }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
+                  <button className={[(item.bag_id !== b.id) ? 'trek-hover-tertiary' : undefined, '!flex !items-center !gap-[7px] !w-[100%] !p-[6px_10px] ![border:none] !cursor-pointer !text-[length:12px] ![font-family:inherit] ![color:var(--text-secondary)] !rounded-[7px]'].join(' ')} key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch {} }}
+                    style={{ background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none' }}>
+                    <span className="!w-[10px] !h-[10px] !rounded-[50%] !shrink-[0]" style={{ background: b.color }} />
                     {b.name}
                   </button>
                 ))}
-                {bags.length > 0 && <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />}
-                <div style={{ padding: '4px 6px' }}>
+                {bags.length > 0 && <div className="!h-[1px] !m-[4px_0]" style={{ background: 'var(--bg-tertiary)' }} />}
+                <div className="!p-[4px_6px]">
                   {bagInlineCreate ? (
-                    <div style={{ display: 'flex', gap: 4 }}>
-                      <input autoFocus value={bagInlineName} onChange={e => setBagInlineName(e.target.value)}
+                    <div className="!flex !gap-[4px]">
+                      <input className="!flex-[1] !p-[4px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] !text-[length:11px] ![font-family:inherit] ![outline:none]" autoFocus value={bagInlineName} onChange={e => setBagInlineName(e.target.value)}
                         onKeyDown={async e => {
                           if (e.key === 'Enter' && bagInlineName.trim()) {
                             const newBag = await onCreateBag(bagInlineName.trim())
@@ -373,22 +349,21 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                           }
                           if (e.key === 'Escape') { setBagInlineCreate(false); setBagInlineName('') }
                         }}
-                        placeholder={t('packing.bagName')}
-                        style={{ flex: 1, padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', fontSize: 11, fontFamily: 'inherit', outline: 'none' }} />
-                      <button onClick={async () => {
+                        placeholder={t('packing.bagName')} />
+                      <button className="!p-[3px_6px] !rounded-[6px] ![border:none] ![color:var(--bg-primary)] !cursor-pointer !flex !items-center" onClick={async () => {
                         if (bagInlineName.trim()) {
                           const newBag = await onCreateBag(bagInlineName.trim())
                           if (newBag) { try { await updatePackingItem(tripId, item.id, { bag_id: newBag.id }) } catch {} }
                           setBagInlineName(''); setBagInlineCreate(false); setShowBagPicker(false)
                         }
                       }}
-                        style={{ padding: '3px 6px', borderRadius: 6, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        style={{ background: 'var(--text-primary)' }}>
                         <Plus size={11} />
                       </button>
                     </div>
                   ) : (
-                    <button className="trek-hover-text2" onClick={() => setBagInlineCreate(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
+                    <button className="trek-hover-text2 !flex !items-center !gap-[5px] !w-[100%] !p-[5px_6px] ![border:none] !cursor-pointer !text-[length:11px] ![font-family:inherit] ![color:var(--text-faint)] !rounded-[7px]" onClick={() => setBagInlineCreate(true)}
+                      style={{ background: 'none' }}>
                       <Plus size={11} /> {t('packing.addBag')}
                     </button>
                   )}
@@ -400,29 +375,20 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
       )}
 
       {canEdit && (
-      <div className="sm:opacity-0 sm:group-hover:opacity-100" style={{ display: 'flex', gap: 2, alignItems: 'center', transition: 'opacity 0.12s', flexShrink: 0 }}>
-        <div style={{ position: 'relative' }}>
-          <button
+      <div className="sm:opacity-0 sm:group-hover:opacity-100 !flex !gap-[2px] !items-center ![transition:opacity_0.12s] !shrink-[0]">
+        <div className="!relative">
+          <button className="![border:none] !cursor-pointer !p-[3px_5px] !rounded-[6px] !flex !items-center ![color:var(--text-faint)] !text-[length:10px] !gap-[2px]"
             onClick={() => setShowCatPicker(p => !p)}
             title={t('packing.changeCategory')}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 5px', borderRadius: 6, display: 'flex', alignItems: 'center', color: 'var(--text-faint)', fontSize: 10, gap: 2 }}
+            style={{ background: 'none' }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: katColor(item.category || t('packing.defaultCategory'), categories), display: 'inline-block' }} />
+            <span className="!w-[7px] !h-[7px] !rounded-[50%] !inline-block" style={{ background: katColor(item.category || t('packing.defaultCategory'), categories) }} />
           </button>
           {showCatPicker && (
-            <div style={{
-              position: 'absolute', right: 0, top: '100%', zIndex: 50, background: 'var(--bg-card)',
-              border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)',
-              padding: 4, minWidth: 140,
-            }}>
+            <div className="!absolute !right-[0] !top-[100%] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.1)] !p-[4px] !min-w-[140px]" style={{ background: 'var(--bg-card)' }}>
               {categories.map(cat => (
-                <button key={cat} onClick={() => handleCatChange(cat)} style={{
-                  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-                  padding: '6px 10px', background: cat === (item.category || t('packing.defaultCategory')) ? 'var(--bg-tertiary)' : 'none',
-                  border: 'none', cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit',
-                  color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: katColor(cat, categories), flexShrink: 0 }} />
+                <button className="!flex !items-center !gap-[7px] !w-[100%] !p-[6px_10px] ![border:none] !cursor-pointer !text-[length:12.5px] ![font-family:inherit] ![color:var(--text-secondary)] !rounded-[7px] !text-left" key={cat} onClick={() => handleCatChange(cat)} style={{ background: cat === (item.category || t('packing.defaultCategory')) ? 'var(--bg-tertiary)' : 'none' }}>
+                  <span className="!w-[8px] !h-[8px] !rounded-[50%] !shrink-[0]" style={{ background: katColor(cat, categories) }} />
                   {cat}
                 </button>
               ))}
@@ -430,11 +396,11 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
           )}
         </div>
 
-        <button className="trek-hover-text2" onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
+        <button className="trek-hover-text2 ![border:none] !cursor-pointer !p-[3px_4px] !rounded-[6px] !flex ![color:var(--text-faint)]" onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none' }}>
           <Pencil size={13} />
         </button>
 
-        <button className="trek-hover-danger" onClick={handleDelete} title={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
+        <button className="trek-hover-danger ![border:none] !cursor-pointer !p-[3px_4px] !rounded-[6px] !flex ![color:var(--text-faint)]" onClick={handleDelete} title={t('common.delete')} style={{ background: 'none' }}>
           <Trash2 size={13} />
         </button>
       </div>
@@ -526,104 +492,73 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
   }
 
   return (
-    <div style={{ marginBottom: 6, background: 'var(--bg-card)', borderRadius: 14, border: '1px solid var(--border-secondary)', overflow: 'visible' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: offen ? '1px solid var(--border-secondary)' : 'none' }}>
-        <button onClick={() => setOffen(o => !o)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', color: 'var(--text-faint)', flexShrink: 0 }}>
+    <div className="!mb-[6px] !rounded-[14px] ![border:1px_solid_var(--border-secondary)] !overflow-visible" style={{ background: 'var(--bg-card)' }}>
+      <div className="!flex !items-center !gap-[8px] !p-[10px_12px]" style={{ borderBottom: offen ? '1px solid var(--border-secondary)' : 'none' }}>
+        <button className="![border:none] !cursor-pointer !p-[0] !flex ![color:var(--text-faint)] !shrink-[0]" onClick={() => setOffen(o => !o)} style={{ background: 'none' }}>
           {offen ? <ChevronDown size={15} /> : <ChevronRight size={15} />}
         </button>
 
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+        <span className="!w-[10px] !h-[10px] !rounded-[50%] !shrink-[0]" style={{ background: dot }} />
 
         {editingName && canEdit ? (
-          <input
+          <input className="!flex-[1] !text-[length:12.5px] !font-[600] ![border:none] ![border-bottom:2px_solid_var(--text-primary)] ![outline:none] ![font-family:inherit] ![color:var(--text-primary)] !p-[0_2px]"
             autoFocus value={editKatName}
             onChange={e => setEditKatName(e.target.value)}
             onBlur={handleSaveKatName}
             onKeyDown={e => { if (e.key === 'Enter') handleSaveKatName(); if (e.key === 'Escape') { setEditingName(false); setEditKatName(kategorie) } }}
-            style={{ flex: 1, fontSize: 12.5, fontWeight: 600, border: 'none', borderBottom: '2px solid var(--text-primary)', outline: 'none', background: 'transparent', fontFamily: 'inherit', color: 'var(--text-primary)', padding: '0 2px' }}
+            style={{ background: 'transparent' }}
           />
         ) : (
-          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+          <span className="!text-[length:12.5px] !font-[700] ![color:var(--text-secondary)] !uppercase !tracking-[0.04em]">
             {kategorie}
           </span>
         )}
 
         {/* Assignee chips */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 3, flex: 1, minWidth: 0, marginLeft: 4 }}>
+        <div className="!flex !items-center !gap-[3px] !flex-[1] !min-w-[0] !ml-[4px]">
           {assignees.map(a => (
-            <div key={a.user_id} style={{ position: 'relative' }}
+            <div className="!relative" key={a.user_id}
               onClick={e => { e.stopPropagation(); if (canEdit) onSetAssignees(kategorie, assignees.filter(x => x.user_id !== a.user_id).map(x => x.user_id)) }}
             >
-              <div className="assignee-chip"
-                style={{
-                  width: 22, height: 22, borderRadius: '50%', flexShrink: 0, cursor: canEdit ? 'pointer' : 'default',
-                  background: `hsl(${a.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 10, fontWeight: 700, color: 'white', textTransform: 'uppercase',
-                  border: '2px solid var(--bg-card)', transition: 'opacity 0.15s',
-                }}
+              <div className="assignee-chip !w-[22px] !h-[22px] !rounded-[50%] !shrink-[0] !flex !items-center !justify-center !text-[length:10px] !font-[700] ![color:white] !uppercase ![border:2px_solid_var(--bg-card)] ![transition:opacity_0.15s]"
+                style={{ cursor: canEdit ? 'pointer' : 'default', background: `hsl(${a.username.charCodeAt(0) * 37 % 360}, 55%, 55%)` }}
               >
                 {a.username[0]}
               </div>
-              <div className="assignee-tooltip" style={{
-                position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginTop: 6, padding: '3px 8px', borderRadius: 6, zIndex: 60,
-                background: 'var(--text-primary)', color: 'var(--bg-primary)',
-                fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap',
-                pointerEvents: 'none', opacity: 0, transition: 'opacity 0.15s',
-              }}>
+              <div className="assignee-tooltip !absolute !top-[100%] !left-[50%] !mt-[6px] !p-[3px_8px] !rounded-[6px] !z-[60] ![color:var(--bg-primary)] !text-[length:10px] !font-[600] !whitespace-nowrap !pointer-events-none ![transition:opacity_0.15s]" style={{ transform: 'translateX(-50%)', background: 'var(--text-primary)', opacity: 0 }}>
                 {a.username}
               </div>
             </div>
           ))}
           {canEdit && (
           <div ref={assigneeDropdownRef} style={{ position: 'relative' }}>
-            <button className="trek-hover-border-muted trek-h-color-5b795a" onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
-              style={{
-                width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
-                background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--text-faint)', flexShrink: 0, padding: 0, transition: 'all 0.15s',
-              }} >
+            <button className="trek-hover-border-muted trek-h-color-5b795a !w-[20px] !h-[20px] !rounded-[50%] ![border:1.5px_dashed_var(--border-primary)] !cursor-pointer !flex !items-center !justify-center ![color:var(--text-faint)] !shrink-[0] !p-[0] ![transition:all_0.15s]" onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
+              style={{ background: 'none' }} >
               <UserPlus size={10} />
             </button>
             {showAssigneeDropdown && (
-              <div style={{
-                position: 'absolute', left: 0, top: '100%', marginTop: 4, zIndex: 50,
-                background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 160,
-              }}>
+              <div className="!absolute !left-[0] !top-[100%] !mt-[4px] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[160px]" style={{ background: 'var(--bg-card)' }}>
                 {tripMembers.map(m => {
                   const isAssigned = assignees.some(a => a.user_id === m.id)
                   return (
-                    <button className={(!isAssigned) ? 'trek-hover-tertiary' : undefined} key={m.id} onClick={e => {
+                    <button className={[(!isAssigned) ? 'trek-hover-tertiary' : undefined, '!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[8px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-primary)] ![transition:background_0.1s]'].join(' ')} key={m.id} onClick={e => {
                       e.stopPropagation()
                       const newIds = isAssigned
                         ? assignees.filter(a => a.user_id !== m.id).map(a => a.user_id)
                         : [...assignees.map(a => a.user_id), m.id]
                       onSetAssignees(kategorie, newIds)
                     }}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '6px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                        background: isAssigned ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-                        transition: 'background 0.1s',
-                      }} >
-                      <div style={{
-                        width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                        background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 10, fontWeight: 700, color: 'white', textTransform: 'uppercase',
-                      }}>
+                      style={{ background: isAssigned ? 'var(--bg-hover)' : 'transparent' }} >
+                      <div className="!w-[20px] !h-[20px] !rounded-[50%] !shrink-[0] !flex !items-center !justify-center !text-[length:10px] !font-[700] ![color:white] !uppercase" style={{ background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)` }}>
                         {m.username[0]}
                       </div>
-                      <span style={{ flex: 1 }}>{m.username}</span>
+                      <span className="!flex-[1]">{m.username}</span>
                       {isAssigned && <Check size={12} style={{ color: 'var(--text-muted)' }} />}
                     </button>
                   )
                 })}
                 {tripMembers.length === 0 && (
-                  <div style={{ padding: '8px 10px', fontSize: 11, color: 'var(--text-faint)' }}>{t('packing.noMembers')}</div>
+                  <div className="!p-[8px_10px] !text-[length:11px] ![color:var(--text-faint)]">{t('packing.noMembers')}</div>
                 )}
               </div>
             )}
@@ -631,15 +566,11 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
           )}
         </div>
 
-        <span style={{
-          fontSize: 11, fontWeight: 600, padding: '1px 8px', borderRadius: 99,
-          background: alleAbgehakt ? 'rgba(22,163,74,0.12)' : 'var(--bg-tertiary)',
-          color: alleAbgehakt ? '#16a34a' : 'var(--text-muted)',
-        }}>
+        <span className="!text-[length:11px] !font-[600] !p-[1px_8px] !rounded-[99px]" style={{ background: alleAbgehakt ? 'rgba(22,163,74,0.12)' : 'var(--bg-tertiary)', color: alleAbgehakt ? '#16a34a' : 'var(--text-muted)' }}>
           {abgehakt}/{items.length}
         </span>
 
-        <div style={{ position: 'relative' }}>
+        <div className="!relative">
           <button className="trek-hover-text2" ref={menuBtnRef} onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
             <MoreHorizontal size={15} />
           </button>
@@ -647,13 +578,13 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
             const rect = menuBtnRef.current?.getBoundingClientRect();
             return (
             <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setShowMenu(false)} />
-              <div style={{ position: 'fixed', right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, zIndex: 100, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.1)', padding: 4, minWidth: 170 }}>
+              <div className="!fixed !inset-[0] !z-[99]" onClick={() => setShowMenu(false)} />
+              <div className="!fixed !z-[100] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.1)] !p-[4px] !min-w-[170px]" style={{ right: rect ? window.innerWidth - rect.right : 0, top: rect ? rect.bottom + 4 : 0, background: 'var(--bg-card)' }}>
                 {canEdit && <MenuItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
                 <MenuItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { handleCheckAll(); setShowMenu(false) }} />
                 <MenuItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { handleUncheckAll(); setShowMenu(false) }} />
                 {canEdit && <>
-                <div style={{ height: 1, background: 'var(--bg-tertiary)', margin: '4px 0' }} />
+                <div className="!h-[1px] !m-[4px_0]" style={{ background: 'var(--bg-tertiary)' }} />
                 <MenuItem icon={<Trash2 size={13} />} label={t('packing.menuDeleteCat')} danger onClick={handleDeleteAll} />
                 </>}
               </div>
@@ -664,13 +595,13 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
       </div>
 
       {offen && (
-        <div style={{ padding: '4px 4px 6px' }}>
+        <div className="!p-[4px_4px_6px]">
           {items.map(item => (
             <ArtikelZeile key={item.id} item={item} tripId={tripId} categories={allCategories} onCategoryChange={() => {}} bagTrackingEnabled={bagTrackingEnabled} bags={bags} onCreateBag={onCreateBag} canEdit={canEdit} />
           ))}
           {/* Inline add item */}
           {canEdit && (showAddItem ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px' }}>
+            <div className="!flex !items-center !gap-[6px] !p-[4px_8px]">
               <input
                 ref={addItemRef}
                 autoFocus
@@ -687,19 +618,19 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
                 placeholder={t('packing.addItemPlaceholder')}
                 style={{ flex: 1, padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 12.5, fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'var(--bg-input)' }}
               />
-              <button onClick={() => { if (newItemName.trim()) { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) } }}
+              <button className="!p-[5px_8px] !rounded-[8px] ![border:none] ![color:var(--bg-primary)] !flex" onClick={() => { if (newItemName.trim()) { onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) } }}
                 disabled={!newItemName.trim()}
-                style={{ padding: '5px 8px', borderRadius: 8, border: 'none', background: newItemName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newItemName.trim() ? 'pointer' : 'default', display: 'flex' }}>
+                style={{ background: newItemName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', cursor: newItemName.trim() ? 'pointer' : 'default' }}>
                 <Plus size={14} />
               </button>
-              <button onClick={() => { setShowAddItem(false); setNewItemName('') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, display: 'flex', color: 'var(--text-faint)' }}>
+              <button className="![border:none] !cursor-pointer !p-[2px] !flex ![color:var(--text-faint)]" onClick={() => { setShowAddItem(false); setNewItemName('') }}
+                style={{ background: 'none' }}>
                 <X size={14} />
               </button>
             </div>
           ) : (
-            <button className="trek-hover-text2" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-faint)', fontFamily: 'inherit' }}>
+            <button className="trek-hover-text2 !flex !items-center !gap-[5px] !p-[5px_10px] !m-[2px_4px] !rounded-[8px] ![border:none] !cursor-pointer !text-[length:12px] ![color:var(--text-faint)] ![font-family:inherit]" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
+              style={{ background: 'none' }}>
               <Plus size={12} /> {t('packing.addItem')}
             </button>
           ))}
@@ -1057,49 +988,41 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', ...font }}>
 
       {/* ── Header ── */}
-      <div style={{ padding: inlineHeader ? '20px 24px 16px' : '0 0 16px', flexShrink: 0, borderBottom: inlineHeader ? '1px solid rgba(0,0,0,0.06)' : undefined }}>
-        <div style={{ display: 'flex', alignItems: inlineHeader ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 14 }}>
+      <div className="!shrink-[0]" style={{ padding: inlineHeader ? '20px 24px 16px' : '0 0 16px', borderBottom: inlineHeader ? '1px solid rgba(0,0,0,0.06)' : undefined }}>
+        <div className="!flex !justify-between !gap-[14px]" style={{ alignItems: inlineHeader ? 'flex-start' : 'center' }}>
           {inlineHeader ? (
             <div>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>{t('packing.title')}</h2>
+              <h2 className="!m-[0] !text-[length:18px] !font-[700] ![color:var(--text-primary)]">{t('packing.title')}</h2>
               {items.length > 0 && (
-                <p style={{ margin: '2px 0 0', fontSize: 12.5, color: 'var(--text-faint)' }}>
+                <p className="!m-[2px_0_0] !text-[length:12.5px] ![color:var(--text-faint)]">
                   {t('packing.progress', { packed: abgehakt, total: items.length, percent: fortschritt })}
                 </p>
               )}
             </div>
           ) : <span />}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <div className="!flex !gap-[6px] !flex-wrap !justify-end">
             {canEdit && items.length > 0 && showSaveTemplate && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <input
+              <div className="!flex !items-center !gap-[4px]">
+                <input className="!text-[length:12px] !p-[5px_10px] !rounded-[99px] ![border:1px_solid_var(--border-primary)] ![outline:none] ![font-family:inherit] !w-[140px] ![color:var(--text-primary)]"
                   type="text" autoFocus
                   value={saveTemplateName}
                   onChange={e => setSaveTemplateName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleSaveAsTemplate(); if (e.key === 'Escape') { setShowSaveTemplate(false); setSaveTemplateName('') } }}
                   placeholder={t('packing.templateName')}
-                  style={{ fontSize: 12, padding: '5px 10px', borderRadius: 99, border: '1px solid var(--border-primary)', outline: 'none', fontFamily: 'inherit', width: 140, background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  style={{ background: 'var(--bg-card)' }}
                 />
-                <button onClick={handleSaveAsTemplate} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#10b981' }}><Check size={14} /></button>
-                <button onClick={() => { setShowSaveTemplate(false); setSaveTemplateName('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)' }}><X size={14} /></button>
+                <button className="![border:none] !cursor-pointer !p-[2px] ![color:#10b981]" onClick={handleSaveAsTemplate} style={{ background: 'none' }}><Check size={14} /></button>
+                <button className="![border:none] !cursor-pointer !p-[2px] ![color:var(--text-faint)]" onClick={() => { setShowSaveTemplate(false); setSaveTemplateName('') }} style={{ background: 'none' }}><X size={14} /></button>
               </div>
             )}
              {inlineHeader && canEdit && (
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button onClick={() => setShowImportModal(true)} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                  border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                  fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-muted)',
-                }}>
+              <div className="!flex !gap-[6px]">
+                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] ![border:1px_solid_var(--border-primary)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowImportModal(true)} style={{ background: 'var(--bg-card)' }}>
                   <Upload size={12} /> <span className="hidden sm:inline">{t('packing.import')}</span>
                 </button>
-                <button
+                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] ![border:1px_solid_#0d9488] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit] ![color:#0d9488]"
                   onClick={() => setShowBikepackModal(true)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                    border: '1px solid #0d9488', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                    fontFamily: 'inherit', background: 'var(--bg-card)', color: '#0d9488',
-                  }}
+                  style={{ background: 'var(--bg-card)' }}
                   title="Importar perfil de equipaje desde Bikepack"
                 >
                   🚴 <span className="hidden sm:inline">Bikepack</span>
@@ -1108,43 +1031,25 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             )}
 
             {inlineHeader && canEdit && abgehakt > 0 && (
-              <button onClick={handleClearChecked} style={{
-                fontSize: 11.5, padding: '5px 10px', borderRadius: 99, border: '1px solid rgba(239,68,68,0.3)',
-                background: 'rgba(239,68,68,0.1)', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
+              <button className="!text-[length:11.5px] !p-[5px_10px] !rounded-[99px] ![border:1px_solid_rgba(239,68,68,0.3)] ![color:#ef4444] !cursor-pointer ![font-family:inherit]" onClick={handleClearChecked} style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <span className="hidden sm:inline">{t('packing.clearChecked', { count: abgehakt })}</span>
                 <span className="sm:hidden">{t('packing.clearCheckedShort', { count: abgehakt })}</span>
               </button>
             )}
             {inlineHeader && canEdit && availableTemplates.length > 0 && (
               <div ref={templateDropdownRef} style={{ position: 'relative' }}>
-                <button onClick={() => setShowTemplateDropdown(v => !v)} disabled={applyingTemplate} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                  border: '1px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                  background: showTemplateDropdown ? 'var(--text-primary)' : 'var(--bg-card)',
-                  borderColor: showTemplateDropdown ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: showTemplateDropdown ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
+                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowTemplateDropdown(v => !v)} disabled={applyingTemplate} style={{ border: '1px solid', background: showTemplateDropdown ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showTemplateDropdown ? 'var(--text-primary)' : 'var(--border-primary)', color: showTemplateDropdown ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                   <Package size={12} /> <span className="hidden sm:inline">{t('packing.applyTemplate')}</span><span className="sm:hidden">{t('packing.template')}</span>
                 </button>
                 {showTemplateDropdown && (
-                  <div style={{
-                    position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 50,
-                    background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 200,
-                  }}>
+                  <div className="!absolute !right-[0] !top-[100%] !mt-[6px] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[200px]" style={{ background: 'var(--bg-card)' }}>
                     {availableTemplates.map(tmpl => (
-                      <button className="trek-hover-tertiary" key={tmpl.id} onClick={() => handleApplyTemplate(tmpl.id)}
-                        style={{
-                          display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                          padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                          background: 'transparent', fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-                          transition: 'background 0.1s',
-                        }} >
+                      <button className="trek-hover-tertiary !flex !items-center !gap-[8px] !w-[100%] !p-[8px_12px] !rounded-[8px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-primary)] ![transition:background_0.1s]" key={tmpl.id} onClick={() => handleApplyTemplate(tmpl.id)}
+                        style={{ background: 'transparent' }} >
                         <Package size={13} style={{ color: 'var(--text-faint)' }} />
-                        <div style={{ flex: 1, textAlign: 'left' }}>
-                          <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>{tmpl.item_count} {t('admin.packingTemplates.items')}</div>
+                        <div className="!flex-[1] !text-left">
+                          <div className="!font-[600]">{tmpl.name}</div>
+                          <div className="!text-[length:10px] ![color:var(--text-faint)]">{tmpl.item_count} {t('admin.packingTemplates.items')}</div>
                         </div>
                       </button>
                     ))}
@@ -1153,44 +1058,22 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
               </div>
             )}
             {inlineHeader && canEdit && items.length > 0 && !showSaveTemplate && (
-              <button onClick={() => setShowSaveTemplate(true)} style={{
-                display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                border: '1px solid var(--border-primary)', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                background: 'var(--bg-card)', color: 'var(--text-muted)',
-              }}>
+              <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] ![border:1px_solid_var(--border-primary)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={() => setShowSaveTemplate(true)} style={{ background: 'var(--bg-card)' }}>
                 <FolderPlus size={12} /> <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
               </button>
             )}
             {items.length > 0 && (
               <div ref={printMenuRef} style={{ position: 'relative' }}>
-                <button onClick={() => setShowPrintMenu(v => !v)} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                  border: '1px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                  background: showPrintMenu ? 'var(--text-primary)' : 'var(--bg-card)',
-                  borderColor: showPrintMenu ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: showPrintMenu ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
+                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowPrintMenu(v => !v)} style={{ border: '1px solid', background: showPrintMenu ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showPrintMenu ? 'var(--text-primary)' : 'var(--border-primary)', color: showPrintMenu ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                   <Printer size={12} /> <span className="hidden sm:inline">{t('packing.print')}</span>
                 </button>
                 {showPrintMenu && (
-                  <div style={{
-                    position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 50,
-                    background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 190,
-                  }}>
-                    <button className="trek-hover-tertiary" onClick={() => handlePrintChecklist('category')} style={{
-                      display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                      padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                      background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
-                    }}>
+                  <div className="!absolute !right-[0] !top-[100%] !mt-[6px] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !min-w-[190px]" style={{ background: 'var(--bg-card)' }}>
+                    <button className="trek-hover-tertiary !flex !items-center !gap-[8px] !w-[100%] !p-[8px_12px] !rounded-[8px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12.5px] ![color:var(--text-primary)] !text-left" onClick={() => handlePrintChecklist('category')} style={{ background: 'transparent' }}>
                       {t('packing.printByCategory')}
                     </button>
                     {bagTrackingEnabled && bags.length > 0 && (
-                      <button className="trek-hover-tertiary" onClick={() => handlePrintChecklist('bag')} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                        background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
-                      }}>
+                      <button className="trek-hover-tertiary !flex !items-center !gap-[8px] !w-[100%] !p-[8px_12px] !rounded-[8px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12.5px] ![color:var(--text-primary)] !text-left" onClick={() => handlePrintChecklist('bag')} style={{ background: 'transparent' }}>
                         {t('packing.printByBag')}
                       </button>
                     )}
@@ -1199,14 +1082,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
               </div>
             )}
             {bagTrackingEnabled && (
-              <button onClick={() => setShowBagModal(true)} className="xl:!hidden"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
-                  border: '1px solid', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-                  background: showBagModal ? 'var(--text-primary)' : 'var(--bg-card)',
-                  borderColor: showBagModal ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: showBagModal ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
+              <button onClick={() => setShowBagModal(true)} className="xl:!hidden !flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]"
+                style={{ border: '1px solid', background: showBagModal ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showBagModal ? 'var(--text-primary)' : 'var(--border-primary)', color: showBagModal ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                 <Luggage size={12} /> {t('packing.bags')}
               </button>
             )}
@@ -1214,66 +1091,28 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
         </div>
 
           {items.length > 0 && (
-          <div className="hidden sm:block" style={{ marginTop: 14, marginBottom: 14 }}>
-            <div className="flex items-center" style={{ gap: 14 }}>
+          <div className="hidden sm:block !mt-[14px] !mb-[14px]">
+            <div className="flex items-center !gap-[14px]">
               {fortschritt === 100 ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 8,
-                  fontSize: 16, fontWeight: 700, color: '#10b981',
-                  letterSpacing: '-0.01em', flexShrink: 0,
-                }}>
+                <div className="!flex !items-center !gap-[8px] !text-[length:16px] !font-[700] ![color:#10b981] !tracking-[-0.01em] !shrink-[0]">
                   <CheckCheck size={18} strokeWidth={2.5} />
                   <span>{t('packing.allPacked')}</span>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexShrink: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline' }}>
-                    <span style={{
-                      fontSize: 22, fontWeight: 700, color: 'var(--text-primary)',
-                      fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
-                      lineHeight: 1,
-                    }}>{abgehakt}</span>
-                    <span style={{
-                      fontSize: 14, fontWeight: 500, color: 'var(--text-faint)',
-                      fontVariantNumeric: 'tabular-nums', lineHeight: 1, marginLeft: 1,
-                    }}>/{items.length}</span>
+                <div className="!flex !items-baseline !gap-[8px] !shrink-[0]">
+                  <div className="!flex !items-baseline">
+                    <span className="!text-[length:22px] !font-[700] ![color:var(--text-primary)] ![font-variant-numeric:tabular-nums] !tracking-[-0.02em] !leading-[1]">{abgehakt}</span>
+                    <span className="!text-[length:14px] !font-[500] ![color:var(--text-faint)] ![font-variant-numeric:tabular-nums] !leading-[1] !ml-[1px]">/{items.length}</span>
                   </div>
-                  <span style={{
-                    fontSize: 11, fontWeight: 600, padding: '2px 7px',
-                    borderRadius: 99, background: 'var(--bg-tertiary)',
-                    color: 'var(--text-muted)',
-                    fontVariantNumeric: 'tabular-nums',
-                    lineHeight: 1.4,
-                  }}>{fortschritt}%</span>
+                  <span className="!text-[length:11px] !font-[600] !p-[2px_7px] !rounded-[99px] ![color:var(--text-muted)] ![font-variant-numeric:tabular-nums] !leading-[1.4]" style={{ background: 'var(--bg-tertiary)' }}>{fortschritt}%</span>
                 </div>
               )}
 
-              <div style={{
-                flex: 1,
-                height: 8,
-                background: 'var(--bg-tertiary)',
-                borderRadius: 99,
-                overflow: 'hidden',
-                position: 'relative',
-                width: '100%',
-              }}>
-                <div style={{
-                  height: '100%',
-                  borderRadius: 99,
-                  transition: 'width 600ms cubic-bezier(0.23, 1, 0.32, 1), background 400ms ease, box-shadow 400ms ease',
-                  background: fortschritt === 100
+              <div className="!flex-[1] !h-[8px] !rounded-[99px] !overflow-hidden !relative !w-[100%]" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="!h-[100%] !rounded-[99px] ![transition:width_600ms_cubic-bezier(0.23,_1,_0.32,_1),_background_400ms_ease,_box-shadow_400ms_ease] !relative" style={{ background: fortschritt === 100
                     ? 'linear-gradient(90deg, #10b981 0%, #34d399 100%)'
-                    : 'var(--accent)',
-                  width: `${fortschritt}%`,
-                  boxShadow: fortschritt === 100 ? '0 0 14px rgba(16,185,129,0.45)' : 'none',
-                  position: 'relative',
-                }}>
-                  <div style={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 55%)',
-                    borderRadius: 99,
-                    pointerEvents: 'none',
-                  }} />
+                    : 'var(--accent)', width: `${fortschritt}%`, boxShadow: fortschritt === 100 ? '0 0 14px rgba(16,185,129,0.45)' : 'none' }}>
+                  <div className="!absolute !inset-[0] !rounded-[99px] !pointer-events-none" style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 55%)' }} />
                 </div>
               </div>
             </div>
@@ -1281,26 +1120,25 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
         )}
 
         {canEdit && (addingCategory ? (
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input
+          <div className="!flex !gap-[6px]">
+            <input className="!flex-[1] !p-[8px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] !text-[length:13.5px] ![font-family:inherit] ![outline:none] ![color:var(--text-primary)]"
               autoFocus
               type="text" value={newCatName} onChange={e => setNewCatName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleAddNewCategory(); if (e.key === 'Escape') { setAddingCategory(false); setNewCatName('') } }}
               placeholder={t('packing.newCategoryPlaceholder')}
-              style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)' }}
             />
-            <button onClick={handleAddNewCategory} disabled={!newCatName.trim()}
-              style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: newCatName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newCatName.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}>
+            <button className="!p-[8px_12px] !rounded-[10px] ![border:none] ![color:var(--bg-primary)] !flex !items-center" onClick={handleAddNewCategory} disabled={!newCatName.trim()}
+              style={{ background: newCatName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', cursor: newCatName.trim() ? 'pointer' : 'default' }}>
               <Check size={16} />
             </button>
-            <button onClick={() => { setAddingCategory(false); setNewCatName('') }}
-              style={{ padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }}>
+            <button className="!p-[8px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] !cursor-pointer !flex !items-center ![color:var(--text-faint)]" onClick={() => { setAddingCategory(false); setNewCatName('') }}
+              style={{ background: 'none' }}>
               <X size={16} />
             </button>
           </div>
         ) : (
-          <button className="trek-hover-border-muted trek-hover-text2" onClick={() => setAddingCategory(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+          <button className="trek-hover-border-muted trek-hover-text2 !flex !items-center !gap-[6px] !w-[100%] !p-[9px_14px] !rounded-[10px] ![border:1px_dashed_var(--border-primary)] !cursor-pointer !text-[length:13px] ![color:var(--text-faint)] ![font-family:inherit] ![transition:all_0.15s]" onClick={() => setAddingCategory(true)}
+            style={{ background: 'none' }}>
             <FolderPlus size={14} /> {t('packing.addCategory')}
           </button>
         ))}
@@ -1308,30 +1146,25 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
       {/* ── Filter-Tabs ── */}
       {items.length > 0 && (
-        <div style={{ display: 'flex', gap: 4, padding: '10px 0 0', flexShrink: 0 }}>
+        <div className="!flex !gap-[4px] !p-[10px_0_0] !shrink-[0]">
           {[['alle', t('packing.filterAll')], ['offen', t('packing.filterOpen')], ['erledigt', t('packing.filterDone')]].map(([id, label]) => (
-            <button key={id} onClick={() => setFilter(id)} style={{
-              padding: '4px 12px', borderRadius: 99, border: 'none', cursor: 'pointer',
-              fontSize: 12, fontFamily: 'inherit', fontWeight: filter === id ? 600 : 400,
-              background: filter === id ? 'var(--text-primary)' : 'transparent',
-              color: filter === id ? 'var(--bg-primary)' : 'var(--text-muted)',
-            }}>{label}</button>
+            <button className="!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer" key={id} onClick={() => setFilter(id)} style={{ fontSize: 12, fontFamily: 'inherit', fontWeight: filter === id ? 600 : 400, background: filter === id ? 'var(--text-primary)' : 'transparent', color: filter === id ? 'var(--bg-primary)' : 'var(--text-muted)' }}>{label}</button>
           ))}
         </div>
       )}
 
       {/* ── Liste + Bags Sidebar ── */}
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '10px 0 16px' }}>
+      <div className="!flex-[1] !flex !overflow-hidden">
+      <div className="!flex-[1] !overflow-y-auto !p-[10px_0_16px]">
         {items.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+          <div className="!text-center !p-[60px_20px]">
             <Luggage size={40} style={{ color: 'var(--text-faint)', display: 'block', margin: '0 auto 10px' }} />
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', margin: '0 0 4px' }}>{t('packing.emptyTitle')}</p>
-            <p style={{ fontSize: 13, color: 'var(--text-faint)', margin: 0 }}>{t('packing.emptyHint')}</p>
+            <p className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !m-[0_0_4px]">{t('packing.emptyTitle')}</p>
+            <p className="!text-[length:13px] ![color:var(--text-faint)] !m-[0]">{t('packing.emptyHint')}</p>
           </div>
         ) : Object.keys(gruppiert).length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-faint)' }}>
-            <p style={{ fontSize: 13, margin: 0 }}>{t('packing.emptyFiltered')}</p>
+          <div className="!text-center !p-[40px_20px] ![color:var(--text-faint)]">
+            <p className="!text-[length:13px] !m-[0]">{t('packing.emptyFiltered')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -1360,13 +1193,13 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
       {/* ── Bag Weight Sidebar ── */}
       {bagTrackingEnabled && bags.length > 0 && (
-        <div className="hidden xl:block" style={{ width: 260, borderLeft: '1px solid var(--border-secondary)', overflowY: 'auto', padding: 16, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)' }}>
+        <div className="hidden xl:block !w-[260px] ![border-left:1px_solid_var(--border-secondary)] !overflow-y-auto !p-[16px] !shrink-[0]">
+          <div className="!flex !items-center !justify-between !mb-[12px]">
+            <div className="!text-[length:11px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)]">
               {t('packing.bags')}
             </div>
-            <button onClick={() => setShowBikepackDrawer(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600, color: '#0d9488', background: 'none', padding: '3px 8px', borderRadius: 99, border: '1px solid #0d9488', opacity: 0.8, cursor: 'pointer', fontFamily: 'inherit' }}
+            <button className="!flex !items-center !gap-[4px] !text-[length:11px] !font-[600] ![color:#0d9488] !p-[3px_8px] !rounded-[99px] ![border:1px_solid_#0d9488] !cursor-pointer ![font-family:inherit]" onClick={() => setShowBikepackDrawer(true)}
+              style={{ background: 'none', opacity: 0.8 }}
               title='Abrir Bikepack'>
               🚴 Bikepack
             </button>
@@ -1388,22 +1221,22 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             const unassignedWeight = unassigned.reduce((s, i) => s + (i.weight_grams || 0), 0)
             if (unassigned.length === 0) return null
             return (
-              <div style={{ marginBottom: 14, opacity: 0.6 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px dashed var(--border-primary)', flexShrink: 0 }} />
-                  <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-faint)' }}>{t('packing.noBag')}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+              <div className="!mb-[14px]" style={{ opacity: 0.6 }}>
+                <div className="!flex !items-center !gap-[6px] !mb-[4px]">
+                  <span className="!w-[10px] !h-[10px] !rounded-[50%] ![border:2px_dashed_var(--border-primary)] !shrink-[0]" />
+                  <span className="!flex-[1] !text-[length:12px] !font-[600] ![color:var(--text-faint)]">{t('packing.noBag')}</span>
+                  <span className="!text-[length:11px] ![color:var(--text-faint)]">
                     {unassignedWeight >= 1000 ? `${(unassignedWeight / 1000).toFixed(1)} kg` : `${unassignedWeight} g`}
                   </span>
                 </div>
-                <div style={{ fontSize: 10, color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items')}</div>
+                <div className="!text-[length:10px] ![color:var(--text-faint)]">{unassigned.length} {t('admin.packingTemplates.items')}</div>
               </div>
             )
           })()}
 
           {/* Total */}
-          <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 10, marginTop: 6 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div className="![border-top:1px_solid_var(--border-secondary)] !pt-[10px] !mt-[6px]">
+            <div className="!flex !justify-between !text-[length:12px] !font-[700] ![color:var(--text-primary)]">
               <span>{t('packing.totalWeight')}</span>
               <span>{(() => { const w = items.reduce((s, i) => s + (i.weight_grams || 0), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
             </div>
@@ -1411,18 +1244,17 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
           {/* Add bag */}
           {canEdit && (showAddBag ? (
-            <div style={{ display: 'flex', gap: 4, marginTop: 12 }}>
-              <input autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
+            <div className="!flex !gap-[4px] !mt-[12px]">
+              <input className="!flex-[1] !p-[5px_8px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] !text-[length:11px] ![font-family:inherit] ![outline:none]" autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
-                placeholder={t('packing.bagName')}
-                style={{ flex: 1, padding: '5px 8px', borderRadius: 8, border: '1px solid var(--border-primary)', fontSize: 11, fontFamily: 'inherit', outline: 'none' }} />
-              <button onClick={handleCreateBag} style={{ padding: '4px 8px', borderRadius: 8, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-primary)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                placeholder={t('packing.bagName')} />
+              <button className="!p-[4px_8px] !rounded-[8px] ![border:none] ![color:var(--bg-primary)] !cursor-pointer !flex !items-center" onClick={handleCreateBag} style={{ background: 'var(--text-primary)' }}>
                 <Plus size={12} />
               </button>
             </div>
           ) : (
-            <button onClick={() => setShowAddBag(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 12, padding: '5px 8px', borderRadius: 8, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%' }}>
+            <button className="!flex !items-center !gap-[4px] !mt-[12px] !p-[5px_8px] !rounded-[8px] ![border:1px_dashed_var(--border-primary)] !cursor-pointer !text-[length:11px] ![color:var(--text-faint)] ![font-family:inherit] !w-[100%]" onClick={() => setShowAddBag(true)}
+              style={{ background: 'none' }}>
               <Plus size={11} /> {t('packing.addBag')}
             </button>
           ))}
@@ -1432,13 +1264,13 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
       {/* ── Bag Modal (mobile + click) ── */}
       {showBagModal && bagTrackingEnabled && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 20, paddingTop: 140, paddingBottom: 'calc(20px + var(--bottom-nav-h))', overflowY: 'auto' }}
+        <div className="!fixed !inset-[0] !z-[100] !flex !items-start !justify-center !p-[20px] !pt-[140px] !pb-[calc(20px_+_var(--bottom-nav-h))] !overflow-y-auto" style={{ background: 'rgba(0,0,0,0.3)' }}
           onClick={() => setShowBagModal(false)}>
-          <div style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 360, maxHeight: 'calc(100vh - 80px)', overflow: 'auto', padding: 20, boxShadow: '0 16px 48px rgba(0,0,0,0.15)', flexShrink: 0 }}
+          <div className="!rounded-[16px] !w-[100%] !max-w-[360px] !max-h-[calc(100vh_-_80px)] !overflow-auto !p-[20px] ![box-shadow:0_16px_48px_rgba(0,0,0,0.15)] !shrink-[0]" style={{ background: 'var(--bg-card)' }}
             onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('packing.bags')}</h3>
-              <button onClick={() => setShowBagModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><X size={18} /></button>
+            <div className="!flex !items-center !justify-between !mb-[16px]">
+              <h3 className="!m-[0] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">{t('packing.bags')}</h3>
+              <button className="![border:none] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={() => setShowBagModal(false)} style={{ background: 'none' }}><X size={18} /></button>
             </div>
 
             {bags.map(bag => {
@@ -1457,22 +1289,22 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
               const unassignedWeight = unassigned.reduce((s, i) => s + (i.weight_grams || 0), 0)
               if (unassigned.length === 0) return null
               return (
-                <div style={{ marginBottom: 16, opacity: 0.6 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px dashed var(--border-primary)', flexShrink: 0 }} />
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--text-faint)' }}>{t('packing.noBag')}</span>
-                    <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+                <div className="!mb-[16px]" style={{ opacity: 0.6 }}>
+                  <div className="!flex !items-center !gap-[8px] !mb-[6px]">
+                    <span className="!w-[12px] !h-[12px] !rounded-[50%] ![border:2px_dashed_var(--border-primary)] !shrink-[0]" />
+                    <span className="!flex-[1] !text-[length:14px] !font-[600] ![color:var(--text-faint)]">{t('packing.noBag')}</span>
+                    <span className="!text-[length:13px] ![color:var(--text-faint)]">
                       {unassignedWeight >= 1000 ? `${(unassignedWeight / 1000).toFixed(1)} kg` : `${unassignedWeight} g`}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{unassigned.length} {t('admin.packingTemplates.items')}</div>
+                  <div className="!text-[length:11px] ![color:var(--text-faint)]">{unassigned.length} {t('admin.packingTemplates.items')}</div>
                 </div>
               )
             })()}
 
             {/* Total */}
-            <div style={{ borderTop: '1px solid var(--border-secondary)', paddingTop: 12, marginTop: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+            <div className="![border-top:1px_solid_var(--border-secondary)] !pt-[12px] !mt-[8px]">
+              <div className="!flex !justify-between !text-[length:14px] !font-[700] ![color:var(--text-primary)]">
                 <span>{t('packing.totalWeight')}</span>
                 <span>{(() => { const w = items.reduce((s, i) => s + (i.weight_grams || 0), 0); return w >= 1000 ? `${(w / 1000).toFixed(1)} kg` : `${w} g` })()}</span>
               </div>
@@ -1480,19 +1312,18 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
             {/* Add bag */}
             {canEdit && (showAddBag ? (
-              <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
-                <input autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
+              <div className="!flex !gap-[6px] !mt-[14px]">
+                <input className="!flex-[1] !p-[8px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] !text-[length:13px] ![font-family:inherit] ![outline:none]" autoFocus value={newBagName} onChange={e => setNewBagName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleCreateBag(); if (e.key === 'Escape') { setShowAddBag(false); setNewBagName('') } }}
-                  placeholder={t('packing.bagName')}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
-                <button onClick={handleCreateBag} disabled={!newBagName.trim()}
-                  style={{ padding: '8px 12px', borderRadius: 10, border: 'none', background: newBagName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', color: 'var(--bg-primary)', cursor: newBagName.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center' }}>
+                  placeholder={t('packing.bagName')} />
+                <button className="!p-[8px_12px] !rounded-[10px] ![border:none] ![color:var(--bg-primary)] !flex !items-center" onClick={handleCreateBag} disabled={!newBagName.trim()}
+                  style={{ background: newBagName.trim() ? 'var(--text-primary)' : 'var(--border-primary)', cursor: newBagName.trim() ? 'pointer' : 'default' }}>
                   <Plus size={14} />
                 </button>
               </div>
             ) : (
-              <button className="trek-hover-border-muted trek-hover-text2" onClick={() => setShowAddBag(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%', transition: 'all 0.15s' }}>
+              <button className="trek-hover-border-muted trek-hover-text2 !flex !items-center !gap-[6px] !mt-[14px] !p-[9px_14px] !rounded-[10px] ![border:1px_dashed_var(--border-primary)] !cursor-pointer !text-[length:13px] ![color:var(--text-faint)] ![font-family:inherit] !w-[100%] ![transition:all_0.15s]" onClick={() => setShowAddBag(true)}
+                style={{ background: 'none' }}>
                 <Plus size={14} /> {t('packing.addBag')}
               </button>
             ))}
@@ -1507,62 +1338,34 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
       {/* Bulk Import Modal */}
       {showImportModal && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 1000,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(3px)',
-        }} onClick={() => setShowImportModal(false)}>
-          <div style={{
-            width: 420, maxHeight: '80vh', background: 'var(--bg-card)', borderRadius: 16,
-            boxShadow: '0 16px 48px rgba(0,0,0,0.22)', padding: '22px 22px 18px',
-            display: 'flex', flexDirection: 'column', gap: 14,
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t('packing.importTitle')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', lineHeight: 1.5 }}>{t('packing.importHint')}</div>
-            <div style={{ display: 'flex', border: '1px solid var(--border-primary)', borderRadius: 10, overflow: 'hidden', background: 'var(--bg-input)' }}>
-              <div style={{
-                padding: '10px 0', fontSize: 13, fontFamily: 'monospace', lineHeight: 1.5,
-                color: 'var(--text-faint)', textAlign: 'right', userSelect: 'none',
-                background: 'var(--bg-hover)', borderRight: '1px solid var(--border-faint)',
-                minWidth: 32, flexShrink: 0,
-              }}>
+        <div className="!fixed !inset-[0] !z-[1000] !flex !items-center !justify-center ![backdrop-filter:blur(3px)]" style={{ background: 'rgba(0,0,0,0.3)' }} onClick={() => setShowImportModal(false)}>
+          <div className="!w-[420px] !max-h-[80vh] !rounded-[16px] ![box-shadow:0_16px_48px_rgba(0,0,0,0.22)] !p-[22px_22px_18px] !flex !flex-col !gap-[14px]" style={{ background: 'var(--bg-card)' }} onClick={e => e.stopPropagation()}>
+            <div className="!text-[length:15px] !font-[600] ![color:var(--text-primary)]">{t('packing.importTitle')}</div>
+            <div className="!text-[length:12px] ![color:var(--text-faint)] !leading-[1.5]">{t('packing.importHint')}</div>
+            <div className="!flex ![border:1px_solid_var(--border-primary)] !rounded-[10px] !overflow-hidden" style={{ background: 'var(--bg-input)' }}>
+              <div className="!p-[10px_0] !text-[length:13px] ![font-family:monospace] !leading-[1.5] ![color:var(--text-faint)] !text-right !select-none ![border-right:1px_solid_var(--border-faint)] !min-w-[32px] !shrink-[0]" style={{ background: 'var(--bg-hover)' }}>
                 {(importText || ' ').split('\n').map((_, i) => (
-                  <div key={i} style={{ padding: '0 6px' }}>{i + 1}</div>
+                  <div className="!p-[0_6px]" key={i}>{i + 1}</div>
                 ))}
               </div>
-              <textarea
+              <textarea className="!flex-[1] ![border:none] !p-[10px_12px] !text-[length:13px] ![font-family:monospace] ![outline:none] !box-border ![color:var(--text-primary)] ![resize:vertical] !leading-[1.5]"
                 value={importText}
                 onChange={e => setImportText(e.target.value)}
                 rows={10}
                 placeholder={t('packing.importPlaceholder')}
-                style={{
-                  flex: 1, border: 'none', padding: '10px 12px', fontSize: 13, fontFamily: 'monospace',
-                  outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)',
-                  background: 'transparent', resize: 'vertical', lineHeight: 1.5,
-                }}
+                style={{ background: 'transparent' }}
               />
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="!flex !items-center !justify-between">
               <div>
                 <input ref={csvInputRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleCsvFile} />
-                <button onClick={() => csvInputRef.current?.click()} style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px',
-                  border: '1px dashed var(--border-primary)', borderRadius: 8, background: 'none',
-                  fontSize: 11, color: 'var(--text-faint)', cursor: 'pointer', fontFamily: 'inherit',
-                }}>
+                <button className="!flex !items-center !gap-[5px] !p-[5px_10px] ![border:1px_dashed_var(--border-primary)] !rounded-[8px] !text-[length:11px] ![color:var(--text-faint)] !cursor-pointer ![font-family:inherit]" onClick={() => csvInputRef.current?.click()} style={{ background: 'none' }}>
                   <Upload size={11} /> {t('packing.importCsv')}
                 </button>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowImportModal(false)} style={{
-                  fontSize: 12, background: 'none', border: '1px solid var(--border-primary)',
-                  borderRadius: 8, padding: '6px 14px', cursor: 'pointer', color: 'var(--text-muted)', fontFamily: 'inherit',
-                }}>{t('common.cancel')}</button>
-                <button onClick={handleBulkImport} disabled={!importText.trim()} style={{
-                  fontSize: 12, background: 'var(--accent)', color: 'var(--accent-text)',
-                  border: 'none', borderRadius: 8, padding: '6px 16px', cursor: 'pointer', fontWeight: 600,
-                  fontFamily: 'inherit', opacity: importText.trim() ? 1 : 0.5,
-                }}>{t('packing.importAction', { count: parseImportLines(importText).length })}</button>
+              <div className="!flex !gap-[8px]">
+                <button className="!text-[length:12px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] !p-[6px_14px] !cursor-pointer ![color:var(--text-muted)] ![font-family:inherit]" onClick={() => setShowImportModal(false)} style={{ background: 'none' }}>{t('common.cancel')}</button>
+                <button className="!text-[length:12px] ![color:var(--accent-text)] ![border:none] !rounded-[8px] !p-[6px_16px] !cursor-pointer !font-[600] ![font-family:inherit]" onClick={handleBulkImport} disabled={!importText.trim()} style={{ background: 'var(--accent)', opacity: importText.trim() ? 1 : 0.5 }}>{t('packing.importAction', { count: parseImportLines(importText).length })}</button>
               </div>
             </div>
           </div>

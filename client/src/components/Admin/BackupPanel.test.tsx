@@ -166,7 +166,7 @@ describe('BackupPanel', () => {
       expect(screen.getByText('Restore Backup?')).toBeInTheDocument()
     })
     // Click the backdrop overlay (the fixed-position div)
-    const backdrop = document.querySelector('[style*="position: fixed"]') as HTMLElement
+    const backdrop = document.querySelector('[style*="position: fixed"], [class~="!fixed"]') as HTMLElement
     expect(backdrop).toBeTruthy()
     fireEvent.click(backdrop!)
     await waitFor(() => {

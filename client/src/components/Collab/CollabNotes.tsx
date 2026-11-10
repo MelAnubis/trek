@@ -72,19 +72,14 @@ function WebsiteThumbnail({ url, tripId, color }: WebsiteThumbnailProps) {
   const domain = (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'link' } })()
 
   return (
-    <a className="trek-h-transform-244d20 trek-h-box-shadow-7cd433" href={url} target="_blank" rel="noopener noreferrer" title={data?.title || url}
-      style={{
-        width: 48, height: 48, borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
-        background: data?.image ? 'none' : 'var(--bg-tertiary)', border: 'none',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
-        textDecoration: 'none', transition: 'transform 0.12s, box-shadow 0.12s', flexShrink: 0,
-      }}>
+    <a className="trek-h-transform-244d20 trek-h-box-shadow-7cd433 !w-[48px] !h-[48px] !rounded-[8px] !cursor-pointer !overflow-hidden ![border:none] !flex !flex-col !items-center !justify-center !gap-[2px] ![text-decoration:none] ![transition:transform_0.12s,_box-shadow_0.12s] !shrink-[0]" href={url} target="_blank" rel="noopener noreferrer" title={data?.title || url}
+      style={{ background: data?.image ? 'none' : 'var(--bg-tertiary)' }}>
       {data?.image && !failed ? (
-        <img src={data.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setFailed(true)} />
+        <img className="!w-[100%] !h-[100%] !object-cover" src={data.image} alt="" onError={() => setFailed(true)} />
       ) : (
         <>
           <ExternalLink size={14} color="var(--text-muted)" />
-          <span style={{ fontSize: 7, fontWeight: 600, color: 'var(--text-muted)', maxWidth: 42, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+          <span className="!text-[length:7px] !font-[600] !max-w-[42px] !overflow-hidden !text-ellipsis !whitespace-nowrap !text-center" style={{ color: 'var(--text-muted)' }}>
             {domain}
           </span>
         </>
@@ -116,41 +111,41 @@ function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
   const openInNewTab = () => openFile(rawUrl).catch(() => {})
 
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.88)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
+    <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.88)] !z-[10000] !flex !items-center !justify-center !p-[16px]" onClick={onClose}>
       {isImage ? (
         /* Image lightbox — floating controls */
-        <div style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+        <div className="!relative !max-w-[90vw] !max-h-[90vh]" onClick={e => e.stopPropagation()}>
           {authUrl
-            ? <img src={authUrl} alt={file.original_name} style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8, display: 'block' }} />
+            ? <img className="!max-w-[90vw] !max-h-[90vh] !object-contain !rounded-[8px] !block" src={authUrl} alt={file.original_name} />
             : <Loader2 size={32} className="animate-spin" style={{ color: 'rgba(255,255,255,0.5)' }} />
           }
-          <div style={{ position: 'absolute', top: -36, left: 0, right: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 4px' }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>{file.original_name}</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><ExternalLink size={15} /></button>
-              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.7)', display: 'flex', padding: 0 }}><X size={17} /></button>
+          <div className="!absolute !top-[-36px] !left-[0] !right-[0] !flex !items-center !justify-between !p-[0_4px]">
+            <span className="!text-[length:11px] !overflow-hidden !text-ellipsis !whitespace-nowrap !max-w-[70%]" style={{ color: 'rgba(255,255,255,0.7)' }}>{file.original_name}</span>
+            <div className="!flex !gap-[8px]">
+              <button className="![background:none] ![border:none] !cursor-pointer !flex !p-[0]" onClick={openInNewTab} style={{ color: 'rgba(255,255,255,0.7)' }}><ExternalLink size={15} /></button>
+              <button className="![background:none] ![border:none] !cursor-pointer !flex !p-[0]" onClick={onClose} style={{ color: 'rgba(255,255,255,0.7)' }}><X size={17} /></button>
             </div>
           </div>
         </div>
       ) : (
         /* Document viewer — card with header */
-        <div style={{ width: '100%', maxWidth: 950, height: '94vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }} onClick={e => e.stopPropagation()}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{file.original_name}</span>
-            <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 3, fontSize: 11, color: 'var(--text-muted)', padding: 0 }}><ExternalLink size={13} /></button>
-              <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={18} /></button>
+        <div className="!w-[100%] !max-w-[950px] !h-[94vh] !flex !flex-col ![background:var(--bg-card)] !rounded-[12px] !overflow-hidden ![box-shadow:0_20px_60px_rgba(0,0,0,0.3)]" onClick={e => e.stopPropagation()}>
+          <div className="!flex !items-center !justify-between !p-[10px_16px] ![border-bottom:1px_solid_var(--border-primary)] !shrink-[0]">
+            <span className="!text-[length:13px] !font-[600] !overflow-hidden !text-ellipsis !whitespace-nowrap !flex-[1]" style={{ color: 'var(--text-primary)' }}>{file.original_name}</span>
+            <div className="!flex !gap-[8px] !shrink-[0]">
+              <button className="![background:none] ![border:none] !cursor-pointer !flex !items-center !gap-[3px] !text-[length:11px] !p-[0]" onClick={openInNewTab} style={{ color: 'var(--text-muted)' }}><ExternalLink size={13} /></button>
+              <button className="![background:none] ![border:none] !cursor-pointer !flex !p-[2px]" onClick={onClose} style={{ color: 'var(--text-faint)' }}><X size={18} /></button>
             </div>
           </div>
           {(isPdf || isTxt) ? (
-            <object data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} style={{ flex: 1, width: '100%', border: 'none', background: '#fff' }} title={file.original_name}>
-              <p style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)' }}>
-                <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>Download</button>
+            <object className="!flex-[1] !w-[100%] ![border:none] ![background:#fff]" data={authUrl ? `${authUrl}#view=FitH` : ''} type={file.mime_type} title={file.original_name}>
+              <p className="!p-[24px] !text-center" style={{ color: 'var(--text-muted)' }}>
+                <button className="![background:none] ![border:none] !cursor-pointer ![text-decoration:underline] !text-[length:14px] !p-[0]" onClick={openInNewTab} style={{ color: 'var(--text-primary)' }}>Download</button>
               </p>
             </object>
           ) : (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-              <button onClick={openInNewTab} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', textDecoration: 'underline', fontSize: 14, padding: 0 }}>Download {file.original_name}</button>
+            <div className="!flex-[1] !flex !items-center !justify-center !p-[40px]">
+              <button className="![background:none] ![border:none] !cursor-pointer ![text-decoration:underline] !text-[length:14px] !p-[0]" onClick={openInNewTab} style={{ color: 'var(--text-primary)' }}>Download {file.original_name}</button>
             </div>
           )}
         </div>
@@ -202,37 +197,16 @@ function UserAvatar({ user, size = 14 }: UserAvatarProps) {
   if (!user) return null
   if (user.avatar) {
     return (
-      <img
+      <img className="!rounded-[50%] !object-cover !shrink-[0] ![background:var(--bg-tertiary)]"
         src={user.avatar}
         alt={user.username}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          objectFit: 'cover',
-          flexShrink: 0,
-          background: 'var(--bg-tertiary)',
-        }}
+        style={{ width: size, height: size }}
       />
     )
   }
   const initials = (user.username || '?').slice(0, 1)
   return (
-    <div style={{
-      width: size,
-      height: size,
-      borderRadius: '50%',
-      background: 'var(--bg-tertiary)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontSize: size * 0.45,
-      fontWeight: 600,
-      color: 'var(--text-faint)',
-      flexShrink: 0,
-      textTransform: 'uppercase',
-      fontFamily: FONT,
-    }}>
+    <div className="!rounded-[50%] ![background:var(--bg-tertiary)] !flex !items-center !justify-center !shrink-[0] !uppercase" style={{ width: size, height: size, fontSize: size * 0.45, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
       {initials}
     </div>
   )
@@ -299,31 +273,10 @@ function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategories, ca
   const canSubmit = title.trim() && !submitting
 
   return ReactDOM.createPortal(
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'var(--overlay-bg, rgba(0,0,0,0.35))',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: 16,
-        fontFamily: FONT,
-      }}
+    <div className="!fixed !inset-[0] ![background:var(--overlay-bg,_rgba(0,0,0,0.35))] ![backdrop-filter:blur(6px)] ![-webkit-backdrop-filter:blur(6px)] !flex !items-center !justify-center !z-[9999] !p-[16px]"
+      style={{ fontFamily: FONT }}
     >
-      <form
-        style={{
-          background: 'var(--bg-card)',
-          borderRadius: 16,
-          width: '100%',
-          maxWidth: 400,
-          maxHeight: '90vh',
-          overflow: 'auto',
-          border: '1px solid var(--border-faint)',
-        }}
+      <form className="![background:var(--bg-card)] !rounded-[16px] !w-[100%] !max-w-[400px] !max-h-[90vh] !overflow-auto ![border:1px_solid_var(--border-faint)]"
         onClick={e => e.stopPropagation()}
         onPaste={e => {
           if (!canUploadFiles) return
@@ -341,126 +294,60 @@ function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategories, ca
         onSubmit={handleSubmit}
       >
         {/* Modal header */}
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '14px 16px 12px',
-          borderBottom: '1px solid var(--border-faint)',
-        }}>
-          <h3 style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            margin: 0,
-            fontFamily: FONT,
-          }}>
+        <div className="!flex !items-center !justify-between !p-[14px_16px_12px] ![border-bottom:1px_solid_var(--border-faint)]">
+          <h3 className="!m-[0]" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: FONT }}>
             {isEdit ? t('collab.notes.edit') : t('collab.notes.new')}
           </h3>
-          <button
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] !rounded-[6px] !flex"
             type="button"
             onClick={onClose}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text-faint)',
-              padding: 2,
-              borderRadius: 6,
-              display: 'flex',
-            }}
+            style={{ color: 'var(--text-faint)' }}
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Modal body */}
-        <div style={{
-          padding: '14px 16px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-        }}>
+        <div className="!p-[14px_16px_16px] !flex !flex-col !gap-[12px]">
           {/* Title */}
           <div>
-            <div style={{
-              fontSize: 9,
-              fontWeight: 600,
-              color: 'var(--text-faint)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: 4,
-              fontFamily: FONT,
-            }}>
+            <div className="!uppercase !tracking-[0.05em] !mb-[4px]" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
               {t('collab.notes.title')}
             </div>
-            <input
+            <input className="!w-[100%] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![font-family:inherit] ![outline:none] !box-border"
               autoFocus
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder={t('collab.notes.titlePlaceholder')}
-              style={{
-                width: '100%',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                fontSize: 13,
-                background: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-              }}
+              style={{ color: 'var(--text-primary)' }}
             />
           </div>
 
           {/* Content */}
           <div>
-            <div style={{
-              fontSize: 9,
-              fontWeight: 600,
-              color: 'var(--text-faint)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: 4,
-              fontFamily: FONT,
-            }}>
+            <div className="!uppercase !tracking-[0.05em] !mb-[4px]" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
               {t('collab.notes.contentPlaceholder')}
             </div>
-            <textarea
+            <textarea className="!w-[100%] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![font-family:inherit] ![outline:none] !box-border ![resize:vertical] !min-h-[180px] !leading-[1.5]"
               value={content}
               onChange={e => setContent(e.target.value)}
               placeholder={t('collab.notes.contentPlaceholder')}
-              style={{
-                width: '100%',
-                border: '1px solid var(--border-primary)',
-                borderRadius: 10,
-                padding: '8px 12px',
-                fontSize: 13,
-                background: 'var(--bg-input)',
-                color: 'var(--text-primary)',
-                fontFamily: 'inherit',
-                outline: 'none',
-                boxSizing: 'border-box',
-                resize: 'vertical',
-                minHeight: 180,
-                lineHeight: 1.5,
-              }}
+              style={{ color: 'var(--text-primary)' }}
             />
           </div>
 
           {/* Category pills */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6, fontFamily: FONT }}>
+            <div className="!uppercase !tracking-[0.05em] !mb-[6px]" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
               {t('collab.notes.category')}
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <div className="!flex !gap-[6px] !flex-wrap">
               {allCategories.map(cat => {
                 const c = getCategoryColor(cat)
                 const active = category === cat
                 return (
-                  <button key={cat} type="button" onClick={() => setCategory(cat)}
-                    style={{ padding: '4px 12px', borderRadius: 99, border: active ? `1.5px solid ${c}` : '1px solid var(--border-faint)', background: active ? `${c}18` : 'transparent', color: active ? c : 'var(--text-muted)', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: FONT }}>
+                  <button className="!p-[4px_12px] !rounded-[99px] !cursor-pointer" key={cat} type="button" onClick={() => setCategory(cat)}
+                    style={{ border: active ? `1.5px solid ${c}` : '1px solid var(--border-faint)', background: active ? `${c}18` : 'transparent', color: active ? c : 'var(--text-muted)', fontSize: 11, fontWeight: 600, fontFamily: FONT }}>
                     {cat}
                   </button>
                 )
@@ -470,29 +357,29 @@ function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategories, ca
 
           {/* Website */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
+            <div className="!uppercase !tracking-[0.05em] !mb-[4px]" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
               {t('collab.notes.website')}
             </div>
-            <input value={website} onChange={e => setWebsite(e.target.value)}
+            <input className="!w-[100%] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![font-family:inherit] ![outline:none] !box-border" value={website} onChange={e => setWebsite(e.target.value)}
               placeholder={t('collab.notes.websitePlaceholder')}
-              style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 13, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+              style={{ color: 'var(--text-primary)' }} />
           </div>
 
           {/* File attachments */}
           {canUploadFiles && <div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4, fontFamily: FONT }}>
+            <div className="!uppercase !tracking-[0.05em] !mb-[4px]" style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', fontFamily: FONT }}>
               {t('collab.notes.attachFiles')}
             </div>
             <input ref={fileRef} type="file" multiple style={{ display: 'none' }} onChange={e => { const files = e.target.files; if (files?.length) setPendingFiles(prev => [...prev, ...Array.from(files)]); e.target.value = '' }} />
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div className="!flex !gap-[6px] !flex-wrap !items-center">
               {/* Existing attachments (edit mode) */}
               {existingAttachments.map(a => {
                 const isImage = a.mime_type?.startsWith('image/')
                 return (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 11, color: 'var(--text-muted)' }}>
+                  <div className="!flex !items-center !gap-[4px] !p-[3px_8px] !rounded-[8px] ![background:var(--bg-secondary)] !text-[length:11px]" key={a.id} style={{ color: 'var(--text-muted)' }}>
                     {isImage && <AuthedImg src={a.url} style={{ width: 18, height: 18, objectFit: 'cover', borderRadius: 3 }} />}
                     {(a.original_name || '').length > 20 ? a.original_name.slice(0, 17) + '...' : a.original_name}
-                    <button type="button" onClick={() => handleDeleteAttachment(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 0, display: 'flex' }}>
+                    <button className="![background:none] ![border:none] !cursor-pointer !p-[0] !flex" type="button" onClick={() => handleDeleteAttachment(a.id)} style={{ color: '#ef4444' }}>
                       <X size={10} />
                     </button>
                   </div>
@@ -500,37 +387,25 @@ function NoteFormModal({ onClose, onSubmit, onDeleteFile, existingCategories, ca
               })}
               {/* New pending files */}
               {pendingFiles.map((f, i) => (
-                <div key={`new-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '3px 8px', borderRadius: 8, background: 'var(--bg-secondary)', fontSize: 11, color: 'var(--text-muted)' }}>
+                <div className="!flex !items-center !gap-[4px] !p-[3px_8px] !rounded-[8px] ![background:var(--bg-secondary)] !text-[length:11px]" key={`new-${i}`} style={{ color: 'var(--text-muted)' }}>
                   {f.name.length > 20 ? f.name.slice(0, 17) + '...' : f.name}
-                  <button type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 0, display: 'flex' }}>
+                  <button className="![background:none] ![border:none] !cursor-pointer !p-[0] !flex" type="button" onClick={() => setPendingFiles(prev => prev.filter((_, j) => j !== i))} style={{ color: 'var(--text-faint)' }}>
                     <X size={10} />
                   </button>
                 </div>
               ))}
-              <button type="button" onClick={() => fileRef.current?.click()}
-                style={{ padding: '4px 10px', borderRadius: 8, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 11, fontFamily: FONT, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <button className="!p-[4px_10px] !rounded-[8px] ![border:1px_dashed_var(--border-faint)] ![background:transparent] !cursor-pointer !inline-flex !items-center !gap-[4px]" type="button" onClick={() => fileRef.current?.click()}
+                style={{ color: 'var(--text-faint)', fontSize: 11, fontFamily: FONT }}>
                 <Plus size={11} /> {t('files.attach') || 'Add'}
               </button>
             </div>
           </div>}
 
           {/* Submit */}
-          <button
+          <button className="!w-[100%] !rounded-[99px] !p-[7px_14px] ![border:none] !mt-[4px]"
             type="submit"
             disabled={!canSubmit}
-            style={{
-              width: '100%',
-              borderRadius: 99,
-              padding: '7px 14px',
-              background: canSubmit ? 'var(--accent)' : 'var(--border-primary)',
-              color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)',
-              fontSize: 12,
-              fontWeight: 600,
-              fontFamily: FONT,
-              border: 'none',
-              cursor: canSubmit ? 'pointer' : 'default',
-              marginTop: 4,
-            }}
+            style={{ background: canSubmit ? 'var(--accent)' : 'var(--border-primary)', color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 12, fontWeight: 600, fontFamily: FONT, cursor: canSubmit ? 'pointer' : 'default' }}
           >
             {submitting ? '...' : isEdit ? t('collab.notes.save') : t('collab.notes.create')}
           </button>
@@ -566,8 +441,8 @@ function EditableCatName({ name, onRename }: EditableCatNameProps) {
   }
 
   return (
-    <span onClick={() => { setValue(name); setEditing(true) }}
-      style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', cursor: 'pointer', padding: '2px 0' }}
+    <span className="!flex-[1] !text-[length:13px] !font-[600] !cursor-pointer !p-[2px_0]" onClick={() => { setValue(name); setEditing(true) }}
+      style={{ color: 'var(--text-primary)' }}
       title="Click to rename">
       {name}
     </span>
@@ -630,79 +505,55 @@ function CategorySettingsModal({ onClose, categories, categoryColors, onSave, on
   const allCats = [...new Set([...categories, ...Object.keys(localColors)])]
 
   return ReactDOM.createPortal(
-    <div style={{
-      position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))',
-      backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT,
-    }} onClick={onClose}>
-      <div style={{
-        background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 420,
-        maxHeight: '80vh', overflow: 'auto', border: '1px solid var(--border-faint)',
-      }} onClick={e => e.stopPropagation()}>
+    <div className="!fixed !inset-[0] ![background:var(--overlay-bg,_rgba(0,0,0,0.35))] ![backdrop-filter:blur(6px)] ![-webkit-backdrop-filter:blur(6px)] !flex !items-center !justify-center !z-[9999] !p-[16px]" style={{ fontFamily: FONT }} onClick={onClose}>
+      <div className="![background:var(--bg-card)] !rounded-[16px] !w-[100%] !max-w-[420px] !max-h-[80vh] !overflow-auto ![border:1px_solid_var(--border-faint)]" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+        <div className="!flex !items-center !justify-between !p-[14px_16px_12px] ![border-bottom:1px_solid_var(--border-faint)]">
+          <h3 className="!text-[length:14px] !font-[700] !m-[0]" style={{ color: 'var(--text-primary)' }}>
             {t('collab.notes.categorySettings') || 'Category Settings'}
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}>
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] !flex" onClick={onClose} style={{ color: 'var(--text-faint)' }}>
             <X size={16} />
           </button>
         </div>
 
         {/* Categories list */}
-        <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div className="!p-[12px_16px] !flex !flex-col !gap-[10px]">
           {allCats.length === 0 && (
-            <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', padding: 16 }}>
+            <p className="!text-[length:12px] !text-center !p-[16px]" style={{ color: 'var(--text-faint)' }}>
               {t('collab.notes.noCategoriesYet') || 'No categories yet'}
             </p>
           )}
           {allCats.map(cat => (
-            <div key={cat} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div className="!flex !items-center !gap-[10px]" key={cat}>
               {/* Color swatches */}
-              <div style={{ display: 'flex', gap: 4 }}>
+              <div className="!flex !gap-[4px]">
                 {NOTE_COLORS.map(c => (
-                  <button key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{
-                    width: 20, height: 20, borderRadius: 6, background: c.value, border: 'none', cursor: 'pointer', padding: 0,
-                    outline: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? '2px solid var(--text-primary)' : '2px solid transparent',
-                    outlineOffset: 1, transition: 'transform 0.1s',
-                    transform: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? 'scale(1.1)' : 'scale(1)',
-                  }} />
+                  <button className="!w-[20px] !h-[20px] !rounded-[6px] ![border:none] !cursor-pointer !p-[0] ![transition:transform_0.1s]" key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{ background: c.value, outline: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? '2px solid var(--text-primary)' : '2px solid transparent', outlineOffset: 1, transform: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? 'scale(1.1)' : 'scale(1)' }} />
                 ))}
               </div>
               {/* Category name — editable */}
               <EditableCatName name={cat} onRename={(newName) => handleRenameCategory(cat, newName)} />
               {/* Delete */}
-              <button className="trek-hover-danger" onClick={() => handleRemoveCategory(cat)} style={{
-                background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 3, display: 'flex',
-              }}>
+              <button className="trek-hover-danger ![background:none] ![border:none] !cursor-pointer !p-[3px] !flex" onClick={() => handleRemoveCategory(cat)} style={{ color: 'var(--text-faint)' }}>
                 <Trash2 size={13} />
               </button>
             </div>
           ))}
 
           {/* Add new */}
-          <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-            <input value={newCatName} onChange={e => setNewCatName(e.target.value)}
+          <div className="!flex !gap-[6px] !mt-[4px]">
+            <input className="!flex-[1] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![font-family:inherit] ![outline:none]" value={newCatName} onChange={e => setNewCatName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
               placeholder={t('collab.notes.newCategory')}
-              style={{
-                flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px',
-                fontSize: 13, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none',
-              }} />
-            <button onClick={handleAddCategory} disabled={!newCatName.trim()} style={{
-              background: newCatName.trim() ? 'var(--accent)' : 'var(--border-primary)', color: 'var(--accent-text)',
-              border: 'none', borderRadius: 10, padding: '8px 14px', cursor: newCatName.trim() ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', flexShrink: 0,
-            }}>
+              style={{ color: 'var(--text-primary)' }} />
+            <button className="![border:none] !rounded-[10px] !p-[8px_14px] !flex !items-center !shrink-[0]" onClick={handleAddCategory} disabled={!newCatName.trim()} style={{ background: newCatName.trim() ? 'var(--accent)' : 'var(--border-primary)', color: 'var(--accent-text)', cursor: newCatName.trim() ? 'pointer' : 'default' }}>
               <Plus size={14} />
             </button>
           </div>
 
           {/* Save */}
-          <button onClick={handleSave} style={{
-            width: '100%', borderRadius: 99, padding: '9px 14px', background: 'var(--accent)', color: 'var(--accent-text)',
-            fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', marginTop: 8,
-          }}>
+          <button className="!w-[100%] !rounded-[99px] !p-[9px_14px] ![background:var(--accent)] !text-[length:13px] !font-[600] ![border:none] !cursor-pointer !mt-[8px]" onClick={handleSave} style={{ color: 'var(--accent-text)' }}>
             {t('collab.notes.save')}
           </button>
         </div>
@@ -759,17 +610,14 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
       }}
     >
       {/* Header bar — like reservation cards */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px',
-        background: `${color}0d`,
-      }}>
+      <div className="!flex !items-center !gap-[6px] !p-[7px_10px]" style={{ background: `${color}0d` }}>
         {!!note.pinned && <Pin size={9} color={color} style={{ flexShrink: 0 }} />}
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden', flex: 1, minWidth: 0 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span className="!flex !items-center !gap-[5px] !overflow-hidden !flex-[1] !min-w-[0]">
+          <span className="!text-[length:11px] !font-[700] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color: 'var(--text-primary)' }}>
             {note.title}
           </span>
           {note.category && (
-            <span style={{ fontSize: 8, fontWeight: 600, color, background: `${color}18`, padding: '2px 6px', borderRadius: 99, flexShrink: 0, letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+            <span className="!text-[length:8px] !font-[600] !p-[2px_6px] !rounded-[99px] !shrink-[0] !tracking-[0.02em] !uppercase" style={{ color, background: `${color}18` }}>
               {note.category}
             </span>
           )}
@@ -777,12 +625,10 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
 
         {/* Hover actions in header */}
         {(
-          <div style={{
-            display: 'flex', gap: 2,
-          }}>
+          <div className="!flex !gap-[2px]">
             {note.content && (
-              <button className="trek-hover-text" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
-                style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+              <button className="trek-hover-text !p-[3px] ![background:none] ![border:none] !cursor-pointer !flex" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
+                style={{ color: 'var(--text-faint)' }}>
                 <Maximize2 size={10} />
               </button>
             )}
@@ -792,28 +638,21 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               {note.pinned ? <PinOff size={10} /> : <Pin size={10} />}
             </button>}
-            {canEdit && <button className="trek-hover-text" onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+            {canEdit && <button className="trek-hover-text !p-[3px] ![background:none] ![border:none] !cursor-pointer !flex" onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
+              style={{ color: 'var(--text-faint)' }}>
               <Pencil size={10} />
             </button>}
-            {canEdit && <button className="trek-hover-danger" onClick={handleDelete} title={t('collab.notes.delete')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+            {canEdit && <button className="trek-hover-danger !p-[3px] ![background:none] ![border:none] !cursor-pointer !flex" onClick={handleDelete} title={t('collab.notes.delete')}
+              style={{ color: 'var(--text-faint)' }}>
               <Trash2 size={10} />
             </button>}
-            <div style={{ width: 1, height: 12, background: 'var(--border-faint)', flexShrink: 0, marginLeft: 1, marginRight: 1 }} />
+            <div className="!w-[1px] !h-[12px] ![background:var(--border-faint)] !shrink-[0] !ml-[1px] !mr-[1px]" />
             {/* Author avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}
               onMouseEnter={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '1' }}
               onMouseLeave={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
               <UserAvatar user={author} size={16} />
-              <div data-tip style={{
-                position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
-                marginBottom: 6, pointerEvents: 'none', opacity: 0, transition: 'opacity 0.12s',
-                whiteSpace: 'nowrap', zIndex: 10,
-                background: 'var(--bg-card)', color: 'var(--text-primary)',
-                fontSize: 11, fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
-              }}>
+              <div className="!absolute !bottom-[100%] !left-[50%] !mb-[6px] !pointer-events-none ![transition:opacity_0.12s] !whitespace-nowrap !z-[10] ![background:var(--bg-card)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint)]" data-tip style={{ transform: 'translateX(-50%)', opacity: 0, color: 'var(--text-primary)' }}>
                 {author.username}
               </div>
             </div>
@@ -822,40 +661,30 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
       </div>
 
       {/* Card body */}
-      <div style={{
-        padding: '8px 12px 10px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 4,
-        flex: 1,
-      }}>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
+      <div className="!p-[8px_12px_10px] !flex !flex-col !gap-[4px] !flex-[1]">
+        <div className="!flex !gap-[8px]">
+          <div className="!flex-[1] !min-w-[0]">
             {note.content && (
-              <div className="collab-note-md" style={{
-                fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.5, margin: 0,
-                maxHeight: '4.5em', overflow: 'hidden',
-                wordBreak: 'break-word', fontFamily: FONT,
-              }}>
+              <div className="collab-note-md !leading-[1.5] !m-[0] !max-h-[4.5em] !overflow-hidden !break-words" style={{ fontSize: 11.5, color: 'var(--text-muted)', fontFamily: FONT }}>
                 <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{note.content}</Markdown>
               </div>
             )}
           </div>
               {/* Right: website + attachment thumbnails */}
               {(note.website || note.attachments?.length > 0) && (
-                <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
+                <div className="!flex !gap-[6px] !shrink-[0] !items-start">
                   {/* Website */}
                   {note.website && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 7, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>Link</span>
+                    <div className="!flex !flex-col !items-center !gap-[2px]">
+                      <span className="!text-[length:7px] !font-[600] !uppercase !tracking-[0.3px]" style={{ color: 'var(--text-faint)' }}>Link</span>
                       <WebsiteThumbnail url={note.website} tripId={tripId} color={color} />
                     </div>
                   )}
                   {/* Files */}
                   {(note.attachments || []).length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                      <span style={{ fontSize: 7, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3 }}>{t('files.title')}</span>
-                      <div style={{ display: 'flex', gap: 4 }}>
+                    <div className="!flex !flex-col !items-center !gap-[2px]">
+                      <span className="!text-[length:7px] !font-[600] !uppercase !tracking-[0.3px]" style={{ color: 'var(--text-faint)' }}>{t('files.title')}</span>
+                      <div className="!flex !gap-[4px]">
                   {(note.attachments || []).slice(0, note.website ? 1 : 2).map(a => {
                     const isImage = a.mime_type?.startsWith('image/')
                     const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
@@ -864,19 +693,14 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
                         style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
                         onClick={() => onPreviewFile?.(a)} />
                     ) : (
-                      <div className="trek-h-transform-244d20 trek-h-box-shadow-7cd433" key={a.id} title={a.original_name} onClick={() => onPreviewFile?.(a)}
-                        style={{
-                          width: 48, height: 48, borderRadius: 8, cursor: 'pointer',
-                          background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                          transition: 'transform 0.12s, box-shadow 0.12s',
-                        }}>
-                        <span style={{ fontSize: 9, fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                      <div className="trek-h-transform-244d20 trek-h-box-shadow-7cd433 !w-[48px] !h-[48px] !rounded-[8px] !cursor-pointer !flex !flex-col !items-center !justify-center !gap-[1px] ![transition:transform_0.12s,_box-shadow_0.12s]" key={a.id} title={a.original_name} onClick={() => onPreviewFile?.(a)}
+                        style={{ background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)' }}>
+                        <span className="!text-[length:9px] !font-[700] !tracking-[0.3px]" style={{ color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)' }}>{ext}</span>
                       </div>
                     )
                   })}
                   {(note.attachments?.length || 0) > (note.website ? 1 : 2) && (
-                    <span style={{ fontSize: 8, color: 'var(--text-faint)', textAlign: 'center' }}>+{(note.attachments?.length || 0) - (note.website ? 1 : 2)}</span>
+                    <span className="!text-[length:8px] !text-center" style={{ color: 'var(--text-faint)' }}>+{(note.attachments?.length || 0) - (note.website ? 1 : 2)}</span>
                   )}
                       </div>
                     </div>
@@ -1074,40 +898,14 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
   // ── Loading state ──
   if (loading) {
     return (
-      <div style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: FONT,
-      }}>
-        <div style={{
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border-faint)',
-        }}>
-          <h3 style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: 'var(--text-primary)',
-            margin: 0,
-            fontFamily: FONT,
-          }}>
+      <div className="!h-[100%] !flex !flex-col" style={{ fontFamily: FONT }}>
+        <div className="!p-[12px_16px] ![border-bottom:1px_solid_var(--border-faint)]">
+          <h3 className="!m-[0]" style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', fontFamily: FONT }}>
             {t('collab.notes.title')}
           </h3>
         </div>
-        <div style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <div style={{
-            width: 20,
-            height: 20,
-            border: '2px solid var(--border-primary)',
-            borderTopColor: 'var(--text-primary)',
-            borderRadius: '50%',
-            animation: 'collab-notes-spin 0.7s linear infinite',
-          }} />
+        <div className="!flex-[1] !flex !items-center !justify-center">
+          <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-notes-spin 0.7s linear infinite' }} />
           <style>{`@keyframes collab-notes-spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       </div>
@@ -1115,42 +913,20 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
   }
 
   return (
-    <div style={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      fontFamily: FONT,
-    }}>
+    <div className="!h-[100%] !flex !flex-col" style={{ fontFamily: FONT }}>
       {/* ── Header ── */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '10px 16px',
-        flexShrink: 0,
-      }}>
-        <h3 style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: 'var(--text-muted)',
-          margin: 0,
-          fontFamily: FONT,
-          letterSpacing: 0.3,
-          textTransform: 'uppercase',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 7,
-        }}>
+      <div className="!flex !items-center !justify-between !p-[10px_16px] !shrink-[0]">
+        <h3 className="!m-[0] !tracking-[0.3px] !uppercase !flex !items-center !gap-[7px]" style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', fontFamily: FONT }}>
           <StickyNote size={14} color="var(--text-faint)" />
           {t('collab.notes.title')}
         </h3>
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {canEdit && <button className="trek-hover-text" onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings') || 'Categories'}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', transition: 'color 0.12s' }}>
+        <div className="!flex !gap-[4px] !items-center">
+          {canEdit && <button className="trek-hover-text !flex !items-center !justify-center !w-[28px] !h-[28px] !rounded-[8px] ![border:none] ![background:transparent] !cursor-pointer ![transition:color_0.12s]" onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings') || 'Categories'}
+            style={{ color: 'var(--text-faint)' }}>
             <Settings size={14} />
           </button>}
-          {canEdit && <button onClick={() => setShowNewModal(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px', background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 600, fontFamily: FONT, border: 'none', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          {canEdit && <button className="!inline-flex !items-center !gap-[4px] !rounded-[99px] !p-[6px_12px] ![background:var(--accent)] ![border:none] !cursor-pointer !whitespace-nowrap" onClick={() => setShowNewModal(true)}
+            style={{ color: 'var(--accent-text)', fontSize: 11, fontWeight: 600, fontFamily: FONT }}>
             <Plus size={12} />
             {t('collab.notes.new')}
           </button>}
@@ -1159,64 +935,30 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
 
       {/* ── Category filter pills ── */}
       {categories.length > 0 && (
-        <div style={{
-          display: 'flex',
-          gap: 4,
-          padding: '8px 12px 0',
-          overflowX: 'auto',
-          flexShrink: 0,
-        }}>
-          <button
+        <div className="!flex !gap-[4px] !p-[8px_12px_0] !overflow-x-auto !shrink-[0]">
+          <button className="!shrink-[0] !rounded-[99px] !p-[3px_10px] !cursor-pointer !whitespace-nowrap !uppercase !tracking-[0.03em]"
             onClick={() => setActiveCategory(null)}
-            style={{
-              flexShrink: 0,
-              borderRadius: 99,
-              padding: '3px 10px',
-              fontSize: 10,
-              fontWeight: 600,
-              fontFamily: FONT,
-              border: activeCategory === null
+            style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT, border: activeCategory === null
                 ? '1px solid var(--accent)'
-                : '1px solid var(--border-faint)',
-              background: activeCategory === null
+                : '1px solid var(--border-faint)', background: activeCategory === null
                 ? 'var(--accent)'
-                : 'transparent',
-              color: activeCategory === null
+                : 'transparent', color: activeCategory === null
                 ? 'var(--accent-text)'
-                : 'var(--text-secondary)',
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-              textTransform: 'uppercase',
-              letterSpacing: '0.03em',
-            }}
+                : 'var(--text-secondary)' }}
           >
             {t('collab.notes.all')}
           </button>
           {categories.map(cat => (
-            <button
+            <button className="!shrink-[0] !rounded-[99px] !p-[3px_10px] !cursor-pointer !whitespace-nowrap !uppercase !tracking-[0.03em]"
               key={cat}
               onClick={() => setActiveCategory(prev => prev === cat ? null : cat)}
-              style={{
-                flexShrink: 0,
-                borderRadius: 99,
-                padding: '3px 10px',
-                fontSize: 10,
-                fontWeight: 600,
-                fontFamily: FONT,
-                border: activeCategory === cat
+              style={{ fontSize: 10, fontWeight: 600, fontFamily: FONT, border: activeCategory === cat
                   ? '1px solid var(--accent)'
-                  : '1px solid var(--border-faint)',
-                background: activeCategory === cat
+                  : '1px solid var(--border-faint)', background: activeCategory === cat
                   ? 'var(--accent)'
-                  : 'transparent',
-                color: activeCategory === cat
+                  : 'transparent', color: activeCategory === cat
                   ? 'var(--accent-text)'
-                  : 'var(--text-secondary)',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                textTransform: 'uppercase',
-                letterSpacing: '0.03em',
-              }}
+                  : 'var(--text-secondary)' }}
             >
               {cat}
             </button>
@@ -1225,30 +967,12 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
       )}
 
       {/* ── Scrollable content ── */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: 12,
-      }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[12px]">
         {sortedNotes.length === 0 ? (
           /* ── Empty state ── */
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '48px 20px',
-            textAlign: 'center',
-            height: '100%',
-          }}>
+          <div className="!flex !flex-col !items-center !justify-center !p-[48px_20px] !text-center !h-[100%]">
             <Pencil size={36} color="var(--text-faint)" style={{ marginBottom: 12 }} />
-            <div style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'var(--text-secondary)',
-              marginBottom: 4,
-              fontFamily: FONT,
-            }}>
+            <div className="!mb-[4px]" style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', fontFamily: FONT }}>
               {t('collab.notes.empty')}
             </div>
             <div style={{
@@ -1261,11 +985,7 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
           </div>
         ) : (
           /* ── Notes grid — 2 columns ── */
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(2, 1fr)',
-            gap: 8,
-          }}>
+          <div className="!grid !gap-[8px]" style={{ gridTemplateColumns: window.innerWidth < 768 ? '1fr' : 'repeat(2, 1fr)' }}>
             {sortedNotes.map(note => (
               <NoteCard
                 key={note.id}
@@ -1289,77 +1009,52 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
       {/* ── New Note Modal ── */}
       {/* View note modal */}
       {viewingNote && ReactDOM.createPortal(
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-            backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 10000, padding: 16,
-          }}
+        <div className="!fixed !inset-[0] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(6px)] ![-webkit-backdrop-filter:blur(6px)] !flex !items-center !justify-center !z-[10000] !p-[16px]"
           onClick={() => setViewingNote(null)}
         >
-          <div
-            style={{
-              background: 'var(--bg-card)', borderRadius: 16,
-              boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-              width: 'min(700px, calc(100vw - 32px))', maxHeight: '80vh',
-              overflow: 'hidden', display: 'flex', flexDirection: 'column',
-            }}
+          <div className="![background:var(--bg-card)] !rounded-[16px] ![box-shadow:0_20px_60px_rgba(0,0,0,0.2)] !w-[min(700px,_calc(100vw_-_32px))] !max-h-[80vh] !overflow-hidden !flex !flex-col"
             onClick={e => e.stopPropagation()}
           >
-            <div style={{
-              padding: '16px 20px 12px', borderBottom: '1px solid var(--border-primary)',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-            }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 17, fontWeight: 600, color: 'var(--text-primary)' }}>{viewingNote.title}</div>
+            <div className="!p-[16px_20px_12px] ![border-bottom:1px_solid_var(--border-primary)] !flex !items-center !justify-between !gap-[12px]">
+              <div className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:17px] !font-[600]" style={{ color: 'var(--text-primary)' }}>{viewingNote.title}</div>
                 {viewingNote.category && (
-                  <span style={{
-                    display: 'inline-block', marginTop: 4, fontSize: 10, fontWeight: 600,
-                    color: getCategoryColor(viewingNote.category),
-                    background: `${getCategoryColor(viewingNote.category)}18`,
-                    padding: '2px 8px', borderRadius: 6,
-                  }}>{viewingNote.category}</span>
+                  <span className="!inline-block !mt-[4px] !text-[length:10px] !font-[600] !p-[2px_8px] !rounded-[6px]" style={{ color: getCategoryColor(viewingNote.category), background: `${getCategoryColor(viewingNote.category)}18` }}>{viewingNote.category}</span>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                {canEdit && <button className="trek-hover-text" onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
-                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
+              <div className="!flex !gap-[4px] !shrink-[0]">
+                {canEdit && <button className="trek-hover-text !p-[6px] ![background:none] ![border:none] !cursor-pointer !flex !rounded-[6px]" onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
+                  style={{ color: 'var(--text-faint)' }}>
                   <Pencil size={16} />
                 </button>}
-                <button className="trek-hover-text" onClick={() => setViewingNote(null)}
-                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
+                <button className="trek-hover-text !p-[6px] ![background:none] ![border:none] !cursor-pointer !flex !rounded-[6px]" onClick={() => setViewingNote(null)}
+                  style={{ color: 'var(--text-faint)' }}>
                   <X size={18} />
                 </button>
               </div>
             </div>
-            <div className="collab-note-md-full" style={{ padding: '16px 20px', overflowY: 'auto', fontSize: 14, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+            <div className="collab-note-md-full !p-[16px_20px] !overflow-y-auto !text-[length:14px] !leading-[1.7]" style={{ color: 'var(--text-primary)' }}>
               <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{viewingNote.content || ''}</Markdown>
               {(viewingNote.attachments || []).length > 0 && (
-                <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>{t('files.title')}</div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <div className="!mt-[16px] !pt-[16px] ![border-top:1px_solid_var(--border-primary)]">
+                  <div className="!text-[length:11px] !font-[600] !uppercase !tracking-[0.5px] !mb-[10px]" style={{ color: 'var(--text-faint)' }}>{t('files.title')}</div>
+                  <div className="!flex !flex-wrap !gap-[8px]">
                     {(viewingNote.attachments || []).map(a => {
                       const isImage = a.mime_type?.startsWith('image/')
                       const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
                       return (
-                        <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, maxWidth: 72 }}>
+                        <div className="!flex !flex-col !items-center !gap-[4px] !max-w-[72px]" key={a.id}>
                           {isImage ? (
                             <AuthedImg className="trek-h-transform-6b162d trek-h-box-shadow-7cd433" src={a.url} alt={a.original_name}
                               style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
                               onClick={() => setPreviewFile(a)} />
                           ) : (
-                            <div className="trek-h-transform-6b162d trek-h-box-shadow-7cd433" title={a.original_name} onClick={() => setPreviewFile(a)}
-                              style={{
-                                width: 64, height: 64, borderRadius: 8, cursor: 'pointer',
-                                background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
-                                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
-                                transition: 'transform 0.12s, box-shadow 0.12s',
-                              }}>
-                              <span style={{ fontSize: 10, fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
+                            <div className="trek-h-transform-6b162d trek-h-box-shadow-7cd433 !w-[64px] !h-[64px] !rounded-[8px] !cursor-pointer !flex !flex-col !items-center !justify-center !gap-[1px] ![transition:transform_0.12s,_box-shadow_0.12s]" title={a.original_name} onClick={() => setPreviewFile(a)}
+                              style={{ background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)' }}>
+                              <span className="!text-[length:10px] !font-[700] !tracking-[0.3px]" style={{ color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)' }}>{ext}</span>
                             </div>
                           )}
-                          <span style={{ fontSize: 9, color: 'var(--text-faint)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}>{a.original_name}</span>
+                          <span className="!text-[length:9px] !text-center !overflow-hidden !text-ellipsis !whitespace-nowrap !w-[100%]" style={{ color: 'var(--text-faint)' }}>{a.original_name}</span>
                         </div>
                       )
                     })}

@@ -312,40 +312,40 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           <label className="block text-sm font-medium text-slate-700 mb-1.5">{t('dashboard.coverImage')}</label>
           <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverChange} />
           {coverPreview ? (
-            <div style={{ position: 'relative', borderRadius: 10, overflow: 'hidden', height: 130 }}>
-              <img src={coverPreview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 6 }}>
-                <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 10px', borderRadius: 8, background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+            <div className="!relative !rounded-[10px] !overflow-hidden !h-[130px]">
+              <img className="!w-[100%] !h-[100%] !object-cover" src={coverPreview} alt="" />
+              <div className="!absolute !bottom-[8px] !right-[8px] !flex !gap-[6px]">
+                <button className="!flex !items-center !gap-[4px] !p-[5px_10px] !rounded-[8px] ![color:white] !text-[length:11.5px] !font-[600] !cursor-pointer ![backdrop-filter:blur(4px)]" type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
+                  style={{ background: 'rgba(0,0,0,0.55)', border: 'none' }}>
                   <Camera size={12} /> {uploadingCover ? t('common.uploading') : t('common.change')}
                 </button>
-                <button type="button" onClick={handleRemoveCover}
-                  style={{ display: 'flex', alignItems: 'center', padding: '5px 8px', borderRadius: 8, background: 'rgba(0,0,0,0.55)', border: 'none', color: 'white', cursor: 'pointer', backdropFilter: 'blur(4px)' }}>
+                <button className="!flex !items-center !p-[5px_8px] !rounded-[8px] ![color:white] !cursor-pointer ![backdrop-filter:blur(4px)]" type="button" onClick={handleRemoveCover}
+                  style={{ background: 'rgba(0,0,0,0.55)', border: 'none' }}>
                   <X size={12} />
                 </button>
               </div>
             </div>
           ) : (
-            <button className="trek-h-border-color-b6a5da trek-h-color-908c64" type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
+            <button className="trek-h-border-color-b6a5da trek-h-color-908c64 !w-[100%] !p-[18px] !rounded-[10px] !cursor-pointer !flex !items-center !justify-center !gap-[6px] !text-[length:13px] ![color:#9ca3af] ![font-family:inherit] ![transition:all_0.15s]" type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
               onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-light)' }}
               onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none' }}
               onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none'; const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
-              style={{ width: '100%', padding: '18px', border: '2px dashed #e5e7eb', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, color: '#9ca3af', fontFamily: 'inherit', transition: 'all 0.15s' }}>
+              style={{ border: '2px dashed #e5e7eb', background: 'none' }}>
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
           )}
-          <button type="button" onClick={handleSuggestCover} disabled={suggestingCover}
-            style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 8, padding: '2px 0', border: 'none', background: 'none', cursor: suggestingCover ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 600, color: '#6366f1', fontFamily: 'inherit', opacity: suggestingCover ? 0.6 : 1 }}>
+          <button className="!flex !items-center !gap-[5px] !mt-[8px] !p-[2px_0] !text-[length:12.5px] !font-[600] ![color:#6366f1] ![font-family:inherit]" type="button" onClick={handleSuggestCover} disabled={suggestingCover}
+            style={{ border: 'none', background: 'none', cursor: suggestingCover ? 'wait' : 'pointer', opacity: suggestingCover ? 0.6 : 1 }}>
             <Sparkles size={13} />
             {suggestingCover ? t('common.loading') : t('dashboard.suggestCover')}
           </button>
           {coverSuggestions.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8, paddingBottom: 4 }}>
+            <div className="!flex !gap-[8px] !overflow-x-auto !mt-[8px] !pb-[4px]">
               {coverSuggestions.map((photo, i) => (
-                <button className="trek-hover-border-accent" key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
+                <button className="trek-hover-border-accent !shrink-[0] !w-[84px] !h-[56px] !rounded-[8px] !overflow-hidden !p-[0] !cursor-pointer" key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
                   title={photo.attribution}
-                  style={{ flexShrink: 0, width: 84, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid transparent', padding: 0, cursor: 'pointer' }}>
-                  <img src={photo.thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  style={{ border: '2px solid transparent' }}>
+                  <img className="!w-[100%] !h-[100%] !object-cover" src={photo.thumb} alt="" />
                 </button>
               ))}
             </div>
@@ -372,25 +372,20 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           <label className="block text-sm font-medium text-slate-700 mb-1.5">
             Tipo de viaje
           </label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div className="!flex !gap-[8px]">
             {[
               { value: 'general', label: '🌍 General', desc: 'Viaje estándar' },
               { value: 'cycling', label: '🚴 Bicicleta', desc: 'GPX + Elevación + IBP' },
               { value: 'trekking', label: '🥾 Trekking', desc: 'GPX + Elevación + IBP' },
             ].map(opt => (
-              <button key={opt.value} type="button"
+              <button className="!flex-[1] !p-[10px_12px] !rounded-[10px] !text-left ![font-family:inherit]" key={opt.value} type="button"
                 onClick={() => canEditTrip && update('trip_type', opt.value)}
-                style={{
-                  flex: 1, padding: '10px 12px', borderRadius: 10, cursor: canEditTrip ? 'pointer' : 'default',
-                  border: (formData as any).trip_type === opt.value
+                style={{ cursor: canEditTrip ? 'pointer' : 'default', border: (formData as any).trip_type === opt.value
                     ? '2px solid #3b82f6'
-                    : '1.5px solid #e2e8f0',
-                  background: (formData as any).trip_type === opt.value ? '#eff6ff' : '#f8fafc',
-                  textAlign: 'left', fontFamily: 'inherit',
-                }}
+                    : '1.5px solid #e2e8f0', background: (formData as any).trip_type === opt.value ? '#eff6ff' : '#f8fafc' }}
               >
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b', marginBottom: 2 }}>{opt.label}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>{opt.desc}</div>
+                <div className="!text-[length:13px] !font-[600] ![color:#1e293b] !mb-[2px]">{opt.label}</div>
+                <div className="!text-[length:11px] ![color:#94a3b8]">{opt.desc}</div>
               </button>
             ))}
           </div>
@@ -494,9 +489,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             </label>
             {/* Existing members (editing mode) */}
             {isEditing && existingMembers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              <div className="!flex !flex-wrap !gap-[6px] !mb-[8px]">
                 {existingMembers.map(m => (
-                  <span key={m.id}
+                  <span className="!flex !items-center !gap-[5px] !p-[4px_10px] !rounded-[99px] !text-[length:12px] !font-[500] ![color:var(--text-primary)]" key={m.id}
                     onClick={async () => {
                       if (m.id === currentUser?.id) return
                       try {
@@ -505,12 +500,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                         toast.success(t('trips.memberRemoved', { username: m.username }))
                       } catch { toast.error(t('trips.memberRemoveError')) }
                     }}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                      background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)',
-                      cursor: m.id === currentUser?.id ? 'default' : 'pointer',
-                      border: '1px solid var(--border-primary)',
-                    }}>
+                    style={{ background: 'var(--bg-secondary)', cursor: m.id === currentUser?.id ? 'default' : 'pointer', border: '1px solid var(--border-primary)' }}>
                     {m.username}
                     {m.id !== currentUser?.id && <X size={11} style={{ color: 'var(--text-faint)' }} />}
                   </span>
@@ -519,17 +509,13 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
             )}
             {/* Newly selected members (both modes) */}
             {selectedMembers.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+              <div className="!flex !flex-wrap !gap-[6px] !mb-[8px]">
                 {selectedMembers.map(uid => {
                   const user = allUsers.find(u => u.id === uid)
                   if (!user) return null
                   return (
-                    <span key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 99,
-                        background: 'var(--bg-secondary)', fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', cursor: 'pointer',
-                        border: '1px solid var(--border-primary)',
-                      }}>
+                    <span className="!flex !items-center !gap-[5px] !p-[4px_10px] !rounded-[99px] !text-[length:12px] !font-[500] ![color:var(--text-primary)] !cursor-pointer" key={uid} onClick={() => setSelectedMembers(prev => prev.filter(id => id !== uid))}
+                      style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-primary)' }}>
                       {user.username}
                       <X size={11} style={{ color: 'var(--text-faint)' }} />
                     </span>
@@ -537,7 +523,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
                 })}
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="!flex !gap-[8px]">
               <CustomSelect
                 value={memberSelectValue}
                 onChange={async value => {

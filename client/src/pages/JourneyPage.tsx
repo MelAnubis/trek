@@ -197,9 +197,9 @@ export default function JourneyPage() {
   }, [availableTrips, selectedTripIds])
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h, 56px)' }}>
+      <div className="!pt-[var(--nav-h,_56px)]">
         <div className="max-w-[1440px] mx-auto">
 
           {/* Header — mobile */}
@@ -241,32 +241,18 @@ export default function JourneyPage() {
 
           {/* Header — desktop (unified toolbar) */}
           <div className="hidden md:block px-8 pt-10 pb-7">
-            <div style={{
-              background: 'var(--bg-tertiary)', borderRadius: 18,
-              border: '1px solid var(--border-primary)',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-              padding: '14px 16px 14px 22px',
-              display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap',
-            }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+            <div className="![background:var(--bg-tertiary)] !rounded-[18px] ![border:1px_solid_var(--border-primary)] ![box-shadow:0_1px_3px_rgba(0,0,0,0.06),_0_1px_2px_rgba(0,0,0,0.04)] !p-[14px_16px_14px_22px] !flex !items-center !gap-[16px] !flex-wrap">
+              <h2 className="!m-[0] !text-[length:18px] !font-[600] ![color:var(--text-primary)] !tracking-[-0.01em] !shrink-[0]">
                 {t('journey.title')}
               </h2>
-              <div style={{ width: 1, height: 22, background: 'var(--border-faint)', flexShrink: 0 }} />
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+              <div className="!w-[1px] !h-[22px] ![background:var(--border-faint)] !shrink-[0]" />
+              <span className="!text-[length:13px] ![color:var(--text-muted)]">
                 {t('journey.frontpage.subtitle')}
               </span>
 
-              <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                <button className="trek-hover-o88"
-                  onClick={() => openCreateModal()}
-                  style={{
-                    appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-                    marginLeft: 2,
-                    transition: 'opacity 0.15s ease',
-                  }} >
+              <div className="!inline-flex !gap-[6px] !items-center !ml-[auto] !shrink-[0]">
+                <button className="trek-hover-o88 ![appearance:none] ![border:none] !cursor-pointer ![font-family:inherit] !inline-flex !items-center !gap-[6px] !p-[9px_14px] !rounded-[10px] !text-[length:13px] !font-[500] ![background:var(--accent)] ![color:var(--accent-text)] !shrink-[0] !ml-[2px] ![transition:opacity_0.15s_ease]"
+                  onClick={() => openCreateModal()} >
                   <Plus size={14} strokeWidth={2.5} />
                   {t('journey.frontpage.createJourney')}
                 </button>
@@ -278,9 +264,9 @@ export default function JourneyPage() {
 
             {/* Suggestion banner */}
             {activeSuggestion && (
-              <div className="relative rounded-2xl overflow-hidden mb-8" style={{ background: 'linear-gradient(135deg, #1E293B 0%, #334155 100%)' }}>
-                <div className="absolute inset-0 pointer-events-none trek-hero-glow hidden md:block" style={{ background: 'radial-gradient(circle at 85% 50%, rgba(99,102,241,0.4), transparent 50%), radial-gradient(circle at 100% 100%, rgba(236,72,153,0.3), transparent 50%)' }} />
-                <div className="absolute inset-0 pointer-events-none trek-hero-glow md:hidden" style={{ background: 'radial-gradient(circle at 80% 20%, rgba(99,102,241,0.5), transparent 60%), radial-gradient(circle at 20% 90%, rgba(236,72,153,0.35), transparent 60%)' }} />
+              <div className="relative rounded-2xl overflow-hidden mb-8 ![background:linear-gradient(135deg,_#1E293B_0%,_#334155_100%)]">
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow hidden md:block ![background:radial-gradient(circle_at_85%_50%,_rgba(99,102,241,0.4),_transparent_50%),_radial-gradient(circle_at_100%_100%,_rgba(236,72,153,0.3),_transparent_50%)]" />
+                <div className="absolute inset-0 pointer-events-none trek-hero-glow md:hidden ![background:radial-gradient(circle_at_80%_20%,_rgba(99,102,241,0.5),_transparent_60%),_radial-gradient(circle_at_20%_90%,_rgba(236,72,153,0.35),_transparent_60%)]" />
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6 p-5 text-white">
                   <div className="flex items-center gap-3.5">
                     <div className="w-10 h-10 rounded-[10px] bg-white/15 backdrop-blur flex items-center justify-center flex-shrink-0">
@@ -336,8 +322,8 @@ export default function JourneyPage() {
                   )}
 
                   {/* Gradient overlays */}
-                  <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2]" style={{ background: 'radial-gradient(circle at 15% 20%, rgba(236,72,153,0.35), transparent 40%), radial-gradient(circle at 85% 80%, rgba(251,146,60,0.3), transparent 45%), radial-gradient(circle at 50% 50%, rgba(99,102,241,0.25), transparent 50%)' }} />
-                  <div className="absolute inset-0 pointer-events-none z-[2]" style={{ background: 'linear-gradient(180deg, transparent 0%, transparent 50%, rgba(0,0,0,0.4) 100%), linear-gradient(90deg, rgba(0,0,0,0.15) 0%, transparent 50%)' }} />
+                  <div className="absolute inset-0 pointer-events-none trek-hero-glow z-[2] ![background:radial-gradient(circle_at_15%_20%,_rgba(236,72,153,0.35),_transparent_40%),_radial-gradient(circle_at_85%_80%,_rgba(251,146,60,0.3),_transparent_45%),_radial-gradient(circle_at_50%_50%,_rgba(99,102,241,0.25),_transparent_50%)]" />
+                  <div className="absolute inset-0 pointer-events-none z-[2] ![background:linear-gradient(180deg,_transparent_0%,_transparent_50%,_rgba(0,0,0,0.4)_100%),_linear-gradient(90deg,_rgba(0,0,0,0.15)_0%,_transparent_50%)]" />
 
                   <div className="relative h-full p-6 md:p-8 flex flex-col z-[3] text-white">
                     {/* Top badges */}
@@ -359,7 +345,7 @@ export default function JourneyPage() {
                       {activeJourney.subtitle && (
                         <p className="text-[13px] font-medium opacity-85 mb-3">{activeJourney.subtitle}</p>
                       )}
-                      <h2 className="text-[40px] md:text-[56px] font-extrabold tracking-[-0.035em] leading-[0.95] mb-3" style={{ textShadow: '0 2px 30px rgba(0,0,0,0.15)' }}>
+                      <h2 className="text-[40px] md:text-[56px] font-extrabold tracking-[-0.035em] leading-[0.95] mb-3 ![text-shadow:0_2px_30px_rgba(0,0,0,0.15)]">
                         {activeJourney.title}
                       </h2>
                     </div>
@@ -419,13 +405,7 @@ export default function JourneyPage() {
                 {/* Create card */}
                 <button
                   onClick={() => openCreateModal()}
-                  className="group min-h-[320px] rounded-2xl flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-                  style={{
-                    background: 'var(--glass-bg-subtle)',
-                    backdropFilter: 'var(--glass-blur)',
-                    WebkitBackdropFilter: 'var(--glass-blur)',
-                    border: '1.5px dashed var(--glass-border)',
-                  }}
+                  className="group min-h-[320px] rounded-2xl flex flex-col items-center justify-center gap-2.5 cursor-pointer hover:-translate-y-0.5 transition-[transform,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] ![background:var(--glass-bg-subtle)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1.5px_dashed_var(--glass-border)]"
                 >
                   <div className="w-14 h-14 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:bg-white dark:group-hover:bg-zinc-700 transition-[background-color,transform] group-hover:rotate-90 duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]">
                     <Plus size={22} />
@@ -448,7 +428,7 @@ export default function JourneyPage() {
                     <button key={m.id} type="button" onClick={() => navigate(`/journey/${m.id}/studio`)}
                       className="group text-left" data-testid="magazine-card">
                       <div className="aspect-[120/170] rounded-md bg-[#111111] relative overflow-hidden shadow-md group-hover:-translate-y-1 transition-transform duration-300 p-3 flex flex-col">
-                        <span className="self-start bg-white text-[#111111] leading-none whitespace-nowrap" style={{ fontFamily: "Jost, Futura, sans-serif", fontWeight: 300, letterSpacing: '0.1em', fontSize: 10, padding: '5px 6px' }}>#ESTODOBAJADA</span>
+                        <span className="self-start bg-white text-[#111111] leading-none whitespace-nowrap ![font-family:Jost,_Futura,_sans-serif] !font-[300] !tracking-[0.1em] !text-[length:10px] !p-[5px_6px]">#ESTODOBAJADA</span>
                         <span className="mt-auto text-white text-[13px] font-bold leading-tight line-clamp-3">{m.title}</span>
                         {m.subtitle && <span className="text-white/60 text-[10px] tracking-[0.14em] uppercase mt-1">{m.subtitle}</span>}
                       </div>
@@ -472,22 +452,16 @@ export default function JourneyPage() {
       {/* Create Modal */}
       {showCreate && (
         <div
-          className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto"
-          style={{
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-          }}
+          className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center p-5 overflow-y-auto ![background:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)]"
         >
           <div
-            className="modal-glass rounded-2xl max-w-[640px] w-full max-h-[calc(100dvh-2.5rem)] sm:max-h-[90vh] flex flex-col overflow-hidden"
-            style={{ paddingBottom: 'var(--bottom-nav-h)' }}
+            className="modal-glass rounded-2xl max-w-[640px] w-full max-h-[calc(100dvh-2.5rem)] sm:max-h-[90vh] flex flex-col overflow-hidden !pb-[var(--bottom-nav-h)]"
           >
 
             {/* Header */}
-            <div className="px-7 pt-6 pb-5" style={{ borderBottom: '1px solid var(--modal-border)' }}>
-              <h2 className="text-[18px] font-bold tracking-[-0.01em]" style={{ color: 'var(--text-primary)' }}>{t("journey.frontpage.createJourney")}</h2>
-              <p className="text-[13px] mt-1" style={{ color: 'var(--text-muted)' }}>{t('journey.frontpage.createNewSub')}</p>
+            <div className="px-7 pt-6 pb-5 ![border-bottom:1px_solid_var(--modal-border)]">
+              <h2 className="text-[18px] font-bold tracking-[-0.01em] ![color:var(--text-primary)]">{t("journey.frontpage.createJourney")}</h2>
+              <p className="text-[13px] mt-1 ![color:var(--text-muted)]">{t('journey.frontpage.createNewSub')}</p>
 
               <div className="flex gap-1.5 mt-4">
                 <button
@@ -585,7 +559,7 @@ export default function JourneyPage() {
             </div>
             ) : (
             <div className="flex-1 overflow-y-auto px-7 py-5">
-              <p className="text-[12px] mb-4 px-3 py-2.5 rounded-lg" style={{ background: 'var(--bg-tertiary)', color: 'var(--text-muted)' }}>
+              <p className="text-[12px] mb-4 px-3 py-2.5 rounded-lg ![background:var(--bg-tertiary)] ![color:var(--text-muted)]">
                 {t('journey.frontpage.immichNote')}
               </p>
 
@@ -685,7 +659,7 @@ export default function JourneyPage() {
                 {gpxFiles.length > 0 && (
                   <div className="flex flex-col gap-1.5 mt-2.5">
                     {gpxFiles.map((f, i) => (
-                      <div key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
+                      <div key={`${f.name}-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg ![background:var(--bg-tertiary)]">
                         <span className="text-[12px] text-zinc-700 dark:text-zinc-300 truncate">{f.name}</span>
                         <button
                           onClick={() => setGpxFiles(prev => prev.filter((_, idx) => idx !== i))}
@@ -707,7 +681,7 @@ export default function JourneyPage() {
                 {showAdvanced ? t('journey.frontpage.hideAdvanced') : t('journey.frontpage.showAdvanced')}
               </button>
               {showAdvanced && (
-                <div className="grid grid-cols-2 gap-3 mt-3 p-3 rounded-lg" style={{ background: 'var(--bg-tertiary)' }}>
+                <div className="grid grid-cols-2 gap-3 mt-3 p-3 rounded-lg ![background:var(--bg-tertiary)]">
                   <div>
                     <label className="text-[10px] font-semibold tracking-[0.1em] uppercase text-zinc-500 block mb-1.5">{t('journey.frontpage.maxGapHours')}</label>
                     <input
@@ -730,7 +704,7 @@ export default function JourneyPage() {
             )}
 
             {/* Footer */}
-            <div className="px-7 py-4 flex items-center justify-between" style={{ borderTop: '1px solid var(--modal-border)' }}>
+            <div className="px-7 py-4 flex items-center justify-between ![border-top:1px_solid_var(--modal-border)]">
               {createMode === 'trips' ? (
                 <div className="text-[12px] text-zinc-500">
                   <strong className="text-zinc-900 dark:text-white">{selectedTripIds.size}</strong> <span className="hidden md:inline">{t('journey.frontpage.tripsSelected')}</span><span className="md:hidden">{t('journey.frontpage.trips')}</span>
@@ -785,14 +759,7 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   return (
     <div
       onClick={onClick}
-      className="trek-h-box-shadow-ce6143 rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
-      style={{
-        background: 'var(--glass-bg)',
-        backdropFilter: 'var(--glass-blur)',
-        WebkitBackdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--glass-border)',
-        boxShadow: 'var(--glass-shadow)',
-      }} >
+      className="trek-h-box-shadow-ce6143 rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)]" >
       {/* Cover */}
       <div className="h-[170px] relative overflow-hidden trek-gradient" style={{ background: pickGradient(j.id) }}>
         {j.cover_image && (
@@ -801,7 +768,7 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
             <div className="absolute inset-0 trek-gradient" style={{ background: pickGradient(j.id), opacity: 0.4 }} />
           </>
         )}
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 50%, rgba(0,0,0,0.4) 100%)' }} />
+        <div className="absolute inset-0 ![background:linear-gradient(180deg,_transparent_50%,_rgba(0,0,0,0.4)_100%)]" />
 
         {/* Top overlay */}
         <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between z-[2]">

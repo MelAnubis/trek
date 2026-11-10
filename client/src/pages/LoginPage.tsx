@@ -292,55 +292,28 @@ export default function LoginPage(): React.ReactElement {
 
   if (showTakeoff) {
     return (
-      <div className="takeoff-overlay" style={{ position: 'fixed', inset: 0, zIndex: 99999, overflow: 'hidden' }}>
+      <div className="takeoff-overlay !fixed !inset-[0] !z-[99999] !overflow-hidden">
         {/* Sky gradient */}
-        <div className="takeoff-sky" style={{ position: 'absolute', inset: 0 }} />
+        <div className="takeoff-sky !absolute !inset-[0]" />
 
         {/* Stars */}
         {Array.from({ length: 60 }, (_, i) => (
-          <div key={i} className="takeoff-star" style={{
-            position: 'absolute',
-            width: Math.random() > 0.7 ? 3 : 1.5,
-            height: Math.random() > 0.7 ? 3 : 1.5,
-            borderRadius: '50%',
-            background: 'white',
-            top: `${Math.random() * 100}%`,
-            left: `${Math.random() * 100}%`,
-            animationDelay: `${0.3 + Math.random() * 0.5}s, ${Math.random() * 1}s`,
-          }} />
+          <div key={i} className="takeoff-star !absolute !rounded-[50%]" style={{ width: Math.random() > 0.7 ? 3 : 1.5, height: Math.random() > 0.7 ? 3 : 1.5, background: 'white', top: `${Math.random() * 100}%`, left: `${Math.random() * 100}%`, animationDelay: `${0.3 + Math.random() * 0.5}s, ${Math.random() * 1}s` }} />
         ))}
 
         {/* Clouds rushing past */}
         {[0, 1, 2, 3, 4].map(i => (
-          <div key={i} className="takeoff-cloud" style={{
-            position: 'absolute',
-            width: 120 + i * 40,
-            height: 40 + i * 10,
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.15)',
-            filter: 'blur(8px)',
-            right: -200,
-            top: `${25 + i * 12}%`,
-            animationDelay: `${0.3 + i * 0.25}s`,
-          }} />
+          <div key={i} className="takeoff-cloud !absolute !rounded-[50%] ![filter:blur(8px)]" style={{ width: 120 + i * 40, height: 40 + i * 10, background: 'rgba(255,255,255,0.15)', right: -200, top: `${25 + i * 12}%`, animationDelay: `${0.3 + i * 0.25}s` }} />
         ))}
 
         {/* Speed lines */}
         {Array.from({ length: 12 }, (_, i) => (
-          <div key={i} className="takeoff-speedline" style={{
-            position: 'absolute',
-            width: 80 + Math.random() * 120,
-            height: 1.5,
-            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-            top: `${10 + Math.random() * 80}%`,
-            right: -200,
-            animationDelay: `${0.5 + i * 0.12}s`,
-          }} />
+          <div key={i} className="takeoff-speedline !absolute !h-[1.5px]" style={{ width: 80 + Math.random() * 120, background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', top: `${10 + Math.random() * 80}%`, right: -200, animationDelay: `${0.5 + i * 0.12}s` }} />
         ))}
 
         {/* Plane */}
-        <div className="takeoff-plane" style={{ position: 'absolute', left: '50%', bottom: '10%', transform: 'translate(-50%, 0)' }}>
-          <svg viewBox="0 0 480 120" style={{ width: 200, filter: 'drop-shadow(0 0 20px rgba(255,255,255,0.3))' }}>
+        <div className="takeoff-plane !absolute !left-[50%] !bottom-[10%]" style={{ transform: 'translate(-50%, 0)' }}>
+          <svg className="!w-[200px] ![filter:drop-shadow(0_0_20px_rgba(255,255,255,0.3))]" viewBox="0 0 480 120">
             <g fill="white" transform="translate(240,60) rotate(-12)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -353,19 +326,12 @@ export default function LoginPage(): React.ReactElement {
         </div>
 
         {/* Contrail */}
-        <div className="takeoff-trail" style={{
-          position: 'absolute', left: '50%', bottom: '8%',
-          width: 3, height: 0, background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.5))',
-          transformOrigin: 'bottom center',
-        }} />
+        <div className="takeoff-trail !absolute !left-[50%] !bottom-[8%] !w-[3px] !h-[0]" style={{ background: 'linear-gradient(to top, transparent, rgba(255,255,255,0.5))', transformOrigin: 'bottom center' }} />
 
         {/* Logo fade in + burst */}
-        <div className="takeoff-logo" style={{
-          position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-        }}>
-          <img src="/logo-light.svg" alt="Trek Wanderer" style={{ height: 72 }} />
-          <p style={{ margin: 0, fontSize: 20, color: 'rgba(255,255,255,0.6)', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line', textAlign: 'center' }}>{t('login.tagline')}</p>
+        <div className="takeoff-logo !absolute !top-[50%] !left-[50%] !flex !flex-col !items-center !gap-[8px]" style={{ transform: 'translate(-50%, -50%)' }}>
+          <img className="!h-[72px]" src="/logo-light.svg" alt="Trek Wanderer" />
+          <p className="!m-[0] !tracking-[0.02em] !whitespace-pre-line !text-center" style={{ fontSize: 20, color: 'rgba(255,255,255,0.6)', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300 }}>{t('login.tagline')}</p>
         </div>
 
 
@@ -442,10 +408,10 @@ export default function LoginPage(): React.ReactElement {
   }
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", position: 'relative' }}>
+    <div className="!min-h-[100vh] !flex !relative" style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}>
 
       {/* Language dropdown */}
-      <div style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
+      <div className="!absolute !top-[16px] !right-[16px] !z-[10]">
         <button
           onClick={(e) => { e.stopPropagation(); setLangDropdownOpen(o => !o) }}
           aria-haspopup="listbox"
@@ -468,20 +434,11 @@ export default function LoginPage(): React.ReactElement {
         </button>
 
         {langDropdownOpen && (
-          <div
+          <div className="!absolute !top-[100%] !right-[0] !mt-[4px] ![backdrop-filter:blur(24px)_saturate(180%)] ![-webkit-backdrop-filter:blur(24px)_saturate(180%)] !rounded-[12px] !min-w-[190px] !max-h-[320px] !overflow-y-auto"
             role="listbox"
             aria-label="Select language"
             onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'absolute', top: '100%', right: 0, marginTop: 4,
-              background: 'rgba(255,255,255,0.90)',
-              backdropFilter: 'blur(24px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(24px) saturate(180%)',
-              borderRadius: 12,
-              boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset',
-              border: '1px solid rgba(255,255,255,0.60)',
-              minWidth: 190, maxHeight: 320, overflowY: 'auto',
-            }}
+            style={{ background: 'rgba(255,255,255,0.90)', boxShadow: '0 8px 32px rgba(0,0,0,0.14), 0 1px 0 rgba(255,255,255,0.8) inset', border: '1px solid rgba(255,255,255,0.60)' }}
           >
             {SUPPORTED_LANGUAGES.map(({ value, label }) => (
               <button
@@ -509,35 +466,25 @@ export default function LoginPage(): React.ReactElement {
       </div>
 
       {/* Left — branding */}
-      <div style={{ display: 'none', width: '55%', background: 'linear-gradient(135deg, #09090b 0%, #18181b 50%, #09090b 100%)', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '60px 48px', position: 'relative', overflow: 'hidden' }}
-        className="lg-panel">
+      <div style={{ background: 'linear-gradient(135deg, #09090b 0%, #18181b 50%, #09090b 100%)' }}
+        className="lg-panel !hidden !w-[55%] !flex-col !justify-center !items-center !p-[60px_48px] !relative !overflow-hidden">
         <style>{`@media(min-width:1024px){.lg-panel{display:flex!important}}`}</style>
 
         {/* Stars */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+        <div className="!absolute !inset-[0] !overflow-hidden">
           {Array.from({ length: 40 }, (_, i) => (
-            <div key={i} className="login-star" style={{
-              position: 'absolute',
-              width: Math.random() > 0.7 ? 2 : 1,
-              height: Math.random() > 0.7 ? 2 : 1,
-              borderRadius: '50%',
-              background: 'white',
-              opacity: 0.15 + Math.random() * 0.25,
-              top: `${Math.random() * 70}%`,
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 4}s`,
-            }} />
+            <div key={i} className="login-star !absolute !rounded-[50%]" style={{ width: Math.random() > 0.7 ? 2 : 1, height: Math.random() > 0.7 ? 2 : 1, background: 'white', opacity: 0.15 + Math.random() * 0.25, top: `${Math.random() * 70}%`, left: `${Math.random() * 100}%`, animationDelay: `${Math.random() * 4}s` }} />
           ))}
         </div>
 
         {/* Animated glow orbs */}
-        <div className="login-orb1" style={{ position: 'absolute', width: 500, height: 500, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="login-orb2" style={{ position: 'absolute', width: 350, height: 350, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="login-orb1 !absolute !w-[500px] !h-[500px] !rounded-[50%] ![filter:blur(80px)]" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)' }} />
+        <div className="login-orb2 !absolute !w-[350px] !h-[350px] !rounded-[50%] ![filter:blur(60px)]" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%)' }} />
 
         {/* Animated planes — realistic silhouettes at different sizes/speeds */}
-        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none' }}>
+        <div className="!absolute !inset-[0] !overflow-hidden !pointer-events-none">
           {/* Plane 1 — large, slow, foreground */}
-          <svg className="login-plane1" viewBox="0 0 480 120" style={{ position: 'absolute', width: 48, opacity: 0.12 }}>
+          <svg className="login-plane1 !absolute !w-[48px]" viewBox="0 0 480 120" style={{ opacity: 0.12 }}>
             <g fill="white" transform="translate(240,60) rotate(-12)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -549,7 +496,7 @@ export default function LoginPage(): React.ReactElement {
           </svg>
 
           {/* Plane 2 — small, faster, higher */}
-          <svg className="login-plane2" viewBox="0 0 480 120" style={{ position: 'absolute', width: 24, opacity: 0.08 }}>
+          <svg className="login-plane2 !absolute !w-[24px]" viewBox="0 0 480 120" style={{ opacity: 0.08 }}>
             <g fill="white" transform="translate(240,60) rotate(-12)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -559,7 +506,7 @@ export default function LoginPage(): React.ReactElement {
           </svg>
 
           {/* Plane 3 — medium, mid-speed */}
-          <svg className="login-plane3" viewBox="0 0 480 120" style={{ position: 'absolute', width: 32, opacity: 0.06 }}>
+          <svg className="login-plane3 !absolute !w-[32px]" viewBox="0 0 480 120" style={{ opacity: 0.06 }}>
             <g fill="white" transform="translate(240,60) rotate(-5)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -571,7 +518,7 @@ export default function LoginPage(): React.ReactElement {
           </svg>
 
           {/* Plane 4 — tiny, fast, high */}
-          <svg className="login-plane4" viewBox="0 0 480 120" style={{ position: 'absolute', width: 16, opacity: 0.07 }}>
+          <svg className="login-plane4 !absolute !w-[16px]" viewBox="0 0 480 120" style={{ opacity: 0.07 }}>
             <g fill="white" transform="translate(240,60) rotate(-10)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -581,7 +528,7 @@ export default function LoginPage(): React.ReactElement {
           </svg>
 
           {/* Plane 5 — medium, right to left, lower */}
-          <svg className="login-plane5" viewBox="0 0 480 120" style={{ position: 'absolute', width: 28, opacity: 0.05 }}>
+          <svg className="login-plane5 !absolute !w-[28px]" viewBox="0 0 480 120" style={{ opacity: 0.05 }}>
             <g fill="white" transform="translate(240,60) rotate(8) scale(-1,1)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -593,7 +540,7 @@ export default function LoginPage(): React.ReactElement {
           </svg>
 
           {/* Plane 6 — tiny distant */}
-          <svg className="login-plane6" viewBox="0 0 480 120" style={{ position: 'absolute', width: 12, opacity: 0.04 }}>
+          <svg className="login-plane6 !absolute !w-[12px]" viewBox="0 0 480 120" style={{ opacity: 0.04 }}>
             <g fill="white" transform="translate(240,60) rotate(-15)">
               <ellipse cx="0" cy="0" rx="120" ry="12" />
               <path d="M-20,-10 L-60,-55 L-40,-55 L0,-15 Z" />
@@ -604,20 +551,20 @@ export default function LoginPage(): React.ReactElement {
         </div>
 
 
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: 560, textAlign: 'center' }}>
+        <div className="!relative !z-[1] !max-w-[560px] !text-center">
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 48 }}>
-            <img src="/logo-light.svg" alt="Trek Wanderer" style={{ height: 64 }} />
+          <div className="!flex !items-center !justify-center !mb-[48px]">
+            <img className="!h-[64px]" src="/logo-light.svg" alt="Trek Wanderer" />
           </div>
 
-          <h2 style={{ margin: '0 0 12px', fontSize: 36, color: 'white', lineHeight: 1.15, fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line' }}>
+          <h2 className="!m-[0_0_12px] !leading-[1.15] !tracking-[0.02em] !whitespace-pre-line" style={{ fontSize: 36, color: 'white', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300 }}>
             {t('login.tagline')}
           </h2>
-          <p style={{ margin: '0 0 44px', fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7 }}>
+          <p className="!m-[0_0_44px] !text-[length:15px] !leading-[1.7]" style={{ color: 'rgba(255,255,255,0.5)' }}>
             {t('login.description')}
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          <div className="!grid ![grid-template-columns:repeat(4,_1fr)] !gap-[8px]">
             {[
               { Icon: Map, label: t('login.features.maps'), desc: t('login.features.mapsDesc') },
               { Icon: Zap, label: t('login.features.realtime'), desc: t('login.features.realtimeDesc') },
@@ -632,13 +579,13 @@ export default function LoginPage(): React.ReactElement {
                 onMouseEnter={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)' }}
                 onMouseLeave={(e: React.MouseEvent<HTMLDivElement>) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.06)' }}>
                 <Icon size={17} style={{ color: 'rgba(255,255,255,0.7)', marginBottom: 7 }} />
-                <div style={{ fontSize: 12.5, color: 'white', fontWeight: 600, marginBottom: 2 }}>{label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', lineHeight: 1.4 }}>{desc}</div>
+                <div className="!text-[length:12.5px] !font-[600] !mb-[2px]" style={{ color: 'white' }}>{label}</div>
+                <div className="!text-[length:11px] !leading-[1.4]" style={{ color: 'rgba(255,255,255,0.35)' }}>{desc}</div>
               </div>
             ))}
           </div>
 
-          <p style={{ marginTop: 36, fontSize: 11.5, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.03em' }}>
+          <p className="!mt-[36px] !text-[length:11.5px] !tracking-[0.03em]" style={{ color: 'rgba(255,255,255,0.25)' }}>
             {t('login.selfHosted')}{appVersion && <> &middot; v{appVersion}</>}
           </p>
         </div>
@@ -646,34 +593,26 @@ export default function LoginPage(): React.ReactElement {
 
       {/* Right — form */}
       <div
-        className="page-bg"
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px 24px', background: '#f9fafb' }}
+        className="page-bg !flex-[1] !flex !items-center !justify-center !p-[32px_24px]"
+        style={{ background: '#f9fafb' }}
       >
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div className="!w-[100%] !max-w-[400px]">
 
           {/* Mobile logo */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, marginBottom: 36 }}
-            className="mobile-logo">
+          <div
+            className="mobile-logo !flex !flex-col !items-center !gap-[6px] !mb-[36px]">
             <style>{`@media(min-width:1024px){.mobile-logo{display:none!important}}`}</style>
-            <img src="/logo-dark.svg" alt="Trek Wanderer" style={{ height: 48 }} />
-            <p style={{ margin: 0, fontSize: 16, color: '#71717a', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300, letterSpacing: '0.02em', whiteSpace: 'pre-line', textAlign: 'center' }}>{t('login.tagline')}</p>
+            <img className="!h-[48px]" src="/logo-dark.svg" alt="Trek Wanderer" />
+            <p className="!m-[0] !tracking-[0.02em] !whitespace-pre-line !text-center" style={{ fontSize: 16, color: '#71717a', fontFamily: "'Jost', 'Futura', sans-serif", fontWeight: 300 }}>{t('login.tagline')}</p>
           </div>
 
-          <div style={{
-            background: 'rgba(255,255,255,0.90)',
-            backdropFilter: 'blur(40px) saturate(200%)',
-            WebkitBackdropFilter: 'blur(40px) saturate(200%)',
-            borderRadius: 20,
-            border: '1px solid rgba(255,255,255,0.70)',
-            boxShadow: '0 24px 80px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset',
-            padding: '36px 32px',
-          }}>
+          <div className="![backdrop-filter:blur(40px)_saturate(200%)] ![-webkit-backdrop-filter:blur(40px)_saturate(200%)] !rounded-[20px] !p-[36px_32px]" style={{ background: 'rgba(255,255,255,0.90)', border: '1px solid rgba(255,255,255,0.70)', boxShadow: '0 24px 80px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.80) inset' }}>
             {oidcOnly ? (
               <>
-                <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111111' }}>{t('login.title')}</h2>
-                <p style={{ margin: '0 0 24px', fontSize: 13.5, color: '#9ca3af' }}>{noRedirect ? t('login.oidcLoggedOut') : t('login.oidcOnly')}</p>
+                <h2 className="!m-[0_0_4px] !text-[length:22px] !font-[800]" style={{ color: '#111111' }}>{t('login.title')}</h2>
+                <p className="!m-[0_0_24px] !text-[length:13.5px]" style={{ color: '#9ca3af' }}>{noRedirect ? t('login.oidcLoggedOut') : t('login.oidcOnly')}</p>
                 {error && (
-                  <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13, color: '#dc2626', marginBottom: 16 }}>
+                  <div className="!p-[10px_14px] !rounded-[10px] !text-[length:13px] !mb-[16px]" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
                     {error}
                   </div>
                 )}
@@ -696,7 +635,7 @@ export default function LoginPage(): React.ReactElement {
               </>
             ) : (
             <>
-            <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 800, color: '#111111' }}>
+            <h2 className="!m-[0_0_4px] !text-[length:22px] !font-[800]" style={{ color: '#111111' }}>
               {passwordChangeStep
                 ? t('login.setNewPassword')
                 : mode === 'login' && mfaStep
@@ -705,7 +644,7 @@ export default function LoginPage(): React.ReactElement {
                     ? (!appConfig?.has_users ? t('login.createAdmin') : t('login.createAccount'))
                     : t('login.title')}
             </h2>
-            <p style={{ margin: '0 0 28px', fontSize: 13.5, color: '#9ca3af' }}>
+            <p className="!m-[0_0_28px] !text-[length:13.5px]" style={{ color: '#9ca3af' }}>
               {passwordChangeStep
                 ? t('login.setNewPasswordHint')
                 : mode === 'login' && mfaStep
@@ -715,21 +654,21 @@ export default function LoginPage(): React.ReactElement {
                     : t('login.subtitle')}
             </p>
 
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <form className="!flex !flex-col !gap-[16px]" onSubmit={handleSubmit}>
               {error && (
-                <div style={{ padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, fontSize: 13, color: '#dc2626' }}>
+                <div className="!p-[10px_14px] !rounded-[10px] !text-[length:13px]" style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626' }}>
                   {error}
                 </div>
               )}
 
               {passwordChangeStep && (
                 <>
-                  <div style={{ padding: '10px 14px', background: '#fefce8', border: '1px solid #fde68a', borderRadius: 10, fontSize: 13, color: '#92400e' }}>
+                  <div className="!p-[10px_14px] !rounded-[10px] !text-[length:13px]" style={{ background: '#fefce8', border: '1px solid #fde68a', color: '#92400e' }}>
                     {t('settings.mustChangePassword')}
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('settings.newPassword')}</label>
-                    <div style={{ position: 'relative' }}>
+                    <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('settings.newPassword')}</label>
+                    <div className="!relative">
                       <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                       <input
                         type="password" value={newPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)} required
@@ -740,8 +679,8 @@ export default function LoginPage(): React.ReactElement {
                     </div>
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('settings.confirmPassword')}</label>
-                    <div style={{ position: 'relative' }}>
+                    <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('settings.confirmPassword')}</label>
+                    <div className="!relative">
                       <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                       <input
                         type="password" value={confirmPassword} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)} required
@@ -756,8 +695,8 @@ export default function LoginPage(): React.ReactElement {
 
               {mode === 'login' && mfaStep && !passwordChangeStep && (
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('login.mfaCodeLabel')}</label>
-                  <div style={{ position: 'relative' }}>
+                  <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('login.mfaCodeLabel')}</label>
+                  <div className="!relative">
                     <KeyRound size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                     <input
                       type="text"
@@ -772,11 +711,11 @@ export default function LoginPage(): React.ReactElement {
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                     />
                   </div>
-                  <p style={{ fontSize: 12, color: '#9ca3af', marginTop: 8 }}>{t('login.mfaHint')}</p>
-                  <button
+                  <p className="!text-[length:12px] !mt-[8px]" style={{ color: '#9ca3af' }}>{t('login.mfaHint')}</p>
+                  <button className="!mt-[8px] !text-[length:13px] !cursor-pointer !p-[0] ![font-family:inherit]"
                     type="button"
                     onClick={() => { setMfaStep(false); setMfaToken(''); setMfaCode(''); setError('') }}
-                    style={{ marginTop: 8, background: 'none', border: 'none', color: '#6b7280', fontSize: 13, cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}
+                    style={{ background: 'none', border: 'none', color: '#6b7280' }}
                   >
                     {t('login.mfaBack')}
                   </button>
@@ -786,8 +725,8 @@ export default function LoginPage(): React.ReactElement {
               {/* Username (register only) */}
               {mode === 'register' && !passwordChangeStep && (
                 <div>
-                  <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('login.username')}</label>
-                  <div style={{ position: 'relative' }}>
+                  <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('login.username')}</label>
+                  <div className="!relative">
                     <User size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                     <input
                       type="text" value={username} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setUsername(e.target.value)} required
@@ -802,8 +741,8 @@ export default function LoginPage(): React.ReactElement {
               {/* Email */}
               {!(mode === 'login' && mfaStep) && !passwordChangeStep && (
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('common.email')}</label>
-                <div style={{ position: 'relative' }}>
+                <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('common.email')}</label>
+                <div className="!relative">
                   <Mail size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
                   <input
                     type="email" value={email} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)} required
@@ -818,20 +757,16 @@ export default function LoginPage(): React.ReactElement {
               {/* Password */}
               {!(mode === 'login' && mfaStep) && !passwordChangeStep && (
               <div>
-                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: '#374151', marginBottom: 6 }}>{t('common.password')}</label>
-                <div style={{ position: 'relative' }}>
+                <label className="!block !text-[length:12.5px] !font-[600] !mb-[6px]" style={{ color: '#374151' }}>{t('common.password')}</label>
+                <div className="!relative">
                   <Lock size={15} style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }} />
-                  <input
+                  <input className="!pr-[44px]"
                     type={showPassword ? 'text' : 'password'} value={password} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)} required
-                    placeholder="••••••••" style={{ ...inputBase, paddingRight: 44 }}
+                    placeholder="••••••••" style={{ ...inputBase }}
                     onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}
                     onBlur={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#e5e7eb'}
                   />
-                  <button type="button" onClick={() => setShowPassword(v => !v)} style={{
-                    position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                    background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af',
-                    width: 22, height: 22,
-                  }}>
+                  <button className="!absolute !right-[12px] !top-[50%] !cursor-pointer !p-[2px] !w-[22px] !h-[22px]" type="button" onClick={() => setShowPassword(v => !v)} style={{ transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af' }}>
                     <Eye size={16} style={{
                       position: 'absolute', inset: 3,
                       opacity: showPassword ? 0 : 1,
@@ -847,7 +782,7 @@ export default function LoginPage(): React.ReactElement {
                   </button>
                 </div>
                 {mode === 'login' && (
-                  <div style={{ textAlign: 'right', marginTop: 6 }}>
+                  <div className="!text-right !mt-[6px]">
                     <button type="button" onClick={() => navigate('/forgot-password')} style={{
                       background: 'none', border: 'none', cursor: 'pointer', padding: 0,
                       color: '#6b7280', fontSize: 12.5, fontWeight: 500, fontFamily: 'inherit',
@@ -870,7 +805,7 @@ export default function LoginPage(): React.ReactElement {
                 onMouseLeave={(e: React.MouseEvent<HTMLButtonElement>) => e.currentTarget.style.background = '#111111'}
               >
                 {isLoading
-                  ? <><div style={{ width: 15, height: 15, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />{passwordChangeStep ? t('settings.updatePassword') : mode === 'register' ? t('login.creating') : (mode === 'login' && mfaStep ? t('login.mfaVerify') : t('login.signingIn'))}</>
+                  ? <><div className="!w-[15px] !h-[15px] !rounded-[50%]" style={{ border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', animation: 'spin 0.7s linear infinite' }} />{passwordChangeStep ? t('settings.updatePassword') : mode === 'register' ? t('login.creating') : (mode === 'login' && mfaStep ? t('login.mfaVerify') : t('login.signingIn'))}</>
                   : <><Plane size={16} />{passwordChangeStep ? t('settings.updatePassword') : mode === 'register' ? t('login.createAccount') : (mode === 'login' && mfaStep ? t('login.mfaVerify') : t('login.signIn'))}</>
                 }
               </button>
@@ -878,10 +813,10 @@ export default function LoginPage(): React.ReactElement {
 
             {/* Toggle login/register */}
             {showRegisterOption && appConfig?.has_users && !appConfig?.demo_mode && !passwordChangeStep && (
-              <p style={{ textAlign: 'center', marginTop: 16, fontSize: 13, color: '#9ca3af' }}>
+              <p className="!text-center !mt-[16px] !text-[length:13px]" style={{ color: '#9ca3af' }}>
                 {mode === 'login' ? t('login.noAccount') + ' ' : t('login.hasAccount') + ' '}
-                <button onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); setMfaStep(false); setMfaToken(''); setMfaCode('') }}
-                  style={{ background: 'none', border: 'none', color: '#111111', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>
+                <button className="!font-[600] !cursor-pointer ![font-family:inherit] !text-[length:13px]" onClick={() => { setMode(m => m === 'login' ? 'register' : 'login'); setError(''); setMfaStep(false); setMfaToken(''); setMfaCode('') }}
+                  style={{ background: 'none', border: 'none', color: '#111111' }}>
                   {mode === 'login' ? t('login.register') : t('login.signIn')}
                 </button>
               </p>
@@ -892,10 +827,10 @@ export default function LoginPage(): React.ReactElement {
           {/* OIDC / SSO login button (only when OIDC is configured, oidc_login enabled, not in oidc-only mode) */}
           {appConfig?.oidc_configured && appConfig?.oidc_login && !oidcOnly && (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
-                <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
-                <span style={{ fontSize: 12, color: '#9ca3af' }}>{t('common.or')}</span>
-                <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+              <div className="!flex !items-center !gap-[12px] !mt-[16px]">
+                <div className="!flex-[1] !h-[1px]" style={{ background: '#e5e7eb' }} />
+                <span className="!text-[length:12px]" style={{ color: '#9ca3af' }}>{t('common.or')}</span>
+                <div className="!flex-[1] !h-[1px]" style={{ background: '#e5e7eb' }} />
               </div>
               <a href={`/api/auth/oidc/login${inviteToken ? '?invite=' + encodeURIComponent(inviteToken) : ''}`}
                 style={{
@@ -920,10 +855,10 @@ export default function LoginPage(): React.ReactElement {
           {appConfig?.passkey_login && appConfig?.passkey_configured && !oidcOnly && mode === 'login' && !mfaStep && !passwordChangeStep && (
             <>
               {!(appConfig?.oidc_configured && appConfig?.oidc_login) && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 16 }}>
-                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>{t('common.or')}</span>
-                  <div style={{ flex: 1, height: 1, background: '#e5e7eb' }} />
+                <div className="!flex !items-center !gap-[12px] !mt-[16px]">
+                  <div className="!flex-[1] !h-[1px]" style={{ background: '#e5e7eb' }} />
+                  <span className="!text-[length:12px]" style={{ color: '#9ca3af' }}>{t('common.or')}</span>
+                  <div className="!flex-[1] !h-[1px]" style={{ background: '#e5e7eb' }} />
                 </div>
               )}
               <button type="button" onClick={handlePasskeyLogin} disabled={isLoading}

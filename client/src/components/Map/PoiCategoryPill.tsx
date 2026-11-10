@@ -29,7 +29,7 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+    <div className="!flex !flex-col !items-center !gap-[8px]">
       {/* Twelve categories don't fit a phone's width: the pill scrolls sideways instead of overflowing. */}
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: 2, padding: 4, borderRadius: 999, pointerEvents: 'auto', maxWidth: 'calc(100vw - 32px)', overflowX: 'auto', scrollbarWidth: 'none', ...frosted }}>
         {POI_CATEGORIES.map(cat => {
@@ -56,21 +56,14 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
               >
                 {loading ? (
                   <span
-                    className="animate-spin"
-                    style={{
-                      width: 14, height: 14, borderRadius: 999, display: 'inline-block',
-                      border: '2px solid', borderColor: on ? 'rgba(255,255,255,0.45)' : 'var(--border-primary)',
-                      borderTopColor: on ? '#fff' : 'var(--text-muted)',
-                    }}
+                    className="animate-spin !w-[14px] !h-[14px] !rounded-[999px] !inline-block"
+                    style={{ border: '2px solid', borderColor: on ? 'rgba(255,255,255,0.45)' : 'var(--border-primary)', borderTopColor: on ? '#fff' : 'var(--text-muted)' }}
                   />
                 ) : (
                   <cat.Icon size={16} strokeWidth={2} />
                 )}
                 {on && !loading && errorKeys?.has(cat.key) && (
-                  <span style={{
-                    position: 'absolute', top: 2, right: 2, width: 8, height: 8,
-                    borderRadius: 999, background: '#ef4444', border: '1.5px solid var(--sidebar-bg)',
-                  }} />
+                  <span className="!absolute !top-[2px] !right-[2px] !w-[8px] !h-[8px] !rounded-[999px] ![border:1.5px_solid_var(--sidebar-bg)]" style={{ background: '#ef4444' }} />
                 )}
               </button>
             </Tooltip>

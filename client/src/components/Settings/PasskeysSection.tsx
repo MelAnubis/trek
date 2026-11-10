@@ -119,7 +119,7 @@ export default function PasskeysSection({ demoMode }: { demoMode?: boolean }): R
         <h3 className="font-semibold text-base m-0 text-content">{t('settings.passkey.title')}</h3>
       </div>
       <div className="space-y-3">
-        <p className="text-sm m-0 text-content-muted" style={{ lineHeight: 1.5 }}>{t('settings.passkey.description')}</p>
+        <p className="text-sm m-0 text-content-muted !leading-[1.5]">{t('settings.passkey.description')}</p>
 
         {enabled && !configured && (
           <p className="text-sm m-0 text-amber-700">{t('settings.passkey.notConfigured')}</p>

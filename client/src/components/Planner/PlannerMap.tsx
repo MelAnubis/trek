@@ -165,12 +165,12 @@ export default function PlannerMap({
           <CircleMarker key={p.osm_id} center={[p.lat, p.lng]} radius={6}
             pathOptions={{ color: '#fff', fillColor: cat?.color ?? '#64748b', fillOpacity: 0.95, weight: 1.5 }}>
             <Popup>
-              <div style={{ minWidth: 150, fontSize: 12 }}>
-                <div style={{ fontWeight: 700 }}>{cat?.emoji} {p.name || poiLabel(p.category)}</div>
-                <div style={{ color: '#64748b', marginBottom: 6 }}>
+              <div className="!min-w-[150px] !text-[length:12px]">
+                <div className="!font-[700]">{cat?.emoji} {p.name || poiLabel(p.category)}</div>
+                <div className="![color:#64748b] !mb-[6px]">
                   {texts.kmLabel} {p.km.toFixed(1)} · {Math.round(p.offM)} m {texts.offRoute}
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div className="!flex !gap-[6px] !flex-wrap">
                   <button type="button" onClick={() => onAddPoi(p)} style={popupBtn('#16a34a')}>{texts.addPoi}</button>
                   <button type="button" onClick={() => onCutAtPoi(p)} style={popupBtn('#e85d24')}>{texts.cutHere}</button>
                 </div>
@@ -183,8 +183,8 @@ export default function PlannerMap({
       {waypoints.map((w, i) => (
         <Marker key={w.id} position={[w.lat, w.lng]} icon={wpIcons[i]}>
           <Popup>
-            <div style={{ minWidth: 140, fontSize: 12 }}>
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>{w.name || poiLabel(w.type)}</div>
+            <div className="!min-w-[140px] !text-[length:12px]">
+              <div className="!font-[700] !mb-[6px]">{w.name || poiLabel(w.type)}</div>
               <button type="button" onClick={() => onRemoveWaypoint(w.id)} style={popupBtn('#dc2626')}>{texts.remove}</button>
             </div>
           </Popup>

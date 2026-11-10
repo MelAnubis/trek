@@ -9,6 +9,7 @@ import { buildUser, buildSettings } from '../../tests/helpers/factories';
 import { useAuthStore } from '../store/authStore';
 import { useSettingsStore } from '../store/settingsStore';
 import AtlasPage from './AtlasPage';
+import { hasStyle } from '../../tests/helpers/inlineStyle';
 
 // ── Leaflet mock ──────────────────────────────────────────────────────────────
 vi.mock('leaflet', () => {
@@ -781,7 +782,7 @@ describe('AtlasPage', () => {
 
       // Find the delete button inside the Santorini container
       const santoriniEl = screen.getByText('Santorini');
-      const container = santoriniEl.closest('div[style*="position: relative"]') as HTMLElement | null;
+      const container = santoriniEl.closest('div[style*="position: relative"], div[class~="!relative"]') as HTMLElement | null;
       const deleteBtn = container?.querySelector('button') ?? null;
 
       if (deleteBtn) {
@@ -940,7 +941,7 @@ describe('AtlasPage', () => {
           const popup = screen.queryByText(/mark as visited/i);
           if (popup) {
             // Click the backdrop (fixed overlay div)
-            const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"]') as HTMLElement | null;
+            const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"], [class~="!fixed"][class*="!inset-[0"]') as HTMLElement | null;
             if (backdrop) {
               await user.click(backdrop);
               await waitFor(() => {
@@ -1053,7 +1054,7 @@ describe('AtlasPage', () => {
       await waitFor(() => {
         const btns = Array.from(document.querySelectorAll('button'));
         const btn = btns.find(
-          (b) => b.textContent?.toLowerCase().includes('france') && b.style.width === '100%',
+          (b) => b.textContent?.toLowerCase().includes('france') && hasStyle(b, 'width', '100%'),
         );
         if (btn) {
           franceBtn = btn;
@@ -1278,7 +1279,7 @@ describe('AtlasPage', () => {
         () => {
           const els = screen.queryAllByText('Tokyo');
           // Filter to those that are inside the search results dropdown (not the input itself)
-          const resultEl = els.find((el) => el.tagName !== 'INPUT' && el.closest('div[style*="position: absolute"]'));
+          const resultEl = els.find((el) => el.tagName !== 'INPUT' && el.closest('div[style*="position: absolute"], div[class~="!absolute"]'));
           if (!resultEl) throw new Error('Tokyo result not found in dropdown');
           return resultEl;
         },
@@ -1579,7 +1580,7 @@ describe('AtlasPage', () => {
         () => {
           const btns = Array.from(document.querySelectorAll('button'));
           const btn = btns.find(
-            (b) => b.textContent?.includes('Paris') && b.closest('[style*="position: absolute"]'),
+            (b) => b.textContent?.includes('Paris') && b.closest('[style*="position: absolute"], [class~="!absolute"]'),
           );
           if (!btn) throw new Error('Paris dropdown result not found');
           return btn;

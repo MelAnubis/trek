@@ -343,47 +343,47 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   const toggle: React.CSSProperties = { position: 'absolute', top: 12, zIndex: 600, width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border-faint)', background: 'var(--bg-card)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }
 
   return (
-    <div style={{ position: 'absolute', inset: 0, bottom: 'var(--bottom-nav-h)', background: 'var(--bg-secondary)' }}>
+    <div className="!absolute !inset-[0] !bottom-[var(--bottom-nav-h)] ![background:var(--bg-secondary)]">
       <input ref={fileRef} type="file" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) setImportFile(f); e.target.value = '' }} />
 
       {isMobile ? (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-          <div style={{ height: '46%', minHeight: 220, position: 'relative' }}>{map}</div>
-          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', background: 'var(--bg-card)', borderTop: '1px solid var(--border-faint)' }}>
+        <div className="!flex !flex-col !h-[100%]">
+          <div className="!h-[46%] !min-h-[220px] !relative">{map}</div>
+          <div className="!flex-[1] !min-h-[0] !flex !flex-col ![background:var(--bg-card)] ![border-top:1px_solid_var(--border-faint)]">
             {editing && (
-              <div style={{ display: 'flex', gap: 2, padding: 6, borderBottom: '1px solid var(--border-faint)' }}>
+              <div className="!flex !gap-[2px] !p-[6px] ![border-bottom:1px_solid_var(--border-faint)]">
                 {(['editor', 'list'] as const).map(p => (
-                  <button key={p} type="button" onClick={() => setMobilePane(p)}
-                    style={{ flex: 1, padding: '7px', borderRadius: 9, border: 'none', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', background: mobilePane === p ? 'var(--bg-tertiary)' : 'transparent', color: mobilePane === p ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                  <button className="!flex-[1] !p-[7px] !rounded-[9px] ![border:none] ![font-family:inherit] !text-[length:12.5px] !font-[600] !cursor-pointer" key={p} type="button" onClick={() => setMobilePane(p)}
+                    style={{ background: mobilePane === p ? 'var(--bg-tertiary)' : 'transparent', color: mobilePane === p ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                     {p === 'editor' ? t('tours.planner.editTitle') : t('tours.title')}
                   </button>
                 ))}
               </div>
             )}
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <div className="!flex-[1] !min-h-[0] !flex !flex-col">
               {editing && mobilePane === 'editor' ? rail : sidebar}
             </div>
           </div>
         </div>
       ) : (
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <div style={{ position: 'absolute', inset: 0 }}>{map}</div>
+        <div className="!absolute !inset-[0]">
+          <div className="!absolute !inset-[0]">{map}</div>
           {leftOpen ? (
             <>
-              <div style={{ ...panel, position: 'absolute', zIndex: 600, top: 10, bottom: 10, left: 10, width: 330 }}>{rail}</div>
-              <button type="button" onClick={() => setLeftOpen(false)} style={{ ...toggle, left: 350 }} aria-label="collapse"><PanelLeftClose size={15} /></button>
+              <div className="!absolute !z-[600] !top-[10px] !bottom-[10px] !left-[10px] !w-[330px]" style={{ ...panel }}>{rail}</div>
+              <button className="!left-[350px]" type="button" onClick={() => setLeftOpen(false)} style={{ ...toggle }} aria-label="collapse"><PanelLeftClose size={15} /></button>
             </>
           ) : (
-            <button type="button" onClick={() => setLeftOpen(true)} style={{ ...toggle, left: 12 }} aria-label="expand"><PanelLeftOpen size={15} /></button>
+            <button className="!left-[12px]" type="button" onClick={() => setLeftOpen(true)} style={{ ...toggle }} aria-label="expand"><PanelLeftOpen size={15} /></button>
           )}
           {rightOpen ? (
             <>
-              <div style={{ ...panel, position: 'absolute', zIndex: 600, top: 10, bottom: 10, right: 10, width: 300 }}>{sidebar}</div>
-              <button type="button" onClick={() => setRightOpen(false)} style={{ ...toggle, right: 320 }} aria-label="collapse"><PanelRightClose size={15} /></button>
+              <div className="!absolute !z-[600] !top-[10px] !bottom-[10px] !right-[10px] !w-[300px]" style={{ ...panel }}>{sidebar}</div>
+              <button className="!right-[320px]" type="button" onClick={() => setRightOpen(false)} style={{ ...toggle }} aria-label="collapse"><PanelRightClose size={15} /></button>
             </>
           ) : (
-            <button type="button" onClick={() => setRightOpen(true)} style={{ ...toggle, right: 12 }} aria-label="expand"><PanelRightOpen size={15} /></button>
+            <button className="!right-[12px]" type="button" onClick={() => setRightOpen(true)} style={{ ...toggle }} aria-label="expand"><PanelRightOpen size={15} /></button>
           )}
         </div>
       )}

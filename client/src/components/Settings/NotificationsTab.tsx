@@ -171,44 +171,43 @@ export default function NotificationsTab(): React.ReactElement {
   }
 
   const renderContent = () => {
-    if (!matrix) return <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic' }}>{t('common.loading')}</p>
+    if (!matrix) return <p className="!text-[length:12px] ![color:var(--text-faint)] !italic">{t('common.loading')}</p>
 
     if (visibleChannels.length === 0) {
       return (
-        <p style={{ fontSize: 12, color: 'var(--text-faint)', fontStyle: 'italic' }}>
+        <p className="!text-[length:12px] ![color:var(--text-faint)] !italic">
           {t('settings.notificationPreferences.noChannels')}
         </p>
       )
     }
 
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-        {saving && <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>{t('common.saving')}</p>}
+      <div className="!flex !flex-col !gap-[0]">
+        {saving && <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[8px]">{t('common.saving')}</p>}
         {matrix.available_channels.webhook && (
-          <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+          <div className="!mb-[16px] !p-[12px] ![background:var(--bg-secondary)] !rounded-[8px] ![border:1px_solid_var(--border-primary)]">
+            <label className="!block !text-[length:12px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">
               {t('settings.webhookUrl.label')}
             </label>
-            <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.webhookUrl.hint')}</p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
+            <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[8px]">{t('settings.webhookUrl.hint')}</p>
+            <div className="!flex !gap-[8px] !items-center">
+              <input className="!flex-[1] !text-[length:13px] !p-[6px_10px] ![border:1px_solid_var(--border-primary)] !rounded-[6px] ![background:var(--bg-primary)] ![color:var(--text-primary)]"
                 type="text"
                 value={webhookUrl}
                 onChange={e => setWebhookUrl(e.target.value)}
                 placeholder={webhookIsSet ? '••••••••' : t('settings.webhookUrl.placeholder')}
-                style={{ flex: 1, fontSize: 13, padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
-              <button
+              <button className="!text-[length:12px] !p-[6px_12px] ![background:var(--text-primary)] ![color:var(--bg-primary)] ![border:none] !rounded-[6px]"
                 onClick={saveWebhookUrl}
                 disabled={webhookSaving}
-                style={{ fontSize: 12, padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: webhookSaving ? 'not-allowed' : 'pointer', opacity: webhookSaving ? 0.6 : 1 }}
+                style={{ cursor: webhookSaving ? 'not-allowed' : 'pointer', opacity: webhookSaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
-              <button
+              <button className="!text-[length:12px] !p-[6px_12px] ![background:transparent] ![color:var(--text-secondary)] ![border:1px_solid_var(--border-primary)] !rounded-[6px]"
                 onClick={testWebhookUrl}
                 disabled={(!webhookUrl && !webhookIsSet) || webhookTesting}
-                style={{ fontSize: 12, padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 'not-allowed' : 'pointer', opacity: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 0.5 : 1 }}
+                style={{ cursor: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 'not-allowed' : 'pointer', opacity: ((!webhookUrl && !webhookIsSet) || webhookTesting) ? 0.5 : 1 }}
               >
                 {t('settings.webhookUrl.test')}
               </button>
@@ -216,59 +215,55 @@ export default function NotificationsTab(): React.ReactElement {
           </div>
         )}
         {matrix.available_channels.ntfy && (
-          <div style={{ marginBottom: 16, padding: '12px', background: 'var(--bg-secondary)', borderRadius: 8, border: '1px solid var(--border-primary)' }}>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+          <div className="!mb-[16px] !p-[12px] ![background:var(--bg-secondary)] !rounded-[8px] ![border:1px_solid_var(--border-primary)]">
+            <label className="!block !text-[length:12px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">
               {t('settings.ntfyUrl.topicLabel')}
             </label>
-            <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 8 }}>{t('settings.ntfyUrl.hint')}</p>
-            <input
+            <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[8px]">{t('settings.ntfyUrl.hint')}</p>
+            <input className="!w-[100%] !box-border !text-[length:13px] !p-[6px_10px] ![border:1px_solid_var(--border-primary)] !rounded-[6px] ![background:var(--bg-primary)] ![color:var(--text-primary)] !mb-[6px]"
               type="text"
               value={ntfyTopic}
               onChange={e => setNtfyTopic(e.target.value)}
               placeholder={t('settings.ntfyUrl.topicPlaceholder')}
-              style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
             />
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label className="!block !text-[length:12px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">
               {t('settings.ntfyUrl.serverLabel')}
             </label>
-            <input
+            <input className="!w-[100%] !box-border !text-[length:13px] !p-[6px_10px] ![border:1px_solid_var(--border-primary)] !rounded-[6px] ![background:var(--bg-primary)] ![color:var(--text-primary)] !mb-[6px]"
               type="text"
               value={ntfyServer}
               onChange={e => setNtfyServer(e.target.value)}
               placeholder={matrix.defaults?.ntfyServer || t('settings.ntfyUrl.serverPlaceholder')}
-              style={{ width: '100%', boxSizing: 'border-box', fontSize: 13, padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)', marginBottom: 6 }}
             />
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>
+            <label className="!block !text-[length:12px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">
               {t('settings.ntfyUrl.tokenLabel')}
             </label>
-            <p style={{ fontSize: 11, color: 'var(--text-faint)', marginBottom: 4 }}>{t('settings.ntfyUrl.tokenHint')}</p>
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
+            <p className="!text-[length:11px] ![color:var(--text-faint)] !mb-[4px]">{t('settings.ntfyUrl.tokenHint')}</p>
+            <div className="!flex !gap-[8px] !items-center">
+              <input className="!flex-[1] !text-[length:13px] !p-[6px_10px] ![border:1px_solid_var(--border-primary)] !rounded-[6px] ![background:var(--bg-primary)] ![color:var(--text-primary)]"
                 type="password"
                 value={ntfyToken}
                 onChange={e => setNtfyToken(e.target.value)}
                 placeholder={ntfyTokenIsSet ? '••••••••' : ''}
-                style={{ flex: 1, fontSize: 13, padding: '6px 10px', border: '1px solid var(--border-primary)', borderRadius: 6, background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
               />
               {ntfyTokenIsSet && (
-                <button
+                <button className="!text-[length:12px] !p-[6px_12px] ![background:transparent] ![color:var(--color-danger,_#e53e3e)] ![border:1px_solid_var(--color-danger,_#e53e3e)] !rounded-[6px] !cursor-pointer"
                   onClick={clearNtfyToken}
-                  style={{ fontSize: 12, padding: '6px 12px', background: 'transparent', color: 'var(--color-danger, #e53e3e)', border: '1px solid var(--color-danger, #e53e3e)', borderRadius: 6, cursor: 'pointer' }}
                 >
                   {t('common.clear')}
                 </button>
               )}
-              <button
+              <button className="!text-[length:12px] !p-[6px_12px] ![background:var(--text-primary)] ![color:var(--bg-primary)] ![border:none] !rounded-[6px]"
                 onClick={saveNtfySettings}
                 disabled={ntfySaving}
-                style={{ fontSize: 12, padding: '6px 12px', background: 'var(--text-primary)', color: 'var(--bg-primary)', border: 'none', borderRadius: 6, cursor: ntfySaving ? 'not-allowed' : 'pointer', opacity: ntfySaving ? 0.6 : 1 }}
+                style={{ cursor: ntfySaving ? 'not-allowed' : 'pointer', opacity: ntfySaving ? 0.6 : 1 }}
               >
                 {t('common.save')}
               </button>
-              <button
+              <button className="!text-[length:12px] !p-[6px_12px] ![background:transparent] ![color:var(--text-secondary)] ![border:1px_solid_var(--border-primary)] !rounded-[6px]"
                 onClick={testNtfySettings}
                 disabled={!ntfyTopic || ntfyTesting}
-                style={{ fontSize: 12, padding: '6px 12px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-primary)', borderRadius: 6, cursor: (!ntfyTopic || ntfyTesting) ? 'not-allowed' : 'pointer', opacity: (!ntfyTopic || ntfyTesting) ? 0.5 : 1 }}
+                style={{ cursor: (!ntfyTopic || ntfyTesting) ? 'not-allowed' : 'pointer', opacity: (!ntfyTopic || ntfyTesting) ? 0.5 : 1 }}
               >
                 {t('settings.ntfyUrl.test')}
               </button>
@@ -276,10 +271,10 @@ export default function NotificationsTab(): React.ReactElement {
           </div>
         )}
         {/* Header row */}
-        <div style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}`, gap: 4, paddingBottom: 6, marginBottom: 4, borderBottom: '1px solid var(--border-primary)' }}>
+        <div className="!grid !gap-[4px] !pb-[6px] !mb-[4px] ![border-bottom:1px_solid_var(--border-primary)]" style={{ gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}` }}>
           <span />
           {visibleChannels.map(ch => (
-            <span key={ch} style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-faint)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            <span className="!text-[length:11px] !font-[600] ![color:var(--text-faint)] !text-center !uppercase !tracking-[0.04em]" key={ch}>
               {t(CHANNEL_LABEL_KEYS[ch]) || ch}
             </span>
           ))}
@@ -290,17 +285,17 @@ export default function NotificationsTab(): React.ReactElement {
           const relevantChannels = visibleChannels.filter(ch => implementedForEvent.includes(ch))
           if (relevantChannels.length === 0) return null
           return (
-            <div key={eventType} style={{ display: 'grid', gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}`, gap: 4, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-primary)' }}>
-              <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>
+            <div className="!grid !gap-[4px] !items-center !p-[6px_0] ![border-bottom:1px_solid_var(--border-primary)]" key={eventType} style={{ gridTemplateColumns: `1fr ${visibleChannels.map(() => '64px').join(' ')}` }}>
+              <span className="!text-[length:13px] ![color:var(--text-primary)]">
                 {t(EVENT_LABEL_KEYS[eventType]) || eventType}
               </span>
               {visibleChannels.map(ch => {
                 if (!implementedForEvent.includes(ch)) {
-                  return <span key={ch} style={{ textAlign: 'center', color: 'var(--text-faint)', fontSize: 14 }}>—</span>
+                  return <span className="!text-center ![color:var(--text-faint)] !text-[length:14px]" key={ch}>—</span>
                 }
                 const isOn = matrix.preferences[eventType]?.[ch] ?? true
                 return (
-                  <div key={ch} style={{ display: 'flex', justifyContent: 'center' }}>
+                  <div className="!flex !justify-center" key={ch}>
                     <ToggleSwitch on={isOn} onToggle={() => toggle(eventType, ch)} />
                   </div>
                 )

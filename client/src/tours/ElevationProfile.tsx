@@ -34,7 +34,7 @@ export default function ElevationProfile({ geometry, onFocus, height = 110, boun
   }, [geometry])
 
   if (!data) {
-    return <div style={{ fontSize: 12, color: 'var(--text-faint)', padding: '14px 4px' }}>{t('tours.planner.inspector.elevationPlaceholder')}</div>
+    return <div className="!text-[length:12px] ![color:var(--text-faint)] !p-[14px_4px]">{t('tours.planner.inspector.elevationPlaceholder')}</div>
   }
   const H = height
   const x = (d: number) => (d / (data.total || 1)) * W
@@ -53,8 +53,8 @@ export default function ElevationProfile({ geometry, onFocus, height = 110, boun
   }
 
   return (
-    <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-faint)', borderRadius: 12, padding: 8 }}>
-      <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" width="100%" height={H} style={{ display: 'block', touchAction: 'none' }}
+    <div className="![background:var(--bg-secondary)] ![border:1px_solid_var(--border-faint)] !rounded-[12px] !p-[8px]">
+      <svg className="!block ![touch-action:none]" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" width="100%" height={H}
         onPointerMove={onMove} onPointerLeave={() => { setHover(null); onFocus?.(null) }} role="img" aria-label={t('tours.planner.inspector.elevation')}>
         <defs>
           <linearGradient id="tour-elev" x1="0" y1="0" x2="0" y2="1">
@@ -67,9 +67,9 @@ export default function ElevationProfile({ geometry, onFocus, height = 110, boun
         {boundariesM.map((m, i) => <line key={i} data-testid="stage-boundary" x1={x(m)} x2={x(m)} y1={0} y2={H} stroke="var(--text-primary)" strokeOpacity={0.55} strokeWidth={1.2} vectorEffect="non-scaling-stroke" />)}
         {focus && <line x1={x(focus.d)} x2={x(focus.d)} y1={0} y2={H} stroke="var(--text-primary)" strokeWidth={1} strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
       </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'var(--text-faint)', marginTop: 4, minHeight: 14 }}>
+      <div className="!flex !justify-between !text-[length:10.5px] ![color:var(--text-faint)] !mt-[4px] !min-h-[14px]">
         {focus
-          ? <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{t('tours.planner.inspector.profileFocus', { distance: formatDistance(focus.d / 1000), elevation: formatElevation(focus.e) })}</span>
+          ? <span className="![color:var(--text-primary)] !font-[600]">{t('tours.planner.inspector.profileFocus', { distance: formatDistance(focus.d / 1000), elevation: formatElevation(focus.e) })}</span>
           : <><span>0 km</span><span>{formatDistance(data.total / 1000)}</span></>}
       </div>
     </div>

@@ -569,7 +569,7 @@ describe('DayPlanSidebar', () => {
       days: [day], places: [place1, place2], assignments: assigns, selectedDayId: 10,
     })} />)
     // The ExternalLink button is the Google Maps icon-only button (sibling of Optimize button)
-    const routeSection = document.querySelector('[style*="flex-direction: column"]')
+    const routeSection = document.querySelector('[style*="flex-direction: column"], [class~="!flex-col"]')
     const externalLinkBtn = screen.getAllByRole('button').find(btn => {
       const parent = btn.closest('[style*="flex"]')
       return btn.querySelector('svg') && !btn.textContent?.trim() && parent?.textContent?.includes('optimize')
@@ -719,8 +719,8 @@ describe('DayPlanSidebar', () => {
     // Click on the PlaceAvatar wrapper (the lock toggle div) — it's a div with cursor: pointer that wraps the avatar
     const placeEl = screen.getByText('Arc de Triomphe')
     // The lock div is the parent of PlaceAvatar, which is a sibling of the GripVertical div
-    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"]')
-    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"]')
+    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"], [class~="!flex"][class*="!gap-[8"]')
+    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"], [class~="!cursor-pointer"][class~="!relative"]')
     if (lockDiv) {
       await user.click(lockDiv as HTMLElement)
       // After lock: the row should have red border
@@ -770,7 +770,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onAssignToDay })} />)
     // Set drag data as if dragging from the places sidebar
     ;(window as any).__dragData = { placeId: '42' }
-    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"]')
+    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     fireEvent.drop(dayHeader as Element, { dataTransfer: { getData: vi.fn().mockReturnValue('') } })
     expect(onAssignToDay).toHaveBeenCalledWith(42, 10)
     ;(window as any).__dragData = null
@@ -837,7 +837,7 @@ describe('DayPlanSidebar', () => {
     await user.hover(pdfBtn)
     await waitFor(() => {
       // Tooltip text appears (from t('dayplan.pdfTooltip'))
-      const tooltips = document.querySelectorAll('[style*="pointer-events: none"]')
+      const tooltips = document.querySelectorAll('[style*="pointer-events: none"], [class~="!pointer-events-none"]')
       expect(tooltips.length).toBeGreaterThan(0)
     })
   })
@@ -847,7 +847,7 @@ describe('DayPlanSidebar', () => {
   it('FE-PLANNER-DAYPLAN-055: drag over day header sets drag target state', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"]')
+    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     fireEvent.dragOver(dayHeader as Element, { dataTransfer: { dropEffect: 'move' } })
     // dragOverDayId should be set — the day header gets drag-target styling
     expect(dayHeader).toBeTruthy()
@@ -867,7 +867,7 @@ describe('DayPlanSidebar', () => {
         return ''
       },
     }
-    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"]')
+    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     fireEvent.drop(dayHeader as Element, { dataTransfer: dt })
     // tripActions.moveAssignment would be called — just verify no error
     expect(dayHeader).toBeTruthy()
@@ -1043,7 +1043,7 @@ describe('DayPlanSidebar', () => {
         return ''
       },
     }
-    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"]')
+    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     fireEvent.drop(dayHeader as Element, { dataTransfer: dt })
     expect(dayHeader).toBeTruthy()
   })
@@ -1065,7 +1065,7 @@ describe('DayPlanSidebar', () => {
     const draggable = screen.getByText('Place on Day 1').closest('[draggable="true"]')
     fireEvent.dragStart(draggable as Element, { dataTransfer: dt })
     // Drop on day2 header
-    const day2Header = screen.getByText('Day Two').closest('[style*="cursor: pointer"]')
+    const day2Header = screen.getByText('Day Two').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     fireEvent.drop(day2Header as Element, { dataTransfer: { getData: vi.fn().mockReturnValue('') } })
     // tripActions.moveAssignment should have been called (no assertion needed — just coverage)
     expect(day2Header).toBeTruthy()
@@ -1101,7 +1101,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day], onAssignToDay })} />)
     ;(window as any).__dragData = { placeId: '42' }
     // The end drop zone has min-height: 12px and padding 2px 8px
-    const endZone = document.querySelector('[style*="min-height: 12"]')
+    const endZone = document.querySelector('[style*="min-height: 12"], [class*="!min-h-[12"]')
     if (endZone) {
       fireEvent.drop(endZone as Element, { dataTransfer: { getData: vi.fn().mockReturnValue('') } })
       expect(onAssignToDay).toHaveBeenCalledWith(42, 10)
@@ -1240,13 +1240,13 @@ describe('DayPlanSidebar', () => {
       days: [day], places: [place], assignments: { '10': [assignment] },
     })} />)
     const placeEl = screen.getByText('Hovered Place')
-    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"]')
-    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"]')
+    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"], [class~="!flex"][class*="!gap-[8"]')
+    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"], [class~="!cursor-pointer"][class~="!relative"]')
     if (lockDiv) {
       fireEvent.mouseEnter(lockDiv as Element)
       // Lock overlay should appear
       await waitFor(() => {
-        const overlays = document.querySelectorAll('[style*="position: absolute"][style*="inset: 0"]')
+        const overlays = document.querySelectorAll('[style*="position: absolute"][style*="inset: 0"], [class~="!absolute"][class*="!inset-[0"]')
         expect(overlays.length).toBeGreaterThan(0)
       })
     }
@@ -1389,8 +1389,8 @@ describe('DayPlanSidebar', () => {
 
     // Lock the first assignment by clicking its lock area
     const placeEl = screen.getByText('Place Lock')
-    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"]')
-    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"]')
+    const row = placeEl.closest('[style*="display: flex"][style*="gap: 8"], [class~="!flex"][class*="!gap-[8"]')
+    const lockDiv = row?.querySelector('[style*="cursor: pointer"][style*="position: relative"], [class~="!cursor-pointer"][class~="!relative"]')
     if (lockDiv) fireEvent.click(lockDiv as Element)
 
     const optimizeBtn = screen.getByRole('button', { name: /optimize/i })
@@ -1419,7 +1419,7 @@ describe('DayPlanSidebar', () => {
     fireEvent.dragStart(assignmentEl as Element, { dataTransfer: dt })
 
     // Find the transport row and drop on it
-    const transportRows = document.querySelectorAll('[style*="border: 1px solid"][style*="cursor: pointer"]')
+    const transportRows = document.querySelectorAll('[style*="border: 1px solid"][style*="cursor: pointer"], [class*="![border:1px_solid"][class~="!cursor-pointer"]')
     if (transportRows.length > 0) {
       // Drop assignment on transport row
       fireEvent.drop(transportRows[0] as Element, {
@@ -1474,7 +1474,7 @@ describe('DayPlanSidebar', () => {
 
     // The first note should have a down arrow (not at bottom)
     const noteEl = screen.getByText('Note One')
-    const noteCard = noteEl.closest('[style*="display: flex"][style*="gap: 8"]')
+    const noteCard = noteEl.closest('[style*="display: flex"][style*="gap: 8"], [class~="!flex"][class*="!gap-[8"]')
     const buttons = noteCard?.querySelectorAll('.reorder-buttons button')
     if (buttons && buttons.length >= 2) {
       await user.click(buttons[1] as HTMLButtonElement) // down arrow
@@ -1496,7 +1496,7 @@ describe('DayPlanSidebar', () => {
     fireEvent.dragStart(assignmentEl as Element, { dataTransfer: dt })
 
     // Find the end-of-list drop zone (has minHeight: 12 and padding 2px 8px)
-    const endZones = document.querySelectorAll('[style*="min-height: 12"]')
+    const endZones = document.querySelectorAll('[style*="min-height: 12"], [class*="!min-h-[12"]')
     if (endZones.length > 0) {
       fireEvent.dragOver(endZones[0] as Element, { preventDefault: vi.fn() })
     }
@@ -1515,7 +1515,7 @@ describe('DayPlanSidebar', () => {
     })} />)
 
     // The expanded content wrapper is the div with background: var(--bg-hover) paddingTop:6
-    const expandedArea = document.querySelector('[style*="padding-top: 6"]') ||
+    const expandedArea = document.querySelector('[style*="padding-top: 6"], [class*="!pt-[6"]') ||
       document.querySelector('[style*="paddingTop: 6"]')
 
     if (expandedArea) {
@@ -1536,7 +1536,7 @@ describe('DayPlanSidebar', () => {
     const icsBtn = screen.getByRole('button', { name: /ICS/i })
     await user.hover(icsBtn)
     await waitFor(() => {
-      const tooltips = document.querySelectorAll('[style*="pointer-events: none"]')
+      const tooltips = document.querySelectorAll('[style*="pointer-events: none"], [class~="!pointer-events-none"]')
       expect(tooltips.length).toBeGreaterThan(0)
     })
   })
@@ -1546,7 +1546,7 @@ describe('DayPlanSidebar', () => {
   it('FE-PLANNER-DAYPLAN-091: dragLeave on day header clears dragOverDayId', () => {
     const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' })
     render(<DayPlanSidebar {...makeDefaultProps({ days: [day] })} />)
-    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"]')
+    const dayHeader = screen.getByText('Day 1').closest('[style*="cursor: pointer"], [class~="!cursor-pointer"]')
     if (dayHeader) {
       fireEvent.dragOver(dayHeader as Element, { preventDefault: vi.fn() })
       fireEvent.dragLeave(dayHeader as Element, { relatedTarget: document.body })
@@ -1601,7 +1601,7 @@ describe('DayPlanSidebar', () => {
 
     // Click down arrow on 'Early Place' (a1) — would move it after a2, breaking order
     const earlyEl = screen.getByText('Early Place')
-    const row = earlyEl.closest('[style*="display: flex"][style*="gap: 8"]')
+    const row = earlyEl.closest('[style*="display: flex"][style*="gap: 8"], [class~="!flex"][class*="!gap-[8"]')
     const reorderBtns = row?.querySelectorAll('.reorder-buttons button')
     if (reorderBtns && reorderBtns.length >= 2) {
       await user.click(reorderBtns[1] as HTMLButtonElement) // down button
@@ -1633,7 +1633,7 @@ describe('DayPlanSidebar', () => {
     const dt = { setData: vi.fn(), effectAllowed: '', getData: vi.fn().mockReturnValue('') }
     fireEvent.dragStart(draggable1 as Element, { dataTransfer: dt })
 
-    const endZones = document.querySelectorAll('[style*="min-height: 12"]')
+    const endZones = document.querySelectorAll('[style*="min-height: 12"], [class*="!min-h-[12"]')
     if (endZones.length > 0) {
       fireEvent.drop(endZones[0] as Element, { dataTransfer: { getData: vi.fn().mockReturnValue('') } })
     }

@@ -399,7 +399,7 @@ describe('Mobile day-picker (portal)', () => {
     await screen.findByText(/View details/i);
     expect(screen.getAllByText('Dismissable Place')).toHaveLength(2);
     // Click the backdrop (fixed overlay div — first fixed overlay in body)
-    const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"]') as HTMLElement;
+    const backdrop = document.querySelector('[style*="position: fixed"][style*="inset: 0"], [class~="!fixed"][class*="!inset-[0"]') as HTMLElement;
     expect(backdrop).toBeTruthy();
     await user.click(backdrop!);
     await waitFor(() => {

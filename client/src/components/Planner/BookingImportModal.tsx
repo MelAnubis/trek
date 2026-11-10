@@ -182,8 +182,7 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
 
   return ReactDOM.createPortal(
     <div
-      className="bg-[rgba(0,0,0,0.4)]"
-      style={{ position: 'fixed', inset: 0, zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      className="bg-[rgba(0,0,0,0.4)] !fixed !inset-[0] !z-[99999] !flex !items-center !justify-center !p-[16px]"
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) handleClose()
@@ -192,29 +191,28 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="bg-surface-card"
-        style={{ borderRadius: 16, width: '100%', maxWidth: 540, padding: 24, boxShadow: '0 8px 32px rgba(0,0,0,0.2)', fontFamily: "var(--font-system)", maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}
+        className="bg-surface-card !rounded-[16px] !w-[100%] !max-w-[540px] !p-[24px] ![box-shadow:0_8px_32px_rgba(0,0,0,0.2)] ![font-family:var(--font-system)] !max-h-[90vh] !flex !flex-col"
       >
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+        <div className="!flex !items-center !gap-[8px] !mb-[14px]">
           {phase === 'preview' && (
-            <button onClick={() => setPhase('upload')} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+            <button onClick={() => setPhase('upload')} className="bg-transparent text-content-faint ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] !flex !items-center">
               <ArrowLeft size={16} />
             </button>
           )}
-          <div style={{ flex: 1, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <div className="!flex-[1] !text-[length:15px] !font-[700] ![color:var(--text-primary)]">
             {t('reservations.import.title')}
           </div>
-          <button onClick={handleClose} className="bg-transparent text-content-faint" style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+          <button onClick={handleClose} className="bg-transparent text-content-faint ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] !flex !items-center">
             <X size={16} />
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <div className="!flex-[1] !overflow-y-auto !min-h-[0]">
           {/* Upload phase */}
           {phase === 'upload' && (
             <>
-              <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 14, lineHeight: 1.45 }}>
+              <div className="!text-[length:12px] ![color:var(--text-faint)] !mb-[14px] !leading-[1.45]">
                 {t('reservations.import.acceptedFormats')}
               </div>
 
@@ -233,23 +231,16 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
                 onDragEnter={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                className={isDragOver ? 'bg-surface-tertiary' : 'bg-transparent'}
-                style={{
-                  width: '100%', minHeight: 100, borderRadius: 12,
-                  border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 6, fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                  marginBottom: 12, padding: 16, boxSizing: 'border-box',
-                  transition: 'border-color 0.15s, background 0.15s',
-                }}
+                className={[isDragOver ? 'bg-surface-tertiary' : 'bg-transparent', '!w-[100%] !min-h-[100px] !rounded-[12px] !flex !flex-col !items-center !justify-center !gap-[6px] !text-[length:13px] !font-[500] !cursor-pointer !mb-[12px] !p-[16px] !box-border ![transition:border-color_0.15s,_background_0.15s]'].join(' ')}
+                style={{ border: `2px dashed ${isDragOver ? 'var(--accent)' : 'var(--border-primary)'}` }}
               >
                 <Upload size={18} strokeWidth={1.8} color={isDragOver ? 'var(--accent)' : 'var(--text-faint)'} style={{ pointerEvents: 'none' }} />
                 {isDragOver ? (
-                  <span className="text-accent" style={{ pointerEvents: 'none' }}>{t('reservations.import.dropActive')}</span>
+                  <span className="text-accent !pointer-events-none">{t('reservations.import.dropActive')}</span>
                 ) : files.length > 0 ? (
-                  <span style={{ color: 'var(--text-primary)', textAlign: 'center', wordBreak: 'break-all', pointerEvents: 'none' }}>{files.map(f => f.name).join(', ')}</span>
+                  <span className="![color:var(--text-primary)] !text-center !break-all !pointer-events-none">{files.map(f => f.name).join(', ')}</span>
                 ) : (
-                  <span style={{ color: 'var(--text-faint)', textAlign: 'center', pointerEvents: 'none' }}>{t('reservations.import.dropHere')}</span>
+                  <span className="![color:var(--text-faint)] !text-center !pointer-events-none">{t('reservations.import.dropHere')}</span>
                 )}
               </div>
             </>
@@ -258,12 +249,12 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
           {/* Preview phase */}
           {(phase === 'preview' || phase === 'confirming') && (
             <>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+              <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)] !mb-[10px]">
                 {t('reservations.import.previewHeading', { count: previewItems.length })}
               </div>
 
               {previewItems.length === 0 && (
-                <div className="text-content-faint" style={{ fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
+                <div className="text-content-faint !text-[length:13px] !text-center !p-[24px_0]">
                   {t('reservations.import.previewEmpty')}
                 </div>
               )}
@@ -277,47 +268,41 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
                 return (
                   <div
                     key={`${item.source.fileName}-${idx}`}
-                    className={isExcluded ? 'bg-surface-tertiary' : 'bg-surface-secondary'}
-                    style={{
-                      borderRadius: 10, padding: '10px 12px', marginBottom: 8,
-                      border: `1px solid ${isExcluded ? 'var(--border-faint)' : 'var(--border-primary)'}`,
-                      opacity: isExcluded ? 0.5 : 1, transition: 'opacity 0.15s',
-                      display: 'flex', gap: 10, alignItems: 'flex-start',
-                    }}
+                    className={[isExcluded ? 'bg-surface-tertiary' : 'bg-surface-secondary', '!rounded-[10px] !p-[10px_12px] !mb-[8px] ![transition:opacity_0.15s] !flex !gap-[10px] !items-start'].join(' ')}
+                    style={{ border: `1px solid ${isExcluded ? 'var(--border-faint)' : 'var(--border-primary)'}`, opacity: isExcluded ? 0.5 : 1 }}
                   >
-                    <div style={{ flexShrink: 0, marginTop: 2 }}>
+                    <div className="!shrink-[0] !mt-[2px]">
                       <Icon size={15} color={typeColor(item.type)} />
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div className="!flex-[1] !min-w-[0]">
+                      <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)] !mb-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap">
                         {item.title}
                       </div>
                       {fromEp && toEp && (
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
+                        <div className="!text-[length:11px] ![color:var(--text-muted)] !mb-[2px]">
                           {fromEp.code ?? fromEp.name} → {toEp.code ?? toEp.name}
                         </div>
                       )}
                       {item.reservation_time && (
-                        <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                        <div className="!text-[length:11px] ![color:var(--text-faint)]">
                           {formatDateTime(item.reservation_time)}
                           {item.reservation_end_time && ` – ${formatDateTime(item.reservation_end_time)}`}
                         </div>
                       )}
                       {item._accommodation?.check_in && (
-                        <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
+                        <div className="!text-[length:11px] ![color:var(--text-faint)]">
                           {formatDateTime(item._accommodation.check_in)} – {formatDateTime(item._accommodation.check_out)}
                         </div>
                       )}
                       {item.confirmation_number && (
-                        <div style={{ fontSize: 11, color: 'var(--text-faint)', fontFamily: 'monospace' }}>
+                        <div className="!text-[length:11px] ![color:var(--text-faint)] ![font-family:monospace]">
                           {item.confirmation_number}
                         </div>
                       )}
                     </div>
                     <button
                       onClick={() => toggleExclude(idx)}
-                      className="bg-transparent text-content-faint"
-                      style={{ border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, flexShrink: 0, fontSize: 11, fontFamily: 'inherit', fontWeight: 500 }}
+                      className="bg-transparent text-content-faint ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] !shrink-[0] !text-[length:11px] ![font-family:inherit] !font-[500]"
                       title={t('reservations.import.removeItem')}
                     >
                       {isExcluded ? '＋' : <X size={12} />}
@@ -330,24 +315,23 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
 
           {/* Warnings */}
           {warnings.length > 0 && (
-            <div className="bg-[rgba(245,158,11,0.08)] text-[#92400e]" style={{ border: '1px solid rgba(245,158,11,0.3)', borderRadius: 10, padding: '8px 10px', fontSize: 12, marginTop: 8, whiteSpace: 'pre-wrap' }}>
+            <div className="bg-[rgba(245,158,11,0.08)] text-[#92400e] ![border:1px_solid_rgba(245,158,11,0.3)] !rounded-[10px] !p-[8px_10px] !text-[length:12px] !mt-[8px] !whitespace-pre-wrap">
               {warnings.join('\n')}
             </div>
           )}
 
           {/* Error */}
           {error && (
-            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c]" style={{ border: '1px solid rgba(239,68,68,0.35)', borderRadius: 10, padding: '8px 10px', fontSize: 12, whiteSpace: 'pre-wrap', marginTop: 8 }}>
+            <div className="bg-[rgba(239,68,68,0.08)] text-[#b91c1c] ![border:1px_solid_rgba(239,68,68,0.35)] !rounded-[10px] !p-[8px_10px] !text-[length:12px] !whitespace-pre-wrap !mt-[8px]">
               {error}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border-faint)' }}>
-          <button
+        <div className="!flex !gap-[8px] !justify-end !mt-[14px] !pt-[14px] ![border-top:1px_solid_var(--border-faint)]">
+          <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-primary)] !text-[length:13px] !font-[500] !cursor-pointer ![font-family:inherit]"
             onClick={handleClose}
-            style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}
           >
             {t('common.cancel')}
           </button>
@@ -356,8 +340,8 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
             <button
               onClick={handleParse}
               disabled={files.length === 0 || loading}
-              className={files.length > 0 && !loading ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
-              style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 500, cursor: files.length > 0 && !loading ? 'pointer' : 'default', fontFamily: 'inherit' }}
+              className={[files.length > 0 && !loading ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint', '!p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[500] ![font-family:inherit]'].join(' ')}
+              style={{ cursor: files.length > 0 && !loading ? 'pointer' : 'default' }}
             >
               {loading ? t('reservations.import.parsing') : t('common.import')}
             </button>
@@ -367,8 +351,8 @@ export default function BookingImportModal({ isOpen, onClose, tripId, pushUndo }
             <button
               onClick={handleConfirm}
               disabled={activeCount === 0 || phase === 'confirming'}
-              className={activeCount > 0 && phase !== 'confirming' ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint'}
-              style={{ padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 500, cursor: activeCount > 0 && phase !== 'confirming' ? 'pointer' : 'default', fontFamily: 'inherit' }}
+              className={[activeCount > 0 && phase !== 'confirming' ? 'bg-accent text-accent-text' : 'bg-surface-tertiary text-content-faint', '!p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[500] ![font-family:inherit]'].join(' ')}
+              style={{ cursor: activeCount > 0 && phase !== 'confirming' ? 'pointer' : 'default' }}
             >
               {phase === 'confirming' ? t('common.loading') : t('reservations.import.confirm', { count: activeCount })}
             </button>

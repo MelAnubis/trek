@@ -40,13 +40,7 @@ export default function ConfirmDialog({
 
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter"
-      style={{
-        backgroundColor: 'var(--modal-backdrop)',
-        backdropFilter: 'blur(12px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        paddingBottom: 'var(--bottom-nav-h)',
-      }}
+      className="fixed inset-0 z-[10000] flex items-center justify-center px-4 trek-backdrop-enter ![background-color:var(--modal-backdrop)] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !pb-[var(--bottom-nav-h)]"
       onClick={onClose}
     >
       <div
@@ -56,20 +50,16 @@ export default function ConfirmDialog({
         <div className="flex items-start gap-4">
           {danger && (
             <div
-              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'rgba(239,68,68,0.12)',
-                border: '1px solid rgba(239,68,68,0.20)',
-              }}
+              className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ![background:rgba(239,68,68,0.12)] ![border:1px_solid_rgba(239,68,68,0.20)]"
             >
               <AlertTriangle className="w-5 h-5" style={{ color: '#ef4444' }} />
             </div>
           )}
           <div className="flex-1">
-            <h3 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>
+            <h3 className="text-base font-semibold ![color:var(--text-primary)]">
               {title || t('common.confirm')}
             </h3>
-            <p className="mt-1 text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="mt-1 text-sm ![color:var(--text-secondary)]">
               {message}
             </p>
           </div>
@@ -78,12 +68,7 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-2.5 mt-6">
           <button
             onClick={onClose}
-            className="trek-hover px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
-            style={{
-              color: 'var(--text-secondary)',
-              background: 'var(--glass-bg-subtle)',
-              border: '1px solid var(--glass-border)',
-            }} >
+            className="trek-hover px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150 ![color:var(--text-secondary)] ![background:var(--glass-bg-subtle)] ![border:1px_solid_var(--glass-border)]" >
             {cancelLabel || t('common.cancel')}
           </button>
           <button

@@ -30,20 +30,8 @@ export function CopyButton({ value, size = 14, title, className, onCopy }: CopyB
       type="button"
       onClick={handleClick}
       title={title}
-      className={className}
-      style={{
-        position: 'relative',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: size + 12,
-        height: size + 12,
-        border: 'none',
-        background: 'transparent',
-        color: copied ? '#22c55e' : 'var(--text-muted)',
-        cursor: 'pointer',
-        borderRadius: 6,
-      }}
+      className={[className, '!relative !inline-flex !items-center !justify-center ![border:none] ![background:transparent] !cursor-pointer !rounded-[6px]'].join(' ')}
+      style={{ width: size + 12, height: size + 12, color: copied ? '#22c55e' : 'var(--text-muted)' }}
     >
       <Copy size={size} style={{
         position: 'absolute',

@@ -87,55 +87,47 @@ function CreatePollModal({ onClose, onCreate, t }: CreatePollModalProps) {
   }
 
   return ReactDOM.createPortal(
-    <div style={{ position: 'fixed', inset: 0, background: 'var(--overlay-bg, rgba(0,0,0,0.35))', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 16, fontFamily: FONT }} onClick={onClose}>
-      <form style={{ background: 'var(--bg-card)', borderRadius: 16, width: '100%', maxWidth: 400, maxHeight: '90vh', overflow: 'auto', border: '1px solid var(--border-faint)' }} onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px 12px', borderBottom: '1px solid var(--border-faint)' }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{t('collab.polls.new')}</h3>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 2, display: 'flex' }}><X size={16} /></button>
+    <div className="!fixed !inset-[0] ![background:var(--overlay-bg,_rgba(0,0,0,0.35))] ![backdrop-filter:blur(6px)] ![-webkit-backdrop-filter:blur(6px)] !flex !items-center !justify-center !z-[9999] !p-[16px]" style={{ fontFamily: FONT }} onClick={onClose}>
+      <form className="![background:var(--bg-card)] !rounded-[16px] !w-[100%] !max-w-[400px] !max-h-[90vh] !overflow-auto ![border:1px_solid_var(--border-faint)]" onClick={e => e.stopPropagation()} onSubmit={handleSubmit}>
+        <div className="!flex !items-center !justify-between !p-[14px_16px_12px] ![border-bottom:1px_solid_var(--border-faint)]">
+          <h3 className="!text-[length:14px] !font-[700] ![color:var(--text-primary)] !m-[0]">{t('collab.polls.new')}</h3>
+          <button className="![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !p-[2px] !flex" type="button" onClick={onClose}><X size={16} /></button>
         </div>
-        <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="!p-[14px_16px_16px] !flex !flex-col !gap-[12px]">
           {/* Question */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.question')}</div>
-            <input autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder') || 'Ask a question...'} style={{ width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 13, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }} />
+            <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.05em] !mb-[4px]">{t('collab.polls.question')}</div>
+            <input className="!w-[100%] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none] !box-border" autoFocus value={question} onChange={e => setQuestion(e.target.value)} placeholder={t('collab.polls.questionPlaceholder') || 'Ask a question...'} />
           </div>
 
           {/* Options */}
           <div>
-            <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{t('collab.polls.options')}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.05em] !mb-[4px]">{t('collab.polls.options')}</div>
+            <div className="!flex !flex-col !gap-[6px]">
               {options.map((opt, i) => (
-                <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <input value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`${t('collab.polls.option')} ${i + 1}`}
-                    style={{ flex: 1, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '8px 12px', fontSize: 13, background: 'var(--bg-input)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }} />
+                <div className="!flex !gap-[6px] !items-center" key={i}>
+                  <input className="!flex-[1] ![border:1px_solid_var(--border-primary)] !rounded-[10px] !p-[8px_12px] !text-[length:13px] ![background:var(--bg-input)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none]" value={opt} onChange={e => updateOption(i, e.target.value)} placeholder={`${t('collab.polls.option')} ${i + 1}`} />
                   {options.length > 2 && (
-                    <button type="button" onClick={() => removeOption(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 2 }}><X size={14} /></button>
+                    <button className="![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !p-[2px]" type="button" onClick={() => removeOption(i)}><X size={14} /></button>
                   )}
                 </div>
               ))}
-              <button type="button" onClick={addOption} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', borderRadius: 10, border: '1px dashed var(--border-faint)', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', fontSize: 12, fontFamily: FONT }}>
+              <button className="!flex !items-center !gap-[4px] !p-[6px_12px] !rounded-[10px] ![border:1px_dashed_var(--border-faint)] ![background:transparent] !cursor-pointer ![color:var(--text-faint)]" type="button" onClick={addOption} style={{ fontSize: 12, fontFamily: FONT }}>
                 <Plus size={12} /> {t('collab.polls.addOption')}
               </button>
             </div>
           </div>
 
           {/* Multi choice toggle */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <div onClick={() => setMultiChoice(!multiChoice)} style={{
-              width: 36, height: 20, borderRadius: 10, padding: 2, cursor: 'pointer',
-              background: multiChoice ? '#007AFF' : 'var(--border-primary)', transition: 'background 0.2s',
-              display: 'flex', alignItems: 'center',
-            }}>
-              <div style={{ width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'transform 0.2s', transform: multiChoice ? 'translateX(16px)' : 'translateX(0)' }} />
+          <label className="!flex !items-center !gap-[8px] !cursor-pointer">
+            <div className="!w-[36px] !h-[20px] !rounded-[10px] !p-[2px] !cursor-pointer ![transition:background_0.2s] !flex !items-center" onClick={() => setMultiChoice(!multiChoice)} style={{ background: multiChoice ? '#007AFF' : 'var(--border-primary)' }}>
+              <div className="!w-[16px] !h-[16px] !rounded-[50%] ![background:#fff] ![transition:transform_0.2s]" style={{ transform: multiChoice ? 'translateX(16px)' : 'translateX(0)' }} />
             </div>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', fontFamily: FONT }}>{t('collab.polls.multiChoice')}</span>
+            <span className="![color:var(--text-muted)]" style={{ fontSize: 12, fontFamily: FONT }}>{t('collab.polls.multiChoice')}</span>
           </label>
 
           {/* Submit */}
-          <button type="submit" disabled={!canSubmit} style={{
-            width: '100%', borderRadius: 99, padding: '9px 14px', background: canSubmit ? 'var(--accent)' : 'var(--border-primary)',
-            color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 13, fontWeight: 600, border: 'none', cursor: canSubmit ? 'pointer' : 'default', fontFamily: FONT,
-          }}>
+          <button className="!w-[100%] !rounded-[99px] !p-[9px_14px] ![border:none]" type="submit" disabled={!canSubmit} style={{ background: canSubmit ? 'var(--accent)' : 'var(--border-primary)', color: canSubmit ? 'var(--accent-text)' : 'var(--text-faint)', fontSize: 13, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'default', fontFamily: FONT }}>
             {submitting ? '...' : t('collab.polls.create')}
           </button>
         </div>
@@ -173,16 +165,10 @@ function VoterChip({ voter, offset }: VoterChipProps) {
           fontSize: 7, fontWeight: 700, color: 'var(--text-muted)', overflow: 'hidden',
           border: '1.5px solid var(--bg-card)', marginLeft: offset ? -5 : 0, flexShrink: 0,
         }}>
-        {voter.avatar_url ? <img src={voter.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (voter.username || '?')[0].toUpperCase()}
+        {voter.avatar_url ? <img className="!w-[100%] !h-[100%] !object-cover" src={voter.avatar_url} /> : (voter.username || '?')[0].toUpperCase()}
       </div>
       {hover && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
-          pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
-          background: 'var(--bg-card)', color: 'var(--text-primary)',
-          fontSize: 11, fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint)',
-        }}>
+        <div className="!fixed !pointer-events-none !z-[10000] !whitespace-nowrap ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint)]" style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }}>
           {voter.username}
         </div>,
         document.body
@@ -209,51 +195,43 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
   const hasVoted = (poll.options || []).some(o => (o.voters || []).some(v => String(v.user_id) === String(currentUser.id)))
 
   return (
-    <div style={{
-      borderRadius: 14, border: '1px solid var(--border-faint)', overflow: 'hidden',
-      background: 'var(--bg-card)', fontFamily: FONT,
-    }}>
+    <div className="!rounded-[14px] ![border:1px_solid_var(--border-faint)] !overflow-hidden ![background:var(--bg-card)]" style={{ fontFamily: FONT }}>
       {/* Header */}
-      <div style={{
-        padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 8,
-        background: isClosed ? 'var(--bg-secondary)' : 'transparent',
-      }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.35, wordBreak: 'break-word' }}>
+      <div className="!p-[10px_12px] !flex !items-start !gap-[8px]" style={{ background: isClosed ? 'var(--bg-secondary)' : 'transparent' }}>
+        <div className="!flex-[1] !min-w-[0]">
+          <div className="!text-[length:13px] !font-[700] ![color:var(--text-primary)] !leading-[1.35] !break-words">
             {poll.question}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, flexWrap: 'wrap' }}>
+          <div className="!flex !items-center !gap-[6px] !mt-[4px] !flex-wrap">
             {isClosed && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
+              <span className="!inline-flex !items-center !gap-[3px] !text-[length:9px] !font-[600] ![color:var(--text-faint)] ![background:var(--bg-tertiary)] !p-[2px_7px] !rounded-[99px]">
                 <Lock size={8} /> {t('collab.polls.closed')}
               </span>
             )}
             {remaining && !isClosed && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 9, fontWeight: 600, color: '#f59e0b', background: '#f59e0b18', padding: '2px 7px', borderRadius: 99 }}>
+              <span className="!inline-flex !items-center !gap-[3px] !text-[length:9px] !font-[600] ![color:#f59e0b] ![background:#f59e0b18] !p-[2px_7px] !rounded-[99px]">
                 <Clock size={8} /> {remaining}
               </span>
             )}
             {poll.multiple_choice && (
-              <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-tertiary)', padding: '2px 7px', borderRadius: 99 }}>
+              <span className="!text-[length:9px] !font-[600] ![color:var(--text-faint)] ![background:var(--bg-tertiary)] !p-[2px_7px] !rounded-[99px]">
                 {t('collab.polls.multiChoice')}
               </span>
             )}
-            <span style={{ fontSize: 9, color: 'var(--text-faint)' }}>
+            <span className="!text-[length:9px] ![color:var(--text-faint)]">
               {total} {total === 1 ? 'vote' : 'votes'}
             </span>
           </div>
         </div>
         {/* Actions */}
         {canEdit && (
-          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+          <div className="!flex !gap-[2px] !shrink-[0]">
             {!isClosed && (
-              <button className="trek-hover-text" onClick={() => onClose(poll.id)} title={t('collab.polls.close')}
-                style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
+              <button className="trek-hover-text !p-[4px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !rounded-[6px]" onClick={() => onClose(poll.id)} title={t('collab.polls.close')}>
                 <Lock size={12} />
               </button>
             )}
-            <button className="trek-hover-danger" onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}
-              style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
+            <button className="trek-hover-danger !p-[4px] ![background:none] ![border:none] !cursor-pointer ![color:var(--text-faint)] !flex !rounded-[6px]" onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}>
               <Trash2 size={12} />
             </button>
           </div>
@@ -261,7 +239,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
       </div>
 
       {/* Options */}
-      <div style={{ padding: '4px 12px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div className="!p-[4px_12px_12px] !flex !flex-col !gap-[6px]">
         {(poll.options || []).map((opt, idx) => {
           const count = opt.voters?.length || 0
           const pct = total > 0 ? Math.round((count / total) * 100) : 0
@@ -281,35 +259,21 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
               onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
             >
               {/* Progress bar background */}
-              <div style={{
-                position: 'absolute', left: 0, top: 0, bottom: 0,
-                width: `${pct}%`, borderRadius: 10,
-                background: myVote ? '#007AFF20' : isWinner ? '#10b98118' : 'var(--bg-tertiary)',
-                transition: 'width 0.4s ease',
-              }} />
+              <div className="!absolute !left-[0] !top-[0] !bottom-[0] !rounded-[10px] ![transition:width_0.4s_ease]" style={{ width: `${pct}%`, background: myVote ? '#007AFF20' : isWinner ? '#10b98118' : 'var(--bg-tertiary)' }} />
 
               {/* Check circle */}
-              <div style={{
-                width: 20, height: 20, borderRadius: '50%', flexShrink: 0, position: 'relative',
-                border: myVote ? '2px solid #007AFF' : '2px solid var(--border-primary)',
-                background: myVote ? '#007AFF' : 'transparent',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.2s',
-              }}>
+              <div className="!w-[20px] !h-[20px] !rounded-[50%] !shrink-[0] !relative !flex !items-center !justify-center ![transition:all_0.2s]" style={{ border: myVote ? '2px solid #007AFF' : '2px solid var(--border-primary)', background: myVote ? '#007AFF' : 'transparent' }}>
                 {myVote && <Check size={11} color="#fff" strokeWidth={3} />}
               </div>
 
               {/* Label */}
-              <span style={{
-                flex: 1, fontSize: 13, fontWeight: myVote || isWinner ? 600 : 400,
-                color: 'var(--text-primary)', position: 'relative', zIndex: 1,
-              }}>
+              <span className="!flex-[1] ![color:var(--text-primary)] !relative !z-[1]" style={{ fontSize: 13, fontWeight: myVote || isWinner ? 600 : 400 }}>
                 {typeof opt === 'string' ? opt : opt.label || opt.text}
               </span>
 
               {/* Voter avatars */}
               {(opt.voters || []).length > 0 && (hasVoted || isClosed) && (
-                <div style={{ display: 'flex', position: 'relative', zIndex: 1 }}>
+                <div className="!flex !relative !z-[1]">
                   {(opt.voters || []).slice(0, 3).map((v, vi) => (
                     <VoterChip key={v.user_id || vi} voter={v} offset={vi > 0} />
                   ))}
@@ -318,10 +282,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
 
               {/* Percentage */}
               {(hasVoted || isClosed) && (
-                <span style={{
-                  fontSize: 12, fontWeight: 700, color: myVote ? '#007AFF' : 'var(--text-muted)',
-                  position: 'relative', zIndex: 1, minWidth: 32, textAlign: 'right',
-                }}>
+                <span className="!text-[length:12px] !font-[700] !relative !z-[1] !min-w-[32px] !text-right" style={{ color: myVote ? '#007AFF' : 'var(--text-muted)' }}>
                   {pct}%
                 </span>
               )}
@@ -418,49 +379,45 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
 
   if (loading) {
     return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: FONT }}>
-        <div style={{ width: 20, height: 20, border: '2px solid var(--border-primary)', borderTopColor: 'var(--text-primary)', borderRadius: '50%', animation: 'collab-poll-spin 0.7s linear infinite' }} />
+      <div className="!h-[100%] !flex !items-center !justify-center" style={{ fontFamily: FONT }}>
+        <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-poll-spin 0.7s linear infinite' }} />
         <style>{`@keyframes collab-poll-spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
   }
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', fontFamily: FONT }}>
+    <div className="!h-[100%] !flex !flex-col" style={{ fontFamily: FONT }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', flexShrink: 0 }}>
-        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 7, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+      <div className="!flex !items-center !justify-between !p-[10px_16px] !shrink-[0]">
+        <h3 className="!m-[0] !text-[length:12px] !font-[600] ![color:var(--text-muted)] !flex !items-center !gap-[7px] !tracking-[0.3px] !uppercase">
           <BarChart3 size={14} color="var(--text-faint)" />
           {t('collab.polls.title')}
         </h3>
         {canEdit && (
-          <button onClick={() => setShowForm(true)} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 4, borderRadius: 99, padding: '6px 12px',
-            background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 11, fontWeight: 600,
-            fontFamily: FONT, border: 'none', cursor: 'pointer',
-          }}>
+          <button className="!inline-flex !items-center !gap-[4px] !rounded-[99px] !p-[6px_12px] ![background:var(--accent)] ![color:var(--accent-text)] ![border:none] !cursor-pointer" onClick={() => setShowForm(true)} style={{ fontSize: 11, fontWeight: 600, fontFamily: FONT }}>
             <Plus size={12} /> {t('collab.polls.new')}
           </button>
         )}
       </div>
 
       {/* Content */}
-      <div className="chat-scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
+      <div className="chat-scroll !flex-[1] !overflow-y-auto !p-[0_12px_12px]">
         {polls.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', textAlign: 'center', height: '100%' }}>
+          <div className="!flex !flex-col !items-center !justify-center !p-[48px_20px] !text-center !h-[100%]">
             <BarChart3 size={36} color="var(--text-faint)" strokeWidth={1.3} style={{ marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>{t('collab.polls.empty')}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('collab.polls.emptyHint')}</div>
+            <div className="!text-[length:14px] !font-[600] ![color:var(--text-secondary)] !mb-[4px]">{t('collab.polls.empty')}</div>
+            <div className="!text-[length:12px] ![color:var(--text-faint)]">{t('collab.polls.emptyHint')}</div>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div className="!flex !flex-col !gap-[10px]">
             {activePolls.length > 0 && activePolls.map(poll => (
               <PollCard key={poll.id} poll={poll} currentUser={currentUser} canEdit={canEdit} onVote={handleVote} onClose={handleClose} onDelete={handleDelete} t={t} />
             ))}
             {closedPolls.length > 0 && (
               <>
                 {activePolls.length > 0 && (
-                  <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, padding: '8px 0 2px' }}>
+                  <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !uppercase !tracking-[0.3px] !p-[8px_0_2px]">
                     {t('collab.polls.closedSection') || 'Closed'}
                   </div>
                 )}

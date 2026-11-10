@@ -35,25 +35,15 @@ export default function TurnInstruction({ instruction, userLat, userLng, isDevia
 
   if (isDeviated) {
     return (
-      <div style={{
-        background: 'rgba(239,68,68,0.92)',
-        backdropFilter: 'blur(12px)',
-        WebkitBackdropFilter: 'blur(12px)',
-        padding: '12px 16px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-      }}>
+      <div className="![background:rgba(239,68,68,0.92)] ![backdrop-filter:blur(12px)] ![-webkit-backdrop-filter:blur(12px)] !p-[12px_16px] !flex !items-center !gap-[12px] ![border-top:1px_solid_rgba(255,255,255,0.1)]">
         <AlertTriangle size={24} color="#fff" />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Fuera de ruta</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Recalculando camino de vuelta…</div>
+        <div className="!flex-[1]">
+          <div className="!text-[length:14px] !font-[700] ![color:#fff]">Fuera de ruta</div>
+          <div className="!text-[length:12px] ![color:rgba(255,255,255,0.8)]">Recalculando camino de vuelta…</div>
         </div>
         {onRecenter && (
-          <button
+          <button className="![background:rgba(255,255,255,0.2)] ![border:none] !rounded-[8px] !p-[6px_12px] ![color:#fff] !text-[length:12px] !font-[600] !cursor-pointer"
             onClick={onRecenter}
-            style={{ background: 'rgba(255,255,255,0.2)', border: 'none', borderRadius: 8, padding: '6px 12px', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
           >
             Centrar
           </button>
@@ -63,43 +53,22 @@ export default function TurnInstruction({ instruction, userLat, userLng, isDevia
   }
 
   return (
-    <div style={{
-      background: 'rgba(10,10,20,0.92)',
-      backdropFilter: 'blur(16px)',
-      WebkitBackdropFilter: 'blur(16px)',
-      padding: '12px 16px',
-      display: 'flex',
-      alignItems: 'center',
-      gap: 14,
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-    }}>
+    <div className="![background:rgba(10,10,20,0.92)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] !p-[12px_16px] !flex !items-center !gap-[14px] ![border-top:1px_solid_rgba(255,255,255,0.08)]">
       {/* Arrow icon */}
-      <div style={{
-        width: 48, height: 48,
-        borderRadius: 12,
-        background: 'rgba(59,130,246,0.2)',
-        border: '1px solid rgba(59,130,246,0.3)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
+      <div className="!w-[48px] !h-[48px] !rounded-[12px] ![background:rgba(59,130,246,0.2)] ![border:1px_solid_rgba(59,130,246,0.3)] !flex !items-center !justify-center !shrink-[0]">
         <ManeuverIcon direction={direction} size={26} />
       </div>
 
       {/* Text */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 18, fontWeight: 800, color: '#f1f5f9', lineHeight: 1.1 }}>{distText}</div>
+      <div className="!flex-[1] !min-w-[0]">
+        <div className="!text-[length:18px] !font-[800] ![color:#f1f5f9] !leading-[1.1]">{distText}</div>
         {instruction.name && (
-          <div style={{
-            fontSize: 13, color: '#94a3b8', marginTop: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
+          <div className="!text-[length:13px] ![color:#94a3b8] !mt-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap">
             {humanizeModifier(instruction.modifier)} · {instruction.name}
           </div>
         )}
         {!instruction.name && (
-          <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{humanizeType(instruction.type, instruction.modifier)}</div>
+          <div className="!text-[length:12px] ![color:#64748b] !mt-[2px]">{humanizeType(instruction.type, instruction.modifier)}</div>
         )}
       </div>
 

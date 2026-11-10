@@ -55,11 +55,7 @@ export default function MarkdownToolbar({ textareaRef, onUpdate, dark }: Props) 
   }
 
   return (
-    <div style={{
-      display: 'flex', gap: 2, padding: '6px 4px',
-      borderBottom: `1px solid var(--journal-border)`,
-      overflowX: 'auto',
-    }}>
+    <div className="!flex !gap-[2px] !p-[6px_4px] ![border-bottom:1px_solid_var(--journal-border)] !overflow-x-auto">
       {ACTIONS.map(a => (
         <button
           key={a.label}

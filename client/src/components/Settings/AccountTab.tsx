@@ -173,7 +173,7 @@ export default function AccountTab(): React.ReactElement {
 
         {/* Change Password */}
         {!oidcOnlyMode && (
-          <div style={{ paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
+          <div className="!pt-[16px] !mt-[16px] ![border-top:1px_solid_var(--border-secondary)]">
             <label className="block text-sm font-medium text-slate-700 mb-3">{t('settings.changePassword')}</label>
             <div className="space-y-3">
               <input
@@ -212,8 +212,7 @@ export default function AccountTab(): React.ReactElement {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
                 }}
-                className="trek-hover flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }} >
+                className="trek-hover flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-secondary)]" >
                 <Lock size={14} />
                 {t('settings.updatePassword')}
               </button>
@@ -222,25 +221,24 @@ export default function AccountTab(): React.ReactElement {
         )}
 
         {/* MFA */}
-        <div style={{ paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border-secondary)' }}>
+        <div className="!pt-[16px] !mt-[16px] ![border-top:1px_solid_var(--border-secondary)]">
           <div className="flex items-center gap-2 mb-3">
             <KeyRound className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
-            <h3 className="font-semibold text-base m-0" style={{ color: 'var(--text-primary)' }}>{t('settings.mfa.title')}</h3>
+            <h3 className="font-semibold text-base m-0 ![color:var(--text-primary)]">{t('settings.mfa.title')}</h3>
           </div>
           <div className="space-y-3">
             {mfaRequiredByPolicy && (
-              <div className="flex gap-3 p-3 rounded-lg border text-sm"
-                style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border-primary)', color: 'var(--text-primary)' }}>
+              <div className="flex gap-3 p-3 rounded-lg border text-sm ![background:var(--bg-secondary)] ![border-color:var(--border-primary)] ![color:var(--text-primary)]">
                 <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
                 <p className="m-0 leading-relaxed">{t('settings.mfa.requiredByPolicy')}</p>
               </div>
             )}
-            <p className="text-sm m-0" style={{ color: 'var(--text-muted)', lineHeight: 1.5 }}>{t('settings.mfa.description')}</p>
+            <p className="text-sm m-0 ![color:var(--text-muted)] !leading-[1.5]">{t('settings.mfa.description')}</p>
             {demoMode ? (
               <p className="text-sm text-amber-700 m-0">{t('settings.mfa.demoBlocked')}</p>
             ) : (
               <>
-                <p className="text-sm font-medium m-0" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm font-medium m-0 ![color:var(--text-secondary)]">
                   {user?.mfa_enabled ? t('settings.mfa.enabled') : t('settings.mfa.disabled')}
                 </p>
 
@@ -261,8 +259,7 @@ export default function AccountTab(): React.ReactElement {
                         setMfaLoading(false)
                       }
                     }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                    style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)]"
                   >
                     {mfaLoading ? <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-700 rounded-full animate-spin" /> : <KeyRound size={14} />}
                     {t('settings.mfa.setup')}
@@ -271,11 +268,11 @@ export default function AccountTab(): React.ReactElement {
 
                 {!user?.mfa_enabled && mfaQr && (
                   <div className="space-y-3">
-                    <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.scanQr')}</p>
+                    <p className="text-sm ![color:var(--text-muted)]">{t('settings.mfa.scanQr')}</p>
                     <div className="rounded-lg border mx-auto block overflow-hidden" style={{ width: 'fit-content', borderColor: 'var(--border-primary)' }} dangerouslySetInnerHTML={{ __html: mfaQr! }} />
                     <div>
-                      <label className="block text-xs font-medium mb-1" style={{ color: 'var(--text-secondary)' }}>{t('settings.mfa.secretLabel')}</label>
-                      <code className="block text-xs p-2 rounded break-all" style={{ background: 'var(--bg-hover)', color: 'var(--text-primary)' }}>{mfaSecret}</code>
+                      <label className="block text-xs font-medium mb-1 ![color:var(--text-secondary)]">{t('settings.mfa.secretLabel')}</label>
+                      <code className="block text-xs p-2 rounded break-all ![background:var(--bg-hover)] ![color:var(--text-primary)]">{mfaSecret}</code>
                     </div>
                     <input
                       type="text"
@@ -316,8 +313,7 @@ export default function AccountTab(): React.ReactElement {
                       <button
                         type="button"
                         onClick={() => { setMfaQr(null); setMfaSecret(null); setMfaSetupCode('') }}
-                        className="px-4 py-2 rounded-lg text-sm border"
-                        style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}
+                        className="px-4 py-2 rounded-lg text-sm border ![border-color:var(--border-primary)] ![color:var(--text-secondary)]"
                       >
                         {t('settings.mfa.cancelSetup')}
                       </button>
@@ -327,8 +323,8 @@ export default function AccountTab(): React.ReactElement {
 
                 {user?.mfa_enabled && (
                   <div className="space-y-3">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{t('settings.mfa.disableTitle')}</p>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.disableHint')}</p>
+                    <p className="text-sm font-medium ![color:var(--text-secondary)]">{t('settings.mfa.disableTitle')}</p>
+                    <p className="text-xs ![color:var(--text-muted)]">{t('settings.mfa.disableHint')}</p>
                     <input
                       type="password"
                       value={mfaDisablePwd}
@@ -371,22 +367,22 @@ export default function AccountTab(): React.ReactElement {
                 )}
 
                 {backupCodes && backupCodes.length > 0 && (
-                  <div className="space-y-3 p-3 rounded-lg border" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-hover)' }}>
-                    <p className="text-sm font-semibold m-0" style={{ color: 'var(--text-primary)' }}>{t('settings.mfa.backupTitle')}</p>
-                    <p className="text-xs m-0" style={{ color: 'var(--text-muted)' }}>{t('settings.mfa.backupDescription')}</p>
-                    <pre className="text-xs m-0 p-2 rounded border overflow-auto" style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', maxHeight: 220 }}>{backupCodesText}</pre>
-                    <p className="text-xs m-0" style={{ color: '#b45309' }}>{t('settings.mfa.backupWarning')}</p>
+                  <div className="space-y-3 p-3 rounded-lg border ![border-color:var(--border-primary)] ![background:var(--bg-hover)]">
+                    <p className="text-sm font-semibold m-0 ![color:var(--text-primary)]">{t('settings.mfa.backupTitle')}</p>
+                    <p className="text-xs m-0 ![color:var(--text-muted)]">{t('settings.mfa.backupDescription')}</p>
+                    <pre className="text-xs m-0 p-2 rounded border overflow-auto ![border-color:var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !max-h-[220px]">{backupCodesText}</pre>
+                    <p className="text-xs m-0 ![color:#b45309]">{t('settings.mfa.backupWarning')}</p>
                     <div className="flex flex-wrap gap-2">
-                      <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={copyBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
                         <Copy size={13} /> {t('settings.mfa.backupCopy')}
                       </button>
-                      <button type="button" onClick={downloadBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={downloadBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
                         <Download size={13} /> {t('settings.mfa.backupDownload')}
                       </button>
-                      <button type="button" onClick={printBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={printBackupCodes} className="px-3 py-2 rounded-lg text-xs border flex items-center gap-1.5 ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
                         <Printer size={13} /> {t('settings.mfa.backupPrint')}
                       </button>
-                      <button type="button" onClick={dismissBackupCodes} className="px-3 py-2 rounded-lg text-xs border" style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                      <button type="button" onClick={dismissBackupCodes} className="px-3 py-2 rounded-lg text-xs border ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
                         {t('common.ok')}
                       </button>
                     </div>
@@ -402,72 +398,47 @@ export default function AccountTab(): React.ReactElement {
 
         {/* Avatar */}
         <div className="flex items-center gap-4">
-          <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div className="!relative !shrink-[0]">
             {user?.avatar_url ? (
-              <img src={user.avatar_url} alt="" style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover' }} />
+              <img className="!w-[64px] !h-[64px] !rounded-[50%] !object-cover" src={user.avatar_url} alt="" />
             ) : (
-              <div style={{
-                width: 64, height: 64, borderRadius: '50%',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 24, fontWeight: 700,
-                background: 'var(--bg-hover)', color: 'var(--text-secondary)',
-              }}>
+              <div className="!w-[64px] !h-[64px] !rounded-[50%] !flex !items-center !justify-center !text-[length:24px] !font-[700] ![background:var(--bg-hover)] ![color:var(--text-secondary)]">
                 {user?.username?.charAt(0).toUpperCase()}
               </div>
             )}
             <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-            <button className="trek-h-transform-c590c0 trek-hover-o85"
-              onClick={() => avatarInputRef.current?.click()}
-              style={{
-                position: 'absolute', bottom: -3, right: -3,
-                width: 28, height: 28, borderRadius: '50%',
-                background: 'var(--text-primary)', color: 'var(--bg-card)',
-                border: '2px solid var(--bg-card)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0, transition: 'transform 0.15s, opacity 0.15s',
-              }} >
+            <button className="trek-h-transform-c590c0 trek-hover-o85 !absolute !bottom-[-3px] !right-[-3px] !w-[28px] !h-[28px] !rounded-[50%] ![background:var(--text-primary)] ![color:var(--bg-card)] ![border:2px_solid_var(--bg-card)] !flex !items-center !justify-center !cursor-pointer !p-[0] ![transition:transform_0.15s,_opacity_0.15s]"
+              onClick={() => avatarInputRef.current?.click()} >
               <Camera size={14} />
             </button>
             {user?.avatar_url && (
-              <button
+              <button className="!absolute !top-[-2px] !right-[-2px] !w-[20px] !h-[20px] !rounded-[50%] ![background:#ef4444] ![color:white] ![border:2px_solid_var(--bg-card)] !flex !items-center !justify-center !cursor-pointer !p-[0]"
                 onClick={handleAvatarRemove}
-                style={{
-                  position: 'absolute', top: -2, right: -2,
-                  width: 20, height: 20, borderRadius: '50%',
-                  background: '#ef4444', color: 'white',
-                  border: '2px solid var(--bg-card)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  cursor: 'pointer', padding: 0,
-                }}
               >
                 <Trash2 size={10} />
               </button>
             )}
           </div>
           <div className="flex flex-col gap-1">
-            <div className="text-sm" style={{ color: 'var(--text-muted)' }}>
-              <span className="font-medium" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--text-secondary)' }}>
+            <div className="text-sm ![color:var(--text-muted)]">
+              <span className="font-medium !inline-flex !items-center !gap-[4px] ![color:var(--text-secondary)]">
                 {user?.role === 'admin' ? <><Shield size={13} /> {t('settings.roleAdmin')}</> : t('settings.roleUser')}
               </span>
               {(user as UserWithOidc)?.oidc_issuer && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                  fontSize: 10, fontWeight: 500, padding: '1px 8px', borderRadius: 99,
-                  background: '#dbeafe', color: '#1d4ed8', marginLeft: 6,
-                }}>
+                <span className="!inline-flex !items-center !gap-[4px] !text-[length:10px] !font-[500] !p-[1px_8px] !rounded-[99px] ![background:#dbeafe] ![color:#1d4ed8] !ml-[6px]">
                   SSO
                 </span>
               )}
             </div>
             {(user as UserWithOidc)?.oidc_issuer && (
-              <p style={{ fontSize: 11, color: 'var(--text-faint)', marginTop: -2 }}>
+              <p className="!text-[length:11px] ![color:var(--text-faint)] !mt-[-2px]">
                 {t('settings.oidcLinked')} {(user as UserWithOidc).oidc_issuer!.replace('https://', '').replace(/\/+$/, '')}
               </p>
             )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12 }}>
+        <div className="!flex !justify-between !items-center !mt-[12px]">
           <button
             onClick={saveProfile}
             disabled={saving}
@@ -491,8 +462,7 @@ export default function AccountTab(): React.ReactElement {
               }
               setShowDeleteConfirm(true)
             }}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50"
-            style={{ border: '1px solid #fecaca' }}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors text-red-500 hover:bg-red-50 ![border:1px_solid_#fecaca]"
           >
             <Trash2 size={14} />
             <span className="hidden sm:inline">{t('settings.deleteAccount')}</span>
@@ -503,32 +473,20 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Blocked */}
       {showDeleteConfirm === 'blocked' && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-        }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px',
-            maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="!fixed !inset-[0] !z-[9999] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[24px]" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="![background:var(--bg-card)] !rounded-[16px] !p-[28px_24px] !max-w-[400px] !w-[100%] ![box-shadow:0_20px_60px_rgba(0,0,0,0.3)]" onClick={e => e.stopPropagation()}>
+            <div className="!flex !items-center !gap-[10px] !mb-[16px]">
+              <div className="!w-[36px] !h-[36px] !rounded-[10px] ![background:#fef3c7] !flex !items-center !justify-center">
                 <Shield size={18} style={{ color: '#d97706' }} />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('settings.deleteBlockedTitle')}</h3>
+              <h3 className="!m-[0] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">{t('settings.deleteBlockedTitle')}</h3>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="!text-[length:13px] ![color:var(--text-muted)] !leading-[1.6] !m-[0_0_20px]">
               {t('settings.deleteBlockedMessage')}
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
+            <div className="!flex !justify-end">
+              <button className="!p-[8px_16px] !rounded-[8px] !text-[length:13px] !font-[500] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-secondary)] !cursor-pointer ![font-family:inherit]"
                 onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
               >
                 {t('common.ok') || 'OK'}
               </button>
@@ -539,36 +497,24 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Delete Account Confirm */}
       {showDeleteConfirm === true && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-        }} onClick={() => setShowDeleteConfirm(false)}>
-          <div style={{
-            background: 'var(--bg-card)', borderRadius: 16, padding: '28px 24px',
-            maxWidth: 400, width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-          }} onClick={e => e.stopPropagation()}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fef2f2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="!fixed !inset-[0] !z-[9999] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[24px]" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="![background:var(--bg-card)] !rounded-[16px] !p-[28px_24px] !max-w-[400px] !w-[100%] ![box-shadow:0_20px_60px_rgba(0,0,0,0.3)]" onClick={e => e.stopPropagation()}>
+            <div className="!flex !items-center !gap-[10px] !mb-[16px]">
+              <div className="!w-[36px] !h-[36px] !rounded-[10px] ![background:#fef2f2] !flex !items-center !justify-center">
                 <Trash2 size={18} style={{ color: '#ef4444' }} />
               </div>
-              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{t('settings.deleteAccountTitle')}</h3>
+              <h3 className="!m-[0] !text-[length:16px] !font-[700] ![color:var(--text-primary)]">{t('settings.deleteAccountTitle')}</h3>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6, margin: '0 0 20px' }}>
+            <p className="!text-[length:13px] ![color:var(--text-muted)] !leading-[1.6] !m-[0_0_20px]">
               {t('settings.deleteAccountWarning')}
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
+            <div className="!flex !justify-end !gap-[8px]">
+              <button className="!p-[8px_16px] !rounded-[8px] !text-[length:13px] !font-[500] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-secondary)] !cursor-pointer ![font-family:inherit]"
                 onClick={() => setShowDeleteConfirm(false)}
-                style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-                  border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)',
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
               >
                 {t('common.cancel')}
               </button>
-              <button
+              <button className="!p-[8px_16px] !rounded-[8px] !text-[length:13px] !font-[600] ![border:none] ![background:#ef4444] ![color:white] !cursor-pointer ![font-family:inherit]"
                 onClick={async () => {
                   try {
                     await authApi.deleteOwnAccount()
@@ -578,11 +524,6 @@ export default function AccountTab(): React.ReactElement {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                     setShowDeleteConfirm(false)
                   }
-                }}
-                style={{
-                  padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600,
-                  border: 'none', background: '#ef4444', color: 'white',
-                  cursor: 'pointer', fontFamily: 'inherit',
                 }}
               >
                 {t('settings.deleteAccountConfirm')}

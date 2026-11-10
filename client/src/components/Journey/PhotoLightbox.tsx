@@ -24,9 +24,9 @@ function PhotoImg({ src, caption }: { src: string; caption?: string | null }) {
     return () => { if (revoke) URL.revokeObjectURL(revoke) }
   }, [src])
   return blobUrl ? (
-    <img src={blobUrl} alt={caption || ''} style={{ maxWidth: '92vw', maxHeight: '92vh', objectFit: 'contain', borderRadius: 4, animation: 'fadeIn 0.15s ease' }} />
+    <img className="!max-w-[92vw] !max-h-[92vh] !object-contain !rounded-[4px]" src={blobUrl} alt={caption || ''} style={{ animation: 'fadeIn 0.15s ease' }} />
   ) : (
-    <div style={{ width: 60, height: 60, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', animation: 'spin 0.8s linear infinite' }} />
+    <div className="!w-[60px] !h-[60px] !rounded-[50%] ![border:3px_solid_rgba(255,255,255,0.2)] ![border-top-color:#fff]" style={{ animation: 'spin 0.8s linear infinite' }} />
   )
 }
 export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props) {
@@ -77,45 +77,27 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
   if (!photo) return null
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 500,
-        background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
-        display: 'flex', flexDirection: 'column',
-        paddingBottom: 'var(--bottom-nav-h)',
-      }}
+    <div className="!fixed !inset-[0] !z-[500] ![background:rgba(0,0,0,0.92)] ![backdrop-filter:blur(20px)] !flex !flex-col !pb-[var(--bottom-nav-h)]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
       {/* Photo area — centered with nav overlays */}
       <div
-        className="group/lightbox"
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
+        className="group/lightbox !flex-[1] !flex !items-center !justify-center !relative !overflow-hidden"
       >
         {/* Top bar */}
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 500 }}>
+        <div className="!absolute !top-[0] !left-[0] !right-[0] !z-[10] !flex !justify-between !items-center !p-[16px_20px]">
+          <span className="![color:rgba(255,255,255,0.5)] !text-[length:13px] !font-[500]">
             {idx + 1} / {photos.length}
           </span>
-          <button onClick={onClose} style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
-            width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}>
+          <button className="![background:rgba(255,255,255,0.1)] ![border:none] !rounded-[50%] !w-[36px] !h-[36px] !flex !items-center !justify-center ![color:#fff] !cursor-pointer" onClick={onClose}>
             <X size={18} />
           </button>
         </div>
 
         {/* Prev button — visible on hover (desktop), always visible (mobile) */}
         {hasPrev && (
-          <button onClick={prev} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
-            position: 'absolute', left: 16, zIndex: 5,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}>
+          <button onClick={prev} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity !absolute !left-[16px] !z-[5] !w-[44px] !h-[44px] !rounded-[50%] ![background:rgba(0,0,0,0.4)] ![backdrop-filter:blur(8px)] ![border:1px_solid_rgba(255,255,255,0.1)] !items-center !justify-center ![color:#fff] !cursor-pointer">
             <ChevronLeft size={22} />
           </button>
         )}
@@ -123,27 +105,15 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props
 
         {/* Next button */}
         {hasNext && (
-          <button onClick={next} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity" style={{
-            position: 'absolute', right: 16, zIndex: 5,
-            width: 44, height: 44, borderRadius: '50%',
-            background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}>
+          <button onClick={next} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 transition-opacity !absolute !right-[16px] !z-[5] !w-[44px] !h-[44px] !rounded-[50%] ![background:rgba(0,0,0,0.4)] ![backdrop-filter:blur(8px)] ![border:1px_solid_rgba(255,255,255,0.1)] !items-center !justify-center ![color:#fff] !cursor-pointer">
             <ChevronRight size={22} />
           </button>
         )}
 
         {/* Caption — bottom center overlay */}
         {photo.caption && (
-          <div style={{ position: 'absolute', bottom: 20, left: '50%', transform: 'translateX(-50%)', zIndex: 5, maxWidth: '70%', textAlign: 'center' }}>
-            <p style={{
-              fontSize: 14, fontStyle: 'italic',
-              color: 'rgba(255,255,255,0.75)', margin: 0, lineHeight: 1.5,
-              background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(8px)',
-              padding: '6px 14px', borderRadius: 10,
-            }}>{photo.caption}</p>
+          <div className="!absolute !bottom-[20px] !left-[50%] !z-[5] !max-w-[70%] !text-center" style={{ transform: 'translateX(-50%)' }}>
+            <p className="!text-[length:14px] !italic ![color:rgba(255,255,255,0.75)] !m-[0] !leading-[1.5] ![background:rgba(0,0,0,0.3)] ![backdrop-filter:blur(8px)] !p-[6px_14px] !rounded-[10px]">{photo.caption}</p>
           </div>
         )}
       </div>

@@ -55,28 +55,21 @@ export default function SettingsPage(): React.ReactElement {
   ]
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar />
 
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+      <div className="!pt-[var(--nav-h)]">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{
-                background: 'var(--glass-bg)',
-                backdropFilter: 'var(--glass-blur)',
-                WebkitBackdropFilter: 'var(--glass-blur)',
-                border: '1px solid var(--glass-border)',
-                boxShadow: 'var(--glass-shadow)',
-              }}
+              className="w-10 h-10 rounded-xl flex items-center justify-center ![background:var(--glass-bg)] ![backdrop-filter:var(--glass-blur)] ![-webkit-backdrop-filter:var(--glass-blur)] ![border:1px_solid_var(--glass-border)] ![box-shadow:var(--glass-shadow)]"
             >
               <Settings className="w-5 h-5" style={{ color: 'var(--text-secondary)' }} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{t('settings.title')}</h1>
-              <p className="text-sm" style={{ color: 'var(--text-muted)' }}>{t('settings.subtitle')}</p>
+              <h1 className="text-2xl font-bold ![color:var(--text-primary)]">{t('settings.title')}</h1>
+              <p className="text-sm ![color:var(--text-muted)]">{t('settings.subtitle')}</p>
             </div>
           </div>
 

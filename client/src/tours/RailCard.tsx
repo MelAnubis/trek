@@ -7,15 +7,14 @@ export default function RailCard({ icon, title, aside, children, defaultOpen = t
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div data-testid={testId} style={{ border: '1px solid var(--border-faint)', borderRadius: 14, background: 'var(--bg-card)' }}>
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '11px 12px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-primary)', fontSize: 13.5, fontWeight: 600, textAlign: 'left' }}>
-        <span style={{ color: 'var(--text-muted)', display: 'flex' }}>{icon}</span>
-        <span style={{ flex: 1 }}>{title}</span>
+    <div className="![border:1px_solid_var(--border-faint)] !rounded-[14px] ![background:var(--bg-card)]" data-testid={testId}>
+      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[11px_12px] ![border:none] ![background:transparent] !cursor-pointer ![font-family:inherit] ![color:var(--text-primary)] !text-[length:13.5px] !font-[600] !text-left" type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>
+        <span className="![color:var(--text-muted)] !flex">{icon}</span>
+        <span className="!flex-[1]">{title}</span>
         {aside}
         {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
       </button>
-      {open && <div style={{ padding: '2px 12px 12px', borderTop: '1px solid var(--border-faint)' }}>{children}</div>}
+      {open && <div className="!p-[2px_12px_12px] ![border-top:1px_solid_var(--border-faint)]">{children}</div>}
     </div>
   )
 }

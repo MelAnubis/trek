@@ -75,7 +75,7 @@ describe('DayDetailPanel', () => {
 
   it('FE-PLANNER-DAYDETAIL-002: returns null when day prop is null', () => {
     render(<DayDetailPanel {...defaultProps} day={null as any} />);
-    expect(document.querySelector('[style*="position: fixed"]')).toBeNull();
+    expect(document.querySelector('[style*="position: fixed"], [class~="!fixed"]')).toBeNull();
   });
 
   it('FE-PLANNER-DAYDETAIL-003: shows day title in header', () => {
@@ -127,7 +127,7 @@ describe('DayDetailPanel', () => {
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // Spinner div has border + borderTopColor
     await waitFor(() => {
-      const spinner = document.querySelector('[style*="border-radius: 50%"]');
+      const spinner = document.querySelector('[style*="border-radius: 50%"], [class*="!rounded-[50%"]');
       expect(spinner).toBeInTheDocument();
     });
   });
@@ -361,7 +361,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(addButton);
     // Hotel picker portal renders into document.body
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]')).toBeInTheDocument();
     });
   });
 
@@ -453,13 +453,13 @@ describe('DayDetailPanel', () => {
     await userEvent.click(addButton);
     // Picker opened
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]')).toBeInTheDocument();
     });
     // Click cancel button inside picker
     const cancelButton = screen.getByText(/Cancel/i);
     await userEvent.click(cancelButton);
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull();
+      expect(document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]')).toBeNull();
     });
   });
 
@@ -503,7 +503,7 @@ describe('DayDetailPanel', () => {
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]');
       expect(portal).toBeInTheDocument();
     });
   });
@@ -529,7 +529,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(pencilButton);
     // Edit picker should open with "Edit accommodation" title
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]');
       expect(portal?.textContent).toMatch(/Edit accommodation/i);
     });
   });
@@ -541,7 +541,7 @@ describe('DayDetailPanel', () => {
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]');
       expect(portal?.textContent).toMatch(/Day in Paris|Day 2|Day 3/i);
     });
   });
@@ -633,7 +633,7 @@ describe('DayDetailPanel', () => {
     const addButton = await screen.findByText(/Add accommodation/i);
     await userEvent.click(addButton);
     await waitFor(() => {
-      const portal = document.body.querySelector('[style*="z-index: 99999"]');
+      const portal = document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]');
       expect(portal?.textContent).toMatch(/Hotels/);
     });
   });
@@ -683,7 +683,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(saveButton);
     // Picker should close after save
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeNull();
+      expect(document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]')).toBeNull();
     });
   });
 
@@ -801,7 +801,7 @@ describe('DayDetailPanel', () => {
     await userEvent.click(allButtons[2]);
     // Picker opens in edit mode
     await waitFor(() => {
-      expect(document.body.querySelector('[style*="z-index: 99999"]')).toBeInTheDocument();
+      expect(document.body.querySelector('[style*="z-index: 99999"], [class*="!z-[99999"]')).toBeInTheDocument();
     });
     // Click Save in the edit picker
     const saveButton = screen.getByText(/Save/i);
@@ -870,7 +870,7 @@ describe('DayDetailPanel', () => {
     );
     render(<DayDetailPanel {...defaultProps} collapsed={true} />);
     await waitFor(() => {
-      const content = document.querySelector('[style*="overflow-y: auto"]');
+      const content = document.querySelector('[style*="overflow-y: auto"], [class~="!overflow-y-auto"]');
       expect(content).toHaveStyle({ display: 'none' });
     });
   });
@@ -878,7 +878,7 @@ describe('DayDetailPanel', () => {
   it('FE-PLANNER-DAYDETAIL-051: content area is visible when collapsed=false', async () => {
     render(<DayDetailPanel {...defaultProps} collapsed={false} />);
     await waitFor(() => {
-      const content = document.querySelector('[style*="overflow-y: auto"]');
+      const content = document.querySelector('[style*="overflow-y: auto"], [class~="!overflow-y-auto"]');
       expect(content).toHaveStyle({ display: 'block' });
     });
   });

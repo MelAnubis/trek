@@ -78,8 +78,7 @@ export function PhotoLightbox({ photos, initialIndex, onClose, onUpdate, onDelet
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
-      style={{ paddingBottom: 'var(--bottom-nav-h)' }}
+      className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center !pb-[var(--bottom-nav-h)]"
       onClick={onClose}
     >
       {/* Main area */}

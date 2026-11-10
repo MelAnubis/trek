@@ -186,8 +186,8 @@ export default function BackupPanel() {
           <div className="flex items-center gap-3">
             <HardDrive className="w-5 h-5 text-gray-400" />
             <div>
-              <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('backup.title')}</h2>
-              <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('backup.subtitle')}</p>
+              <h2 className="font-semibold ![color:var(--text-primary)]">{t('backup.title')}</h2>
+              <p className="text-xs mt-1 ![color:var(--text-muted)]">{t('backup.subtitle')}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -310,8 +310,8 @@ export default function BackupPanel() {
         <div className="flex items-center gap-3 mb-6">
           <Clock className="w-5 h-5 text-gray-400" />
           <div>
-            <h2 className="font-semibold" style={{ color: 'var(--text-primary)' }}>{t('backup.auto.title')}</h2>
-            <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>{t('backup.auto.subtitle')}</p>
+            <h2 className="font-semibold ![color:var(--text-primary)]">{t('backup.auto.title')}</h2>
+            <p className="text-xs mt-1 ![color:var(--text-muted)]">{t('backup.auto.subtitle')}</p>
           </div>
         </div>
 
@@ -457,55 +457,51 @@ export default function BackupPanel() {
 
       {/* Restore Warning Modal */}
       {restoreConfirm && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+        <div className="!fixed !inset-[0] !z-[9999] ![background:rgba(0,0,0,0.5)] ![backdrop-filter:blur(4px)] !flex !items-center !justify-center !p-[16px]"
           onClick={() => setRestoreConfirm(null)}
         >
           <div
             onClick={e => e.stopPropagation()}
-            style={{ width: '100%', maxWidth: 440, borderRadius: 16, overflow: 'hidden' }}
-            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+            className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 !w-[100%] !max-w-[440px] !rounded-[16px] !overflow-hidden"
           >
             {/* Red header */}
-            <div style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <div className="![background:linear-gradient(135deg,_#dc2626,_#b91c1c)] !p-[20px_24px] !flex !items-center !gap-[12px]">
+              <div className="!w-[40px] !h-[40px] !rounded-[10px] ![background:rgba(255,255,255,0.2)] !flex !items-center !justify-center !shrink-[0]">
                 <AlertTriangle size={20} style={{ color: 'white' }} />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'white' }}>
+                <h3 className="!m-[0] !text-[length:16px] !font-[700] ![color:white]">
                   {t('backup.restoreConfirmTitle')}
                 </h3>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>
+                <p className="!m-[2px_0_0] !text-[length:12px] ![color:rgba(255,255,255,0.8)]">
                   {restoreConfirm.filename}
                 </p>
               </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: '20px 24px' }}>
-              <p className="text-gray-700 dark:text-gray-300" style={{ fontSize: 13, lineHeight: 1.6, margin: 0 }}>
+            <div className="!p-[20px_24px]">
+              <p className="text-gray-700 dark:text-gray-300 !text-[length:13px] !leading-[1.6] !m-[0]">
                 {t('backup.restoreWarning')}
               </p>
 
-              <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 10, fontSize: 12, lineHeight: 1.5 }}
-                className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800"
+              <div
+                className="bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800 !mt-[14px] !p-[10px_12px] !rounded-[10px] !text-[length:12px] !leading-[1.5]"
               >
                 {t('backup.restoreTip')}
               </div>
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '0 24px 20px', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+            <div className="!p-[0_24px_20px] !flex !gap-[10px] !justify-end">
               <button
                 onClick={() => setRestoreConfirm(null)}
-                className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}
+                className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 !p-[9px_20px] !rounded-[10px] !text-[length:13px] !font-[600] ![border:none] !cursor-pointer ![font-family:inherit]"
               >
                 {t('common.cancel')}
               </button>
-              <button className="trek-h-background-9bcf75"
-                onClick={executeRestore}
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: '#dc2626', color: 'white' }} >
+              <button className="trek-h-background-9bcf75 !p-[9px_20px] !rounded-[10px] !text-[length:13px] !font-[600] ![border:none] !cursor-pointer ![font-family:inherit] ![background:#dc2626] ![color:white]"
+                onClick={executeRestore} >
                 {t('backup.restoreConfirm')}
               </button>
             </div>

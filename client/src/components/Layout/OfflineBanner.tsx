@@ -57,30 +57,10 @@ export default function OfflineBanner(): React.ReactElement | null {
     : `Syncing ${pendingCount}…`
 
   return (
-    <div
+    <div className="!fixed !bottom-[calc(var(--bottom-nav-h)_+_16px)] !left-[50%] !z-[9999] !inline-flex !items-center !gap-[6px] !p-[6px_14px] !rounded-[999px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.18),_0_0_0_1px_rgba(255,255,255,0.08)] !text-[length:12px] !font-[600] !whitespace-nowrap !pointer-events-none"
       role="status"
       aria-live="polite"
-      style={{
-        position: 'fixed',
-        // Hover above the mobile bottom nav; on desktop --bottom-nav-h is 0,
-        // so the pill sits 16px from the bottom.
-        bottom: 'calc(var(--bottom-nav-h) + 16px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 9999,
-        background: bg,
-        color: text,
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '6px 14px',
-        borderRadius: 999,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.18), 0 0 0 1px rgba(255,255,255,0.08)',
-        fontSize: 12,
-        fontWeight: 600,
-        whiteSpace: 'nowrap',
-        pointerEvents: 'none',
-      }}
+      style={{ transform: 'translateX(-50%)', background: bg, color: text }}
     >
       {offline
         ? <WifiOff size={12} />

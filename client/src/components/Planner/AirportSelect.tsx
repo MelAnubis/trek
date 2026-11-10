@@ -105,28 +105,27 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', ...style }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 10, border: '1px solid var(--border-primary)' }}>
+      <div className="!flex !items-center !gap-[6px] !p-[8px_10px] ![background:var(--bg-tertiary)] !rounded-[10px] ![border:1px_solid_var(--border-primary)]">
         <Plane size={14} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
-        <input
+        <input className="!flex-[1] !min-w-[0] ![background:transparent] ![border:none] ![outline:none] ![color:var(--text-primary)] !text-[length:13px]"
           type="text"
           value={query}
           placeholder={placeholder ?? t('airport.searchPlaceholder')}
           onChange={(e) => { setQuery(e.target.value); setOpen(true); if (value) onChange(null) }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', fontSize: 13 }}
         />
         {value && (
-          <button type="button" onClick={clear} style={{ background: 'transparent', border: 'none', padding: 2, cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }} aria-label="Clear">
+          <button className="![background:transparent] ![border:none] !p-[2px] !cursor-pointer ![color:var(--text-faint)] !flex" type="button" onClick={clear} aria-label="Clear">
             <X size={14} />
           </button>
         )}
       </div>
 
       {open && (loading || results.length > 0) && (
-        <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.18)', maxHeight: 260, overflowY: 'auto', zIndex: 1000 }}>
+        <div className="!absolute !top-[calc(100%_+_4px)] !left-[0] !right-[0] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_8px_24px_rgba(0,0,0,0.18)] !max-h-[260px] !overflow-y-auto !z-[1000]">
           {loading && results.length === 0 && (
-            <div style={{ padding: 10, fontSize: 12, color: 'var(--text-faint)' }}>{t('common.loading')}</div>
+            <div className="!p-[10px] !text-[length:12px] ![color:var(--text-faint)]">{t('common.loading')}</div>
           )}
           {results.map((a, i) => (
             <button
@@ -141,10 +140,10 @@ export default function AirportSelect({ value, onChange, placeholder, style }: P
                 color: 'var(--text-primary)', fontFamily: 'inherit',
               }}
             >
-              <span style={{ fontFamily: 'ui-monospace, SFMono-Regular, monospace', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', minWidth: 32 }}>{a.iata}</span>
-              <span style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.city || a.name}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-faint)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.name}{a.country ? ` · ${displayCountry(a.country)}` : ''}</div>
+              <span className="![font-family:ui-monospace,_SFMono-Regular,_monospace] !text-[length:11px] !font-[700] ![color:var(--text-muted)] !min-w-[32px]">{a.iata}</span>
+              <span className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:13px] !font-[500] !whitespace-nowrap !overflow-hidden !text-ellipsis">{a.city || a.name}</div>
+                <div className="!text-[length:11px] ![color:var(--text-faint)] !whitespace-nowrap !overflow-hidden !text-ellipsis">{a.name}{a.country ? ` · ${displayCountry(a.country)}` : ''}</div>
               </span>
             </button>
           ))}

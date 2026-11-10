@@ -44,19 +44,14 @@ function networkBadge(network: string) {
     icn: '#6366f1', ncn: '#0ea5e9', rcn: '#22c55e', lcn: '#f59e0b',
   }
   return (
-    <span style={{
-      background: (colors[network] || '#64748b') + '22',
-      border: `1px solid ${colors[network] || '#64748b'}`,
-      color: colors[network] || '#64748b',
-      fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20,
-    }}>
+    <span className="!text-[length:10px] !font-[700] !p-[1px_7px] !rounded-[20px]" style={{ background: (colors[network] || '#64748b') + '22', border: `1px solid ${colors[network] || '#64748b'}`, color: colors[network] || '#64748b' }}>
       {network.toUpperCase()}
     </span>
   )
 }
 
 function badge(label: string, bg: string, border: string, color: string) {
-  return <span style={{ background: bg, border: `1px solid ${border}`, color, fontSize: 10, fontWeight: 700, padding: '1px 7px', borderRadius: 20 }}>{label}</span>
+  return <span className="!text-[length:10px] !font-[700] !p-[1px_7px] !rounded-[20px]" style={{ background: bg, border: `1px solid ${border}`, color }}>{label}</span>
 }
 
 function sourceBadge(source?: string) {
@@ -425,12 +420,7 @@ export default function RouteDiscoveryPanel() {
               const hasEle = hasGpx && route.points!.some(p => p.ele != null)
 
               return (
-                <div key={route.osmId} style={{
-                  border: `1px solid ${isImported ? '#22c55e' : isSelected ? '#6366f1' : 'var(--border-primary)'}`,
-                  borderRadius: 10,
-                  background: isImported ? 'rgba(34,197,94,0.12)' : isSelected ? 'rgba(99,102,241,0.12)' : 'var(--bg-card)',
-                  overflow: 'hidden',
-                }}>
+                <div className="!rounded-[10px] !overflow-hidden" key={route.osmId} style={{ border: `1px solid ${isImported ? '#22c55e' : isSelected ? '#6366f1' : 'var(--border-primary)'}`, background: isImported ? 'rgba(34,197,94,0.12)' : isSelected ? 'rgba(99,102,241,0.12)' : 'var(--bg-card)' }}>
                   {/* Row */}
                   <div className="flex items-center gap-3 p-3">
                     {/* Checkbox */}
@@ -454,7 +444,7 @@ export default function RouteDiscoveryPanel() {
                         {sourceBadge(route.source)}
                         {route.ref && <span className="text-xs text-slate-500 font-mono">{route.ref}</span>}
                         {hasEle && (
-                          <span title="Incluye datos de elevación" style={{ color: '#16a34a', fontSize: 11 }}>
+                          <span className="![color:#16a34a] !text-[length:11px]" title="Incluye datos de elevación">
                             <Mountain size={12} className="inline" /> ele
                           </span>
                         )}
@@ -528,7 +518,7 @@ export default function RouteDiscoveryPanel() {
                         <div className="flex gap-4 text-xs text-slate-600 flex-wrap">
                           <span><Globe size={12} className="inline mr-1" /><strong>{route.distanceKm} km</strong></span>
                           <span><MapPin size={12} className="inline mr-1" />{route.points!.length.toLocaleString()} puntos GPS</span>
-                          {hasEle && <span style={{ color: '#16a34a' }}><Mountain size={12} className="inline mr-1" />Elevación incluida</span>}
+                          {hasEle && <span className="![color:#16a34a]"><Mountain size={12} className="inline mr-1" />Elevación incluida</span>}
                           <span><Route size={12} className="inline mr-1" />OSM ID: {route.osmId}</span>
                         </div>
                       )}

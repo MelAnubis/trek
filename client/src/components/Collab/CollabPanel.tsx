@@ -87,8 +87,8 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     if (chatOn && rightPanels.length === 0) {
       // Only chat
       return (
-        <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: 1 }}>
+        <div className="!h-[100%] !flex !gap-[12px] !p-[12px] !overflow-hidden !min-h-[0]">
+          <div className="!flex-[1]" style={{ ...card }}>
             <CollabChat tripId={tripId} currentUser={user} />
           </div>
         </div>
@@ -98,20 +98,20 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     if (chatOn) {
       // Chat left (380px) + right panels
       return (
-        <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: '0 0 380px' }}>
+        <div className="!h-[100%] !flex !gap-[12px] !p-[12px] !overflow-hidden !min-h-[0]">
+          <div className="!flex-[0_0_380px]" style={{ ...card }}>
             <CollabChat tripId={tripId} currentUser={user} />
           </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12, overflow: 'hidden', minHeight: 0 }}>
+          <div className="!flex-[1] !flex !flex-col !gap-[12px] !overflow-hidden !min-h-[0]">
             {rightPanels.length === 1 && (
-              <div style={{ ...card, flex: 1 }}>
+              <div className="!flex-[1]" style={{ ...card }}>
                 {rightPanels[0] === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
                 {rightPanels[0] === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
                 {rightPanels[0] === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
               </div>
             )}
             {rightPanels.length === 2 && rightPanels.map(p => (
-              <div key={p} style={{ ...card, flex: 1 }}>
+              <div className="!flex-[1]" key={p} style={{ ...card }}>
                 {p === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
                 {p === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
                 {p === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
@@ -119,14 +119,14 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
             ))}
             {rightPanels.length === 3 && (
               <>
-                <div style={{ ...card, flex: 1 }}>
+                <div className="!flex-[1]" style={{ ...card }}>
                   <CollabNotes tripId={tripId} currentUser={user} />
                 </div>
-                <div style={{ flex: 1, display: 'flex', gap: 12, overflow: 'hidden', minHeight: 0 }}>
-                  <div style={{ ...card, flex: 1 }}>
+                <div className="!flex-[1] !flex !gap-[12px] !overflow-hidden !min-h-[0]">
+                  <div className="!flex-[1]" style={{ ...card }}>
                     <CollabPolls tripId={tripId} currentUser={user} />
                   </div>
-                  <div style={{ ...card, flex: 1 }}>
+                  <div className="!flex-[1]" style={{ ...card }}>
                     <WhatsNextWidget tripMembers={tripMembers} />
                   </div>
                 </div>
@@ -141,8 +141,8 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     const panels = rightPanels
     if (panels.length === 1) {
       return (
-        <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ ...card, flex: 1 }}>
+        <div className="!h-[100%] !flex !gap-[12px] !p-[12px] !overflow-hidden !min-h-[0]">
+          <div className="!flex-[1]" style={{ ...card }}>
             {panels[0] === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
             {panels[0] === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
             {panels[0] === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
@@ -152,9 +152,9 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
     }
 
     return (
-      <div style={{ height: '100%', display: 'flex', gap: 12, padding: 12, overflow: 'hidden', minHeight: 0 }}>
+      <div className="!h-[100%] !flex !gap-[12px] !p-[12px] !overflow-hidden !min-h-[0]">
         {panels.map(p => (
-          <div key={p} style={{ ...card, flex: 1 }}>
+          <div className="!flex-[1]" key={p} style={{ ...card }}>
             {p === 'notes' && <CollabNotes tripId={tripId} currentUser={user} />}
             {p === 'polls' && <CollabPolls tripId={tripId} currentUser={user} />}
             {p === 'whatsnext' && <WhatsNextWidget tripMembers={tripMembers} />}
@@ -166,29 +166,19 @@ export default function CollabPanel({ tripId, tripMembers = [], collabFeatures }
 
   // Mobile: tab bar + single panel (only enabled tabs)
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', position: 'absolute', inset: 0 }}>
-      <div style={{
-        display: 'flex', gap: 2, padding: '8px 12px', borderBottom: '1px solid var(--border-faint)',
-        background: 'var(--bg-card)', flexShrink: 0,
-      }}>
+    <div className="!h-[100%] !flex !flex-col !overflow-hidden !absolute !inset-[0]">
+      <div className="!flex !gap-[2px] !p-[8px_12px] ![border-bottom:1px_solid_var(--border-faint)] ![background:var(--bg-card)] !shrink-[0]">
         {tabs.map(tab => {
           const active = mobileTab === tab.id
           return (
-            <button key={tab.id} onClick={() => setMobileTab(tab.id)} style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '8px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
-              background: active ? 'var(--accent)' : 'transparent',
-              color: active ? 'var(--accent-text)' : 'var(--text-muted)',
-              fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-              transition: 'all 0.15s',
-            }}>
+            <button className="!flex-[1] !flex !items-center !justify-center !gap-[6px] !p-[8px_0] !rounded-[10px] ![border:none] !cursor-pointer !text-[length:11px] !font-[600] ![font-family:inherit] ![transition:all_0.15s]" key={tab.id} onClick={() => setMobileTab(tab.id)} style={{ background: active ? 'var(--accent)' : 'transparent', color: active ? 'var(--accent-text)' : 'var(--text-muted)' }}>
               {tab.label}
             </button>
           )
         })}
       </div>
 
-      <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
+      <div className="!flex-[1] !overflow-hidden !min-h-[0]">
         {mobileTab === 'chat' && features.chat && <CollabChat tripId={tripId} currentUser={user} />}
         {mobileTab === 'notes' && features.notes && <CollabNotes tripId={tripId} currentUser={user} />}
         {mobileTab === 'polls' && features.polls && <CollabPolls tripId={tripId} currentUser={user} />}

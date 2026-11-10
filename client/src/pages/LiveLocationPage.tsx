@@ -67,11 +67,11 @@ export default function LiveLocationPage() {
 
   if (notFound) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6' }}>
-        <div style={{ textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📍</div>
-          <h1 style={{ fontSize: 20, fontWeight: 700, color: '#111827' }}>{t('tracking.public.gone')}</h1>
-          <p style={{ color: '#6b7280', marginTop: 8 }}>{t('tracking.public.goneHint')}</p>
+      <div className="!flex !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6]">
+        <div className="!text-center !p-[40px]">
+          <div className="!text-[length:48px] !mb-[16px]">📍</div>
+          <h1 className="!text-[length:20px] !font-[700] ![color:#111827]">{t('tracking.public.gone')}</h1>
+          <p className="![color:#6b7280] !mt-[8px]">{t('tracking.public.goneHint')}</p>
         </div>
       </div>
     )
@@ -79,8 +79,8 @@ export default function LiveLocationPage() {
 
   if (!data) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f3f4f6', color: '#6b7280', fontSize: 13 }}>
-        <div style={{ width: 32, height: 32, border: '3px solid #e5e7eb', borderTopColor: '#111827', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+      <div className="!flex !flex-col !gap-[12px] !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6] ![color:#6b7280] !text-[length:13px]">
+        <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] ![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
         {offline && <span>{t('tracking.live.offline')}</span>}
         <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
       </div>
@@ -97,7 +97,7 @@ export default function LiveLocationPage() {
   const initial = Array.from(data.label.trim())[0]?.toUpperCase() ?? '•'
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: '#e5e7eb' }}>
+    <div className="!fixed !inset-[0] ![background:#e5e7eb]">
       <LiveMapStyles />
 
       {pos ? (
@@ -109,29 +109,23 @@ export default function LiveLocationPage() {
           <AutoResize />
         </MapContainer>
       ) : (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#6b7280' }}>
+        <div className="!flex !items-center !justify-center !h-[100%] ![color:#6b7280]">
           {t('tracking.public.waiting')}
         </div>
       )}
 
       {/* Top: the live badge and how fresh the page is. */}
-      <div style={{
-        position: 'absolute', top: 'calc(10px + env(safe-area-inset-top))', left: 12, right: 12, zIndex: 1000,
-        display: 'flex', justifyContent: 'center', pointerEvents: 'none',
-      }}>
-        <div data-testid="live-badge" style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999,
-          background: 'rgba(17,24,39,0.82)', color: '#fff', fontSize: 12, fontWeight: 600, boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-        }}>
-          <span className={offline ? undefined : 'trek-live-dot'} style={{ width: 8, height: 8, borderRadius: '50%', background: offline ? '#f59e0b' : fresh ? '#22c55e' : '#9ca3af' }} />
+      <div className="!absolute !top-[calc(10px_+_env(safe-area-inset-top))] !left-[12px] !right-[12px] !z-[1000] !flex !justify-center !pointer-events-none">
+        <div className="!inline-flex !items-center !gap-[8px] !p-[6px_12px] !rounded-[999px] ![background:rgba(17,24,39,0.82)] ![color:#fff] !text-[length:12px] !font-[600] ![box-shadow:0_2px_8px_rgba(0,0,0,0.25)]" data-testid="live-badge">
+          <span className={[offline ? undefined : 'trek-live-dot', '!w-[8px] !h-[8px] !rounded-[50%]'].join(' ')} style={{ background: offline ? '#f59e0b' : fresh ? '#22c55e' : '#9ca3af' }} />
           {offline ? t('tracking.live.offline') : t('tracking.live.badge')}
-          {!offline && fetchedAt && <span style={{ fontWeight: 400, opacity: 0.75 }}>· {t('tracking.live.refreshed', { when: secondsAgo(fetchedAt, t) })}</span>}
+          {!offline && fetchedAt && <span className="!font-[400]" style={{ opacity: 0.75 }}>· {t('tracking.live.refreshed', { when: secondsAgo(fetchedAt, t) })}</span>}
         </div>
       </div>
 
       {/* Right: recentre and hide/show the card. */}
       {pos && (
-        <div style={{ position: 'absolute', right: 12, bottom: cardOpen ? 'calc(150px + env(safe-area-inset-bottom))' : 'calc(76px + env(safe-area-inset-bottom))', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="!absolute !z-[1000] !flex !flex-col !gap-[8px]" style={{ right: 12, bottom: cardOpen ? 'calc(150px + env(safe-area-inset-bottom))' : 'calc(76px + env(safe-area-inset-bottom))' }}>
           <button type="button" onClick={() => setCardOpen(o => !o)} aria-label={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')}
             title={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')} style={fab(false)}>
             {cardOpen ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
@@ -144,39 +138,31 @@ export default function LiveLocationPage() {
       )}
 
       {/* Bottom: who, until when, how fresh, what the phone is doing. */}
-      <div data-testid="live-header" style={{
-        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 1000,
-        background: 'rgba(255,255,255,0.97)', borderRadius: '18px 18px 0 0', boxShadow: '0 -4px 18px rgba(0,0,0,0.15)',
-        padding: `10px 16px calc(${cardOpen ? 14 : 10}px + env(safe-area-inset-bottom))`, maxWidth: 640, margin: '0 auto',
-      }}>
-        <button type="button" onClick={() => setCardOpen(o => !o)} aria-label={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')}
-          style={{ display: 'block', margin: '0 auto 8px', width: 40, height: 5, borderRadius: 3, background: '#d1d5db', border: 'none', padding: 0, cursor: 'pointer' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{
-            width: 42, height: 42, borderRadius: '50%', flexShrink: 0, background: fresh ? LIVE_COLOR : '#6b7280', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 18,
-          }}>{initial}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 16, color: '#111827', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{data.label}</div>
-            <div style={{ fontSize: 12.5, color: fresh ? '#16a34a' : '#6b7280', fontWeight: 500 }}>
+      <div className="!absolute !left-[0] !right-[0] !bottom-[0] !z-[1000] ![background:rgba(255,255,255,0.97)] !rounded-[18px_18px_0_0] ![box-shadow:0_-4px_18px_rgba(0,0,0,0.15)] !max-w-[640px] !m-[0_auto]" data-testid="live-header" style={{ padding: `10px 16px calc(${cardOpen ? 14 : 10}px + env(safe-area-inset-bottom))` }}>
+        <button className="!block !m-[0_auto_8px] !w-[40px] !h-[5px] !rounded-[3px] ![background:#d1d5db] ![border:none] !p-[0] !cursor-pointer" type="button" onClick={() => setCardOpen(o => !o)} aria-label={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')} />
+        <div className="!flex !items-center !gap-[12px]">
+          <div className="!w-[42px] !h-[42px] !rounded-[50%] !shrink-[0] ![color:#fff] !flex !items-center !justify-center !font-[700] !text-[length:18px]" style={{ background: fresh ? LIVE_COLOR : '#6b7280' }}>{initial}</div>
+          <div className="!flex-[1] !min-w-[0]">
+            <div className="!font-[700] !text-[length:16px] ![color:#111827] !overflow-hidden !text-ellipsis !whitespace-nowrap">{data.label}</div>
+            <div className="!text-[length:12.5px] !font-[500]" style={{ color: fresh ? '#16a34a' : '#6b7280' }}>
               {until ? t('tracking.live.until', { time: until }) : t('tracking.live.sharing')}
             </div>
           </div>
           {pos && (
-            <a href={`https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}`} target="_blank" rel="noopener noreferrer"
+            <a className="!w-[40px] !h-[40px] !rounded-[50%] ![background:#eff6ff] !flex !items-center !justify-center !shrink-[0]" href={`https://www.google.com/maps/dir/?api=1&destination=${pos.lat},${pos.lng}`} target="_blank" rel="noopener noreferrer"
               aria-label={t('tracking.live.directions')} title={t('tracking.live.directions')}
-              style={{ width: 40, height: 40, borderRadius: '50%', background: '#eff6ff', color: LIVE_COLOR, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              style={{ color: LIVE_COLOR }}>
               <Navigation2 size={18} />
             </a>
           )}
         </div>
         {cardOpen && (
-          <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', fontSize: 12.5, color: '#4b5563' }}>
+          <div className="!mt-[10px] !flex !items-center !gap-[10px] !flex-wrap !text-[length:12.5px] ![color:#4b5563]">
             <span>{pos ? t('tracking.live.updated', { when: ago(pos.recorded_at) }) : t('tracking.public.waiting')}</span>
             {data.stats.distance_m > 0 && <span>· {formatDistance(data.stats.distance_m)}</span>}
             {speedKmh != null && <span>· {speedKmh} km/h</span>}
-            {pos?.accuracy != null && pos.accuracy > 0 && <span style={{ color: '#9ca3af' }}>· ±{Math.round(pos.accuracy)} m</span>}
-            <span style={{ flex: 1 }} />
+            {pos?.accuracy != null && pos.accuracy > 0 && <span className="![color:#9ca3af]">· ±{Math.round(pos.accuracy)} m</span>}
+            <span className="!flex-[1]" />
             <DeviceStatusChip device={{ status: data.status, last_position: pos, last_seen_at: null }} />
             <BatteryBadge level={data.battery_level} />
           </div>

@@ -71,10 +71,10 @@ const chip: React.CSSProperties = { display: 'inline-flex', alignItems: 'center'
 function Fact({ label, value, info }: { label: string; value: string; info?: string }) {
   return (
     <div>
-      <div style={{ fontSize: 11, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-        {label}{info && <span title={info} style={{ display: 'inline-flex', cursor: 'help' }}><Info size={11} /></span>}
+      <div className="!text-[length:11px] ![color:var(--text-faint)] !flex !items-center !gap-[4px]">
+        {label}{info && <span className="!inline-flex ![cursor:help]" title={info}><Info size={11} /></span>}
       </div>
-      <div style={{ fontSize: 14.5, fontWeight: 600, color: 'var(--text-primary)', marginTop: 2 }}>{value}</div>
+      <div className="!text-[length:14.5px] !font-[600] ![color:var(--text-primary)] !mt-[2px]">{value}</div>
     </div>
   )
 }
@@ -87,12 +87,12 @@ function Summary({ s, onFocus }: { s: SummaryData; onFocus: (p: [number, number]
     <div style={section}>
       <button type="button" style={headBtn} onClick={() => setOpen(o => !o)}>
         <SlidersHorizontal size={15} style={{ color: 'var(--text-muted)' }} />
-        <span style={{ flex: 1 }}>{t('tours.planner.inspector.title')}</span>
+        <span className="!flex-[1]">{t('tours.planner.inspector.title')}</span>
         {open ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
       </button>
       {open && (
-        <div style={{ padding: '2px 12px 12px', borderTop: '1px solid var(--border-faint)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px', paddingTop: 10 }}>
+        <div className="!p-[2px_12px_12px] ![border-top:1px_solid_var(--border-faint)]">
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[12px_14px] !pt-[10px]">
             <Fact label={t('tours.detail.distance')} value={formatDistance(s.distanceKm)} />
             <Fact label={movingTimeLabel(s.type, t)} value={s.movingMinutes == null ? t('tours.planner.walkingTimeUnknown') : `${s.estimated ? '≈ ' : ''}${formatDurationShort(s.movingMinutes)}`} info={movingTimeInfo(s.type, t)} />
             <Fact label={t('tours.planner.breaksShort')} value={s.breakMinutes ? formatDurationShort(s.breakMinutes) : '—'} />
@@ -103,8 +103,8 @@ function Summary({ s, onFocus }: { s: SummaryData; onFocus: (p: [number, number]
             <Fact label={t('tours.detail.descent')} value={formatElevation(s.loss)} />
           </div>
           {(s.stages?.length ?? 0) > 1 && <StageList s={s} />}
-          <button type="button" onClick={() => setProfileOpen(o => !o)} style={{ ...headBtn, padding: '14px 0 8px', fontSize: 10.5, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)' }}>
-            <span style={{ flex: 1 }}>{t('tours.planner.inspector.elevation')}</span>
+          <button className="!p-[14px_0_8px] !text-[length:10.5px] !tracking-[0.06em] !uppercase ![color:var(--text-faint)]" type="button" onClick={() => setProfileOpen(o => !o)} style={{ ...headBtn }}>
+            <span className="!flex-[1]">{t('tours.planner.inspector.elevation')}</span>
             {profileOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
           </button>
           {profileOpen && <ElevationProfile geometry={s.geometry} onFocus={onFocus} boundariesM={(s.stages ?? []).slice(0, -1).flatMap(st => st.toM == null ? [] : [st.toM])} />}
@@ -120,25 +120,25 @@ function StageList({ s }: { s: SummaryData }) {
   const pill: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', gap: 3, padding: '1px 7px', borderRadius: 999, border: '1px solid var(--border-faint)', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }
   return (
     <div data-testid="summary-stages">
-      <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-faint)', padding: '16px 0 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+      <div className="!text-[length:10.5px] !font-[600] !tracking-[0.06em] !uppercase ![color:var(--text-faint)] !p-[16px_0_8px] !flex !items-center !gap-[4px]">
         {t('tours.stages.title')}
-        <span title={t('tours.stages.overviewHint')} style={{ display: 'inline-flex', cursor: 'help', marginLeft: 'auto' }}><Info size={12} /></span>
+        <span className="!inline-flex ![cursor:help] !ml-[auto]" title={t('tours.stages.overviewHint')}><Info size={12} /></span>
       </div>
-      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <ol className="![list-style:none] !m-[0] !p-[0] !flex !flex-col !gap-[10px]">
         {stages.map((st, i) => (
-          <li key={st.number} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ position: 'relative', width: 26, height: 26, borderRadius: 13, flexShrink: 0, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <li className="!flex !gap-[10px] !items-start" key={st.number}>
+            <span className="!relative !w-[26px] !h-[26px] !rounded-[13px] !shrink-[0] ![background:var(--bg-tertiary)] !flex !items-center !justify-center !text-[length:12px] !font-[700] ![color:var(--text-primary)]">
               {st.number}
-              {i < stages.length - 1 && <span title={t('tours.stages.overnight')} style={{ position: 'absolute', right: -7, bottom: -6, width: 15, height: 15, borderRadius: 8, border: '1.5px solid var(--bg-card)', background: 'var(--text-primary)', color: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Moon size={9} /></span>}
+              {i < stages.length - 1 && <span className="!absolute !right-[-7px] !bottom-[-6px] !w-[15px] !h-[15px] !rounded-[8px] ![border:1.5px_solid_var(--bg-card)] ![background:var(--text-primary)] ![color:var(--bg-card)] !flex !items-center !justify-center" title={t('tours.stages.overnight')}><Moon size={9} /></span>}
             </span>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', minWidth: 0 }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '45%' }}>{st.fromName}</span>
-                <span style={{ color: 'var(--text-faint)', flexShrink: 0 }}>→</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{st.toName}</span>
-                {s.stageGpxUrl && <a href={s.stageGpxUrl(st.number)} title={t('tours.stages.downloadGpx', { number: st.number })} style={{ color: 'var(--text-faint)', display: 'inline-flex', flexShrink: 0 }}><Download size={13} /></a>}
+            <div className="!flex-[1] !min-w-[0]">
+              <div className="!flex !items-center !gap-[4px] !text-[length:12.5px] !font-[600] ![color:var(--text-primary)] !min-w-[0]">
+                <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap !max-w-[45%]">{st.fromName}</span>
+                <span className="![color:var(--text-faint)] !shrink-[0]">→</span>
+                <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap !flex-[1]">{st.toName}</span>
+                {s.stageGpxUrl && <a className="![color:var(--text-faint)] !inline-flex !shrink-[0]" href={s.stageGpxUrl(st.number)} title={t('tours.stages.downloadGpx', { number: st.number })}><Download size={13} /></a>}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+              <div className="!flex !flex-wrap !gap-[4px] !mt-[4px]">
                 <span style={pill}><Ruler size={10} />{formatDistance(st.distanceKm)}</span>
                 {st.gain != null && <span style={pill}>↑ {formatElevation(st.gain)}</span>}
                 {st.loss != null && <span style={pill}>↓ {formatElevation(st.loss)}</span>}
@@ -164,18 +164,16 @@ function AddToDay({ days, onPick }: { days: Props['days']; onPick: (dayId: numbe
   }, [open])
   return (
     <div ref={ref} style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
-      <button type="button" title={t('tours.addToDay')} onClick={() => setOpen(o => !o)}
-        style={{ width: 26, height: 26, borderRadius: 13, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-primary)', padding: 0 }}>
+      <button className="!w-[26px] !h-[26px] !rounded-[13px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !flex !items-center !justify-center !cursor-pointer ![color:var(--text-primary)] !p-[0]" type="button" title={t('tours.addToDay')} onClick={() => setOpen(o => !o)}>
         <Plus size={14} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', right: 0, top: 30, zIndex: 50, width: 210, maxHeight: 260, overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4 }}>
-          <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '6px 8px' }}>{t('tours.addToDay')}</div>
+        <div className="!absolute !right-[0] !top-[30px] !z-[50] !w-[210px] !max-h-[260px] !overflow-y-auto ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[12px] ![box-shadow:var(--shadow-elevated)] !p-[4px]">
+          <div className="!text-[length:11px] ![color:var(--text-faint)] !p-[6px_8px]">{t('tours.addToDay')}</div>
           {days.map((d, i) => (
-            <button className="trek-hover" key={d.id} type="button" onClick={() => { onPick(d.id); setOpen(false) }}
-              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', padding: '7px 8px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left' }}>
+            <button className="trek-hover !flex !justify-between !gap-[8px] !w-[100%] !p-[7px_8px] ![border:none] !rounded-[8px] ![background:transparent] !cursor-pointer ![font-family:inherit] !text-[length:12.5px] ![color:var(--text-primary)] !text-left" key={d.id} type="button" onClick={() => { onPick(d.id); setOpen(false) }}>
               <span>{t('tours.days.short.one', { days: d.day_number ?? i + 1 })}{d.title ? ` · ${d.title}` : ''}</span>
-              {d.date && <span style={{ color: 'var(--text-faint)' }}>{new Date(d.date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>}
+              {d.date && <span className="![color:var(--text-faint)]">{new Date(d.date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>}
             </button>
           ))}
         </div>
@@ -195,26 +193,25 @@ function TourRow({ tour, active, props }: { tour: TourListItem; active: boolean;
     <div role="button" tabIndex={0} onClick={() => props.onOpen(tour)} onKeyDown={e => { if (e.key === 'Enter') props.onOpen(tour) }}
       onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ display: 'flex', gap: 10, padding: '10px 10px', borderRadius: 12, cursor: 'pointer', background: active ? 'var(--bg-selected, var(--bg-tertiary))' : hover ? 'var(--bg-hover)' : 'transparent', alignItems: 'flex-start' }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', fontSize: 12.5, fontWeight: 700 }}>
+      <div className="!w-[34px] !h-[34px] !rounded-[10px] !shrink-[0] !flex !flex-col !items-center !justify-center ![background:var(--bg-tertiary)] ![color:var(--text-primary)] !text-[length:12.5px] !font-[700]">
         {grade ?? <Icon size={15} />}
-        {tour.origin === 'gpx' && <span style={{ fontSize: 7.5, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-muted)', marginTop: 1 }}>{t('tours.badgeShort.gpx')}</span>}
+        {tour.origin === 'gpx' && <span className="!text-[length:7.5px] !font-[700] !tracking-[0.04em] ![color:var(--text-muted)] !mt-[1px]">{t('tours.badgeShort.gpx')}</span>}
       </div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tour.name}</div>
-        {tour.description && <div style={{ fontSize: 11.5, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tour.description}</div>}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 5 }}>
+      <div className="!flex-[1] !min-w-[0]">
+        <div className="!text-[length:13.5px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{tour.name}</div>
+        {tour.description && <div className="!text-[length:11.5px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{tour.description}</div>}
+        <div className="!flex !flex-wrap !gap-[4px] !mt-[5px]">
           {days.length > 0 && <span style={chip}><CalendarDays size={11} />{days.length === 1 ? t('tours.days.short.one', { days: days[0] }) : t('tours.days.short', { days: days.join(', ') })}</span>}
           {time && <span style={chip}><Clock size={11} />{time}</span>}
           {tour.distance != null && <span style={chip}><Ruler size={11} />{formatDistance(tour.distance)}</span>}
           {(tour.stage_count ?? 1) > 1 && <span style={chip}>{t('tours.stages.count', { count: tour.stage_count ?? 0 })}</span>}
-          {tour.caution && <span style={{ ...chip, color: '#b45309' }} title={t('tours.caution.tooltip')}>{t('tours.caution.badge')}</span>}
+          {tour.caution && <span className="![color:#b45309]" style={{ ...chip }} title={t('tours.caution.tooltip')}>{t('tours.caution.badge')}</span>}
         </div>
       </div>
       {props.canEdit && (active || hover) && (
-        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+        <div className="!flex !gap-[4px] !items-center">
           <AddToDay days={props.days} onPick={dayId => props.onAddToDay(tour, dayId)} />
-          <button type="button" title={t('tours.delete.confirmAction')} onClick={e => { e.stopPropagation(); props.onDelete(tour) }}
-            style={{ width: 26, height: 26, borderRadius: 13, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#dc2626', padding: 0 }}>
+          <button className="!w-[26px] !h-[26px] !rounded-[13px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !flex !items-center !justify-center !cursor-pointer ![color:#dc2626] !p-[0]" type="button" title={t('tours.delete.confirmAction')} onClick={e => { e.stopPropagation(); props.onDelete(tour) }}>
             <Trash2 size={13} />
           </button>
         </div>
@@ -240,20 +237,18 @@ export default function ToursSidebar(props: Props) {
   const statusLabel = (s: TourFilter) => s === 'all' ? t('places.all') : s === 'planned' ? t('places.planned') : t('places.unplanned')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '14px 14px 10px', position: 'relative' }}>
-        <h2 style={{ flex: 1, margin: 0, fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{t('tours.planner.tripTours')}</h2>
+    <div className="!flex !flex-col !h-[100%] !min-h-[0]">
+      <div className="!flex !items-center !p-[14px_14px_10px] !relative">
+        <h2 className="!flex-[1] !m-[0] !text-[length:15px] !font-[700] ![color:var(--text-primary)]">{t('tours.planner.tripTours')}</h2>
         {props.canEdit && (
-          <button type="button" title={t('tours.planner.addTourHint')} onClick={() => setMenuOpen(o => !o)}
-            style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <button className="!w-[30px] !h-[30px] !rounded-[8px] ![border:none] ![background:transparent] !cursor-pointer ![color:var(--text-primary)] !flex !items-center !justify-center" type="button" title={t('tours.planner.addTourHint')} onClick={() => setMenuOpen(o => !o)}>
             <Plus size={17} />
           </button>
         )}
         {menuOpen && (
           <div style={{ position: 'absolute', right: 12, top: 44, zIndex: 50, width: 230, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4 }} onMouseLeave={() => setMenuOpen(false)}>
             {[{ icon: Crosshair, label: t('tours.planner.newTour'), run: props.onNew }, { icon: Upload, label: t('tours.import.button'), run: props.onImport }].map((it, i) => (
-              <button className="trek-hover" key={i} type="button" onClick={() => { it.run(); setMenuOpen(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}>
+              <button className="trek-hover !flex !items-center !gap-[10px] !w-[100%] !p-[9px_10px] ![border:none] !rounded-[8px] ![background:transparent] !cursor-pointer ![font-family:inherit] !text-[length:13px] ![color:var(--text-primary)] !text-left" key={i} type="button" onClick={() => { it.run(); setMenuOpen(false) }}>
                 <it.icon size={14} />{it.label}
               </button>
             ))}
@@ -261,19 +256,19 @@ export default function ToursSidebar(props: Props) {
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div className="!flex-[1] !overflow-y-auto !p-[0_12px_16px] !flex !flex-col !gap-[10px]">
         {ro && (
-          <div style={{ ...section, padding: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ flex: 1, fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{ro.name}</span>
-              <button type="button" onClick={props.onCloseSelection} title={t('tours.detail.close')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}><X size={15} /></button>
+          <div className="!p-[12px]" style={{ ...section }}>
+            <div className="!flex !items-center !gap-[8px]">
+              <span className="!flex-[1] !font-[700] !text-[length:14px] ![color:var(--text-primary)]">{ro.name}</span>
+              <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex" type="button" onClick={props.onCloseSelection} title={t('tours.detail.close')}><X size={15} /></button>
             </div>
-            <div style={{ fontSize: 11.5, color: 'var(--text-faint)', margin: '2px 0 10px' }}>{t('tours.badge.gpx')}{ro.origin_file_name ? ` · ${ro.origin_file_name}` : ''}</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {props.canEdit && <button type="button" onClick={() => props.onPlanEditable(ro)} style={{ ...chip, padding: '5px 10px', cursor: 'pointer', background: 'var(--text-primary)', color: 'var(--bg-card)', fontFamily: 'inherit', border: 'none' }}><Crosshair size={12} />{t('tours.conversion.analyze')}</button>}
-              <a href={props.exportUrl(ro)} style={{ ...chip, padding: '5px 10px', textDecoration: 'none', color: 'var(--text-primary)' }}><Download size={12} />{t('tours.gpxExport.action')}</a>
-              {props.canEdit && <button type="button" onClick={() => props.onCopy(ro)} style={{ ...chip, padding: '5px 10px', cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit' }}><Copy size={12} />{t('tours.copy.action')}</button>}
-              {props.canEdit && ro.has_recorded_track && ro.has_waypoints && <button type="button" onClick={() => props.onRestoreRecorded(ro)} style={{ ...chip, padding: '5px 10px', cursor: 'pointer', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit' }}><History size={12} />{t('tours.recorded.restore')}</button>}
+            <div className="!text-[length:11.5px] ![color:var(--text-faint)] !m-[2px_0_10px]">{t('tours.badge.gpx')}{ro.origin_file_name ? ` · ${ro.origin_file_name}` : ''}</div>
+            <div className="!flex !flex-wrap !gap-[6px]">
+              {props.canEdit && <button className="!p-[5px_10px] !cursor-pointer ![background:var(--text-primary)] ![color:var(--bg-card)] ![font-family:inherit] ![border:none]" type="button" onClick={() => props.onPlanEditable(ro)} style={{ ...chip }}><Crosshair size={12} />{t('tours.conversion.analyze')}</button>}
+              <a className="!p-[5px_10px] ![text-decoration:none] ![color:var(--text-primary)]" href={props.exportUrl(ro)} style={{ ...chip }}><Download size={12} />{t('tours.gpxExport.action')}</a>
+              {props.canEdit && <button className="!p-[5px_10px] !cursor-pointer ![background:var(--bg-card)] ![color:var(--text-primary)] ![font-family:inherit]" type="button" onClick={() => props.onCopy(ro)} style={{ ...chip }}><Copy size={12} />{t('tours.copy.action')}</button>}
+              {props.canEdit && ro.has_recorded_track && ro.has_waypoints && <button className="!p-[5px_10px] !cursor-pointer ![background:var(--bg-card)] ![color:var(--text-primary)] ![font-family:inherit]" type="button" onClick={() => props.onRestoreRecorded(ro)} style={{ ...chip }}><History size={12} />{t('tours.recorded.restore')}</button>}
             </div>
           </div>
         )}
@@ -283,25 +278,25 @@ export default function ToursSidebar(props: Props) {
 
         <div style={section}>
           <button type="button" style={headBtn} onClick={() => setFilterOpen(o => !o)}>
-            <span style={{ flex: 1 }}>{statusLabel(status)}{type !== 'all' ? ` · ${t(`tourTypes.${type}`)}` : ''} <span style={{ fontWeight: 500, color: 'var(--text-faint)', fontSize: 12 }}>{list.length}</span></span>
+            <span className="!flex-[1]">{statusLabel(status)}{type !== 'all' ? ` · ${t(`tourTypes.${type}`)}` : ''} <span className="!font-[500] ![color:var(--text-faint)] !text-[length:12px]">{list.length}</span></span>
             {filterOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           {filterOpen && (
-            <div style={{ padding: '4px 12px 12px', borderTop: '1px solid var(--border-faint)' }}>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', margin: '8px 0 6px' }}>{t('tours.filter.status')}</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <div className="!p-[4px_12px_12px] ![border-top:1px_solid_var(--border-faint)]">
+              <div className="!text-[length:11px] ![color:var(--text-faint)] !m-[8px_0_6px]">{t('tours.filter.status')}</div>
+              <div className="!flex !gap-[4px] !flex-wrap">
                 {(['all', 'unplanned', 'planned'] as TourFilter[]).map(s => (
-                  <button key={s} type="button" onClick={() => setStatus(s)} style={{ ...chip, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', background: status === s ? 'var(--text-primary)' : 'var(--bg-card)', color: status === s ? 'var(--bg-card)' : 'var(--text-muted)' }}>{statusLabel(s)}</button>
+                  <button className="!p-[4px_10px] !cursor-pointer ![font-family:inherit]" key={s} type="button" onClick={() => setStatus(s)} style={{ ...chip, background: status === s ? 'var(--text-primary)' : 'var(--bg-card)', color: status === s ? 'var(--bg-card)' : 'var(--text-muted)' }}>{statusLabel(s)}</button>
                 ))}
               </div>
-              <div style={{ fontSize: 11, color: 'var(--text-faint)', margin: '10px 0 6px' }}>{t('tours.filter.type')}</div>
-              <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              <div className="!text-[length:11px] ![color:var(--text-faint)] !m-[10px_0_6px]">{t('tours.filter.type')}</div>
+              <div className="!flex !gap-[4px] !flex-wrap">
                 {(['all', ...TOUR_TYPES] as (TourType | 'all')[]).map(ty => (
-                  <button key={ty} type="button" onClick={() => setType(ty)} style={{ ...chip, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', background: type === ty ? 'var(--text-primary)' : 'var(--bg-card)', color: type === ty ? 'var(--bg-card)' : 'var(--text-muted)' }}>{ty === 'all' ? t('places.all') : t(`tourTypes.${ty}`)}</button>
+                  <button className="!p-[4px_10px] !cursor-pointer ![font-family:inherit]" key={ty} type="button" onClick={() => setType(ty)} style={{ ...chip, background: type === ty ? 'var(--text-primary)' : 'var(--bg-card)', color: type === ty ? 'var(--bg-card)' : 'var(--text-muted)' }}>{ty === 'all' ? t('places.all') : t(`tourTypes.${ty}`)}</button>
                 ))}
               </div>
               {(status !== 'all' || type !== 'all') && (
-                <button type="button" onClick={() => { setStatus('all'); setType('all') }} style={{ marginTop: 10, border: 'none', background: 'none', padding: 0, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit' }}>{t('tours.filter.reset')}</button>
+                <button className="!mt-[10px] ![border:none] ![background:none] !p-[0] !text-[length:12px] ![color:var(--text-muted)] ![text-decoration:underline] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => { setStatus('all'); setType('all') }}>{t('tours.filter.reset')}</button>
               )}
             </div>
           )}
@@ -310,36 +305,36 @@ export default function ToursSidebar(props: Props) {
         <div style={section}>
           <button type="button" style={headBtn} onClick={() => setTotalsOpen(o => !o)}>
             <BarChart3 size={15} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ flex: 1 }}>{t('tours.scope.title')}</span>
-            <span title={t('tours.scope.info')} style={{ display: 'inline-flex', color: 'var(--text-faint)' }}><Info size={13} /></span>
+            <span className="!flex-[1]">{t('tours.scope.title')}</span>
+            <span className="!inline-flex ![color:var(--text-faint)]" title={t('tours.scope.info')}><Info size={13} /></span>
             {totalsOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
           </button>
           {totalsOpen && (
-            <div style={{ padding: '2px 12px 12px', display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              <span style={{ ...chip, padding: '4px 9px' }}><strong style={{ color: 'var(--text-primary)' }}>{tours.length}</strong> {t('tours.title')}</span>
-              <span style={{ ...chip, padding: '4px 9px' }}><strong style={{ color: 'var(--text-primary)' }}>{planned}</strong> {t('places.planned')}</span>
-              <span style={{ ...chip, padding: '4px 9px' }}><strong style={{ color: 'var(--text-primary)' }}>{tours.length - planned}</strong> {t('places.unplanned')}</span>
-              {kmTotal > 0 && <span style={{ ...chip, padding: '4px 9px' }}><Ruler size={11} /><strong style={{ color: 'var(--text-primary)' }}>{formatDistance(kmTotal)}</strong></span>}
-              {gainTotal > 0 && <span style={{ ...chip, padding: '4px 9px' }}>↑ <strong style={{ color: 'var(--text-primary)' }}>{formatElevation(gainTotal)}</strong></span>}
+            <div className="!p-[2px_12px_12px] !flex !flex-wrap !gap-[6px]">
+              <span className="!p-[4px_9px]" style={{ ...chip }}><strong className="![color:var(--text-primary)]">{tours.length}</strong> {t('tours.title')}</span>
+              <span className="!p-[4px_9px]" style={{ ...chip }}><strong className="![color:var(--text-primary)]">{planned}</strong> {t('places.planned')}</span>
+              <span className="!p-[4px_9px]" style={{ ...chip }}><strong className="![color:var(--text-primary)]">{tours.length - planned}</strong> {t('places.unplanned')}</span>
+              {kmTotal > 0 && <span className="!p-[4px_9px]" style={{ ...chip }}><Ruler size={11} /><strong className="![color:var(--text-primary)]">{formatDistance(kmTotal)}</strong></span>}
+              {gainTotal > 0 && <span className="!p-[4px_9px]" style={{ ...chip }}>↑ <strong className="![color:var(--text-primary)]">{formatElevation(gainTotal)}</strong></span>}
             </div>
           )}
         </div>
 
         <div style={section}>
-          <div style={{ ...headBtn, cursor: 'default' }}>
+          <div className="!cursor-default" style={{ ...headBtn }}>
             <Mountain size={15} style={{ color: 'var(--text-muted)' }} />
-            <span style={{ flex: 1 }}>{t('tours.title')}</span>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-faint)' }}>{list.length}</span>
+            <span className="!flex-[1]">{t('tours.title')}</span>
+            <span className="!text-[length:12px] !font-[500] ![color:var(--text-faint)]">{list.length}</span>
           </div>
-          <div style={{ padding: '0 4px 6px' }}>
-            {props.loading && tours.length === 0 && <div style={{ padding: 14, fontSize: 12, color: 'var(--text-faint)' }}>{t('common.loading')}</div>}
+          <div className="!p-[0_4px_6px]">
+            {props.loading && tours.length === 0 && <div className="!p-[14px] !text-[length:12px] ![color:var(--text-faint)]">{t('common.loading')}</div>}
             {!props.loading && tours.length === 0 && (
-              <div style={{ padding: '12px 10px 14px' }}>
-                <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>{t('tours.empty.title')}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 4, lineHeight: 1.5 }}>{t('tours.empty.body')}</div>
+              <div className="!p-[12px_10px_14px]">
+                <div className="!font-[600] !text-[length:13px] ![color:var(--text-primary)]">{t('tours.empty.title')}</div>
+                <div className="!text-[length:12px] ![color:var(--text-faint)] !mt-[4px] !leading-[1.5]">{t('tours.empty.body')}</div>
               </div>
             )}
-            {tours.length > 0 && list.length === 0 && <div style={{ padding: 12, fontSize: 12, color: 'var(--text-faint)' }}>{t('tours.filter.empty')}</div>}
+            {tours.length > 0 && list.length === 0 && <div className="!p-[12px] !text-[length:12px] ![color:var(--text-faint)]">{t('tours.filter.empty')}</div>}
             {list.map(tour => <TourRow key={tour.place_id} tour={tour} active={props.activeId === tour.place_id} props={props} />)}
           </div>
         </div>

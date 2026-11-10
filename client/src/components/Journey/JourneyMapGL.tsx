@@ -533,8 +533,8 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   if (!engineInfo) {
     return (
       <div
-        style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}
-        className="flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6"
+        style={{ height: height === 9999 ? '100%' : height }}
+        className="flex items-center justify-center bg-zinc-100 dark:bg-zinc-800 text-center px-6 !relative !w-[100%] !rounded-[inherit] !overflow-hidden"
       >
         <div className="text-sm text-zinc-500">
           No Mapbox access token configured.<br />
@@ -545,7 +545,7 @@ const JourneyMapGL = forwardRef<JourneyMapGLHandle, Props>(function JourneyMapGL
   }
 
   return (
-    <div style={{ position: 'relative', height: height === 9999 ? '100%' : height, width: '100%', borderRadius: 'inherit', overflow: 'hidden' }}>
+    <div className="!relative !w-[100%] !rounded-[inherit] !overflow-hidden" style={{ height: height === 9999 ? '100%' : height }}>
       <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
     </div>
   )

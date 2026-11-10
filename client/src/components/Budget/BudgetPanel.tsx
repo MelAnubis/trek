@@ -205,38 +205,37 @@ function AddItemRow({ onAdd, t }: AddItemRowProps) {
 
   return (
     <tr style={{ background: 'var(--bg-secondary)' }}>
-      <td style={{ padding: '4px 6px' }}>
+      <td className="!p-[4px_6px]">
         <input ref={nameRef} value={name} onChange={e => setName(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
           placeholder={t('budget.newEntry')} style={inp} />
       </td>
-      <td style={{ padding: '4px 6px' }}>
-        <input value={price} onChange={e => setPrice(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
+      <td className="!p-[4px_6px]">
+        <input className="!text-center" value={price} onChange={e => setPrice(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
           onPaste={e => { e.preventDefault(); let t = e.clipboardData.getData('text').trim().replace(/[^\d.,-]/g, ''); const lc = t.lastIndexOf(','), ld = t.lastIndexOf('.'), dp = Math.max(lc, ld); if (dp > -1) { t = t.substring(0, dp).replace(/[.,]/g, '') + '.' + t.substring(dp + 1) } else { t = t.replace(/[.,]/g, '') } setPrice(t) }}
-          placeholder="0,00" inputMode="decimal" style={{ ...inp, textAlign: 'center' }} />
+          placeholder="0,00" inputMode="decimal" style={{ ...inp }} />
       </td>
-      <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>
-        <input value={persons} onChange={e => setPersons(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="-" inputMode="numeric" style={{ ...inp, textAlign: 'center', maxWidth: 60, margin: '0 auto' }} />
+      <td className="hidden sm:table-cell !p-[4px_6px] !text-center">
+        <input className="!text-center !max-w-[60px] !m-[0_auto]" value={persons} onChange={e => setPersons(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          placeholder="-" inputMode="numeric" style={{ ...inp }} />
       </td>
-      <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>
-        <input value={days} onChange={e => setDays(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
-          placeholder="-" inputMode="numeric" style={{ ...inp, textAlign: 'center', maxWidth: 60, margin: '0 auto' }} />
+      <td className="hidden sm:table-cell !p-[4px_6px] !text-center">
+        <input className="!text-center !max-w-[60px] !m-[0_auto]" value={days} onChange={e => setDays(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()}
+          placeholder="-" inputMode="numeric" style={{ ...inp }} />
       </td>
-      <td className="hidden md:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
-      <td className="hidden md:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
-      <td className="hidden lg:table-cell" style={{ padding: '4px 6px', color: 'var(--text-faint)', fontSize: 12, textAlign: 'center' }}>-</td>
-      <td className="hidden sm:table-cell" style={{ padding: '4px 6px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 90, margin: '0 auto' }}>
+      <td className="hidden md:table-cell !p-[4px_6px] ![color:var(--text-faint)] !text-[length:12px] !text-center">-</td>
+      <td className="hidden md:table-cell !p-[4px_6px] ![color:var(--text-faint)] !text-[length:12px] !text-center">-</td>
+      <td className="hidden lg:table-cell !p-[4px_6px] ![color:var(--text-faint)] !text-[length:12px] !text-center">-</td>
+      <td className="hidden sm:table-cell !p-[4px_6px] !text-center">
+        <div className="!max-w-[90px] !m-[0_auto]">
           <CustomDatePicker value={expenseDate} onChange={setExpenseDate} placeholder="-" compact />
         </div>
       </td>
-      <td className="hidden sm:table-cell" style={{ padding: '4px 6px' }}>
+      <td className="hidden sm:table-cell !p-[4px_6px]">
         <input value={note} onChange={e => setNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleAdd()} placeholder={t('budget.table.note')} style={inp} />
       </td>
-      <td style={{ padding: '4px 6px', textAlign: 'center' }}>
-        <button onClick={handleAdd} disabled={!name.trim()} title={t('reservations.add')}
-          style={{ background: name.trim() ? 'var(--text-primary)' : 'var(--border-primary)', border: 'none', borderRadius: 4, color: 'var(--bg-primary)',
-            cursor: name.trim() ? 'pointer' : 'default', padding: '4px 8px', display: 'inline-flex', alignItems: 'center' }}>
+      <td className="!p-[4px_6px] !text-center">
+        <button className="!rounded-[4px] ![color:var(--bg-primary)] !p-[4px_8px] !items-center" onClick={handleAdd} disabled={!name.trim()} title={t('reservations.add')}
+          style={{ background: name.trim() ? 'var(--text-primary)' : 'var(--border-primary)', border: 'none', cursor: name.trim() ? 'pointer' : 'default', display: 'inline-flex' }}>
           <Plus size={14} />
         </button>
       </td>
@@ -281,26 +280,15 @@ function ChipWithTooltip({ label, avatarUrl, size = 20, paid, onClick }: ChipWit
           transition: 'border-color 0.15s, background 0.15s',
         }}>
         {avatarUrl
-          ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ? <img className="!w-[100%] !h-[100%] !object-cover" src={avatarUrl} />
           : label?.[0]?.toUpperCase()
         }
       </div>
       {hover && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
-          pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
-          display: 'flex', alignItems: 'center', gap: 5,
-          background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-          fontSize: 11, fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
-        }}>
+        <div className="!fixed !pointer-events-none !z-[10000] !whitespace-nowrap !items-center !gap-[5px] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)]" style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)', display: 'flex', background: 'var(--bg-card, white)', border: '1px solid var(--border-faint, #e5e7eb)' }}>
           {label}
           {paid && (
-            <span style={{
-              fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
-              background: 'rgba(34,197,94,0.15)', color: '#16a34a',
-              textTransform: 'uppercase', letterSpacing: '0.03em',
-            }}>Paid</span>
+            <span className="!text-[length:9px] !font-[700] !p-[1px_5px] !rounded-[4px] ![color:#16a34a] !uppercase !tracking-[0.03em]" style={{ background: 'rgba(34,197,94,0.15)' }}>Paid</span>
           )}
         </div>,
         document.body
@@ -357,7 +345,7 @@ function BudgetMemberChips({ members = [], tripMembers = [], onSetMembers, onTog
   }
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
+    <div className="!items-center !justify-center !gap-[2px] !flex-wrap" style={{ display: 'flex' }}>
       {members.map(m => (
         <ChipWithTooltip key={m.user_id} label={m.username} avatarUrl={m.avatar_url} size={chipSize}
           paid={!!m.paid}
@@ -383,22 +371,14 @@ function BudgetMemberChips({ members = [], tripMembers = [], onSetMembers, onTog
           {tripMembers.map(tm => {
             const isActive = memberIds.includes(tm.id)
             return (
-              <button className={(!isActive) ? 'trek-hover' : undefined} key={tm.id} onClick={() => toggleMember(tm.id)} style={{
-                display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
-                borderRadius: 6, border: 'none', background: isActive ? 'var(--bg-hover)' : 'none', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 11, color: 'var(--text-primary)', textAlign: 'left',
-              }} >
-                <div style={{
-                  width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700,
-                  color: 'var(--text-muted)', overflow: 'hidden', flexShrink: 0,
-                }}>
+              <button className={[(!isActive) ? 'trek-hover' : undefined, '!items-center !gap-[6px] !w-[100%] !p-[5px_8px] !rounded-[6px] !cursor-pointer ![font-family:inherit] !text-[length:11px] ![color:var(--text-primary)] !text-left'].join(' ')} key={tm.id} onClick={() => toggleMember(tm.id)} style={{ display: 'flex', border: 'none', background: isActive ? 'var(--bg-hover)' : 'none' }} >
+                <div className="!w-[18px] !h-[18px] !rounded-[50%] !items-center !justify-center !text-[length:8px] !font-[700] ![color:var(--text-muted)] !overflow-hidden !shrink-[0]" style={{ background: 'var(--bg-tertiary)', display: 'flex' }}>
                   {tm.avatar_url
-                    ? <img src={tm.avatar_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ? <img className="!w-[100%] !h-[100%] !object-cover" src={tm.avatar_url} />
                     : tm.username?.[0]?.toUpperCase()
                   }
                 </div>
-                <span style={{ flex: 1 }}>{tm.username}</span>
+                <span className="!flex-[1]">{tm.username}</span>
                 {isActive && <Check size={12} color="var(--text-primary)" />}
               </button>
             )
@@ -438,19 +418,9 @@ function colorForUserId(userId: number) {
 function RingAvatar({ userId, username, avatarUrl, size = 34, innerBg = '#17171d', textColor = '#fff' }: { userId: number; username?: string; avatarUrl?: string | null; size?: number; innerBg?: string; textColor?: string }) {
   const color = colorForUserId(userId)
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', flexShrink: 0,
-      padding: 2, background: color.gradient,
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-    }}>
-      <div style={{
-        width: '100%', height: '100%', borderRadius: '50%',
-        background: innerBg,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        overflow: 'hidden',
-        fontSize: size < 28 ? 10 : 12, fontWeight: 600, color: textColor,
-      }}>
-        {avatarUrl ? <img src={avatarUrl} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : username?.[0]?.toUpperCase()}
+    <div className="!rounded-[50%] !shrink-[0] !p-[2px] !items-center !justify-center" style={{ width: size, height: size, background: color.gradient, display: 'flex' }}>
+      <div className="!w-[100%] !h-[100%] !rounded-[50%] !items-center !justify-center !overflow-hidden" style={{ background: innerBg, display: 'flex', fontSize: size < 28 ? 10 : 12, fontWeight: 600, color: textColor }}>
+        {avatarUrl ? <img className="!w-[100%] !h-[100%] !object-cover" src={avatarUrl} /> : username?.[0]?.toUpperCase()}
       </div>
     </div>
   )
@@ -471,28 +441,24 @@ function PerPersonInline({ tripId, budgetItems, currency, locale, grandTotal, th
   return (
     <>
       {grandTotal > 0 && (
-        <div style={{ display: 'flex', height: 6, borderRadius: 999, overflow: 'hidden', marginTop: 8, marginBottom: 4, gap: 3 }}>
+        <div className="!h-[6px] !rounded-[999px] !overflow-hidden !mt-[8px] !mb-[4px] !gap-[3px]" style={{ display: 'flex' }}>
           {people.map(p => (
-            <div key={p.user_id} style={{
-              height: '100%', borderRadius: 999,
-              flex: Math.max(p.total_assigned || 0, 0.01),
-              background: p.color.gradient,
-            }} />
+            <div className="!h-[100%] !rounded-[999px]" key={p.user_id} style={{ flex: Math.max(p.total_assigned || 0, 0.01), background: p.color.gradient }} />
           ))}
         </div>
       )}
 
-      <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${theme.divider}`, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <div className="!mt-[14px] !pt-[14px] !flex-col !gap-[2px]" style={{ borderTop: `1px solid ${theme.divider}`, display: 'flex' }}>
         {people.map(p => {
           const percent = grandTotal > 0 ? Math.round((p.total_assigned / grandTotal) * 100) : 0
           return (
-            <div key={p.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '6px 0' }}>
+            <div className="!items-center !gap-[12px] !p-[6px_0]" key={p.user_id} style={{ display: 'flex' }}>
               <RingAvatar userId={p.user_id} username={p.username} avatarUrl={p.avatar_url} size={34} innerBg={theme.centerBg} textColor={theme.text} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 500, letterSpacing: '-0.01em', color: theme.text }}>{p.username}</div>
-                <div style={{ fontSize: 11, color: theme.faint, marginTop: 1 }}>{percent}%</div>
+              <div className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:13.5px] !font-[500] !tracking-[-0.01em]" style={{ color: theme.text }}>{p.username}</div>
+                <div className="!text-[length:11px] !mt-[1px]" style={{ color: theme.faint }}>{percent}%</div>
               </div>
-              <div style={{ fontSize: 13.5, fontWeight: 600, color: theme.text, letterSpacing: '-0.01em' }}>{fmt(p.total_assigned)}</div>
+              <div className="!text-[length:13.5px] !font-[600] !tracking-[-0.01em]" style={{ color: theme.text }}>{fmt(p.total_assigned)}</div>
             </div>
           )
         })}
@@ -523,25 +489,14 @@ function PieChart({ segments, size = 200, totalLabel }: PieChartProps) {
   }).join(', ')
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, margin: '0 auto' }}>
+    <div className="!relative !m-[0_auto]" style={{ width: size, height: size }}>
       <div
-        className="trek-pie-reveal"
-        style={{
-          width: size, height: size, borderRadius: '50%',
-          background: `conic-gradient(${stops})`,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
-        }}
+        className="trek-pie-reveal !rounded-[50%] ![box-shadow:0_4px_24px_rgba(0,0,0,0.08)]"
+        style={{ width: size, height: size, background: `conic-gradient(${stops})` }}
       />
-      <div style={{
-        position: 'absolute', top: '50%', left: '50%',
-        transform: 'translate(-50%, -50%)',
-        width: size * 0.55, height: size * 0.55,
-        borderRadius: '50%', background: 'var(--bg-card)',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        boxShadow: 'inset 0 0 12px rgba(0,0,0,0.04)',
-      }}>
+      <div className="!absolute !top-[50%] !left-[50%] !rounded-[50%] !flex-col !items-center !justify-center ![box-shadow:inset_0_0_12px_rgba(0,0,0,0.04)]" style={{ transform: 'translate(-50%, -50%)', width: size * 0.55, height: size * 0.55, background: 'var(--bg-card)', display: 'flex' }}>
         <Wallet size={18} color="var(--text-faint)" style={{ marginBottom: 2 }} />
-        <span style={{ fontSize: 10, color: 'var(--text-faint)', fontWeight: 500 }}>{totalLabel}</span>
+        <span className="!text-[length:10px] ![color:var(--text-faint)] !font-[500]">{totalLabel}</span>
       </div>
     </div>
   )
@@ -679,20 +634,20 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   // ── Empty State ──────────────────────────────────────────────────────────
   if (!budgetItems || budgetItems.length === 0) {
     return (
-      <div style={{ padding: 24, maxWidth: 600, margin: '60px auto', textAlign: 'center' }}>
-        <div style={{ width: 64, height: 64, borderRadius: 16, background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+      <div className="!p-[24px] !max-w-[600px] !m-[60px_auto] !text-center">
+        <div className="!w-[64px] !h-[64px] !rounded-[16px] !items-center !justify-center !m-[0_auto_20px]" style={{ background: 'var(--bg-tertiary)', display: 'flex' }}>
           <Calculator size={28} color="#6b7280" />
         </div>
-        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', margin: '0 0 8px' }}>{t('budget.emptyTitle')}</h2>
-        <p style={{ fontSize: 14, color: 'var(--text-muted)', margin: '0 0 24px', lineHeight: 1.5 }}>{t('budget.emptyText')}</p>
+        <h2 className="!text-[length:20px] !font-[700] ![color:var(--text-primary)] !m-[0_0_8px]">{t('budget.emptyTitle')}</h2>
+        <p className="!text-[length:14px] ![color:var(--text-muted)] !m-[0_0_24px] !leading-[1.5]">{t('budget.emptyText')}</p>
         {canEdit && (
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', alignItems: 'stretch', maxWidth: 320, margin: '0 auto' }}>
-            <input value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
+          <div className="!gap-[6px] !justify-center !items-stretch !max-w-[320px] !m-[0_auto]" style={{ display: 'flex' }}>
+            <input className="!flex-[1] !p-[9px_14px] !rounded-[10px] !text-[length:13px] ![font-family:inherit] ![outline:none] ![color:var(--text-primary)] !min-w-[0]" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddCategory()}
               placeholder={t('budget.emptyPlaceholder')}
-              style={{ flex: 1, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'var(--bg-input)', color: 'var(--text-primary)', minWidth: 0 }} />
-            <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
-              style={{ background: 'var(--accent)', color: 'var(--accent-text)', border: 'none', borderRadius: 10, padding: '0 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', opacity: newCategoryName.trim() ? 1 : 0.5, flexShrink: 0 }}>
+              style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-input)' }} />
+            <button className="![color:var(--accent-text)] !rounded-[10px] !p-[0_12px] !cursor-pointer !items-center !shrink-[0]" onClick={handleAddCategory} disabled={!newCategoryName.trim()}
+              style={{ background: 'var(--accent)', border: 'none', display: 'flex', opacity: newCategoryName.trim() ? 1 : 0.5 }}>
               <Plus size={16} />
             </button>
           </div>
@@ -705,17 +660,13 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
   const totalBudget = budgetItems.reduce((s, x) => s + (x.total_price || 0), 0)
   return (
     <div>
-      <div style={{ padding: '24px 28px 0' }} className="max-md:!px-4 max-md:!pt-4">
-        <div style={{
-          background: 'var(--bg-tertiary)', borderRadius: 18,
-          padding: '14px 16px 14px 22px',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap',
-        }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em', flexShrink: 0 }}>
+      <div className="max-md:!px-4 max-md:!pt-4 !p-[24px_28px_0]">
+        <div className="!rounded-[18px] !p-[14px_16px_14px_22px] !items-center !justify-between !gap-[16px] !flex-wrap" style={{ background: 'var(--bg-tertiary)', display: 'flex' }}>
+          <h2 className="!m-[0] !text-[length:18px] !font-[600] ![color:var(--text-primary)] !tracking-[-0.01em] !shrink-[0]">
             {t('budget.title')}
           </h2>
-          <div className="flex flex-wrap max-md:!w-full max-md:!mt-2" style={{ alignItems: 'center', gap: 8, marginLeft: 'auto', flexShrink: 0 }}>
-            <div className="max-md:!w-full" style={{ width: 150 }}>
+          <div className="flex flex-wrap max-md:!w-full max-md:!mt-2 !items-center !gap-[8px] !ml-[auto] !shrink-[0]">
+            <div className="max-md:!w-full !w-[150px]">
               <CustomSelect
                 value={currency}
                 onChange={setCurrency}
@@ -725,55 +676,38 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
               />
             </div>
             {canEdit && (
-              <div className="max-md:!w-full" style={{ display: 'flex', gap: 6, width: 260 }}>
-                <input
+              <div className="max-md:!w-full !gap-[6px] !w-[260px]" style={{ display: 'flex' }}>
+                <input className="!flex-[1] !min-w-[0] !rounded-[10px] !p-[9px_14px] !text-[length:13px] ![outline:none] ![font-family:inherit] ![color:var(--text-primary)]"
                   value={newCategoryName}
                   onChange={e => setNewCategoryName(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddCategory() }}
                   placeholder={t('budget.categoryName')}
-                  style={{ flex: 1, minWidth: 0, border: '1px solid var(--border-primary)', borderRadius: 10, padding: '9px 14px', fontSize: 13, outline: 'none', fontFamily: 'inherit', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
+                  style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)' }}
                 />
-                <button onClick={handleAddCategory} disabled={!newCategoryName.trim()}
+                <button className="![appearance:none] ![font-family:inherit] !items-center !gap-[6px] !p-[9px_14px] !rounded-[10px] !text-[length:13px] !font-[500] ![color:var(--accent-text)] !shrink-[0] ![transition:opacity_0.15s_ease]" onClick={handleAddCategory} disabled={!newCategoryName.trim()}
                   title={t('budget.addCategory')}
-                  style={{
-                    appearance: 'none', border: 'none', cursor: newCategoryName.trim() ? 'pointer' : 'default', fontFamily: 'inherit',
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                    background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-                    opacity: newCategoryName.trim() ? 1 : 0.4,
-                    transition: 'opacity 0.15s ease',
-                  }}>
+                  style={{ border: 'none', cursor: newCategoryName.trim() ? 'pointer' : 'default', display: 'inline-flex', background: 'var(--accent)', opacity: newCategoryName.trim() ? 1 : 0.4 }}>
                   <Plus size={14} strokeWidth={2.5} />
                 </button>
               </div>
             )}
-            <button className="trek-hover-o88" onClick={handleExportCsv} title={t('budget.exportCsv')}
-              style={{
-                appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                display: 'inline-flex', alignItems: 'center', gap: 6,
-                padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
-                background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
-                transition: 'opacity 0.15s ease',
-              }} >
+            <button className="trek-hover-o88 ![appearance:none] !cursor-pointer ![font-family:inherit] !items-center !gap-[6px] !p-[9px_14px] !rounded-[10px] !text-[length:13px] !font-[500] ![color:var(--accent-text)] !shrink-[0] ![transition:opacity_0.15s_ease]" onClick={handleExportCsv} title={t('budget.exportCsv')}
+              style={{ border: 'none', display: 'inline-flex', background: 'var(--accent)' }} >
               <Download size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">CSV</span>
             </button>
           </div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 20, padding: '24px 28px 40px', alignItems: 'flex-start', flexWrap: 'wrap' }} className="max-md:!px-4">
-        <div style={{ flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex' }} className="max-md:!px-4 !gap-[20px] !p-[24px_28px_40px] !items-start !flex-wrap">
+        <div className="!flex-[1] !min-w-[0]">
           {categoryNames.map((cat, ci) => {
             const items = grouped.get(cat) || []
             const subtotal = items.reduce((s, x) => s + (x.total_price || 0), 0)
             const color = categoryColor(cat)
 
             return (
-              <div key={cat} data-drag-cat={cat} style={{
-                  marginBottom: 16, opacity: dragCat === cat ? 0.4 : 1,
-                  transition: 'opacity 0.15s',
-                  position: 'relative',
-                }}
+              <div className="!mb-[16px] ![transition:opacity_0.15s] !relative" key={cat} data-drag-cat={cat} style={{ opacity: dragCat === cat ? 0.4 : 1 }}
                 onDragOver={e => {
                   if (!dragCat || dragCat === cat || dragItem) return
                   e.preventDefault(); e.dataTransfer.dropEffect = 'move'
@@ -795,67 +729,64 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                   setDragCat(null); setDragOverCat(null)
                 }}
               >
-                {dragOverCat === cat && <div style={{ position: 'absolute', top: -2, left: 0, right: 0, height: 4, background: 'var(--accent)', borderRadius: 2, zIndex: 10 }} />}
-                <div style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#000000', color: '#fff',
-                  borderRadius: '10px 10px 0 0', padding: '9px 14px',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                {dragOverCat === cat && <div className="!absolute !top-[-2px] !left-[0] !right-[0] !h-[4px] !rounded-[2px] !z-[10]" style={{ background: 'var(--accent)' }} />}
+                <div className="!items-center !justify-between ![color:#fff] !rounded-[10px_10px_0_0] !p-[9px_14px]" style={{ display: 'flex', background: '#000000' }}>
+                  <div className="!items-center !gap-[8px] !flex-[1] !min-w-[0]" style={{ display: 'flex' }}>
                     {canEdit && (
-                      <div draggable onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-budget-cat', cat); setDragCat(cat) }}
+                      <div className="!cursor-grab !items-center ![color:rgba(255,255,255,0.4)] !shrink-[0]" draggable onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-budget-cat', cat); setDragCat(cat) }}
                         onDragEnd={() => { setDragCat(null); setDragOverCat(null) }}
-                        style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'rgba(255,255,255,0.4)', flexShrink: 0 }}>
+                        style={{ display: 'flex' }}>
                         <GripVertical size={14} />
                       </div>
                     )}
-                    <div style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+                    <div className="!w-[10px] !h-[10px] !rounded-[3px] !shrink-[0]" style={{ background: color }} />
                     {canEdit && editingCat?.name === cat ? (
-                      <input
+                      <input className="!font-[600] !text-[length:13px] !rounded-[4px] ![color:#fff] !p-[1px_6px] ![outline:none] ![font-family:inherit] !w-[100%]"
                         autoFocus
                         value={editingCat.value}
                         onChange={e => setEditingCat({ ...editingCat, value: e.target.value })}
                         onBlur={() => { handleRenameCategory(cat, editingCat.value); setEditingCat(null) }}
                         onKeyDown={e => { if (e.key === 'Enter') { handleRenameCategory(cat, editingCat.value); setEditingCat(null) } if (e.key === 'Escape') setEditingCat(null) }}
-                        style={{ fontWeight: 600, fontSize: 13, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 4, color: '#fff', padding: '1px 6px', outline: 'none', fontFamily: 'inherit', width: '100%' }}
+                        style={{ background: 'rgba(255,255,255,0.15)', border: 'none' }}
                       />
                     ) : (
                       <>
-                        <span style={{ fontWeight: 600, fontSize: 13 }}>{cat}</span>
+                        <span className="!font-[600] !text-[length:13px]">{cat}</span>
                         {canEdit && (
-                          <button className="trek-h-color-4eb23a" onClick={() => setEditingCat({ name: cat, value: cat })}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', padding: 1 }}>
+                          <button className="trek-h-color-4eb23a !cursor-pointer ![color:rgba(255,255,255,0.4)] !p-[1px]" onClick={() => setEditingCat({ name: cat, value: cat })}
+                            style={{ background: 'none', border: 'none', display: 'flex' }}>
                             <Pencil size={10} />
                           </button>
                         )}
                       </>
                     )}
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
+                  <div className="!items-center !gap-[10px]" style={{ display: 'flex' }}>
+                    <span className="!text-[length:13px] !font-[500]" style={{ opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
                     {canEdit && (
-                      <button className="trek-hover-opaque" onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
-                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', opacity: 0.6 }}>
+                      <button className="trek-hover-opaque !rounded-[4px] ![color:#fff] !cursor-pointer !p-[3px_6px] !items-center" onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
+                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', display: 'flex', opacity: 0.6 }}>
                         <Trash2 size={13} />
                       </button>
                     )}
                   </div>
                 </div>
 
-                <div style={{ overflowX: 'auto', border: '1px solid var(--border-primary)', borderTop: 'none', borderRadius: '0 0 10px 10px' }}
+                <div className="!overflow-x-auto !rounded-[0_0_10px_10px]" style={{ border: '1px solid var(--border-primary)', borderTop: 'none' }}
                   onDragOver={e => { if (dragCat) { e.preventDefault(); e.dataTransfer.dropEffect = 'move' } }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <table className="!w-[100%]" style={{ borderCollapse: 'collapse' }}>
                     <thead>
                       <tr>
-                        <th style={{ ...th, textAlign: 'left', minWidth: 120 }}>{t('budget.table.name')}</th>
-                        <th style={{ ...th, minWidth: 75 }}>{t('budget.table.total')}</th>
-                        <th className="hidden sm:table-cell" style={{ ...th, minWidth: 160 }}>{t('budget.table.persons')}</th>
-                        <th className="hidden sm:table-cell" style={{ ...th, minWidth: 55 }}>{t('budget.table.days')}</th>
-                        <th className="hidden md:table-cell" style={{ ...th, minWidth: 100 }}>{t('budget.table.perPerson')}</th>
-                        <th className="hidden md:table-cell" style={{ ...th, minWidth: 90 }}>{t('budget.table.perDay')}</th>
-                        <th className="hidden lg:table-cell" style={{ ...th, minWidth: 95 }}>{t('budget.table.perPersonDay')}</th>
-                        <th className="hidden sm:table-cell" style={{ ...th, width: 90, maxWidth: 90 }}>{t('budget.table.date')}</th>
-                        <th className="hidden sm:table-cell" style={{ ...th, minWidth: 150 }}>{t('budget.table.note')}</th>
-                        <th style={{ ...th, width: 36 }}></th>
+                        <th className="!text-left !min-w-[120px]" style={{ ...th }}>{t('budget.table.name')}</th>
+                        <th className="!min-w-[75px]" style={{ ...th }}>{t('budget.table.total')}</th>
+                        <th className="hidden sm:table-cell !min-w-[160px]" style={{ ...th }}>{t('budget.table.persons')}</th>
+                        <th className="hidden sm:table-cell !min-w-[55px]" style={{ ...th }}>{t('budget.table.days')}</th>
+                        <th className="hidden md:table-cell !min-w-[100px]" style={{ ...th }}>{t('budget.table.perPerson')}</th>
+                        <th className="hidden md:table-cell !min-w-[90px]" style={{ ...th }}>{t('budget.table.perDay')}</th>
+                        <th className="hidden lg:table-cell !min-w-[95px]" style={{ ...th }}>{t('budget.table.perPersonDay')}</th>
+                        <th className="hidden sm:table-cell !w-[90px] !max-w-[90px]" style={{ ...th }}>{t('budget.table.date')}</th>
+                        <th className="hidden sm:table-cell !min-w-[150px]" style={{ ...th }}>{t('budget.table.note')}</th>
+                        <th className="!w-[36px]" style={{ ...th }}></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -865,12 +796,8 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                         const ppd = calcPPD(item.total_price, item.persons, item.days)
                         const hasMembers = item.members?.length > 0
                         return (
-                          <tr className="trek-hover" key={item.id}
-                            style={{
-                              transition: 'background 0.1s, opacity 0.15s',
-                              opacity: dragItem === item.id ? 0.4 : 1,
-                              boxShadow: dragOverItem === item.id ? 'inset 4px 0 0 0 var(--accent)' : 'none',
-                            }}
+                          <tr className="trek-hover ![transition:background_0.1s,_opacity_0.15s]" key={item.id}
+                            style={{ opacity: dragItem === item.id ? 0.4 : 1, boxShadow: dragOverItem === item.id ? 'inset 4px 0 0 0 var(--accent)' : 'none' }}
                             onDragOver={e => {
                               if (dragCat && dragCat !== cat) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; return }
                               if (dragItem && dragItemCat === cat && dragItem !== item.id) { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverItem(item.id) }
@@ -889,18 +816,18 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                               }
                             }}>
                             <td style={td}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                              <div className="!items-center !gap-[4px]" style={{ display: 'flex' }}>
                                 {canEdit && (
-                                  <div draggable onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; setDragItem(item.id); setDragItemCat(cat) }}
+                                  <div className="!cursor-grab !items-center ![color:var(--text-faint)] !shrink-[0]" draggable onDragStart={e => { e.stopPropagation(); e.dataTransfer.effectAllowed = 'move'; setDragItem(item.id); setDragItemCat(cat) }}
                                     onDragEnd={() => { setDragItem(null); setDragOverItem(null); setDragItemCat(null) }}
-                                    style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--text-faint)', flexShrink: 0 }}>
+                                    style={{ display: 'flex' }}>
                                     <GripVertical size={12} />
                                   </div>
                                 )}
-                                <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className="!flex-[1] !min-w-[0]">
                                   <InlineEditCell value={item.name} onSave={v => handleUpdateField(item.id, 'name', v)} placeholder={t('budget.table.name')} locale={locale} editTooltip={item.reservation_id ? t('budget.linkedToReservation') : t('budget.editTooltip')} readOnly={!canEdit || !!item.reservation_id} />
                                   {hasMultipleMembers && (
-                                    <div className="sm:hidden" style={{ marginTop: 4 }}>
+                                    <div className="sm:hidden !mt-[4px]">
                                       <BudgetMemberChips
                                         members={item.members || []}
                                         tripMembers={tripMembers}
@@ -914,10 +841,10 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                                 </div>
                               </div>
                             </td>
-                            <td style={{ ...td, textAlign: 'center' }}>
+                            <td className="!text-center" style={{ ...td }}>
                               <InlineEditCell value={item.total_price} type="number" decimals={currencyDecimals(currency)} onSave={v => handleUpdateField(item.id, 'total_price', v)} style={{ textAlign: 'center' }} placeholder={currencyDecimals(currency) === 0 ? '0' : '0,00'} locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
                             </td>
-                            <td className="hidden sm:table-cell" style={{ ...td, textAlign: 'center', position: 'relative' }}>
+                            <td className="hidden sm:table-cell !text-center !relative" style={{ ...td }}>
                               {hasMultipleMembers ? (
                                 <BudgetMemberChips
                                   members={item.members || []}
@@ -930,26 +857,26 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                                 <InlineEditCell value={item.persons} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'persons', v != null ? parseInt(v) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
                               )}
                             </td>
-                            <td className="hidden sm:table-cell" style={{ ...td, textAlign: 'center' }}>
+                            <td className="hidden sm:table-cell !text-center" style={{ ...td }}>
                               <InlineEditCell value={item.days} type="number" decimals={0} onSave={v => handleUpdateField(item.id, 'days', v != null ? parseInt(v) || null : null)} style={{ textAlign: 'center' }} placeholder="-" locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} />
                             </td>
-                            <td className="hidden md:table-cell" style={{ ...td, textAlign: 'center', color: pp != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pp != null ? fmt(pp, currency) : '-'}</td>
-                            <td className="hidden md:table-cell" style={{ ...td, textAlign: 'center', color: pd != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pd != null ? fmt(pd, currency) : '-'}</td>
-                            <td className="hidden lg:table-cell" style={{ ...td, textAlign: 'center', color: ppd != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{ppd != null ? fmt(ppd, currency) : '-'}</td>
-                            <td className="hidden sm:table-cell" style={{ ...td, padding: '2px 6px', width: 90, maxWidth: 90, textAlign: 'center' }}>
+                            <td className="hidden md:table-cell !text-center" style={{ ...td, color: pp != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pp != null ? fmt(pp, currency) : '-'}</td>
+                            <td className="hidden md:table-cell !text-center" style={{ ...td, color: pd != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{pd != null ? fmt(pd, currency) : '-'}</td>
+                            <td className="hidden lg:table-cell !text-center" style={{ ...td, color: ppd != null ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{ppd != null ? fmt(ppd, currency) : '-'}</td>
+                            <td className="hidden sm:table-cell !p-[2px_6px] !w-[90px] !max-w-[90px] !text-center" style={{ ...td }}>
                               {canEdit ? (
-                                <div style={{ maxWidth: 90, margin: '0 auto' }}>
+                                <div className="!max-w-[90px] !m-[0_auto]">
                                   <CustomDatePicker value={item.expense_date || ''} onChange={v => handleUpdateField(item.id, 'expense_date', v || null)} placeholder="—" compact borderless />
                                 </div>
                               ) : (
-                                <span style={{ fontSize: 11, color: item.expense_date ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{item.expense_date || '—'}</span>
+                                <span className="!text-[length:11px]" style={{ color: item.expense_date ? 'var(--text-secondary)' : 'var(--text-faint)' }}>{item.expense_date || '—'}</span>
                               )}
                             </td>
                             <td className="hidden sm:table-cell" style={td}><InlineEditCell value={item.note} onSave={v => handleUpdateField(item.id, 'note', v)} placeholder={t('budget.table.note')} locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} /></td>
-                            <td style={{ ...td, textAlign: 'center' }}>
+                            <td className="!text-center" style={{ ...td }}>
                               {canEdit && (
-                              <button className="trek-hover-danger" onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-faint)', borderRadius: 4, display: 'inline-flex', transition: 'color 0.15s' }}>
+                              <button className="trek-hover-danger !cursor-pointer !p-[4px] ![color:var(--text-faint)] !rounded-[4px] ![transition:color_0.15s]" onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
+                                style={{ background: 'none', border: 'none', display: 'inline-flex' }}>
                                 <Trash2 size={14} />
                               </button>
                               )}
@@ -966,26 +893,15 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
           })}
         </div>
 
-        <div className="w-full md:w-[320px]" style={{ flexShrink: 0, position: 'sticky', top: 16, alignSelf: 'flex-start' }}>
+        <div className="w-full md:w-[320px] !shrink-[0] !sticky !top-[16px] !self-start">
 
-          <div style={{
-            background: theme.bg,
-            borderRadius: 20, padding: 20, color: theme.text, marginBottom: 16,
-            border: `1px solid ${theme.border}`,
-            boxShadow: theme.shadow,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 12,
-                background: theme.iconBg,
-                border: `1px solid ${theme.iconBorder}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: theme.iconColor, flexShrink: 0,
-              }}>
+          <div className="!rounded-[20px] !p-[20px] !mb-[16px]" style={{ background: theme.bg, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: theme.shadow }}>
+            <div className="!items-center !gap-[12px] !mb-[18px]" style={{ display: 'flex' }}>
+              <div className="!w-[40px] !h-[40px] !rounded-[12px] !items-center !justify-center !shrink-[0]" style={{ background: theme.iconBg, border: `1px solid ${theme.iconBorder}`, display: 'flex', color: theme.iconColor }}>
                 <Wallet size={20} strokeWidth={2} />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: theme.faint, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.09em' }}>{t('budget.totalBudget')}</div>
+              <div className="!flex-[1] !min-w-[0]">
+                <div className="!text-[length:11px] !font-[600] !uppercase !tracking-[0.09em]" style={{ color: theme.faint }}>{t('budget.totalBudget')}</div>
               </div>
             </div>
 
@@ -995,14 +911,14 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
               const sep = (0.1).toLocaleString(locale).replace(/\d/g, '')
               const [integerPart, decimalPart] = decimals > 0 ? full.split(sep) : [full, '']
               return (
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                  <span style={{ fontSize: 38, fontWeight: 700 }}>{integerPart}</span>
-                  {decimalPart && <span style={{ fontSize: 22, fontWeight: 500, color: theme.sub }}>{sep}{decimalPart}</span>}
-                  <span style={{ fontSize: 22, fontWeight: 500, color: theme.sub, marginLeft: 2 }}>{SYMBOLS[currency] || currency}</span>
+                <div className="!items-baseline !gap-[4px] !tracking-[-0.03em] !leading-[1]" style={{ display: 'flex' }}>
+                  <span className="!text-[length:38px] !font-[700]">{integerPart}</span>
+                  {decimalPart && <span className="!text-[length:22px] !font-[500]" style={{ color: theme.sub }}>{sep}{decimalPart}</span>}
+                  <span className="!text-[length:22px] !font-[500] !ml-[2px]" style={{ color: theme.sub }}>{SYMBOLS[currency] || currency}</span>
                 </div>
               )
             })()}
-            <div style={{ color: theme.faint, fontSize: 12, marginTop: 8, fontWeight: 500, letterSpacing: '0.04em', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="!text-[length:12px] !mt-[8px] !font-[500] !tracking-[0.04em] !items-center !gap-[6px]" style={{ color: theme.faint, display: 'flex' }}>
               <span>{currency}</span>
             </div>
 
@@ -1012,15 +928,11 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
 
             {/* Settlement dropdown inside the total card */}
             {hasMultipleMembers && settlement && settlement.flows.length > 0 && (
-              <div style={{ marginTop: 16, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
-                <button onClick={() => setSettlementOpen(v => !v)} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, width: '100%',
-                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit',
-                  color: theme.sub, fontSize: 11, fontWeight: 600, letterSpacing: 0.5,
-                }}>
+              <div className="!mt-[16px] !pt-[12px]" style={{ borderTop: `1px solid ${theme.divider}` }}>
+                <button className="!items-center !gap-[6px] !w-[100%] !cursor-pointer !p-[0] ![font-family:inherit] !text-[length:11px] !font-[600] !tracking-[0.5px]" onClick={() => setSettlementOpen(v => !v)} style={{ display: 'flex', background: 'none', border: 'none', color: theme.sub }}>
                   {settlementOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
                   {t('budget.settlement')}
-                  <span style={{ position: 'relative', display: 'inline-flex', marginLeft: 2 }}>
+                  <span className="!relative !ml-[2px]" style={{ display: 'inline-flex' }}>
                     <span style={{ display: 'flex', cursor: 'help' }}
                       onMouseEnter={e => { const tip = e.currentTarget.nextElementSibling as HTMLElement; if (tip) tip.style.display = 'block' }}
                       onMouseLeave={e => { const tip = e.currentTarget.nextElementSibling as HTMLElement; if (tip) tip.style.display = 'none' }}
@@ -1028,20 +940,14 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                     >
                       <Info size={11} strokeWidth={2} />
                     </span>
-                    <div style={{
-                      display: 'none', position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                      marginTop: 6, width: 220, padding: '10px 12px', borderRadius: 10, zIndex: 100,
-                      background: 'var(--bg-card)', border: '1px solid var(--border-faint)',
-                      boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
-                      fontSize: 11, fontWeight: 400, color: 'var(--text-secondary)', lineHeight: 1.5, textAlign: 'left',
-                    }}>
+                    <div className="!absolute !top-[100%] !left-[50%] !mt-[6px] !w-[220px] !p-[10px_12px] !rounded-[10px] !z-[100] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !text-[length:11px] !font-[400] ![color:var(--text-secondary)] !leading-[1.5] !text-left" style={{ display: 'none', transform: 'translateX(-50%)', background: 'var(--bg-card)', border: '1px solid var(--border-faint)' }}>
                       {t('budget.settlementInfo')}
                     </div>
                   </span>
                 </button>
 
                 {settlementOpen && (
-                  <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="!mt-[12px] !flex-col !gap-[8px]" style={{ display: 'flex' }}>
                     {settlement.flows.map((flow, i) => (
                       <div key={i} style={{
                         display: 'flex', alignItems: 'center', gap: 14,
@@ -1054,12 +960,12 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                         onMouseLeave={e => { e.currentTarget.style.background = theme.flowBg; e.currentTarget.style.borderColor = theme.flowBorder }}
                       >
                         <RingAvatar userId={flow.from.user_id} username={flow.from.username} avatarUrl={flow.from.avatar_url} size={32} innerBg={theme.centerBg} textColor={theme.text} />
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', letterSpacing: '-0.01em' }}>
+                        <div className="!flex-[1] !flex-col !items-center !gap-[5px]" style={{ display: 'flex' }}>
+                          <span className="!text-[length:13px] !font-[700] ![color:#ef4444] !tracking-[-0.01em]">
                             {fmt(flow.amount, currency)}
                           </span>
-                          <div style={{ width: '100%', height: 2, borderRadius: 2, background: 'linear-gradient(90deg, rgba(239,68,68,0.1), rgba(239,68,68,0.55), rgba(239,68,68,0.3))', position: 'relative' }}>
-                            <div style={{ position: 'absolute', right: -1, top: '50%', transform: 'translateY(-50%)', width: 0, height: 0, borderLeft: '6px solid rgba(239,68,68,0.55)', borderTop: '4px solid transparent', borderBottom: '4px solid transparent' }} />
+                          <div className="!w-[100%] !h-[2px] !rounded-[2px] !relative" style={{ background: 'linear-gradient(90deg, rgba(239,68,68,0.1), rgba(239,68,68,0.55), rgba(239,68,68,0.3))' }}>
+                            <div className="!absolute !right-[-1px] !top-[50%] !w-[0] !h-[0]" style={{ transform: 'translateY(-50%)', borderLeft: '6px solid rgba(239,68,68,0.55)', borderTop: '4px solid transparent', borderBottom: '4px solid transparent' }} />
                           </div>
                         </div>
                         <RingAvatar userId={flow.to.user_id} username={flow.to.username} avatarUrl={flow.to.avatar_url} size={32} innerBg={theme.centerBg} textColor={theme.text} />
@@ -1067,27 +973,21 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                     ))}
 
                     {settlement.balances.filter(b => Math.abs(b.balance) > 0.01).length > 0 && (
-                      <div style={{ marginTop: 8, borderTop: `1px solid ${theme.divider}`, paddingTop: 12 }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.11em', marginBottom: 10 }}>
+                      <div className="!mt-[8px] !pt-[12px]" style={{ borderTop: `1px solid ${theme.divider}` }}>
+                        <div className="!text-[length:10px] !font-[700] !uppercase !tracking-[0.11em] !mb-[10px]" style={{ color: theme.faint }}>
                           {t('budget.netBalances')}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <div className="!flex-col !gap-[2px]" style={{ display: 'flex' }}>
                           {settlement.balances.filter(b => Math.abs(b.balance) > 0.01).map(b => {
                             const positive = b.balance > 0
                             const Trend = positive ? TrendingUp : TrendingDown
                             return (
-                              <div key={b.user_id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 0' }}>
+                              <div className="!items-center !gap-[10px] !p-[5px_0]" key={b.user_id} style={{ display: 'flex' }}>
                                 <RingAvatar userId={b.user_id} username={b.username} avatarUrl={b.avatar_url} size={26} innerBg={theme.centerBg} textColor={theme.text} />
-                                <span style={{ flex: 1, fontSize: 13, color: theme.text, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <span className="!flex-[1] !text-[length:13px] !font-[500] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color: theme.text }}>
                                   {b.username}
                                 </span>
-                                <span style={{
-                                  display: 'inline-flex', alignItems: 'center', gap: 4,
-                                  padding: '4px 10px', borderRadius: 8,
-                                  fontSize: 12, fontWeight: 700, letterSpacing: '-0.01em',
-                                  background: positive ? 'rgba(16,185,129,0.13)' : 'rgba(239,68,68,0.13)',
-                                  color: positive ? '#10b981' : '#ef4444',
-                                }}>
+                                <span className="!items-center !gap-[4px] !p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[700] !tracking-[-0.01em]" style={{ display: 'inline-flex', background: positive ? 'rgba(16,185,129,0.13)' : 'rgba(239,68,68,0.13)', color: positive ? '#10b981' : '#ef4444' }}>
                                   <Trend size={11} strokeWidth={3} />
                                   {positive ? '+' : ''}{fmt(b.balance, currency)}
                                 </span>
@@ -1113,28 +1013,17 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
             const CIRC = 2 * Math.PI * R
             let dashOffset = 0
             return (
-              <div style={{
-                background: theme.bg,
-                borderRadius: 20, padding: 20, color: theme.text, marginBottom: 16,
-                border: `1px solid ${theme.border}`,
-                boxShadow: theme.shadow,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
-                  <div style={{
-                    width: 38, height: 38, borderRadius: 11,
-                    background: theme.iconBg,
-                    border: `1px solid ${theme.iconBorder}`,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    color: theme.iconColor, flexShrink: 0,
-                  }}>
+              <div className="!rounded-[20px] !p-[20px] !mb-[16px]" style={{ background: theme.bg, color: theme.text, border: `1px solid ${theme.border}`, boxShadow: theme.shadow }}>
+                <div className="!items-center !gap-[12px] !mb-[18px]" style={{ display: 'flex' }}>
+                  <div className="!w-[38px] !h-[38px] !rounded-[11px] !items-center !justify-center !shrink-[0]" style={{ background: theme.iconBg, border: `1px solid ${theme.iconBorder}`, display: 'flex', color: theme.iconColor }}>
                     <PieChartIcon size={18} strokeWidth={2} />
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.09em', fontWeight: 600 }}>{t('budget.byCategory')}</div>
+                  <div className="!flex-[1] !min-w-[0]">
+                    <div className="!text-[length:11px] !uppercase !tracking-[0.09em] !font-[600]" style={{ color: theme.faint }}>{t('budget.byCategory')}</div>
                   </div>
                 </div>
 
-                <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', margin: '4px 0 16px' }}>
+                <div className="!relative !justify-center !m-[4px_0_16px]" style={{ display: 'flex' }}>
                   <svg width={200} height={200} viewBox="0 0 200 200" style={{ transform: 'rotate(-90deg)', filter: theme.donutShadow }}>
                     <defs>
                       {pieSegments.map((seg, i) => {
@@ -1163,17 +1052,17 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                       return circle
                     })}
                   </svg>
-                  <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, pointerEvents: 'none' }}>
-                    <div style={{ fontSize: 10.5, color: theme.faint, textTransform: 'uppercase', letterSpacing: '0.12em', fontWeight: 700 }}>{t('budget.total')}</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                  <div className="!absolute !top-[50%] !left-[50%] !text-center !flex-col !items-center !gap-[2px] !pointer-events-none" style={{ transform: 'translate(-50%, -50%)', display: 'flex' }}>
+                    <div className="!text-[length:10.5px] !uppercase !tracking-[0.12em] !font-[700]" style={{ color: theme.faint }}>{t('budget.total')}</div>
+                    <div className="!text-[length:22px] !font-[700] !tracking-[-0.03em] !leading-[1] !items-baseline !gap-[2px]" style={{ display: 'flex' }}>
                       <span>{totalInt}</span>
-                      {totalDec && <span style={{ fontSize: 13, fontWeight: 500, color: theme.sub }}>{decimalSep}{totalDec}</span>}
+                      {totalDec && <span className="!text-[length:13px] !font-[500]" style={{ color: theme.sub }}>{decimalSep}{totalDec}</span>}
                     </div>
-                    <div style={{ fontSize: 10.5, color: theme.faint, fontWeight: 500, marginTop: 2 }}>{currency}</div>
+                    <div className="!text-[length:10.5px] !font-[500] !mt-[2px]" style={{ color: theme.faint }}>{currency}</div>
                   </div>
                 </div>
 
-                <div style={{ borderTop: `1px solid ${theme.divider}`, paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <div className="!pt-[10px] !flex-col !gap-[2px]" style={{ borderTop: `1px solid ${theme.divider}`, display: 'flex' }}>
                   {pieSegments.map((seg, i) => {
                     const pct = total > 0 ? (seg.value / total) * 100 : 0
                     const pctLabel = pct.toFixed(1).replace('.', decimalSep) + '%'
@@ -1188,23 +1077,12 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                         onMouseEnter={e => e.currentTarget.style.background = theme.rowHover}
                         onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                       >
-                        <div style={{
-                          width: 10, height: 10, borderRadius: 3, flexShrink: 0,
-                          background: `linear-gradient(135deg, ${seg.color}, ${c2})`,
-                          boxShadow: `0 0 12px ${seg.color}80`,
-                        }} />
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 500, letterSpacing: '-0.01em', color: theme.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{seg.name}</div>
-                          <div style={{ fontSize: 11.5, color: theme.sub, fontWeight: 500, marginTop: 1 }}>{fmt(seg.value, currency)}</div>
+                        <div className="!w-[10px] !h-[10px] !rounded-[3px] !shrink-[0]" style={{ background: `linear-gradient(135deg, ${seg.color}, ${c2})`, boxShadow: `0 0 12px ${seg.color}80` }} />
+                        <div className="!flex-[1] !min-w-[0]">
+                          <div className="!text-[length:13.5px] !font-[500] !tracking-[-0.01em] !overflow-hidden !text-ellipsis !whitespace-nowrap" style={{ color: theme.text }}>{seg.name}</div>
+                          <div className="!text-[length:11.5px] !font-[500] !mt-[1px]" style={{ color: theme.sub }}>{fmt(seg.value, currency)}</div>
                         </div>
-                        <span style={{
-                          flexShrink: 0,
-                          padding: '4px 9px', borderRadius: 7,
-                          fontSize: 11, fontWeight: 700, letterSpacing: '-0.01em',
-                          background: `${seg.color}26`,
-                          border: `1px solid ${seg.color}40`,
-                          color: chipColor,
-                        }}>{pctLabel}</span>
+                        <span className="!shrink-[0] !p-[4px_9px] !rounded-[7px] !text-[length:11px] !font-[700] !tracking-[-0.01em]" style={{ background: `${seg.color}26`, border: `1px solid ${seg.color}40`, color: chipColor }}>{pctLabel}</span>
                       </div>
                     )
                   })}

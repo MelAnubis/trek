@@ -44,42 +44,26 @@ export default function DashboardFilterPanel({ isOpen, onClose, filters, onChang
 
   return (
     <>
-      <div
+      <div className="!fixed !inset-[0] !z-[1100] ![background:rgba(0,0,0,0.35)] ![backdrop-filter:blur(2px)]"
         onClick={onClose}
-        style={{ position: 'fixed', inset: 0, zIndex: 1100, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(2px)' }}
       />
-      <div
+      <div className="!fixed !top-[0] !right-[0] !bottom-[0] !z-[1101] !w-[min(360px,_92vw)] ![background:var(--surface)] ![color:var(--ink)] ![box-shadow:-8px_0_32px_rgba(0,0,0,0.18)] !flex !flex-col"
         role="dialog"
         aria-label={t('dashboard.filters.title')}
-        style={{
-          position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 1101,
-          width: 'min(360px, 92vw)',
-          background: 'var(--surface)', color: 'var(--ink)',
-          boxShadow: '-8px 0 32px rgba(0,0,0,0.18)',
-          display: 'flex', flexDirection: 'column',
-          animation: 'trek-dash-filter-in 0.22s cubic-bezier(0.23,1,0.32,1)',
-        }}
+        style={{ animation: 'trek-dash-filter-in 0.22s cubic-bezier(0.23,1,0.32,1)' }}
       >
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, padding: '16px 18px',
-          borderBottom: '1px solid var(--line)', flexShrink: 0,
-        }}>
+        <div className="!flex !items-center !gap-[10px] !p-[16px_18px] ![border-bottom:1px_solid_var(--line)] !shrink-[0]">
           <SlidersHorizontal size={16} color="var(--ink-3)" />
-          <span style={{ fontWeight: 700, fontSize: 14, flex: 1 }}>{t('dashboard.filters.title')}</span>
-          <button
+          <span className="!font-[700] !text-[length:14px] !flex-[1]">{t('dashboard.filters.title')}</span>
+          <button className="!flex !items-center !justify-center !w-[30px] !h-[30px] !rounded-[8px] ![border:none] ![background:var(--bg-2)] ![color:var(--ink-3)] !cursor-pointer"
             onClick={onClose}
             aria-label={t('common.close')}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 30, height: 30, borderRadius: 8, border: 'none',
-              background: 'var(--bg-2)', color: 'var(--ink-3)', cursor: 'pointer',
-            }}
           >
             <X size={16} />
           </button>
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '18px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="!flex-[1] !overflow-y-auto !p-[18px] !flex !flex-col !gap-[20px]">
           <Field label={t('dashboard.filters.search')}>
             <input
               type="text"
@@ -101,21 +85,21 @@ export default function DashboardFilterPanel({ isOpen, onClose, filters, onChang
           </Field>
 
           <Field label={t('dashboard.filters.days')}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
+            <div className="!flex !items-center !gap-[8px]">
+              <input className="!w-[0] !flex-[1]"
                 type="number" min={0} inputMode="numeric"
                 value={filters.minDays}
                 onChange={e => set({ minDays: e.target.value })}
                 placeholder={t('dashboard.filters.daysMin')}
-                style={{ ...inputStyle, width: 0, flex: 1 }}
+                style={{ ...inputStyle }}
               />
-              <span style={{ color: 'var(--ink-3)', fontSize: 12 }}>–</span>
-              <input
+              <span className="![color:var(--ink-3)] !text-[length:12px]">–</span>
+              <input className="!w-[0] !flex-[1]"
                 type="number" min={0} inputMode="numeric"
                 value={filters.maxDays}
                 onChange={e => set({ maxDays: e.target.value })}
                 placeholder={t('dashboard.filters.daysMax')}
-                style={{ ...inputStyle, width: 0, flex: 1 }}
+                style={{ ...inputStyle }}
               />
             </div>
           </Field>
@@ -130,19 +114,11 @@ export default function DashboardFilterPanel({ isOpen, onClose, filters, onChang
           </Field>
         </div>
 
-        <div style={{ padding: '14px 18px', borderTop: '1px solid var(--line)', flexShrink: 0 }}>
-          <button
+        <div className="!p-[14px_18px] ![border-top:1px_solid_var(--line)] !shrink-[0]">
+          <button className="!flex !items-center !justify-center !gap-[7px] !w-[100%] !p-[10px_14px] !rounded-[10px] ![border:1px_solid_var(--line)] ![background:var(--bg-2)] !text-[length:13px] !font-[600] ![font-family:inherit]"
             onClick={() => onChange({ search: '', place: '', minDays: '', maxDays: '', sortBy: 'date' })}
             disabled={activeCount === 0}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-              width: '100%', padding: '10px 14px', borderRadius: 10,
-              border: '1px solid var(--line)', background: 'var(--bg-2)',
-              color: activeCount === 0 ? 'var(--ink-3)' : 'var(--ink)',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-              cursor: activeCount === 0 ? 'default' : 'pointer',
-              opacity: activeCount === 0 ? 0.5 : 1,
-            }}
+            style={{ color: activeCount === 0 ? 'var(--ink-3)' : 'var(--ink)', cursor: activeCount === 0 ? 'default' : 'pointer', opacity: activeCount === 0 ? 0.5 : 1 }}
           >
             <RotateCcw size={14} />
             {t('dashboard.filters.clear')}
@@ -162,8 +138,8 @@ export default function DashboardFilterPanel({ isOpen, onClose, filters, onChang
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-      <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--ink-3)' }}>
+    <label className="!flex !flex-col !gap-[7px]">
+      <span className="!text-[length:11px] !font-[700] !uppercase !tracking-[0.04em] ![color:var(--ink-3)]">
         {label}
       </span>
       {children}

@@ -42,23 +42,22 @@ export default function InAppNotificationsPage(): React.ReactElement {
   const displayed = unreadOnly ? notifications.filter(n => !n.is_read) : notifications
 
   return (
-    <div className="min-h-screen page-bg" style={{ background: 'var(--bg-secondary)' }}>
+    <div className="min-h-screen page-bg ![background:var(--bg-secondary)]">
       <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h)' }}>
+      <div className="!pt-[var(--nav-h)]">
         <div className="max-w-2xl mx-auto px-4 py-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+              <h1 className="text-xl font-semibold ![color:var(--text-primary)]">
                 {t('notifications.title')}
                 {unreadCount > 0 && (
-                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium align-middle inline-flex items-center justify-center"
-                    style={{ background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+                  <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium align-middle inline-flex items-center justify-center ![background:var(--text-primary)] ![color:var(--bg-primary)]">
                     {unreadCount}
                   </span>
                 )}
               </h1>
-              <p className="text-sm mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-sm mt-0.5 ![color:var(--text-muted)]">
                 {total} {total === 1 ? 'notification' : 'notifications'}
               </p>
             </div>
@@ -68,8 +67,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="trek-hover-tertiary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }} >
+                  className="trek-hover-tertiary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors ![background:var(--bg-hover)] ![color:var(--text-secondary)]" >
                   <CheckCheck className="w-4 h-4" />
                   <span className="hidden sm:inline">{t('notifications.markAllRead')}</span>
                 </button>
@@ -112,8 +110,7 @@ export default function InAppNotificationsPage(): React.ReactElement {
 
           {/* Notification list */}
           <div
-            className="rounded-xl border overflow-hidden"
-            style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}
+            className="rounded-xl border overflow-hidden ![border-color:var(--border-primary)] ![background:var(--bg-card)]"
           >
             {isLoading && displayed.length === 0 ? (
               <div className="flex items-center justify-center py-16">
@@ -122,8 +119,8 @@ export default function InAppNotificationsPage(): React.ReactElement {
             ) : displayed.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 px-4 text-center gap-3">
                 <Bell className="w-12 h-12" style={{ color: 'var(--text-faint)' }} />
-                <p className="text-base font-medium" style={{ color: 'var(--text-muted)' }}>{t('notifications.empty')}</p>
-                <p className="text-sm" style={{ color: 'var(--text-faint)' }}>{t('notifications.emptyDescription')}</p>
+                <p className="text-base font-medium ![color:var(--text-muted)]">{t('notifications.empty')}</p>
+                <p className="text-sm ![color:var(--text-faint)]">{t('notifications.emptyDescription')}</p>
               </div>
             ) : (
               displayed.map(n => (

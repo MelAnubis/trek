@@ -136,25 +136,17 @@ function EmojiPicker({ onSelect, onClose, anchorRef, containerRef }: EmojiPicker
       boxShadow: '0 8px 32px rgba(0,0,0,0.18)', width: 280, overflow: 'hidden',
     }}>
       {/* Category tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border-faint)', padding: '6px 8px', gap: 2 }}>
+      <div className="![border-bottom:1px_solid_var(--border-faint)] !p-[6px_8px] !gap-[2px]" style={{ display: 'flex' }}>
         {Object.keys(EMOJI_CATEGORIES).map(c => (
-          <button key={c} onClick={() => setCat(c)} style={{
-            flex: 1, padding: '4px 0', borderRadius: 6, border: 'none', cursor: 'pointer',
-            background: cat === c ? 'var(--bg-hover)' : 'transparent',
-            color: 'var(--text-primary)', fontSize: 10, fontWeight: 600, fontFamily: 'inherit',
-          }}>
+          <button className="!flex-[1] !p-[4px_0] !rounded-[6px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !text-[length:10px] !font-[600] ![font-family:inherit]" key={c} onClick={() => setCat(c)} style={{ background: cat === c ? 'var(--bg-hover)' : 'transparent' }}>
             {c}
           </button>
         ))}
       </div>
       {/* Emoji grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2, padding: 8 }}>
+      <div className="![grid-template-columns:repeat(10,_1fr)] !gap-[2px] !p-[8px]" style={{ display: 'grid' }}>
         {EMOJI_CATEGORIES[cat].map((emoji, i) => (
-          <button className="trek-hover trek-h-transform-8d07d0" key={i} onClick={() => onSelect(emoji)} style={{
-            width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6,
-            padding: 2, transition: 'transform 0.1s',
-          }} >
+          <button className="trek-hover trek-h-transform-8d07d0 !w-[28px] !items-center !justify-center ![background:none] ![border:none] !cursor-pointer !rounded-[6px] !p-[2px] ![transition:transform_0.1s]" key={i} onClick={() => onSelect(emoji)} style={{ height: 28, display: 'flex' }} >
             <TwemojiImg emoji={emoji} size={20} />
           </button>
         ))}
@@ -195,11 +187,7 @@ function ReactionMenu({ x, y, onReact, onClose }: ReactionMenuProps) {
       display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, width: menuWidth,
     }}>
       {QUICK_REACTIONS.map(emoji => (
-        <button className="trek-h-transform-8d07d0 trek-hover" key={emoji} onClick={() => onReact(emoji)} style={{
-          width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%',
-          padding: 3, transition: 'transform 0.1s, background 0.1s',
-        }} >
+        <button className="trek-h-transform-8d07d0 trek-hover !w-[30px] !items-center !justify-center ![background:none] ![border:none] !cursor-pointer !rounded-[50%] !p-[3px] ![transition:transform_0.1s,_background_0.1s]" key={emoji} onClick={() => onReact(emoji)} style={{ height: 30, display: 'flex' }} >
           <TwemojiImg emoji={emoji} size={18} />
         </button>
       ))}
@@ -219,7 +207,7 @@ function MessageText({ text }: MessageTextProps) {
   parts.forEach((part, i) => {
     if (part) result.push(part)
     if (urls[i]) result.push(
-      <a key={i} href={urls[i]} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: 2, opacity: 0.85 }}>
+      <a className="![color:inherit] ![text-decoration:underline] ![text-underline-offset:2px]" key={i} href={urls[i]} target="_blank" rel="noopener noreferrer" style={{ opacity: 0.85 }}>
         {urls[i]}
       </a>
     )
@@ -257,29 +245,24 @@ function LinkPreview({ url, tripId, own, onLoad }: LinkPreviewProps) {
   const domain = (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return '' } })()
 
   return (
-    <a className="trek-hover-o85" href={url} target="_blank" rel="noopener noreferrer" style={{
-      display: 'block', textDecoration: 'none', marginTop: 6, borderRadius: 12, overflow: 'hidden',
-      border: own ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-faint)',
-      background: own ? 'rgba(255,255,255,0.1)' : 'var(--bg-secondary)',
-      maxWidth: 280, transition: 'opacity 0.15s',
-    }} >
+    <a className="trek-hover-o85 ![text-decoration:none] !mt-[6px] !rounded-[12px] !max-w-[280px] ![transition:opacity_0.15s]" href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', overflow: 'hidden', border: own ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-faint)', background: own ? 'rgba(255,255,255,0.1)' : 'var(--bg-secondary)' }} >
       {data.image && (
-        <img src={data.image} alt="" style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
+        <img className="!w-[100%] !object-cover" src={data.image} alt="" style={{ height: 140, display: 'block' }}
           onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
       )}
-      <div style={{ padding: '8px 10px' }}>
+      <div className="!p-[8px_10px]">
         {domain && (
-          <div style={{ fontSize: 10, fontWeight: 600, color: own ? 'rgba(255,255,255,0.5)' : 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 }}>
+          <div className="!text-[length:10px] !font-[600] !uppercase !tracking-[0.3px] !mb-[2px]" style={{ color: own ? 'rgba(255,255,255,0.5)' : 'var(--text-faint)' }}>
             {data.site_name || domain}
           </div>
         )}
         {data.title && (
-          <div style={{ fontSize: 12, fontWeight: 600, color: own ? '#fff' : 'var(--text-primary)', lineHeight: 1.3, marginBottom: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div className="!text-[length:12px] !font-[600] !leading-[1.3] !mb-[2px] ![-webkit-line-clamp:2px] ![-webkit-box-orient:vertical]" style={{ color: own ? '#fff' : 'var(--text-primary)', display: '-webkit-box', overflow: 'hidden' }}>
             {data.title}
           </div>
         )}
         {data.description && (
-          <div style={{ fontSize: 11, color: own ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+          <div className="!text-[length:11px] !leading-[1.3] ![-webkit-line-clamp:2px] ![-webkit-box-orient:vertical]" style={{ color: own ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', display: '-webkit-box', overflow: 'hidden' }}>
             {data.description}
           </div>
         )}
@@ -319,16 +302,10 @@ function ReactionBadge({ reaction, currentUserId, onReact }: ReactionBadgeProps)
         }}
       >
         <TwemojiImg emoji={reaction.emoji} size={16} />
-        {reaction.count > 1 && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', minWidth: 8 }}>{reaction.count}</span>}
+        {reaction.count > 1 && <span className="!text-[length:10px] !font-[700] ![color:var(--text-muted)] !min-w-[8px]">{reaction.count}</span>}
       </button>
       {hover && names && ReactDOM.createPortal(
-        <div style={{
-          position: 'fixed', top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)',
-          pointerEvents: 'none', zIndex: 10000, whiteSpace: 'nowrap',
-          background: 'var(--bg-card, white)', color: 'var(--text-primary, #111827)',
-          fontSize: 11, fontWeight: 500, padding: '5px 10px', borderRadius: 8,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)', border: '1px solid var(--border-faint, #e5e7eb)',
-        }}>
+        <div className="!fixed !pointer-events-none !z-[10000] !whitespace-nowrap ![background:var(--bg-card,_white)] ![color:var(--text-primary,_#111827)] !text-[length:11px] !font-[500] !p-[5px_10px] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.15)] ![border:1px_solid_var(--border-faint,_#e5e7eb)]" style={{ top: pos.top, left: pos.left, transform: 'translate(-50%, -100%)' }}>
           {names}
         </div>,
         document.body
@@ -513,8 +490,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: 24, height: 24, border: '2px solid var(--border-faint)', borderTopColor: 'var(--accent)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />
+      <div className="!flex-[1] !items-center !justify-center" style={{ display: 'flex' }}>
+        <div className="!w-[24px] ![border:2px_solid_var(--border-faint)] ![border-top-color:var(--accent)] !rounded-[50%]" style={{ height: 24, animation: 'spin .7s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )
@@ -525,10 +502,10 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
     <div ref={containerRef} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', position: 'relative', minHeight: 0, height: '100%' }}>
       {/* Messages */}
       {messages.length === 0 ? (
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--text-faint)', padding: 32 }}>
+        <div className="!flex-[1] !flex-col !items-center !justify-center !gap-[8px] ![color:var(--text-faint)] !p-[32px]" style={{ display: 'flex' }}>
           <MessageCircle size={40} strokeWidth={1.2} style={{ opacity: 0.4 }} />
-          <span style={{ fontSize: 14, fontWeight: 600 }}>{t('collab.chat.empty')}</span>
-          <span style={{ fontSize: 12, opacity: 0.6 }}>{t('collab.chat.emptyDesc') || ''}</span>
+          <span className="!text-[length:14px] !font-[600]">{t('collab.chat.empty')}</span>
+          <span className="!text-[length:12px]" style={{ opacity: 0.6 }}>{t('collab.chat.emptyDesc') || ''}</span>
         </div>
       ) : (
         <div ref={scrollRef} onScroll={checkAtBottom} className="chat-scroll" style={{
@@ -536,12 +513,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
           display: 'flex', flexDirection: 'column', gap: 1,
         }}>
           {hasMore && (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0 10px' }}>
-              <button onClick={handleLoadMore} disabled={loadingMore} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 600,
-                color: 'var(--text-muted)', background: 'var(--bg-secondary)', border: '1px solid var(--border-faint)',
-                borderRadius: 99, padding: '5px 14px', cursor: 'pointer', fontFamily: 'inherit',
-              }}>
+            <div className="!justify-center !p-[4px_0_10px]" style={{ display: 'flex' }}>
+              <button className="!items-center !gap-[4px] !text-[length:11px] !font-[600] ![color:var(--text-muted)] ![background:var(--bg-secondary)] ![border:1px_solid_var(--border-faint)] !rounded-[99px] !p-[5px_14px] !cursor-pointer ![font-family:inherit]" onClick={handleLoadMore} disabled={loadingMore} style={{ display: 'inline-flex' }}>
                 <ChevronUp size={13} />
                 {loadingMore ? '...' : t('collab.chat.loadMore')}
               </button>
@@ -563,14 +536,14 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
               return (
                 <React.Fragment key={msg.id}>
                   {showDate && (
-                    <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                    <div className="!justify-center !p-[14px_0_6px]" style={{ display: 'flex' }}>
+                      <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] ![background:var(--bg-secondary)] !p-[3px_12px] !rounded-[99px] !tracking-[0.3px] !uppercase">
                         {formatDateSeparator(msg.created_at, t)}
                       </span>
                     </div>
                   )}
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0' }}>
-                    <span style={{ fontSize: 11, color: 'var(--text-faint)', fontStyle: 'italic' }}>
+                  <div className="!justify-center !p-[4px_0]" style={{ display: 'flex' }}>
+                    <span className="!text-[length:11px] ![color:var(--text-faint)] !italic">
                       {msg.username} {t('collab.chat.deletedMessage') || 'deleted a message'} · {formatTime(msg.created_at, is12h)}
                     </span>
                   </div>
@@ -587,12 +560,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
               <React.Fragment key={msg.id}>
                 {/* Date separator */}
                 {showDate && (
-                  <div style={{ display: 'flex', justifyContent: 'center', padding: '14px 0 6px' }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 600, color: 'var(--text-faint)',
-                      background: 'var(--bg-secondary)', padding: '3px 12px', borderRadius: 99,
-                      letterSpacing: 0.3, textTransform: 'uppercase',
-                    }}>
+                  <div className="!justify-center !p-[14px_0_6px]" style={{ display: 'flex' }}>
+                    <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] ![background:var(--bg-secondary)] !p-[3px_12px] !rounded-[99px] !tracking-[0.3px] !uppercase">
                       {formatDateSeparator(msg.created_at, t)}
                     </span>
                   </div>
@@ -608,16 +577,12 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                 }}>
                   {/* Avatar slot for others */}
                   {!own && (
-                    <div style={{ width: 28, flexShrink: 0, alignSelf: 'flex-end' }}>
+                    <div className="!w-[28px] !shrink-[0] !self-end">
                       {showAvatar && (
                         msg.user_avatar ? (
-                          <img src={msg.user_avatar} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                          <img className="!w-[28px] !rounded-[50%] !object-cover" src={msg.user_avatar} alt="" style={{ height: 28 }} />
                         ) : (
-                          <div style={{
-                            width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: 11, fontWeight: 700, color: 'var(--text-muted)',
-                          }}>
+                          <div className="!w-[28px] !rounded-[50%] ![background:var(--bg-tertiary)] !items-center !justify-center !text-[length:11px] !font-[700] ![color:var(--text-muted)]" style={{ height: 28, display: 'flex' }}>
                             {(msg.username || '?')[0].toUpperCase()}
                           </div>
                         )
@@ -625,10 +590,10 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: own ? 'flex-end' : 'flex-start', maxWidth: '78%', minWidth: 0 }}>
+                  <div className="!flex-col !max-w-[78%] !min-w-[0]" style={{ display: 'flex', alignItems: own ? 'flex-end' : 'flex-start' }}>
                     {/* Username for others at group start */}
                     {!own && isNewGroup && (
-                      <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 2, paddingLeft: 4 }}>
+                      <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !mb-[2px] !pl-[4px]">
                         {msg.username}
                       </span>
                     )}
@@ -651,33 +616,24 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                       }}
                     >
                       {bigEmoji ? (
-                        <div style={{ fontSize: 40, lineHeight: 1.2, padding: '2px 0' }}>
+                        <div className="!text-[length:40px] !leading-[1.2] !p-[2px_0]">
                           {msg.text}
                         </div>
                       ) : (
-                        <div style={{
-                          background: own ? '#007AFF' : 'var(--bg-secondary)',
-                          color: own ? '#fff' : 'var(--text-primary)',
-                          borderRadius: br, padding: hasReply ? '4px 4px 8px 4px' : '8px 14px',
-                          fontSize: 14, lineHeight: 1.4, wordBreak: 'break-word', whiteSpace: 'pre-wrap',
-                        }}>
+                        <div className="!text-[length:14px] !leading-[1.4] !break-words !whitespace-pre-wrap" style={{ background: own ? '#007AFF' : 'var(--bg-secondary)', color: own ? '#fff' : 'var(--text-primary)', borderRadius: br, padding: hasReply ? '4px 4px 8px 4px' : '8px 14px' }}>
                           {/* Inline reply quote */}
                           {hasReply && (
-                            <div style={{
-                              padding: '5px 10px', marginBottom: 4, borderRadius: 12,
-                              background: own ? 'rgba(255,255,255,0.15)' : 'var(--bg-tertiary)',
-                              fontSize: 12, lineHeight: 1.3,
-                            }}>
-                              <div style={{ fontWeight: 600, fontSize: 11, opacity: 0.7, marginBottom: 1 }}>
+                            <div className="!p-[5px_10px] !mb-[4px] !rounded-[12px] !text-[length:12px] !leading-[1.3]" style={{ background: own ? 'rgba(255,255,255,0.15)' : 'var(--bg-tertiary)' }}>
+                              <div className="!font-[600] !text-[length:11px] !mb-[1px]" style={{ opacity: 0.7 }}>
                                 {msg.reply_username || ''}
                               </div>
-                              <div style={{ opacity: 0.8, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <div className="!text-ellipsis !whitespace-nowrap" style={{ opacity: 0.8, overflow: 'hidden' }}>
                                 {(msg.reply_text || '').slice(0, 80)}
                               </div>
                             </div>
                           )}
                           {hasReply ? (
-                            <div style={{ padding: '0 10px 4px' }}><MessageText text={msg.text} /></div>
+                            <div className="!p-[0_10px_4px]"><MessageText text={msg.text} /></div>
                           ) : <MessageText text={msg.text} />}
                           {(msg.text.match(URL_REGEX) || []).slice(0, 1).map(url => (
                             <LinkPreview key={url} url={url} tripId={tripId} own={own} onLoad={() => { if (isAtBottom.current) setTimeout(() => scrollToBottom('smooth'), 50) }} />
@@ -694,21 +650,11 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                         transition: 'opacity .1s',
                         ...(own ? { left: -6 } : { right: -6 }),
                       }}>
-                        <button className="trek-h-transform-8d07d0" onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
-                          width: 24, height: 24, borderRadius: '50%', border: 'none',
-                          background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.12s',
-                        }} >
+                        <button className="trek-h-transform-8d07d0 !w-[24px] !rounded-[50%] ![border:none] ![background:var(--accent)] !items-center !justify-center !cursor-pointer ![color:var(--accent-text)] !p-[0] ![box-shadow:0_2px_8px_rgba(0,0,0,0.15)] ![transition:transform_0.12s]" onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{ height: 24, display: 'flex' }} >
                           <Reply size={11} />
                         </button>
                         {own && canEdit && (
-                          <button className="trek-h-transform-8d07d0 trek-h-background-82b6ef trek-h-color-4eb23a" onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
-                            width: 24, height: 24, borderRadius: '50%', border: 'none',
-                            background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.12s, background 0.15s, color 0.15s',
-                          }} >
+                          <button className="trek-h-transform-8d07d0 trek-h-background-82b6ef trek-h-color-4eb23a !w-[24px] !rounded-[50%] ![border:none] ![background:var(--accent)] !items-center !justify-center !cursor-pointer ![color:var(--accent-text)] !p-[0] ![box-shadow:0_2px_8px_rgba(0,0,0,0.15)] ![transition:transform_0.12s,_background_0.15s,_color_0.15s]" onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{ height: 24, display: 'flex' }} >
                             <Trash2 size={11} />
                           </button>
                         )}
@@ -717,17 +663,8 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
                     {/* Reactions — iMessage style floating badge */}
                     {msg.reactions?.length > 0 && (
-                      <div style={{
-                        display: 'flex', gap: 3, marginTop: -6, marginBottom: 4,
-                        justifyContent: own ? 'flex-end' : 'flex-start',
-                        paddingLeft: own ? 0 : 8, paddingRight: own ? 8 : 0,
-                        position: 'relative', zIndex: 1,
-                      }}>
-                        <div style={{
-                          display: 'inline-flex', alignItems: 'center', gap: 2, padding: '3px 6px',
-                          borderRadius: 99, background: 'var(--bg-card)',
-                          boxShadow: '0 1px 6px rgba(0,0,0,0.12)', border: '1px solid var(--border-faint)',
-                        }}>
+                      <div className="!gap-[3px] !mt-[-6px] !mb-[4px] !relative !z-[1]" style={{ display: 'flex', justifyContent: own ? 'flex-end' : 'flex-start', paddingLeft: own ? 0 : 8, paddingRight: own ? 8 : 0 }}>
+                        <div className="!items-center !gap-[2px] !p-[3px_6px] !rounded-[99px] ![background:var(--bg-card)] ![box-shadow:0_1px_6px_rgba(0,0,0,0.12)] ![border:1px_solid_var(--border-faint)]" style={{ display: 'inline-flex' }}>
                           {msg.reactions.map(r => {
                             const myReaction = r.users.some(u => String(u.user_id) === String(currentUser.id))
                             return (
@@ -740,7 +677,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
                     {/* Timestamp — only on last message of group */}
                     {isLastInGroup && (
-                      <span style={{ fontSize: 9, color: 'var(--text-faint)', marginTop: 2, padding: '0 4px' }}>
+                      <span className="!text-[length:9px] ![color:var(--text-faint)] !mt-[2px] !p-[0_4px]">
                         {formatTime(msg.created_at, is12h)}
                       </span>
                     )}
@@ -753,28 +690,21 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
       )}
 
       {/* Composer */}
-      <div style={{ flexShrink: 0, paddingTop: 8, paddingLeft: 12, paddingRight: 12, borderTop: '1px solid var(--border-faint)', background: 'var(--bg-card)' }} className="pb-3">
+      <div className="pb-3 !shrink-[0] !pt-[8px] !pl-[12px] !pr-[12px] ![border-top:1px_solid_var(--border-faint)] ![background:var(--bg-card)]">
         {/* Reply preview */}
         {replyTo && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
-            padding: '6px 10px', borderRadius: 10, background: 'var(--bg-secondary)',
-            borderLeft: '3px solid #007AFF', fontSize: 12, color: 'var(--text-muted)',
-          }}>
+          <div className="!items-center !gap-[8px] !mb-[8px] !p-[6px_10px] !rounded-[10px] ![background:var(--bg-secondary)] ![border-left:3px_solid_#007AFF] !text-[length:12px] ![color:var(--text-muted)]" style={{ display: 'flex' }}>
             <Reply size={12} style={{ flexShrink: 0, opacity: 0.5 }} />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
+            <span className="!text-ellipsis !whitespace-nowrap !flex-[1]" style={{ overflow: 'hidden' }}>
               <strong>{replyTo.username}</strong>: {(replyTo.text || '').slice(0, 60)}
             </span>
-            <button onClick={() => setReplyTo(null)} style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: 'var(--text-faint)',
-              display: 'flex', flexShrink: 0,
-            }}>
+            <button className="![background:none] ![border:none] !cursor-pointer !p-[2px] ![color:var(--text-faint)] !shrink-[0]" onClick={() => setReplyTo(null)} style={{ display: 'flex' }}>
               <X size={14} />
             </button>
           </div>
         )}
 
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6 }}>
+        <div className="!items-end !gap-[6px]" style={{ display: 'flex' }}>
           {/* Emoji button */}
           {canEdit && (
             <button ref={emojiBtnRef} onClick={() => setShowEmoji(!showEmoji)} style={{
@@ -806,13 +736,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
           {/* Send */}
           {canEdit && (
-            <button onClick={handleSend} disabled={!text.trim() || sending} style={{
-              width: 34, height: 34, borderRadius: '50%', border: 'none',
-              background: text.trim() ? '#007AFF' : 'var(--border-primary)',
-              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: text.trim() ? 'pointer' : 'default', flexShrink: 0,
-              transition: 'background 0.15s',
-            }}>
+            <button className="!w-[34px] !rounded-[50%] ![border:none] ![color:#fff] !items-center !justify-center !shrink-[0] ![transition:background_0.15s]" onClick={handleSend} disabled={!text.trim() || sending} style={{ height: 34, background: text.trim() ? '#007AFF' : 'var(--border-primary)', display: 'flex', cursor: text.trim() ? 'pointer' : 'default' }}>
               <ArrowUp size={18} strokeWidth={2.5} />
             </button>
           )}

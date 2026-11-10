@@ -85,43 +85,28 @@ export default function OneDriveSection() {
   return (
     <Section title="OneDrive Photos" icon={Cloud}>
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 0',
-                      color: 'var(--text-tertiary)' }}>
+        <div className="!flex !items-center !gap-[8px] !p-[12px_0] ![color:var(--text-tertiary)]">
           <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-          <span style={{ fontSize: 13 }}>Comprobando conexión…</span>
+          <span className="!text-[length:13px]">Comprobando conexión…</span>
         </div>
       ) : status.connected ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px',
-            background: '#22c55e15',
-            border: '1px solid #22c55e40',
-            borderRadius: 8,
-          }}>
+        <div className="!flex !flex-col !gap-[12px]">
+          <div className="!flex !items-center !gap-[10px] !p-[10px_14px] ![background:#22c55e15] ![border:1px_solid_#22c55e40] !rounded-[8px]">
             <CheckCircle size={18} color="#22c55e" />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>
+            <div className="!flex-[1]">
+              <div className="!text-[length:13px] !font-[600] ![color:var(--text-primary)]">
                 Conectado a OneDrive
               </div>
               {status.user?.name && (
-                <div style={{ fontSize: 12, color: 'var(--text-tertiary)', marginTop: 2 }}>
+                <div className="!text-[length:12px] ![color:var(--text-tertiary)] !mt-[2px]">
                   {status.user.name}
                   {status.user.email && ` · ${status.user.email}`}
                 </div>
               )}
             </div>
-            <button
+            <button className="!flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-secondary)] !cursor-pointer !text-[length:12px] ![color:var(--text-secondary)]"
               onClick={handleDisconnect}
               disabled={disconnecting}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 6,
-                border: '1px solid var(--border-primary)',
-                background: 'var(--bg-secondary)',
-                cursor: 'pointer', fontSize: 12,
-                color: 'var(--text-secondary)',
-              }}
             >
               {disconnecting
                 ? <RefreshCw size={12} style={{ animation: 'spin 1s linear infinite' }} />
@@ -129,43 +114,21 @@ export default function OneDriveSection() {
               Desconectar
             </button>
           </div>
-          <div style={{
-            padding: '10px 14px',
-            background: 'var(--bg-secondary)',
-            borderRadius: 8,
-            fontSize: 12,
-            color: 'var(--text-tertiary)',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
+          <div className="!p-[10px_14px] ![background:var(--bg-secondary)] !rounded-[8px] !text-[length:12px] ![color:var(--text-tertiary)] !flex !items-center !gap-[8px]">
             <FolderOpen size={14} />
             Las fotos de OneDrive están disponibles en el selector de fotos de tus viajes
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px',
-            background: 'var(--bg-secondary)',
-            border: '1px solid var(--border-primary)',
-            borderRadius: 8,
-          }}>
+        <div className="!flex !flex-col !gap-[12px]">
+          <div className="!flex !items-center !gap-[10px] !p-[10px_14px] ![background:var(--bg-secondary)] ![border:1px_solid_var(--border-primary)] !rounded-[8px]">
             <XCircle size={18} color="var(--text-tertiary)" />
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+            <div className="!text-[length:13px] ![color:var(--text-secondary)]">
               No conectado — haz clic para conectar tu cuenta de Microsoft
             </div>
           </div>
-          <button
+          <button className="!flex !items-center !justify-center !gap-[10px] !p-[10px_16px] !rounded-[8px] ![border:none] !cursor-pointer ![background:#0078d4] ![color:#fff] !text-[length:13px] !font-[600] !w-[100%]"
             onClick={handleConnect}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              padding: '10px 16px', borderRadius: 8,
-              border: 'none', cursor: 'pointer',
-              background: '#0078d4',
-              color: '#fff',
-              fontSize: 13, fontWeight: 600,
-              width: '100%',
-            }}
           >
             <svg width="16" height="16" viewBox="0 0 21 21" fill="none">
               <rect x="0" y="0" width="10" height="10" fill="#f25022"/>
@@ -175,7 +138,7 @@ export default function OneDriveSection() {
             </svg>
             Conectar con Microsoft
           </button>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary)', lineHeight: 1.5 }}>
+          <div className="!text-[length:11px] ![color:var(--text-tertiary)] !leading-[1.5]">
             Se solicitará acceso de solo lectura a tus fotos de OneDrive.
             Tus credenciales se guardan cifradas y no se comparten.
           </div>

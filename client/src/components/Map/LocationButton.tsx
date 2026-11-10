@@ -26,29 +26,12 @@ export default function LocationButton({ mode, error, onClick, bottomOffset = 20
         : 'Stop following'
 
   return (
-    <button
+    <button className="!absolute !z-[1000] !w-[42px] !h-[42px] !rounded-[50%] ![border:none] !cursor-pointer ![box-shadow:0_2px_10px_rgba(0,0,0,0.25)] !flex !items-center !justify-center ![transition:background_0.2s,_color_0.2s]"
       type="button"
       onClick={onClick}
       title={title}
       aria-label={title}
-      style={{
-        position: 'absolute',
-        bottom: bottomOffset,
-        right: 12,
-        zIndex: 1000,
-        width: 42,
-        height: 42,
-        borderRadius: '50%',
-        border: 'none',
-        cursor: 'pointer',
-        background: isActive ? '#3b82f6' : 'var(--bg-card, white)',
-        color: isActive ? 'white' : (error ? '#ef4444' : 'var(--text-muted, #6b7280)'),
-        boxShadow: '0 2px 10px rgba(0,0,0,0.25)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        transition: 'background 0.2s, color 0.2s',
-      }}
+      style={{ bottom: bottomOffset, right: 12, background: isActive ? '#3b82f6' : 'var(--bg-card, white)', color: isActive ? 'white' : (error ? '#ef4444' : 'var(--text-muted, #6b7280)') }}
     >
       <Icon size={20} strokeWidth={mode === 'follow' ? 2.5 : 2} />
     </button>

@@ -294,16 +294,9 @@ function CustomTooltip({ active, payload }: any) {
   const d = payload[0]?.payload
   if (!d) return null
   return (
-    <div style={{
-      background: 'var(--bg-primary, #1e2a3a)',
-      border: '1px solid var(--border-primary, #2d3f55)',
-      borderRadius: 8,
-      padding: '8px 12px',
-      fontSize: 12,
-      lineHeight: 1.8,
-    }}>
-      <div style={{ fontWeight: 700, color: 'var(--text-primary, #e2e8f0)' }}>📍 {d.dist} km</div>
-      <div style={{ color: '#22d96e' }}>⛰ {d.ele} m</div>
+    <div className="![background:var(--bg-primary,_#1e2a3a)] ![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[8px] !p-[8px_12px] !text-[length:12px] !leading-[1.8]">
+      <div className="!font-[700] ![color:var(--text-primary,_#e2e8f0)]">📍 {d.dist} km</div>
+      <div className="![color:#22d96e]">⛰ {d.ele} m</div>
       {d.slope != null && (
         <div style={{ color: slopeColor(d.slope) }}>
           📐 {d.slope > 0 ? '+' : ''}{d.slope}% — {slopeLabel(d.slope)}
@@ -317,32 +310,20 @@ function CustomTooltip({ active, payload }: any) {
 function IBPTableLegend({ ibp, fitness }: { ibp: number; fitness: number }) {
   const cat = ibpCategory(ibp, fitness)
   return (
-    <div style={{
-      padding: '12px 14px',
-      background: 'var(--bg-secondary, #253547)',
-      borderRadius: 8,
-      marginBottom: 16,
-    }}>
-      <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', fontWeight: 700,
-                    letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>
+    <div className="!p-[12px_14px] ![background:var(--bg-secondary,_#253547)] !rounded-[8px] !mb-[16px]">
+      <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !font-[700] !tracking-[1px] !uppercase !mb-[10px]">
         Tabla IBP oficial ·{' '}
         <span style={{ color: cat.color }}>Preparación: {FITNESS_LABELS[fitness]}</span>
       </div>
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+      <div className="!overflow-x-auto">
+        <table className="!w-[100%] ![border-collapse:collapse] !text-[length:11px]">
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-primary, #2d3f55)' }}>
-              <th style={{ padding: '4px 8px', textAlign: 'left',
-                           color: 'var(--text-tertiary, #64748b)', fontWeight: 600 }}>
+            <tr className="![border-bottom:1px_solid_var(--border-primary,_#2d3f55)]">
+              <th className="!p-[4px_8px] !text-left ![color:var(--text-tertiary,_#64748b)] !font-[600]">
                 Dificultad
               </th>
               {FITNESS_LABELS.map((f, i) => (
-                <th key={i} style={{
-                  padding: '4px 8px', textAlign: 'center',
-                  color:      fitness === i ? cat.color : 'var(--text-tertiary, #64748b)',
-                  fontWeight: fitness === i ? 800 : 500,
-                  background: fitness === i ? cat.color + '18' : 'transparent',
-                }}>{f}</th>
+                <th className="!p-[4px_8px] !text-center" key={i} style={{ color:      fitness === i ? cat.color : 'var(--text-tertiary, #64748b)', fontWeight: fitness === i ? 800 : 500, background: fitness === i ? cat.color + '18' : 'transparent' }}>{f}</th>
               ))}
             </tr>
           </thead>
@@ -350,15 +331,8 @@ function IBPTableLegend({ ibp, fitness }: { ibp: number; fitness: number }) {
             {IBP_TABLE.map((row, ri) => {
               const isActive = cat.label === row.label
               return (
-                <tr key={ri} style={{
-                  background:   isActive ? row.color + '15' : 'transparent',
-                  borderBottom: '1px solid var(--border-primary, #2d3f55)',
-                }}>
-                  <td style={{
-                    padding: '5px 8px', fontWeight: isActive ? 800 : 500,
-                    color: isActive ? row.color : 'var(--text-secondary, #94a3b8)',
-                    whiteSpace: 'nowrap',
-                  }}>
+                <tr className="![border-bottom:1px_solid_var(--border-primary,_#2d3f55)]" key={ri} style={{ background:   isActive ? row.color + '15' : 'transparent' }}>
+                  <td className="!p-[5px_8px] !whitespace-nowrap" style={{ fontWeight: isActive ? 800 : 500, color: isActive ? row.color : 'var(--text-secondary, #94a3b8)' }}>
                     {isActive ? '▶ ' : ''}{row.label}
                   </td>
                   {row.max.map((mx, fi) => {
@@ -367,14 +341,9 @@ function IBPTableLegend({ ibp, fitness }: { ibp: number; fitness: number }) {
                       ? `${prev}–${mx}`
                       : `>${IBP_TABLE[ri - 1].max[fi]}`
                     return (
-                      <td key={fi} style={{
-                        padding: '5px 8px', textAlign: 'center',
-                        color:      isActive && fi === fitness ? row.color : 'var(--text-tertiary, #64748b)',
-                        fontWeight: isActive && fi === fitness ? 800 : 400,
-                        background: fi === fitness
+                      <td className="!p-[5px_8px] !text-center" key={fi} style={{ color:      isActive && fi === fitness ? row.color : 'var(--text-tertiary, #64748b)', fontWeight: isActive && fi === fitness ? 800 : 400, background: fi === fitness
                           ? (isActive ? row.color + '20' : 'var(--bg-tertiary, #1a2535)')
-                          : 'transparent',
-                      }}>
+                          : 'transparent' }}>
                         {label}
                       </td>
                     )
@@ -384,7 +353,7 @@ function IBPTableLegend({ ibp, fitness }: { ibp: number; fitness: number }) {
             })}
           </tbody>
         </table>
-        <div style={{ fontSize: 10, color: 'var(--text-tertiary, #64748b)', marginTop: 5 }}>
+        <div className="!text-[length:10px] ![color:var(--text-tertiary,_#64748b)] !mt-[5px]">
           Columna resaltada = tu nivel · Fila resaltada = categoría de este track
         </div>
       </div>
@@ -524,18 +493,14 @@ function TrackDetail({
   if (!profile) {
     const hasPoints = (track.points?.length || 0) > 0
     return (
-      <div style={{
-        border: '1px solid var(--border-primary, #2d3f55)',
-        borderRadius: 10, marginBottom: 10, overflow: 'hidden',
-        background: 'var(--bg-primary, #1e2a3a)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
-          <div style={{ width: 14, height: 14, borderRadius: 4, background: color, flexShrink: 0 }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary, #e2e8f0)', marginBottom: 2 }}>
+      <div className="![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[10px] !mb-[10px] !overflow-hidden ![background:var(--bg-primary,_#1e2a3a)]">
+        <div className="!flex !items-center !gap-[12px] !p-[14px_16px]">
+          <div className="!w-[14px] !h-[14px] !rounded-[4px] !shrink-[0]" style={{ background: color }} />
+          <div className="!flex-[1] !min-w-[0]">
+            <div className="!font-[700] !text-[length:14px] ![color:var(--text-primary,_#e2e8f0)] !mb-[2px]">
               {track.track_name}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)' }}>
+            <div className="!text-[length:12px] ![color:var(--text-tertiary,_#64748b)]">
               {track.total_distance ? `${Math.round(track.total_distance * 10) / 10} km` : ''}
               {hasPoints
                 ? ' · Sin datos de altitud'
@@ -543,23 +508,19 @@ function TrackDetail({
             </div>
           </div>
           {hasPoints && tripId && (
-            <button
+            <button className="![background:none] ![border:none] !p-[4px] ![color:var(--text-tertiary)] !shrink-[0]"
               onClick={handleFetchElevation}
               disabled={fetchingEle}
               title="Obtener altitudes"
-              style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+              style={{ cursor: fetchingEle ? 'wait' : 'pointer', opacity: fetchingEle ? 0.5 : 1 }}
             >
               <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
             </button>
           )}
           {hasPoints && (
-            <button
+            <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] ![color:var(--text-tertiary)] !shrink-[0]"
               onClick={handleDownload}
               title="Descargar GPX"
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
-              }}
             >
               <Download size={14} />
             </button>
@@ -588,80 +549,52 @@ function TrackDetail({
   const chartWidth = Math.max(chartContainerWidth, Math.round(totalDist * PX_PER_KM))
 
   return (
-    <div style={{
-      border: '1px solid var(--border-primary, #2d3f55)',
-      borderRadius: 10,
-      marginBottom: 10,
-      overflow: 'hidden',
-      background: 'var(--bg-primary, #1e2a3a)',
-    }}>
+    <div className="![border:1px_solid_var(--border-primary,_#2d3f55)] !rounded-[10px] !mb-[10px] !overflow-hidden ![background:var(--bg-primary,_#1e2a3a)]">
       {/* Header */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '14px 16px', cursor: 'pointer', userSelect: 'none',
-      }} onClick={onToggle}>
-        <div style={{ width: 14, height: 14, borderRadius: 4, background: color, flexShrink: 0 }} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontWeight: 700, fontSize: 14, color: 'var(--text-primary, #e2e8f0)',
-            marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          }}>
+      <div className="!flex !items-center !gap-[12px] !p-[14px_16px] !cursor-pointer !select-none" onClick={onToggle}>
+        <div className="!w-[14px] !h-[14px] !rounded-[4px] !shrink-[0]" style={{ background: color }} />
+        <div className="!flex-[1] !min-w-[0]">
+          <div className="!font-[700] !text-[length:14px] ![color:var(--text-primary,_#e2e8f0)] !mb-[2px] !overflow-hidden !text-ellipsis !whitespace-nowrap">
             {track.track_name}
           </div>
-          <div style={{
-            fontSize: 12, color: 'var(--text-tertiary, #64748b)',
-            display: 'flex', gap: 12, flexWrap: 'wrap',
-          }}>
+          <div className="!text-[length:12px] ![color:var(--text-tertiary,_#64748b)] !flex !gap-[12px] !flex-wrap">
             <span>{totalDist} km</span>
-            <span style={{ color: '#f97316' }}>↑ {gain} m</span>
-            <span style={{ color: '#38bdf8' }}>↓ {loss} m</span>
+            <span className="![color:#f97316]">↑ {gain} m</span>
+            <span className="![color:#38bdf8]">↓ {loss} m</span>
             <span>Alt. {minEle}–{maxEle} m</span>
-            <span style={{ color: '#f59e0b' }}>Pend. máx. {maxSlope}%</span>
+            <span className="![color:#f59e0b]">Pend. máx. {maxSlope}%</span>
           </div>
         </div>
         {/* IBP Badge */}
-        <div style={{
-          padding: '4px 10px', borderRadius: 20,
-          background: cat.color + '20',
-          border: `1px solid ${cat.color}`,
-          textAlign: 'center', flexShrink: 0,
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 900, color: cat.color }}>{ibp}</div>
-          <div style={{ fontSize: 9, fontWeight: 700, color: cat.color, letterSpacing: 1 }}>
+        <div className="!p-[4px_10px] !rounded-[20px] !text-center !shrink-[0]" style={{ background: cat.color + '20', border: `1px solid ${cat.color}` }}>
+          <div className="!text-[length:16px] !font-[900]" style={{ color: cat.color }}>{ibp}</div>
+          <div className="!text-[length:9px] !font-[700] !tracking-[1px]" style={{ color: cat.color }}>
             {ibpOfficial ? 'IBP ✓' : 'IBP ~'}
           </div>
         </div>
         {track.points && track.points.length > 0 && tripId && (
-          <button
+          <button className="![background:none] ![border:none] !p-[4px] ![color:var(--text-tertiary)] !shrink-[0]"
             onClick={handleFetchElevation}
             disabled={fetchingEle}
             title="Volver a obtener altitudes"
-            style={{ background: 'none', border: 'none', cursor: fetchingEle ? 'wait' : 'pointer', padding: 4, color: 'var(--text-tertiary)', flexShrink: 0, opacity: fetchingEle ? 0.5 : 1 }}
+            style={{ cursor: fetchingEle ? 'wait' : 'pointer', opacity: fetchingEle ? 0.5 : 1 }}
           >
             <ArrowDownToLine size={14} style={fetchingEle ? { animation: 'spin 1s linear infinite' } : {}} />
           </button>
         )}
         {track.points && track.points.length > 0 && (
-          <button
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] ![color:var(--text-tertiary)] !shrink-[0]"
             onClick={handleDownload}
             title="Descargar GPX"
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
-            }}
           >
             <Download size={14} />
           </button>
         )}
         {tripId && (
-          <button
+          <button className="![background:none] ![border:none] !p-[4px] ![color:var(--text-tertiary)] !shrink-[0]"
             onClick={handleRecalcIbp}
             title="Recalcular IBP"
-            style={{
-              background: 'none', border: 'none', cursor: recalculating ? 'wait' : 'pointer',
-              padding: 4, color: 'var(--text-tertiary)', flexShrink: 0,
-              opacity: recalculating ? 0.5 : 1,
-            }}
+            style={{ cursor: recalculating ? 'wait' : 'pointer', opacity: recalculating ? 0.5 : 1 }}
           >
             <RefreshCw size={14} style={{ animation: recalculating ? 'spin 1s linear infinite' : 'none' }} />
           </button>
@@ -670,9 +603,9 @@ function TrackDetail({
       </div>
 
       {expanded && (
-        <div style={{ padding: '0 16px 16px' }}>
+        <div className="!p-[0_16px_16px]">
           {/* Stats grid */}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+          <div className="!flex !gap-[8px] !flex-wrap !mb-[16px]">
             {[
               { label: 'Distancia',  value: `${totalDist} km`,      color: '#22d96e' },
               { label: 'Desnivel +', value: `${gain} m`,            color: '#f97316' },
@@ -682,15 +615,11 @@ function TrackDetail({
               { label: 'Pend. máx.', value: `${maxSlope}%`,         color: '#ef4444' },
               { label: 'IBP',        value: `${ibp} — ${cat.label}`, color: cat.color },
             ].map((s, i) => (
-              <div key={i} style={{
-                background: 'var(--bg-secondary, #253547)',
-                borderRadius: 8, padding: '8px 12px', minWidth: 80,
-              }}>
-                <div style={{ fontSize: 10, color: 'var(--text-tertiary, #64748b)',
-                              letterSpacing: 0.5, marginBottom: 2 }}>
+              <div className="![background:var(--bg-secondary,_#253547)] !rounded-[8px] !p-[8px_12px] !min-w-[80px]" key={i}>
+                <div className="!text-[length:10px] ![color:var(--text-tertiary,_#64748b)] !tracking-[0.5px] !mb-[2px]">
                   {s.label}
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.value}</div>
+                <div className="!text-[length:14px] !font-[700]" style={{ color: s.color }}>{s.value}</div>
               </div>
             ))}
           </div>
@@ -774,7 +703,7 @@ function TrackDetail({
                 ))}
               </ComposedChart>
           </div>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary, #64748b)', textAlign: 'center', marginTop: -8, marginBottom: 4 }}>
+          <div className="!text-[length:10px] ![color:var(--text-tertiary,_#64748b)] !text-center !mt-[-8px] !mb-[4px]">
             {waypointMarkers.length > 0 && chartWidth > chartContainerWidth ? '← desliza para ver todo el gráfico →' : null}
           </div>
 
@@ -795,13 +724,9 @@ export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackU
 
   if (!tracksWithPoints.length) {
     return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        justifyContent: 'center', padding: 32, gap: 12,
-        color: 'var(--text-tertiary, #64748b)',
-      }}>
+      <div className="!flex !flex-col !items-center !justify-center !p-[32px] !gap-[12px] ![color:var(--text-tertiary,_#64748b)]">
         <Mountain size={32} />
-        <div style={{ fontSize: 14 }}>
+        <div className="!text-[length:14px]">
           Carga un GPX con datos de elevación para ver el perfil
         </div>
       </div>
@@ -812,32 +737,21 @@ export default function ElevationDetail({ tracks, tripId, onIbpUpdated, onTrackU
     setExpanded(p => ({ ...p, [id]: !p[id] }))
 
   return (
-    <div style={{ padding: '0 4px' }}>
+    <div className="!p-[0_4px]">
       {/* Fitness selector */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        marginBottom: 16, padding: '10px 14px',
-        background: 'var(--bg-secondary, #253547)',
-        borderRadius: 8,
-      }}>
+      <div className="!flex !items-center !gap-[10px] !mb-[16px] !p-[10px_14px] ![background:var(--bg-secondary,_#253547)] !rounded-[8px]">
         <Layers size={14} color="var(--text-tertiary)" />
-        <span style={{ fontSize: 12, color: 'var(--text-tertiary, #64748b)', fontWeight: 600 }}>
+        <span className="!text-[length:12px] ![color:var(--text-tertiary,_#64748b)] !font-[600]">
           Tu preparación:
         </span>
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div className="!flex !gap-[4px]">
           {FITNESS_LABELS.map((l, i) => (
-            <button
+            <button className="!p-[3px_8px] !rounded-[12px] ![border:none] !cursor-pointer !text-[length:11px] !font-[600] ![transition:all_.15s]"
               key={i}
               onClick={() => setFitness(i)}
-              style={{
-                padding: '3px 8px', borderRadius: 12, border: 'none',
-                cursor: 'pointer', fontSize: 11, fontWeight: 600,
-                background: fitness === i
+              style={{ background: fitness === i
                   ? ibpCategory(50, i).color
-                  : 'var(--bg-tertiary, #1a2535)',
-                color: fitness === i ? '#fff' : 'var(--text-tertiary, #64748b)',
-                transition: 'all .15s',
-              }}
+                  : 'var(--bg-tertiary, #1a2535)', color: fitness === i ? '#fff' : 'var(--text-tertiary, #64748b)' }}
             >
               {l}
             </button>

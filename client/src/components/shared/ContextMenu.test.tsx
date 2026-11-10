@@ -21,7 +21,7 @@ describe('ContextMenu', () => {
 
   it('FE-COMP-CTX-001: renders nothing when menu is null', () => {
     render(<ContextMenu menu={null} onClose={onClose} />);
-    expect(document.body.querySelector('[style*="z-index: 999999"]')).toBeNull();
+    expect(document.body.querySelector('[style*="z-index: 999999"], [class*="!z-[999999"]')).toBeNull();
   });
 
   it('FE-COMP-CTX-002: renders menu items at the specified position', () => {
@@ -30,7 +30,7 @@ describe('ContextMenu', () => {
     expect(screen.getByText('Delete')).toBeTruthy();
 
     // Portal root div has position fixed at the given coords
-    const portal = document.body.querySelector('[style*="position: fixed"]') as HTMLElement;
+    const portal = document.body.querySelector('[style*="position: fixed"], [class~="!fixed"]') as HTMLElement;
     expect(portal.style.left).toBe('150px');
     expect(portal.style.top).toBe('250px');
   });

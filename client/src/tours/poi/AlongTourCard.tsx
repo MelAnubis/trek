@@ -46,23 +46,22 @@ function CategoryPicker({ type, chosen, onToggle }: { type: TourType; chosen: Po
       : t('tours.poi.categoriesMore', { first: chosen.slice(0, 2).map(c => t(`tours.poi.cat.${c}`)).join(', '), more: chosen.length - 2 })
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button type="button" data-testid="poi-categories" onClick={() => setOpen(o => !o)}
-        style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '8px 10px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-        <span style={{ display: 'inline-flex', gap: 3 }}>
+      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[8px_10px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !cursor-pointer ![font-family:inherit] !text-left" type="button" data-testid="poi-categories" onClick={() => setOpen(o => !o)}>
+        <span className="!inline-flex !gap-[3px]">
           {chosen.slice(0, 3).map(c => { const I = POI_ICON[c]; return <I key={c} size={13} style={{ color: POI_COLOR[c] }} /> })}
         </span>
-        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+        <span className="!flex-[1] !min-w-[0] !text-[length:12.5px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{label}</span>
         <ChevronDown size={14} style={{ color: 'var(--text-faint)' }} />
       </button>
       {open && (
-        <div style={{ position: 'absolute', zIndex: 40, top: 'calc(100% + 4px)', left: 0, right: 0, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4, maxHeight: 280, overflowY: 'auto' }}>
+        <div className="!absolute !z-[40] !top-[calc(100%_+_4px)] !left-[0] !right-[0] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[12px] ![box-shadow:var(--shadow-elevated)] !p-[4px] !max-h-[280px] !overflow-y-auto">
           {POI_CATEGORIES_BY_TYPE[type].map(c => {
             const I = POI_ICON[c]
             const on = chosen.includes(c)
             const full = !on && chosen.length >= POI_MAX_CATEGORIES
             return (
-              <label key={c} title={full ? t('tours.poi.categoriesLimit', { count: POI_MAX_CATEGORIES }) : undefined}
-                style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 8px', borderRadius: 8, cursor: full ? 'not-allowed' : 'pointer', opacity: full ? 0.5 : 1, fontSize: 12.5, color: 'var(--text-primary)' }}>
+              <label className="!flex !items-center !gap-[9px] !p-[7px_8px] !rounded-[8px] !text-[length:12.5px] ![color:var(--text-primary)]" key={c} title={full ? t('tours.poi.categoriesLimit', { count: POI_MAX_CATEGORIES }) : undefined}
+                style={{ cursor: full ? 'not-allowed' : 'pointer', opacity: full ? 0.5 : 1 }}>
                 <input type="checkbox" checked={on} disabled={full} onChange={() => onToggle(c)} />
                 <I size={14} style={{ color: POI_COLOR[c] }} />{t(`tours.poi.cat.${c}`)}
               </label>
@@ -120,61 +119,59 @@ export default function AlongTourCard({ route, tourType, pois, onPois, focusedId
 
   return (
     <RailCard testId="along-card" icon={<Search size={15} />} title={t('tours.poi.title')} defaultOpen={false}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 10 }}>
+      <div className="!flex !flex-col !gap-[10px] !pt-[10px]">
         <CategoryPicker type={tourType} chosen={chosen} onToggle={toggle} />
         <div>
-          <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginBottom: 6 }}>{t('tours.poi.within')}</div>
-          <div style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 11, background: 'var(--bg-tertiary)' }}>
+          <div className="!text-[length:11.5px] ![color:var(--text-faint)] !mb-[6px]">{t('tours.poi.within')}</div>
+          <div className="!flex !gap-[2px] !p-[3px] !rounded-[11px] ![background:var(--bg-tertiary)]">
             {POI_CORRIDORS_M.map(m => (
-              <button key={m} type="button" onClick={() => setCorridor(m)} aria-pressed={corridor === m}
-                style={{ flex: 1, padding: '6px 4px', borderRadius: 8, border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: corridor === m ? 600 : 500, background: corridor === m ? 'var(--bg-card)' : 'transparent', color: corridor === m ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              <button className="!flex-[1] !p-[6px_4px] !rounded-[8px] ![border:none] !cursor-pointer" key={m} type="button" onClick={() => setCorridor(m)} aria-pressed={corridor === m}
+                style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: corridor === m ? 600 : 500, background: corridor === m ? 'var(--bg-card)' : 'transparent', color: corridor === m ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                 {corridorLabel(m)}
               </button>
             ))}
           </div>
         </div>
-        <button type="button" data-testid="poi-search" disabled={!chosen.length || status === 'loading'} onClick={() => { void search() }}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '9px', borderRadius: 10, border: 'none', cursor: chosen.length ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, background: 'var(--bg-tertiary)', color: 'var(--text-primary)' }}>
+        <button className="!flex !items-center !justify-center !gap-[6px] !p-[9px] !rounded-[10px] ![border:none] ![font-family:inherit] !text-[length:12.5px] !font-[600] ![background:var(--bg-tertiary)] ![color:var(--text-primary)]" type="button" data-testid="poi-search" disabled={!chosen.length || status === 'loading'} onClick={() => { void search() }}
+          style={{ cursor: chosen.length ? 'pointer' : 'default' }}>
           {status === 'loading' ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
           {status === 'loading' ? t('tours.poi.searching') : status === 'ready' ? t('tours.poi.again') : t('tours.poi.search')}
         </button>
 
-        {status === 'failed' && <div style={{ display: 'flex', gap: 6, fontSize: 12, color: '#b45309' }}><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />{t('tours.poi.failed')}</div>}
-        {outdated && <div style={{ fontSize: 11.5, color: '#b45309' }}>{t('tours.poi.outdated')}</div>}
-        {status === 'ready' && truncated && <div style={{ fontSize: 11.5, color: 'var(--text-faint)' }}>{t('tours.poi.truncated')}</div>}
+        {status === 'failed' && <div className="!flex !gap-[6px] !text-[length:12px] ![color:#b45309]"><AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 1 }} />{t('tours.poi.failed')}</div>}
+        {outdated && <div className="!text-[length:11.5px] ![color:#b45309]">{t('tours.poi.outdated')}</div>}
+        {status === 'ready' && truncated && <div className="!text-[length:11.5px] ![color:var(--text-faint)]">{t('tours.poi.truncated')}</div>}
         {status === 'ready' && pois.length === 0 && (
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+          <div className="!text-[length:12px] ![color:var(--text-muted)]">
             {t('tours.poi.empty', { distance: corridorLabel(corridor) })}
-            {wider && <button type="button" onClick={() => { setCorridor(wider); void search(wider) }} style={{ marginLeft: 6, border: 'none', background: 'none', padding: 0, textDecoration: 'underline', cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 12 }}>{t('tours.poi.widen', { distance: corridorLabel(wider) })}</button>}
+            {wider && <button className="!ml-[6px] ![border:none] ![background:none] !p-[0] ![text-decoration:underline] !cursor-pointer ![color:var(--text-primary)] ![font-family:inherit] !text-[length:12px]" type="button" onClick={() => { setCorridor(wider); void search(wider) }}>{t('tours.poi.widen', { distance: corridorLabel(wider) })}</button>}
           </div>
         )}
         {pois.length > 0 && (
-          <ul data-testid="poi-results" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 2, maxHeight: 320, overflowY: 'auto' }}>
+          <ul className="![list-style:none] !m-[0] !p-[0] !flex !flex-col !gap-[2px] !max-h-[320px] !overflow-y-auto" data-testid="poi-results">
             {pois.map(p => {
               const I = POI_ICON[p.category]
               const open = focusedId === p.id
               return (
-                <li key={p.id} style={{ borderRadius: 10, background: open ? 'var(--bg-tertiary)' : 'transparent' }}>
-                  <button type="button" onClick={() => onFocus(open ? null : p)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 6px', border: 'none', background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                    <span style={{ width: 24, height: 24, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: POI_COLOR[p.category] + '1f', color: POI_COLOR[p.category] }}><I size={13} /></span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-                      <span style={{ display: 'block', fontSize: 11, color: 'var(--text-faint)' }}>{t('tours.poi.along', { distance: formatDistance(p.along_m / 1000) })} · {t('tours.poi.fromRoute', { distance: formatDistance(p.distance_m / 1000) })}</span>
+                <li className="!rounded-[10px]" key={p.id} style={{ background: open ? 'var(--bg-tertiary)' : 'transparent' }}>
+                  <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[7px_6px] ![border:none] ![background:transparent] !cursor-pointer ![font-family:inherit] !text-left" type="button" onClick={() => onFocus(open ? null : p)}>
+                    <span className="!w-[24px] !h-[24px] !rounded-[12px] !shrink-[0] !flex !items-center !justify-center" style={{ background: POI_COLOR[p.category] + '1f', color: POI_COLOR[p.category] }}><I size={13} /></span>
+                    <span className="!flex-[1] !min-w-[0]">
+                      <span className="!block !text-[length:12.5px] !font-[600] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap">{p.name}</span>
+                      <span className="!block !text-[length:11px] ![color:var(--text-faint)]">{t('tours.poi.along', { distance: formatDistance(p.along_m / 1000) })} · {t('tours.poi.fromRoute', { distance: formatDistance(p.distance_m / 1000) })}</span>
                     </span>
                   </button>
                   {open && (
-                    <div style={{ padding: '0 8px 8px 38px', display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11.5, color: 'var(--text-muted)' }}>
-                      {p.opening_hours && <span title={t('tours.poi.hoursHint')} style={{ display: 'inline-flex', gap: 4 }}><Clock size={11} style={{ marginTop: 2 }} />{p.opening_hours}</span>}
-                      {p.website && <a href={p.website} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', gap: 4, color: 'var(--text-primary)' }}><ExternalLink size={11} style={{ marginTop: 2 }} />{t('tours.poi.website')}</a>}
-                      <span style={{ fontSize: 10.5, color: 'var(--text-faint)' }}>{t('tours.poi.source.osm')}</span>
+                    <div className="!p-[0_8px_8px_38px] !flex !flex-col !gap-[6px] !text-[length:11.5px] ![color:var(--text-muted)]">
+                      {p.opening_hours && <span className="!inline-flex !gap-[4px]" title={t('tours.poi.hoursHint')}><Clock size={11} style={{ marginTop: 2 }} />{p.opening_hours}</span>}
+                      {p.website && <a className="!inline-flex !gap-[4px] ![color:var(--text-primary)]" href={p.website} target="_blank" rel="noopener noreferrer"><ExternalLink size={11} style={{ marginTop: 2 }} />{t('tours.poi.website')}</a>}
+                      <span className="!text-[length:10.5px] ![color:var(--text-faint)]">{t('tours.poi.source.osm')}</span>
                       {canEdit && (
-                        <button type="button" data-testid={`poi-add-${p.id}`} onClick={() => onAdd(p)}
-                          style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8, border: 'none', background: 'var(--text-primary)', color: 'var(--bg-card)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600 }}>
+                        <button className="!self-start !inline-flex !items-center !gap-[5px] !p-[5px_10px] !rounded-[8px] ![border:none] ![background:var(--text-primary)] ![color:var(--bg-card)] !cursor-pointer ![font-family:inherit] !text-[length:11.5px] !font-[600]" type="button" data-testid={`poi-add-${p.id}`} onClick={() => onAdd(p)}>
                           <Plus size={12} />{t('tours.poi.add')}
                         </button>
                       )}
-                      <span style={{ fontSize: 10.5, color: 'var(--text-faint)' }}>{t('tours.poi.notAPlace')}</span>
+                      <span className="!text-[length:10.5px] ![color:var(--text-faint)]">{t('tours.poi.notAPlace')}</span>
                     </div>
                   )}
                 </li>

@@ -46,7 +46,7 @@ export function SketchView({ strokes, aspect, background, className, label }: {
   const h = Math.round(SKETCH_WIDTH * aspect)
   const pid = useMemo(() => `sk-${Math.random().toString(36).slice(2, 8)}`, [])
   return (
-    <svg viewBox={`0 0 ${SKETCH_WIDTH} ${h}`} className={className} role="img" aria-label={label} style={{ width: '100%', height: 'auto', display: 'block' }}>
+    <svg viewBox={`0 0 ${SKETCH_WIDTH} ${h}`} className={[className, '!w-[100%] !h-[auto] !block'].join(' ')} role="img" aria-label={label}>
       <rect width={SKETCH_WIDTH} height={h} fill={BG_FILL[background]} />
       <BackgroundPattern bg={background} h={h} id={pid} />
       {strokes.map((s, i) => <StrokePath key={i} s={s} />)}

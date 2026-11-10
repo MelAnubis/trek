@@ -123,8 +123,8 @@ export default function WeatherWidget({ lat, lng, date, compact = false }: Weath
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: isClimate ? '#71717a' : '#374151', background: 'rgba(0,0,0,0.04)', borderRadius: 8, padding: '5px 10px', ...fontStyle }}>
       <WeatherIcon main={weather.main} size={15} />
-      {temp !== null && <span style={{ fontWeight: 500 }}>{isClimate ? 'Ø ' : ''}{temp}{unit}</span>}
-      {weather.description && <span style={{ fontSize: 11, color: '#9ca3af', textTransform: 'capitalize' }}>{weather.description}</span>}
+      {temp !== null && <span className="!font-[500]">{isClimate ? 'Ø ' : ''}{temp}{unit}</span>}
+      {weather.description && <span className="!text-[length:11px] ![color:#9ca3af] !capitalize">{weather.description}</span>}
     </div>
   )
 }

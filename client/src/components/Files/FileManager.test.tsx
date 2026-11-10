@@ -384,7 +384,7 @@ describe('FileManager', () => {
     // Close via X button in the modal (second X button — first might be something else)
     const closeButtons = screen.getAllByRole('button', { name: '' });
     // Find a close button near the modal header — click the last X-like button
-    const xBtn = closeButtons.find(btn => btn.closest('[style*="z-index: 10000"]'));
+    const xBtn = closeButtons.find(btn => btn.closest('[style*="z-index: 10000"], [class*="!z-[10000"]'));
     if (xBtn) await user.click(xBtn);
   });
 
@@ -557,7 +557,7 @@ describe('FileManager', () => {
     });
 
     // Click the backdrop to close
-    const backdrop = document.querySelector('[style*="z-index: 10000"]') as HTMLElement;
+    const backdrop = document.querySelector('[style*="z-index: 10000"], [class*="!z-[10000"]') as HTMLElement;
     if (backdrop) await user.click(backdrop);
 
     await waitFor(() => {

@@ -54,7 +54,7 @@ describe('DemoBanner', () => {
     const user = userEvent.setup();
     render(<DemoBanner />);
     // The inner card is the direct parent of the "Got it" button's container
-    const card = screen.getByText('Got it').closest('div[style*="background: white"]')!;
+    const card = screen.getByText('Got it').closest('div[style*="background: white"], div[class*="![background:white"]')!;
     await user.click(card);
     expect(screen.getByText('Got it')).toBeInTheDocument();
   });

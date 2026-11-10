@@ -22,8 +22,7 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
         <button
           type="button"
           onClick={() => onChange(allSelected ? [] : allScopeKeys)}
-          className="text-xs px-2 py-0.5 rounded border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
-          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+          className="text-xs px-2 py-0.5 rounded border transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
           {allSelected ? t('settings.oauth.modal.deselectAll') : t('settings.oauth.modal.selectAll')}
         </button>
       </div>
@@ -33,19 +32,18 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
           const allGroupSelected = groupScopeKeys.every(s => selected.includes(s))
           const someGroupSelected = groupScopeKeys.some(s => selected.includes(s))
           return (
-            <div key={group} className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
-              <div className="flex items-center gap-1 px-3 py-2" style={{ background: 'var(--bg-secondary)' }}>
+            <div key={group} className="rounded-lg border overflow-hidden ![border-color:var(--border-primary)]">
+              <div className="flex items-center gap-1 px-3 py-2 ![background:var(--bg-secondary)]">
                 <button
                   type="button"
                   onClick={() => setOpen(prev => ({ ...prev, [group]: !prev[group] }))}
-                  className="flex items-center gap-1 flex-1 text-xs font-semibold hover:opacity-70 transition-opacity text-left"
-                  style={{ color: 'var(--text-secondary)' }}>
+                  className="flex items-center gap-1 flex-1 text-xs font-semibold hover:opacity-70 transition-opacity text-left ![color:var(--text-secondary)]">
                   {open[group]
                     ? <ChevronDown className="w-3 h-3 flex-shrink-0" />
                     : <ChevronRight className="w-3 h-3 flex-shrink-0" />}
                   {group}
                   {someGroupSelected && (
-                    <span className="ml-1.5 text-xs font-normal" style={{ color: 'var(--text-tertiary)' }}>
+                    <span className="ml-1.5 text-xs font-normal ![color:var(--text-tertiary)]">
                       ({groupScopeKeys.filter(s => selected.includes(s)).length}/{groupScopeKeys.length})
                     </span>
                   )}
@@ -64,7 +62,7 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
                 />
               </div>
               {open[group] && (
-                <div className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
+                <div className="divide-y ![border-color:var(--border-primary)]">
                   {groupScopes.map(({ scope, label, description }) => (
                     <label
                       key={scope}
@@ -80,8 +78,8 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
                         className="mt-0.5 rounded flex-shrink-0"
                       />
                       <div>
-                        <p className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{label}</p>
-                        <p className="text-xs" style={{ color: 'var(--text-tertiary)' }}>{description}</p>
+                        <p className="text-xs font-medium ![color:var(--text-primary)]">{label}</p>
+                        <p className="text-xs ![color:var(--text-tertiary)]">{description}</p>
                       </div>
                     </label>
                   ))}

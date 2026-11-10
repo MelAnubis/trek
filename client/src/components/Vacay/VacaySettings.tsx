@@ -51,8 +51,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
 
       {/* Weekend days selector */}
       {plan.block_weekends !== false && (
-        <div data-testid="weekend-days" style={{ paddingLeft: 36 }}>
-          <p className="text-xs font-medium mb-2" style={{ color: 'var(--text-muted)' }}>{t('vacay.weekendDays')}</p>
+        <div className="!pl-[36px]" data-testid="weekend-days">
+          <p className="text-xs font-medium mb-2 ![color:var(--text-muted)]">{t('vacay.weekendDays')}</p>
           <div className="flex flex-wrap gap-1.5">
             {[
               { day: 1, label: t('vacay.mon') },
@@ -66,17 +66,11 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               const current: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
               const active = current.includes(day)
               return (
-                <button key={day} onClick={() => {
+                <button className="!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={day} onClick={() => {
                   const next = active ? current.filter(d => d !== day) : [...current, day]
                   updatePlan({ weekend_days: next.join(',') })
                 }}
-                  style={{
-                    padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                    fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
-                    background: active ? 'var(--text-primary)' : 'var(--bg-card)',
-                    borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
-                    color: active ? 'var(--bg-primary)' : 'var(--text-muted)',
-                  }}>
+                  style={{ border: '1px solid', background: active ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)', color: active ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                   {label}
                 </button>
               )
@@ -87,28 +81,22 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
 
       {/* Week start */}
       <div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="!flex !items-center !gap-[10px]">
           <CalendarDays size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <span className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{t('vacay.weekStart')}</span>
-            <p className="text-xs mt-0.5" style={{ color: 'var(--text-faint)' }}>{t('vacay.weekStartHint')}</p>
+          <div className="!flex-[1]">
+            <span className="text-sm font-medium ![color:var(--text-primary)]">{t('vacay.weekStart')}</span>
+            <p className="text-xs mt-0.5 ![color:var(--text-faint)]">{t('vacay.weekStartHint')}</p>
           </div>
         </div>
-        <div style={{ paddingLeft: 36, marginTop: 8 }} className="flex gap-1.5">
+        <div className="flex gap-1.5 !pl-[36px] !mt-[8px]">
           {[
             { value: 1, label: t('vacay.mon') },
             { value: 0, label: t('vacay.sun') },
           ].map(({ value, label }) => {
             const active = (plan.week_start ?? 1) === value
             return (
-              <button key={value} onClick={() => updatePlan({ week_start: value })}
-                style={{
-                  padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                  fontFamily: 'inherit', border: '1px solid', transition: 'all 0.12s',
-                  background: active ? 'var(--text-primary)' : 'var(--bg-card)',
-                  borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)',
-                  color: active ? 'var(--bg-primary)' : 'var(--text-muted)',
-                }}>
+              <button className="!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={value} onClick={() => updatePlan({ week_start: value })}
+                style={{ border: '1px solid', background: active ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)', color: active ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
                 {label}
               </button>
             )
@@ -138,7 +126,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           <div className="ml-7 mt-2">
             <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-md" style={{ background: 'var(--bg-secondary)' }}>
               <AlertCircle size={12} style={{ color: 'var(--text-faint)' }} />
-              <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>{t('vacay.companyHolidaysNoDeduct')}</span>
+              <span className="text-[10px] ![color:var(--text-faint)]">{t('vacay.companyHolidaysNoDeduct')}</span>
             </div>
           </div>
         )}
@@ -156,7 +144,7 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
         {plan.holidays_enabled && (
           <div className="ml-7 mt-2 space-y-2">
             {(plan.holiday_calendars ?? []).length === 0 && (
-              <p className="text-xs" style={{ color: 'var(--text-faint)' }}>{t('vacay.noCalendars')}</p>
+              <p className="text-xs ![color:var(--text-faint)]">{t('vacay.noCalendars')}</p>
             )}
             {(plan.holiday_calendars ?? []).map(cal => (
               <CalendarRow
@@ -178,8 +166,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
             ) : (
               <button
                 onClick={() => setShowAddForm(true)}
-                className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md transition-colors"
-                style={{ color: 'var(--text-muted)', background: 'var(--bg-secondary)' }}
+                className="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-md transition-colors ![color:var(--text-muted)]"
+                style={{ background: 'var(--bg-secondary)' }}
               >
                 <Plus size={12} />
                 {t('vacay.addCalendar')}
@@ -191,26 +179,26 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
 
       {/* Dissolve fusion */}
       {isFused && (
-        <div className="pt-4 mt-2 border-t" style={{ borderColor: 'var(--border-secondary)' }}>
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid rgba(239,68,68,0.2)' }}>
+        <div className="pt-4 mt-2 border-t ![border-color:var(--border-secondary)]">
+          <div className="rounded-xl overflow-hidden ![border:1px_solid_rgba(239,68,68,0.2)]">
             <div className="px-4 py-3 flex items-center gap-3" style={{ background: 'rgba(239,68,68,0.06)' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: 'rgba(239,68,68,0.1)' }}>
                 <Unlink size={16} className="text-red-500" />
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>{t('vacay.dissolve')}</p>
-                <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{t('vacay.dissolveHint')}</p>
+                <p className="text-sm font-semibold ![color:var(--text-primary)]">{t('vacay.dissolve')}</p>
+                <p className="text-[11px] ![color:var(--text-faint)]">{t('vacay.dissolveHint')}</p>
               </div>
             </div>
-            <div className="px-4 py-3 flex items-center gap-2 flex-wrap" style={{ borderTop: '1px solid rgba(239,68,68,0.1)' }}>
+            <div className="px-4 py-3 flex items-center gap-2 flex-wrap ![border-top:1px_solid_rgba(239,68,68,0.1)]">
               {users.map(u => (
                 <div key={u.id} className="flex items-center gap-1.5 px-2 py-1 rounded-md" style={{ background: 'var(--bg-secondary)' }}>
                   <span className="w-2 h-2 rounded-full" style={{ backgroundColor: u.color || '#6366f1' }} />
-                  <span className="text-xs font-medium" style={{ color: 'var(--text-primary)' }}>{u.username}</span>
+                  <span className="text-xs font-medium ![color:var(--text-primary)]">{u.username}</span>
                 </div>
               ))}
             </div>
-            <div className="px-4 py-3" style={{ borderTop: '1px solid rgba(239,68,68,0.1)' }}>
+            <div className="px-4 py-3 ![border-top:1px_solid_rgba(239,68,68,0.1)]">
               <button
                 onClick={async () => {
                   await dissolve()
@@ -243,8 +231,8 @@ function SettingToggle({ icon: Icon, label, hint, value, onChange }: SettingTogg
       <div className="flex items-center gap-2 min-w-0">
         <Icon size={15} className="shrink-0" style={{ color: 'var(--text-muted)' }} />
         <div className="min-w-0">
-          <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{label}</p>
-          <p className="text-[11px]" style={{ color: 'var(--text-faint)' }}>{hint}</p>
+          <p className="text-sm font-medium ![color:var(--text-primary)]">{label}</p>
+          <p className="text-[11px] ![color:var(--text-faint)]">{hint}</p>
         </div>
       </div>
       <button onClick={onChange}
@@ -310,30 +298,30 @@ function CalendarRow({ cal, countries, onUpdate, onDelete }: {
 
   return (
     <div className="flex gap-3 items-start p-3 rounded-xl" style={{ background: 'var(--bg-secondary)' }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
+      <div className="!relative !shrink-[0]">
+        <button className="!w-[28px] !h-[28px] !rounded-[8px] ![border:2px_solid_var(--border-primary)] !cursor-pointer"
           onClick={() => setShowColorPicker(!showColorPicker)}
-          style={{ width: 28, height: 28, borderRadius: 8, background: localColor, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
+          style={{ background: localColor }}
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
-          <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
+          <div className="!absolute !top-[34px] !left-[0] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[12px] !p-[8px] ![box-shadow:0_8px_24px_rgba(0,0,0,0.12)] !grid ![grid-template-columns:repeat(4,_1fr)] !gap-[4px] !w-[120px]" style={{ background: 'var(--bg-card)' }}>
             {PRESET_COLORS.map(c => (
-              <button key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
-                style={{ width: 24, height: 24, borderRadius: 6, background: c, border: localColor === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
+              <button className="!w-[24px] !h-[24px] !rounded-[6px] !cursor-pointer" key={c} onClick={() => { setLocalColor(c); setShowColorPicker(false); if (c !== cal.color) onUpdate({ color: c }) }}
+                style={{ background: c, border: localColor === c ? '2px solid var(--text-primary)' : '2px solid transparent' }} />
             ))}
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0 space-y-1.5">
-        <input
+        <input className="!w-[100%] !text-[length:12px] !p-[6px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none]"
           type="text"
           value={localLabel}
           onChange={e => setLocalLabel(e.target.value)}
           onBlur={() => { const v = localLabel.trim() || null; if (v !== cal.label) onUpdate({ label: v }) }}
           onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur() }}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 12, padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ background: 'var(--bg-input)' }}
         />
         <CustomSelect
           value={selectedCountry}
@@ -394,29 +382,29 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
   const [showColorPicker, setShowColorPicker] = useState(false)
 
   return (
-    <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed" style={{ borderColor: 'var(--border-primary)' }}>
-      <div style={{ position: 'relative', flexShrink: 0 }}>
-        <button
+    <div className="flex gap-3 items-start p-3 rounded-xl border border-dashed ![border-color:var(--border-primary)]">
+      <div className="!relative !shrink-[0]">
+        <button className="!w-[28px] !h-[28px] !rounded-[8px] ![border:2px_solid_var(--border-primary)] !cursor-pointer"
           onClick={() => setShowColorPicker(!showColorPicker)}
-          style={{ width: 28, height: 28, borderRadius: 8, background: color, border: '2px solid var(--border-primary)', cursor: 'pointer' }}
+          style={{ background: color }}
           title={t('vacay.calendarColor')}
         />
         {showColorPicker && (
-          <div style={{ position: 'absolute', top: 34, left: 0, zIndex: 50, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, padding: 8, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, width: 120 }}>
+          <div className="!absolute !top-[34px] !left-[0] !z-[50] ![border:1px_solid_var(--border-primary)] !rounded-[12px] !p-[8px] ![box-shadow:0_8px_24px_rgba(0,0,0,0.12)] !grid ![grid-template-columns:repeat(4,_1fr)] !gap-[4px] !w-[120px]" style={{ background: 'var(--bg-card)' }}>
             {PRESET_COLORS.map(c => (
-              <button key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
-                style={{ width: 24, height: 24, borderRadius: 6, background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent', cursor: 'pointer' }} />
+              <button className="!w-[24px] !h-[24px] !rounded-[6px] !cursor-pointer" key={c} onClick={() => { setColor(c); setShowColorPicker(false) }}
+                style={{ background: c, border: color === c ? '2px solid var(--text-primary)' : '2px solid transparent' }} />
             ))}
           </div>
         )}
       </div>
       <div className="flex-1 min-w-0 space-y-1.5">
-        <input
+        <input className="!w-[100%] !text-[length:12px] !p-[6px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)] ![font-family:inherit] ![outline:none]"
           type="text"
           value={label}
           onChange={e => setLabel(e.target.value)}
           placeholder={t('vacay.calendarLabel')}
-          style={{ width: '100%', fontSize: 12, padding: '6px 10px', borderRadius: 8, background: 'var(--bg-input)', border: '1px solid var(--border-primary)', color: 'var(--text-primary)', fontFamily: 'inherit', outline: 'none' }}
+          style={{ background: 'var(--bg-input)' }}
         />
         <CustomSelect
           value={selectedCountry}
@@ -438,15 +426,15 @@ function AddCalendarForm({ countries, onAdd, onCancel }: {
           <button
             disabled={!canAdd}
             onClick={() => onAdd({ region: region || selectedCountry, color, label: label.trim() || null })}
-            className="flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40"
-            style={{ background: 'var(--text-primary)', color: 'var(--bg-card)' }}
+            className="flex-1 text-xs px-2 py-1.5 rounded-md font-medium transition-colors disabled:opacity-40 ![color:var(--bg-card)]"
+            style={{ background: 'var(--text-primary)' }}
           >
             {t('vacay.add')}
           </button>
           <button
             onClick={onCancel}
-            className="text-xs px-2 py-1.5 rounded-md transition-colors"
-            style={{ background: 'var(--bg-secondary)', color: 'var(--text-muted)' }}
+            className="text-xs px-2 py-1.5 rounded-md transition-colors ![color:var(--text-muted)]"
+            style={{ background: 'var(--bg-secondary)' }}
           >
             ✕
           </button>

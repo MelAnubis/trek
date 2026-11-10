@@ -25,7 +25,7 @@ function MiniLine({ line, color }: { line: [number, number][]; color: string }) 
   const w = (d - c) * k || 1e-6, h = (b - a) || 1e-6
   const s = 56 / Math.max(w, h)
   const path = line.map((p, i) => `${i ? 'L' : 'M'}${(4 + (p[1] - c) * k * s + (56 - w * s) / 2).toFixed(1)},${(4 + (b - p[0]) * s + (56 - h * s) / 2).toFixed(1)}`).join(' ')
-  return <svg width={64} height={64} viewBox="0 0 64 64" style={{ flexShrink: 0, borderRadius: 10, background: 'var(--bg-secondary)' }}><path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" /></svg>
+  return <svg className="!shrink-[0] !rounded-[10px] ![background:var(--bg-secondary)]" width={64} height={64} viewBox="0 0 64 64"><path d={path} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" /></svg>
 }
 
 export default function GpxImportDialog({ tripId, open, file, onClose, onImported }: Props) {
@@ -88,48 +88,46 @@ export default function GpxImportDialog({ tripId, open, file, onClose, onImporte
   return (
     <Modal isOpen={open} onClose={onClose} size="lg" title={t('tours.import.previewTitle')}
       footer={
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-          <button type="button" onClick={onClose} style={{ padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13 }}>{t('common.cancel')}</button>
-          <button type="button" disabled={!picked.length || busy} onClick={() => { void doImport() }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: 'none', background: picked.length ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: picked.length ? 'var(--bg-card)' : 'var(--text-faint)', cursor: picked.length ? 'pointer' : 'default', fontFamily: 'inherit', fontSize: 13, fontWeight: 600 }}>
+        <div className="!flex !justify-end !gap-[8px]">
+          <button className="!p-[8px_14px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !cursor-pointer ![font-family:inherit] !text-[length:13px]" type="button" onClick={onClose}>{t('common.cancel')}</button>
+          <button className="!flex !items-center !gap-[6px] !p-[8px_14px] !rounded-[10px] ![border:none] ![font-family:inherit] !text-[length:13px] !font-[600]" type="button" disabled={!picked.length || busy} onClick={() => { void doImport() }}
+            style={{ background: picked.length ? 'var(--text-primary)' : 'var(--bg-tertiary)', color: picked.length ? 'var(--bg-card)' : 'var(--text-faint)', cursor: picked.length ? 'pointer' : 'default' }}>
             <Upload size={14} />{busy ? t('tours.import.importing') : kind === 'done' ? t('tours.import.asTrack') : t('tours.import.previewConfirm', { count: picked.length })}
           </button>
         </div>
       }>
-      <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-muted)' }}>{t('tours.import.previewHint')}</p>
-      <div role="radiogroup" aria-label={t('tours.import.kind')} style={{ display: 'flex', gap: 2, padding: 3, borderRadius: 11, background: 'var(--bg-tertiary)', marginBottom: 12 }}>
+      <p className="!m-[0_0_12px] !text-[length:12.5px] ![color:var(--text-muted)]">{t('tours.import.previewHint')}</p>
+      <div className="!flex !gap-[2px] !p-[3px] !rounded-[11px] ![background:var(--bg-tertiary)] !mb-[12px]" role="radiogroup" aria-label={t('tours.import.kind')}>
         {(['plan', 'done'] as const).map(k => (
-          <button key={k} type="button" role="radio" aria-checked={kind === k} data-testid={`import-kind-${k}`} onClick={() => setKind(k)}
-            style={{ flex: 1, padding: '8px 10px', borderRadius: 9, border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', background: kind === k ? 'var(--bg-card)' : 'transparent', color: 'var(--text-primary)' }}>
-            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600 }}>{t(`tours.import.kind.${k}`)}</span>
-            <span style={{ display: 'block', fontSize: 11, color: 'var(--text-faint)' }}>{t(`tours.import.kind.${k}Hint`)}</span>
+          <button className="!flex-[1] !p-[8px_10px] !rounded-[9px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left ![color:var(--text-primary)]" key={k} type="button" role="radio" aria-checked={kind === k} data-testid={`import-kind-${k}`} onClick={() => setKind(k)}
+            style={{ background: kind === k ? 'var(--bg-card)' : 'transparent' }}>
+            <span className="!block !text-[length:12.5px] !font-[600]">{t(`tours.import.kind.${k}`)}</span>
+            <span className="!block !text-[length:11px] ![color:var(--text-faint)]">{t(`tours.import.kind.${k}Hint`)}</span>
           </button>
         ))}
       </div>
-      {error && <div style={{ padding: 10, borderRadius: 10, background: 'rgba(220,38,38,0.08)', color: '#b91c1c', fontSize: 13, marginBottom: 10 }}>{error}</div>}
-      {!tracks && !error && <div style={{ fontSize: 13, color: 'var(--text-faint)', padding: 10 }}>{t('common.loading')}</div>}
+      {error && <div className="!p-[10px] !rounded-[10px] ![background:rgba(220,38,38,0.08)] ![color:#b91c1c] !text-[length:13px] !mb-[10px]">{error}</div>}
+      {!tracks && !error && <div className="!text-[length:13px] ![color:var(--text-faint)] !p-[10px]">{t('common.loading')}</div>}
       {tracks && (
         <>
-          <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 8 }}>{file?.name} · {t('tours.import.previewTracks', { count: tracks.length })}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div className="!text-[length:12px] ![color:var(--text-faint)] !mb-[8px]">{file?.name} · {t('tours.import.previewTracks', { count: tracks.length })}</div>
+          <div className="!flex !flex-col !gap-[8px]">
             {tracks.map(tr => {
               const c = choices[tr.index]
               if (!c) return null
               return (
-                <div key={tr.index} style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10, border: '1px solid var(--border-faint)', borderRadius: 12, opacity: c.take ? 1 : 0.55 }}>
+                <div className="!flex !gap-[12px] !items-center !p-[10px] ![border:1px_solid_var(--border-faint)] !rounded-[12px]" key={tr.index} style={{ opacity: c.take ? 1 : 0.55 }}>
                   <input type="checkbox" checked={c.take} onChange={e => set(tr.index, { take: e.target.checked })} />
                   <MiniLine line={tr.line} color={TOUR_TYPE_COLOR[c.type]} />
-                  <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <input value={c.name} onChange={e => set(tr.index, { name: e.target.value })} maxLength={255}
-                      style={{ padding: '6px 9px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit' }} />
-                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', fontSize: 11.5, color: 'var(--text-muted)' }}>
+                  <div className="!flex-[1] !min-w-[0] !flex !flex-col !gap-[6px]">
+                    <input className="!p-[6px_9px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:13px] ![font-family:inherit]" value={c.name} onChange={e => set(tr.index, { name: e.target.value })} maxLength={255} />
+                    <div className="!flex !gap-[10px] !flex-wrap !items-center !text-[length:11.5px] ![color:var(--text-muted)]">
                       <span>{formatDistance(tr.distance_km)}</span>
-                      {tr.has_heights ? <span>↑ {formatElevation(tr.elevation_gain)} ↓ {formatElevation(tr.elevation_loss)}</span> : <span style={{ color: '#b45309' }}>{t('tours.import.previewNoHeights')}</span>}
+                      {tr.has_heights ? <span>↑ {formatElevation(tr.elevation_gain)} ↓ {formatElevation(tr.elevation_loss)}</span> : <span className="![color:#b45309]">{t('tours.import.previewNoHeights')}</span>}
                       <span>{t('tours.import.previewPoints', { count: tr.point_count })}</span>
-                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                      <label className="!flex !items-center !gap-[6px] !ml-[auto]">
                         {t('tours.import.previewAs')}
-                        <select value={c.type} onChange={e => set(tr.index, { type: e.target.value as TourType })}
-                          style={{ padding: '4px 6px', borderRadius: 8, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, fontFamily: 'inherit' }}>
+                        <select className="!p-[4px_6px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:12px] ![font-family:inherit]" value={c.type} onChange={e => set(tr.index, { type: e.target.value as TourType })}>
                           {TOUR_TYPES.map(ty => <option key={ty} value={ty}>{t(`tourTypes.${ty}`)}</option>)}
                         </select>
                       </label>

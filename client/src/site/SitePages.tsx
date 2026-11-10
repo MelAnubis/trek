@@ -60,7 +60,7 @@ export function useSiteHome(): string {
 const JOST = "Jost, Futura, 'Century Gothic', sans-serif"
 
 function Sticker({ size = 13 }: { size?: number }) {
-  return <span className="inline-block bg-[#111111] text-white leading-none whitespace-nowrap" style={{ fontFamily: JOST, fontWeight: 300, letterSpacing: '0.1em', fontSize: size, padding: `${size * 0.55}px ${size * 0.7}px` }}>#ESTODOBAJADA</span>
+  return <span className="inline-block bg-[#111111] text-white leading-none whitespace-nowrap !tracking-[0.1em]" style={{ fontFamily: JOST, fontWeight: 300, fontSize: size, padding: `${size * 0.55}px ${size * 0.7}px` }}>#ESTODOBAJADA</span>
 }
 
 // ── Layout ──────────────────────────────────────────────────────────────────
@@ -70,8 +70,8 @@ function SiteShell({ children, registration }: { children: React.ReactNode; regi
   const authed = useAuthStore(s => s.isAuthenticated)
   const home = useSiteHome()
   return (
-    <div className="min-h-screen bg-white text-[#111111]" style={{ fontFamily: 'Inter, system-ui, sans-serif', ['--blog-accent' as string]: '#111111' }} data-site>
-      <header className="sticky top-0 z-[500] bg-white/95 backdrop-blur border-b border-zinc-200" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="min-h-screen bg-white text-[#111111] ![font-family:Inter,_system-ui,_sans-serif]" style={{ ['--blog-accent' as string]: '#111111' }} data-site>
+      <header className="sticky top-0 z-[500] bg-white/95 backdrop-blur border-b border-zinc-200 !pt-[env(safe-area-inset-top,_0px)]">
         <div className="max-w-[1200px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <Link to={home} className="flex items-center gap-3 shrink-0" aria-label="#ESTODOBAJADA · Trek Wanderer">
             <Sticker size={12} />
@@ -106,7 +106,7 @@ function SiteShell({ children, registration }: { children: React.ReactNode; regi
 function Stat({ value, label, light }: { value: string; label: string; light?: boolean }) {
   return (
     <div className="min-w-0">
-      <div className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-none" style={{ fontVariantNumeric: 'tabular-nums' }}>{value}</div>
+      <div className="text-[22px] sm:text-[28px] font-bold tracking-[-0.02em] leading-none ![font-variant-numeric:tabular-nums]">{value}</div>
       <div className={`text-[10px] font-semibold tracking-[0.12em] uppercase mt-1.5 ${light ? 'text-white/60' : 'text-zinc-500'}`}>{label}</div>
     </div>
   )
@@ -286,7 +286,7 @@ function JoinBand({ registration }: { registration: boolean }) {
     <section id="unete" className="mt-24 bg-[#111111] text-white">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-16 sm:py-20 grid md:grid-cols-[1.3fr_1fr] gap-10 items-end">
         <div>
-          <span className="inline-block border border-white text-white leading-none" style={{ fontFamily: JOST, fontWeight: 300, letterSpacing: '0.1em', fontSize: 14, padding: '8px 10px' }}>#ESTODOBAJADA</span>
+          <span className="inline-block border border-white text-white leading-none !tracking-[0.1em] !p-[8px_10px]" style={{ fontFamily: JOST, fontWeight: 300, fontSize: 14 }}>#ESTODOBAJADA</span>
           <h2 className="mt-6 text-[34px] sm:text-[52px] font-extrabold tracking-[-0.035em] leading-[0.98]">{t('site.joinTitle')}</h2>
           <p className="mt-4 text-[16px] text-white/70 max-w-[46ch]" style={{ fontFamily: READING_FONT }}>{t('site.joinText')}</p>
         </div>
@@ -364,7 +364,7 @@ export function SiteRoutePage() {
               <div className="mt-10">
                 <div className="text-[11px] font-semibold tracking-[0.14em] uppercase text-zinc-500 mb-3">{t('site.profile')}</div>
                 <ProfileArt profile={data.profile} height={220} label={t('site.profileOf', { title: data.title })} />
-                <div className="flex justify-between text-[11px] text-zinc-500 mt-2" style={{ fontVariantNumeric: 'tabular-nums' }}><span>0 km</span><span>{fmtKm(data.distance_km, locale)}</span></div>
+                <div className="flex justify-between text-[11px] text-zinc-500 mt-2 ![font-variant-numeric:tabular-nums]"><span>0 km</span><span>{fmtKm(data.distance_km, locale)}</span></div>
               </div>
             )}
           </div>
@@ -388,7 +388,7 @@ export function SiteRoutePage() {
                     <div className="min-w-0">
                       <div className="text-[11px] font-semibold tracking-[0.14em] uppercase text-zinc-500">{s.date ? fmt(s.date, true) : t('site.dayN', { n: s.day_number })}</div>
                       <h3 className="text-[20px] font-bold tracking-[-0.01em] leading-snug">{s.title || t('site.dayN', { n: s.day_number })}</h3>
-                      {s.distance_km > 0 && <div className="mt-1 text-[14px] text-zinc-600" style={{ fontVariantNumeric: 'tabular-nums' }}>{fmtKm(s.distance_km, locale)} · +{fmtM(s.gain_m, locale)} · −{fmtM(s.loss_m, locale)}</div>}
+                      {s.distance_km > 0 && <div className="mt-1 text-[14px] text-zinc-600 ![font-variant-numeric:tabular-nums]">{fmtKm(s.distance_km, locale)} · +{fmtM(s.gain_m, locale)} · −{fmtM(s.loss_m, locale)}</div>}
                       {s.places.length > 0 && (
                         <div className="mt-3 flex flex-wrap gap-1.5">
                           {s.places.map((p, i) => <span key={i} className="inline-flex items-center gap-1 text-[12px] px-2 py-1 bg-zinc-100 text-zinc-700"><MapPin size={11} />{p.name}</span>)}

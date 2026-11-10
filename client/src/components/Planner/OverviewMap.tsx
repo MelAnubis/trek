@@ -46,13 +46,12 @@ export default function OverviewMap({ routes, openLabel, onOpen }: {
           }}
           eventHandlers={{ mouseover: () => setHover(r.id), mouseout: () => setHover(null) }}>
           <Popup>
-            <div style={{ minWidth: 150, fontSize: 12 }}>
-              <div style={{ fontWeight: 700 }}>{r.favorite ? '★ ' : ''}{r.name}</div>
-              <div style={{ color: '#64748b', margin: '2px 0 6px' }}>
+            <div className="!min-w-[150px] !text-[length:12px]">
+              <div className="!font-[700]">{r.favorite ? '★ ' : ''}{r.name}</div>
+              <div className="![color:#64748b] !m-[2px_0_6px]">
                 {fmtKm(r.total_distance_km)} · +{Math.round(r.elevation_gain)} m{r.folder ? ` · ${r.folder}` : ''}
               </div>
-              <button type="button" onClick={() => onOpen(r.id)}
-                style={{ background: '#e85d24', color: '#fff', border: 'none', borderRadius: 6, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+              <button className="![background:#e85d24] ![color:#fff] ![border:none] !rounded-[6px] !p-[4px_10px] !text-[length:11px] !font-[600] !cursor-pointer" type="button" onClick={() => onOpen(r.id)}>
                 {openLabel}
               </button>
             </div>

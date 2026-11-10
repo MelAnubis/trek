@@ -221,7 +221,7 @@ describe('InAppNotificationBell', () => {
     await user.click(screen.getAllByRole('button')[0]);
     await screen.findByText('Notifications');
     // The backdrop div is the fixed overlay — click it to close
-    const backdrop = document.querySelector('div[style*="position: fixed"][style*="inset: 0"]') as HTMLElement;
+    const backdrop = document.querySelector('div[style*="position: fixed"][style*="inset: 0"], div[class~="!fixed"][class*="!inset-[0"]') as HTMLElement;
     expect(backdrop).toBeInTheDocument();
     await user.click(backdrop);
     // Panel should be gone — "No notifications" text no longer visible

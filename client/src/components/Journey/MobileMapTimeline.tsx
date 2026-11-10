@@ -148,8 +148,7 @@ export default function MobileMapTimeline({
   if (entries.length === 0) {
     return (
       <div
-        className="fixed left-0 right-0 z-10"
-        style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+        className="fixed left-0 right-0 z-10 !top-[var(--nav-h,_0px)] !bottom-[env(safe-area-inset-bottom,_0px)]"
       >
         <JourneyMap
           ref={mapRef}
@@ -163,7 +162,7 @@ export default function MobileMapTimeline({
           fullScreen
         />
         {!readOnly && onAddEntry && (
-          <div className="fixed right-4 z-30" style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 16px)' }}>
+          <div className="fixed right-4 z-30 !bottom-[calc(var(--bottom-nav-h,_84px)_+_16px)]">
             <button
               onClick={onAddEntry}
               className="w-12 h-12 rounded-full bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-lg flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"
@@ -178,8 +177,7 @@ export default function MobileMapTimeline({
 
   return (
     <div
-      className="fixed left-0 right-0 z-10"
-      style={{ top: 'var(--nav-h, 0px)', bottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="fixed left-0 right-0 z-10 !top-[var(--nav-h,_0px)] !bottom-[env(safe-area-inset-bottom,_0px)]"
     >
       {/* Full-screen map */}
       <JourneyMap
@@ -198,8 +196,8 @@ export default function MobileMapTimeline({
 
       {/* Bottom carousel */}
       <div
-        className="fixed left-0 right-0 z-40"
-        style={{ touchAction: 'pan-x', bottom: carouselBottom }}
+        className="fixed left-0 right-0 z-40 ![touch-action:pan-x]"
+        style={{ bottom: carouselBottom }}
       >
         <div
           ref={carouselRef}
@@ -234,8 +232,7 @@ export default function MobileMapTimeline({
       {/* FAB: add entry — bottom right, above the timeline carousel */}
       {!readOnly && onAddEntry && (
         <div
-          className="fixed right-4 z-30"
-          style={{ bottom: 'calc(var(--bottom-nav-h, 84px) + 168px)' }}
+          className="fixed right-4 z-30 !bottom-[calc(var(--bottom-nav-h,_84px)_+_168px)]"
         >
           <button
             onClick={onAddEntry}

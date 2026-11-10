@@ -180,7 +180,7 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
   }
 
   return (
-    <div style={{ padding: '4px 0' }}>
+    <div className="!p-[4px_0]">
       {/* Split wizard */}
       {wizardTrack && (
         <GpxSplitWizard
@@ -194,33 +194,27 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
       )}
 
       {/* Drop zone */}
-      <div
+      <div className="!rounded-[10px] !p-[20px_16px] !text-center !cursor-pointer !mb-[14px] ![transition:all_.15s]"
         onDragOver={e => { e.preventDefault(); setDragOver(true) }}
         onDragLeave={() => setDragOver(false)}
         onDrop={e => { e.preventDefault(); setDragOver(false); handleFiles(e.dataTransfer.files) }}
         onClick={() => fileRef.current?.click()}
-        style={{
-          border: `2px dashed ${dragOver ? 'var(--accent, #3b82f6)' : 'var(--border-primary, #2d3f55)'}`,
-          borderRadius: 10, padding: '20px 16px', textAlign: 'center',
-          cursor: 'pointer', marginBottom: 14,
-          background: dragOver ? 'var(--accent, #3b82f6)10' : 'var(--bg-secondary, #253547)',
-          transition: 'all .15s',
-        }}
+        style={{ border: `2px dashed ${dragOver ? 'var(--accent, #3b82f6)' : 'var(--border-primary, #2d3f55)'}`, background: dragOver ? 'var(--accent, #3b82f6)10' : 'var(--bg-secondary, #253547)' }}
       >
         <input ref={fileRef} type="file" accept=".gpx" multiple style={{ display: 'none' }}
           onChange={e => handleFiles(e.target.files)} />
         {uploading ? (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+          <div className="!flex !items-center !justify-center !gap-[8px]">
             <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite', color: 'var(--accent, #3b82f6)' }} />
-            <span style={{ fontSize: 13, color: 'var(--text-secondary, #94a3b8)' }}>Procesando GPX…</span>
+            <span className="!text-[length:13px] ![color:var(--text-secondary,_#94a3b8)]">Procesando GPX…</span>
           </div>
         ) : (
           <>
             <Upload size={24} style={{ color: 'var(--text-tertiary, #64748b)', marginBottom: 6 }} />
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary, #94a3b8)', marginBottom: 3 }}>
+            <div className="!text-[length:13px] !font-[600] ![color:var(--text-secondary,_#94a3b8)] !mb-[3px]">
               Arrastra un fichero GPX aquí
             </div>
-            <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)' }}>
+            <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)]">
               o haz clic · .gpx hasta 50 MB · puedes subir uno por etapa o uno completo del viaje
             </div>
           </>
@@ -228,38 +222,34 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
       </div>
 
       {error && (
-        <div style={{
-          padding: '8px 12px', borderRadius: 8, marginBottom: 10,
-          background: '#ef444420', border: '1px solid #ef4444', fontSize: 12, color: '#ef4444',
-        }}>⚠ {error}</div>
+        <div className="!p-[8px_12px] !rounded-[8px] !mb-[10px] ![background:#ef444420] ![border:1px_solid_#ef4444] !text-[length:12px] ![color:#ef4444]">⚠ {error}</div>
       )}
       {info && (
-        <div data-testid="tracks-info" style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 10, background: '#f9731618', border: '1px solid #f9731660', fontSize: 12, color: 'var(--text-primary, #e2e8f0)' }}>{info}</div>
+        <div className="!p-[8px_12px] !rounded-[8px] !mb-[10px] ![background:#f9731618] ![border:1px_solid_#f9731660] !text-[length:12px] ![color:var(--text-primary,_#e2e8f0)]" data-testid="tracks-info">{info}</div>
       )}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 20, color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
+        <div className="!text-center !p-[20px] ![color:var(--text-tertiary,_#64748b)] !text-[length:13px]">
           Cargando tracks…
         </div>
       ) : tracks.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '20px 16px', color: 'var(--text-tertiary, #64748b)', fontSize: 13 }}>
+        <div className="!text-center !p-[20px_16px] ![color:var(--text-tertiary,_#64748b)] !text-[length:13px]">
           <Mountain size={28} style={{ marginBottom: 8, opacity: 0.4 }} />
           <div>No hay tracks GPX para este viaje</div>
-          <div style={{ fontSize: 11, marginTop: 4 }}>
+          <div className="!text-[length:11px] !mt-[4px]">
             Sube un .gpx por etapa, o uno completo del viaje y divídelo automáticamente
           </div>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="!flex !flex-col !gap-[16px]">
 
           {/* Tracks globales (sin día asignado) */}
           {globalTracks.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #64748b)',
-                            letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+              <div className="!text-[length:11px] !font-[700] ![color:var(--text-tertiary,_#64748b)] !tracking-[1px] !uppercase !mb-[8px]">
                 Tracks completos del viaje
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="!flex !flex-col !gap-[8px]">
                 {globalTracks.map((track, i) => (
                   <TrackRow
                     key={track.id}
@@ -285,11 +275,10 @@ export default function GpxManager({ tripId, onTracksChange }: GpxManagerProps) 
           {/* Tracks por día */}
           {dayTracks.length > 0 && (
             <div>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-tertiary, #64748b)',
-                            letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>
+              <div className="!text-[length:11px] !font-[700] ![color:var(--text-tertiary,_#64748b)] !tracking-[1px] !uppercase !mb-[8px]">
                 Etapas por día
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div className="!flex !flex-col !gap-[8px]">
                 {dayTracks.map((track, i) => (
                   <TrackRow
                     key={track.id}
@@ -350,85 +339,68 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
   const navigate = useNavigate()
 
   return (
-    <div style={{
-      borderRadius: 8,
-      border: `1px solid ${active ? color + '50' : 'var(--border-primary, #2d3f55)'}`,
-      background: active ? color + '08' : 'var(--bg-secondary, #253547)',
-      opacity: active ? 1 : 0.6,
-      transition: 'all .15s',
-      overflow: 'hidden',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px' }}>
+    <div className="!rounded-[8px] ![transition:all_.15s] !overflow-hidden" style={{ border: `1px solid ${active ? color + '50' : 'var(--border-primary, #2d3f55)'}`, background: active ? color + '08' : 'var(--bg-secondary, #253547)', opacity: active ? 1 : 0.6 }}>
+      <div className="!flex !items-center !gap-[10px] !p-[10px_12px]">
         {/* Color dot */}
-        <div style={{ width: 12, height: 12, borderRadius: 4, background: active ? color : '#64748b', flexShrink: 0 }} />
+        <div className="!w-[12px] !h-[12px] !rounded-[4px] !shrink-[0]" style={{ background: active ? color : '#64748b' }} />
 
         {/* Info */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{
-            fontWeight: 600, fontSize: 13, color: 'var(--text-primary, #e2e8f0)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2,
-          }}>
+        <div className="!flex-[1] !min-w-[0]">
+          <div className="!font-[600] !text-[length:13px] ![color:var(--text-primary,_#e2e8f0)] !overflow-hidden !text-ellipsis !whitespace-nowrap !mb-[2px]">
             {track.track_name}
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !flex !gap-[10px] !flex-wrap">
             {distKm > 0 && <span><MapPin size={9} style={{ display: 'inline', marginRight: 2 }} />{fmtDist(distKm)}</span>}
-            {gain > 0   && <span style={{ color: '#f97316' }}>↑ {Math.round(gain)} m</span>}
-            {loss > 0   && <span style={{ color: '#38bdf8' }}>↓ {Math.round(loss)} m</span>}
-            {track.ibp  && <span style={{ color: '#a78bfa', fontWeight: 700 }}>IBP {track.ibp}</span>}
-            {dayLabel   && <span style={{ color: color, fontWeight: 600 }}>📅 {dayLabel}</span>}
-            {linked     && <span data-testid={`track-tour-${track.id}`} style={{ color: '#f97316', fontWeight: 600 }}><Mountain size={9} style={{ display: 'inline', marginRight: 2 }} />{linked.name}</span>}
+            {gain > 0   && <span className="![color:#f97316]">↑ {Math.round(gain)} m</span>}
+            {loss > 0   && <span className="![color:#38bdf8]">↓ {Math.round(loss)} m</span>}
+            {track.ibp  && <span className="![color:#a78bfa] !font-[700]">IBP {track.ibp}</span>}
+            {dayLabel   && <span className="!font-[600]" style={{ color: color }}>📅 {dayLabel}</span>}
+            {linked     && <span className="![color:#f97316] !font-[600]" data-testid={`track-tour-${track.id}`}><Mountain size={9} style={{ display: 'inline', marginRight: 2 }} />{linked.name}</span>}
           </div>
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+        <div className="!flex !gap-[2px] !shrink-[0]">
           {/* Navigate */}
-          <button
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] ![color:#22d96e]"
             title="Navegar siguiendo este track"
             onClick={() => navigate(`/navigate?tripId=${tripId}&trackId=${track.id}`)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, color: '#22d96e' }}
           >
             <Navigation size={15} />
           </button>
 
           {/* Download GPX (para pasarlo a un GPS Garmin y similares) */}
-          <a
+          <a className="!flex !items-center !p-[4px] !rounded-[6px] ![color:var(--text-tertiary,_#64748b)]"
             href={`${API_BASE}/trips/${tripId}/gpx/${track.id}/download`}
             title="Descargar GPX (para Garmin u otro GPS)"
-            style={{ display: 'flex', alignItems: 'center', padding: 4, borderRadius: 6, color: 'var(--text-tertiary, #64748b)' }}
           >
             <Download size={15} />
           </a>
 
           {/* Plan frente a realidad: the tour this track is what was done of */}
-          <button title={t('trip.tracks.tourTitle')} data-testid={`track-tour-btn-${track.id}`} onClick={() => { setShowTourPicker(p => !p); setShowDayPicker(false) }}
-            style={{ background: showTourPicker ? '#f9731630' : 'none', border: 'none', cursor: 'pointer',
-                     padding: 4, borderRadius: 6, color: linked || showTourPicker ? '#f97316' : 'var(--text-tertiary, #64748b)' }}>
+          <button className="![border:none] !cursor-pointer !p-[4px] !rounded-[6px]" title={t('trip.tracks.tourTitle')} data-testid={`track-tour-btn-${track.id}`} onClick={() => { setShowTourPicker(p => !p); setShowDayPicker(false) }}
+            style={{ background: showTourPicker ? '#f9731630' : 'none', color: linked || showTourPicker ? '#f97316' : 'var(--text-tertiary, #64748b)' }}>
             <Mountain size={15} />
           </button>
 
           {/* Assign day */}
-          <button title="Asignar a un día" onClick={() => setShowDayPicker(p => !p)}
-            style={{ background: showDayPicker ? color + '30' : 'none', border: 'none', cursor: 'pointer',
-                     padding: 4, borderRadius: 6, color: showDayPicker ? color : 'var(--text-tertiary, #64748b)' }}>
+          <button className="![border:none] !cursor-pointer !p-[4px] !rounded-[6px]" title="Asignar a un día" onClick={() => setShowDayPicker(p => !p)}
+            style={{ background: showDayPicker ? color + '30' : 'none', color: showDayPicker ? color : 'var(--text-tertiary, #64748b)' }}>
             <Calendar size={15} />
           </button>
 
           {/* Manual split wizard */}
           {onWizard && (
-            <button title="Dividir en etapas manualmente" onClick={onWizard}
-              style={{ background: 'none', border: 'none', cursor: 'pointer',
-                       padding: 4, borderRadius: 6, color: '#f59e0b' }}>
+            <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] ![color:#f59e0b]" title="Dividir en etapas manualmente" onClick={onWizard}>
               <Scissors size={15} />
             </button>
           )}
 
           {/* Split by days (automatic) */}
           {onSplit && (
-            <button title="Dividir por días automáticamente (según lugares asignados)"
+            <button className="![border:none] !p-[4px] !rounded-[6px]" title="Dividir por días automáticamente (según lugares asignados)"
               onClick={() => { setShowSplitPicker(p => !p); setShowDayPicker(false) }} disabled={splitting}
-              style={{ background: showSplitPicker ? color + '30' : 'none', border: 'none', cursor: splitting ? 'wait' : 'pointer',
-                       padding: 4, borderRadius: 6, color: showSplitPicker ? color : '#64748b' }}>
+              style={{ background: showSplitPicker ? color + '30' : 'none', cursor: splitting ? 'wait' : 'pointer', color: showSplitPicker ? color : '#64748b' }}>
               {splitting
                 ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} />
                 : <Calendar size={15} />}
@@ -436,38 +408,34 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
           )}
 
           {/* Toggle active */}
-          <button title={active ? 'Desactivar' : 'Activar'} onClick={onToggle}
-            style={{ background: 'none', border: 'none', cursor: 'pointer',
-                     padding: 4, borderRadius: 6, color: active ? color : 'var(--text-tertiary, #64748b)' }}>
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] !rounded-[6px]" title={active ? 'Desactivar' : 'Activar'} onClick={onToggle}
+            style={{ color: active ? color : 'var(--text-tertiary, #64748b)' }}>
             {active ? <Eye size={15} /> : <EyeOff size={15} />}
           </button>
 
           {/* Delete */}
-          <button title="Eliminar" onClick={onDelete}
-            style={{ background: 'none', border: 'none', cursor: 'pointer',
-                     padding: 4, borderRadius: 6, color: 'var(--text-tertiary, #64748b)' }}>
+          <button className="![background:none] ![border:none] !cursor-pointer !p-[4px] !rounded-[6px] ![color:var(--text-tertiary,_#64748b)]" title="Eliminar" onClick={onDelete}>
             <Trash2 size={15} />
           </button>
         </div>
       </div>
 
       {showTourPicker && (
-        <div style={{ borderTop: '1px solid var(--border-primary, #2d3f55)', padding: '8px 12px', background: 'var(--bg-tertiary, #1a2535)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 6, fontWeight: 600 }}>{t('trip.tracks.linkTour')}</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            <button onClick={() => { onLinkTour(null); setShowTourPicker(false) }}
-              style={{ padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, background: !linked ? '#f97316' : 'var(--bg-secondary, #253547)', color: !linked ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
+        <div className="![border-top:1px_solid_var(--border-primary,_#2d3f55)] !p-[8px_12px] ![background:var(--bg-tertiary,_#1a2535)]">
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !mb-[6px] !font-[600]">{t('trip.tracks.linkTour')}</div>
+          <div className="!flex !flex-wrap !gap-[4px]">
+            <button className="!p-[3px_8px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px]" onClick={() => { onLinkTour(null); setShowTourPicker(false) }}
+              style={{ background: !linked ? '#f97316' : 'var(--bg-secondary, #253547)', color: !linked ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
               {t('trip.tracks.noTour')}
             </button>
             {tours.map(tour => (
-              <button key={tour.place_id} onClick={() => { onLinkTour(tour.place_id); setShowTourPicker(false) }}
-                style={{ padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11, background: linked?.place_id === tour.place_id ? '#f97316' : 'var(--bg-secondary, #253547)', color: linked?.place_id === tour.place_id ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
+              <button className="!p-[3px_8px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px]" key={tour.place_id} onClick={() => { onLinkTour(tour.place_id); setShowTourPicker(false) }}
+                style={{ background: linked?.place_id === tour.place_id ? '#f97316' : 'var(--bg-secondary, #253547)', color: linked?.place_id === tour.place_id ? '#fff' : 'var(--text-secondary, #94a3b8)' }}>
                 {tour.name}
               </button>
             ))}
           </div>
-          <button data-testid={`track-make-tour-${track.id}`} onClick={() => { onMakeTour(); setShowTourPicker(false) }}
-            style={{ marginTop: 8, padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border-primary, #2d3f55)', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-primary, #e2e8f0)' }}>
+          <button className="!mt-[8px] !p-[4px_10px] !rounded-[6px] ![border:1px_solid_var(--border-primary,_#2d3f55)] ![background:none] !cursor-pointer !text-[length:11px] ![color:var(--text-primary,_#e2e8f0)]" data-testid={`track-make-tour-${track.id}`} onClick={() => { onMakeTour(); setShowTourPicker(false) }}>
             {t('trip.tracks.makeTour')}
           </button>
         </div>
@@ -475,33 +443,22 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
 
       {/* Day picker dropdown */}
       {showDayPicker && (
-        <div style={{
-          borderTop: '1px solid var(--border-primary, #2d3f55)',
-          padding: '8px 12px', background: 'var(--bg-tertiary, #1a2535)',
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 6, fontWeight: 600 }}>
+        <div className="![border-top:1px_solid_var(--border-primary,_#2d3f55)] !p-[8px_12px] ![background:var(--bg-tertiary,_#1a2535)]">
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !mb-[6px] !font-[600]">
             Asignar a día:
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-            <button
+          <div className="!flex !flex-wrap !gap-[4px]">
+            <button className="!p-[3px_8px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px]"
               onClick={() => { onAssignDay(null); setShowDayPicker(false) }}
-              style={{
-                padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11,
-                background: !track.day_id ? color : 'var(--bg-secondary, #253547)',
-                color: !track.day_id ? '#fff' : 'var(--text-secondary, #94a3b8)',
-              }}
+              style={{ background: !track.day_id ? color : 'var(--bg-secondary, #253547)', color: !track.day_id ? '#fff' : 'var(--text-secondary, #94a3b8)' }}
             >
               Ninguno (global)
             </button>
             {days.map(day => (
-              <button
+              <button className="!p-[3px_8px] !rounded-[6px] ![border:none] !cursor-pointer !text-[length:11px]"
                 key={day.id}
                 onClick={() => { onAssignDay(day.id); setShowDayPicker(false) }}
-                style={{
-                  padding: '3px 8px', borderRadius: 6, border: 'none', cursor: 'pointer', fontSize: 11,
-                  background: track.day_id === day.id ? color : 'var(--bg-secondary, #253547)',
-                  color: track.day_id === day.id ? '#fff' : 'var(--text-secondary, #94a3b8)',
-                }}
+                style={{ background: track.day_id === day.id ? color : 'var(--bg-secondary, #253547)', color: track.day_id === day.id ? '#fff' : 'var(--text-secondary, #94a3b8)' }}
               >
                 {day.title || `Día ${day.day_number || day.id}`}
               </button>
@@ -513,44 +470,32 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
       {/* Split-by-days picker: choose which days to leave out of the split
           (e.g. a rest day, or a day already covered by another track) */}
       {showSplitPicker && onSplit && (
-        <div style={{
-          borderTop: '1px solid var(--border-primary, #2d3f55)',
-          padding: '8px 12px', background: 'var(--bg-tertiary, #1a2535)',
-        }}>
-          <div style={{ fontSize: 11, color: 'var(--text-tertiary, #64748b)', marginBottom: 6, fontWeight: 600 }}>
+        <div className="![border-top:1px_solid_var(--border-primary,_#2d3f55)] !p-[8px_12px] ![background:var(--bg-tertiary,_#1a2535)]">
+          <div className="!text-[length:11px] ![color:var(--text-tertiary,_#64748b)] !mb-[6px] !font-[600]">
             Días a excluir de la división (no tendrán etapa):
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 8 }}>
+          <div className="!flex !flex-wrap !gap-[4px] !mb-[8px]">
             {days.map(day => {
               const excluded = excludeDayIds.has(day.id)
               return (
-                <button
+                <button className="!p-[3px_8px] !rounded-[6px] !cursor-pointer !text-[length:11px]"
                   key={day.id}
                   onClick={() => setExcludeDayIds(prev => {
                     const next = new Set(prev)
                     if (next.has(day.id)) next.delete(day.id); else next.add(day.id)
                     return next
                   })}
-                  style={{
-                    padding: '3px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11,
-                    border: excluded ? '1.5px solid #ef4444' : '1.5px solid var(--border-primary, #2d3f55)',
-                    background: excluded ? '#ef444420' : 'var(--bg-secondary, #253547)',
-                    color: excluded ? '#ef4444' : 'var(--text-secondary, #94a3b8)',
-                    textDecoration: excluded ? 'line-through' : 'none',
-                  }}
+                  style={{ border: excluded ? '1.5px solid #ef4444' : '1.5px solid var(--border-primary, #2d3f55)', background: excluded ? '#ef444420' : 'var(--bg-secondary, #253547)', color: excluded ? '#ef4444' : 'var(--text-secondary, #94a3b8)', textDecoration: excluded ? 'line-through' : 'none' }}
                 >
                   {day.title || `Día ${day.day_number || day.id}`}
                 </button>
               )
             })}
           </div>
-          <button
+          <button className="!text-[length:11px] !font-[700] !p-[5px_10px] !rounded-[6px] ![border:none] ![color:#fff]"
             onClick={() => { onSplit(Array.from(excludeDayIds)); setShowSplitPicker(false) }}
             disabled={splitting}
-            style={{
-              fontSize: 11, fontWeight: 700, padding: '5px 10px', borderRadius: 6, border: 'none',
-              background: color, color: '#fff', cursor: splitting ? 'wait' : 'pointer',
-            }}
+            style={{ background: color, cursor: splitting ? 'wait' : 'pointer' }}
           >
             Dividir ({days.length - excludeDayIds.size} día(s))
           </button>

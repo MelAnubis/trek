@@ -84,7 +84,7 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
       transformOrigin: 'top left',
     }}>
       {menu.items.filter(Boolean).map((item, i) => {
-        if (item.divider) return <div key={i} style={{ height: 1, background: 'var(--border-faint)', margin: '3px 6px' }} />
+        if (item.divider) return <div className="!h-[1px] ![background:var(--border-faint)] !m-[3px_6px]" key={i} />
         const Icon = item.icon
         return (
           <button key={i} onClick={() => { item.onClick?.(); onClose() }}

@@ -432,7 +432,7 @@ describe('CollabNotes', () => {
     await screen.findByText('No categories yet');
     // Click the X button in the modal header
     const modal = screen.getByText('No categories yet').closest('div');
-    const categoryModal = modal?.closest('[style*="position: fixed"]') as HTMLElement | null;
+    const categoryModal = modal?.closest('[style*="position: fixed"], [class~="!fixed"]') as HTMLElement | null;
     if (categoryModal) {
       await user.click(categoryModal);
     }
@@ -891,7 +891,7 @@ describe('CollabNotes', () => {
       await user.click(trashButtons[0] as HTMLElement);
       // Removable category disappears from the modal
       await waitFor(() => {
-        const fixedEls = document.querySelectorAll('[style*="position: fixed"]');
+        const fixedEls = document.querySelectorAll('[style*="position: fixed"], [class~="!fixed"]');
         let found = false;
         fixedEls.forEach(el => { if (el.textContent?.includes('Removable') && !el.textContent?.includes('Remove Cat Note')) found = true; });
         expect(found).toBe(false);
@@ -1168,7 +1168,7 @@ describe('CollabNotes', () => {
     );
     render(<CollabNotes {...defaultProps} />);
     await screen.findByText('Hoverable Note');
-    const noteCard = screen.getByText('Hoverable Note').closest('[style*="border-radius: 12px"]') as HTMLElement | null;
+    const noteCard = screen.getByText('Hoverable Note').closest('[style*="border-radius: 12px"], [class*="!rounded-[12px"]') as HTMLElement | null;
     if (noteCard) {
       await user.hover(noteCard);
       await user.unhover(noteCard);

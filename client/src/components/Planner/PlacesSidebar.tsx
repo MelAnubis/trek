@@ -69,7 +69,7 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
 }: MemoPlaceRowProps) {
   const hasGeometry = Boolean(place.route_geometry)
   return (
-    <div className={(!isSelected && !isChecked) ? 'trek-hover' : undefined}
+    <div className={[(!isSelected && !isChecked) ? 'trek-hover' : undefined, '!flex !items-center !gap-[10px] !p-[9px_14px_9px_16px] ![border-bottom:1px_solid_var(--border-faint)] ![transition:background_0.1s] ![content-visibility:auto] ![contain-intrinsic-size:0_52px]'].join(' ')}
       key={place.id}
       draggable={!selectMode}
       onDragStart={e => {
@@ -87,56 +87,37 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
         }
       }}
       onContextMenu={selectMode ? undefined : e => onContextMenu(e, place)}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '9px 14px 9px 16px',
-        cursor: selectMode ? 'pointer' : 'grab',
-        background: isChecked ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : isSelected ? 'var(--border-faint)' : 'transparent',
-        borderBottom: '1px solid var(--border-faint)',
-        transition: 'background 0.1s',
-        contentVisibility: 'auto',
-        containIntrinsicSize: '0 52px',
-      }} >
+      style={{ cursor: selectMode ? 'pointer' : 'grab', background: isChecked ? 'color-mix(in srgb, var(--accent) 8%, transparent)' : isSelected ? 'var(--border-faint)' : 'transparent' }} >
       {selectMode && (
-        <div style={{
-          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-          border: isChecked ? 'none' : '1.5px solid var(--border-primary)',
-          background: isChecked ? 'var(--accent)' : 'transparent',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
+        <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: isChecked ? 'none' : '1.5px solid var(--border-primary)', background: isChecked ? 'var(--accent)' : 'transparent' }}>
           {isChecked && <Check size={10} strokeWidth={3} color="white" />}
         </div>
       )}
       <PlaceAvatar place={place} category={cat} size={34} />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
+      <div className="!flex-[1] !min-w-[0]">
+        <div className="!flex !items-center !gap-[5px] !overflow-hidden">
           {hasGeometry && <Route size={11} strokeWidth={2} color="var(--text-faint)" style={{ flexShrink: 0 }} aria-label="Track / Route" />}
           {cat && (() => {
             const CatIcon = getCategoryIcon(cat.icon)
             return <CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} style={{ flexShrink: 0 }} aria-label={cat.name} />
           })()}
-          <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
+          <span className="!text-[length:13px] !font-[500] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap !leading-[1.2]">
             {place.name}
           </span>
         </div>
         {(place.description || place.address || cat?.name) && (
-          <div style={{ marginTop: 2 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-faint)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block', lineHeight: 1.2 }}>
+          <div className="!mt-[2px]">
+            <span className="!text-[length:11px] ![color:var(--text-faint)] !overflow-hidden !text-ellipsis !whitespace-nowrap !block !leading-[1.2]">
               {place.description || place.address || cat?.name}
             </span>
           </div>
         )}
       </div>
-      <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+      <div className="!shrink-[0] !flex !items-center">
         {!selectMode && !inDay && selectedDayId && (
-          <button className="trek-h-background-abc7f5 trek-h-color-f780f2"
+          <button className="trek-h-background-abc7f5 trek-h-color-f780f2 !flex !items-center !justify-center !w-[20px] !h-[20px] !rounded-[6px] ![border:none] !cursor-pointer ![color:var(--text-faint)] !p-[0] ![transition:background_0.15s,_color_0.15s]"
             onClick={e => { e.stopPropagation(); onAssignToDay(place.id) }}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 20, height: 20, borderRadius: 6,
-              background: 'var(--bg-hover)', border: 'none', cursor: 'pointer',
-              color: 'var(--text-faint)', padding: 0, transition: 'background 0.15s, color 0.15s',
-            }} ><Plus size={12} strokeWidth={2.5} /></button>
+            style={{ background: 'var(--bg-hover)' }} ><Plus size={12} strokeWidth={2.5} /></button>
         )}
       </div>
     </div>
@@ -329,80 +310,50 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
   }, [ctxMenu.open, canEditPlaces, t, onEditPlace, onAssignToDay, onDeletePlace])
 
   return (
-    <div
+    <div className="!flex !flex-col !h-[100%] !relative"
       onDragEnter={handleSidebarDragEnter}
       onDragOver={handleSidebarDragOver}
       onDragLeave={handleSidebarDragLeave}
       onDrop={handleSidebarDrop}
-      style={{ display: 'flex', flexDirection: 'column', height: '100%', fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif", position: 'relative' }}
+      style={{ fontFamily: "-apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif" }}
     >
       {sidebarDragOver && (
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 10,
-          background: 'color-mix(in srgb, var(--accent) 12%, transparent)',
-          border: '2px dashed var(--accent)',
-          borderRadius: 4,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-          gap: 10, pointerEvents: 'none',
-        }}>
+        <div className="!absolute !inset-[0] !z-[10] ![border:2px_dashed_var(--accent)] !rounded-[4px] !flex !flex-col !items-center !justify-center !gap-[10px] !pointer-events-none" style={{ background: 'color-mix(in srgb, var(--accent) 12%, transparent)' }}>
           <Upload size={28} strokeWidth={1.5} color="var(--accent)" />
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--accent)' }}>{t('places.sidebarDrop')}</span>
+          <span className="!text-[length:13px] !font-[600] ![color:var(--accent)]">{t('places.sidebarDrop')}</span>
         </div>
       )}
       {/* Kopfbereich */}
-      <div style={{ padding: '14px 16px 10px', borderBottom: '1px solid var(--border-faint)', flexShrink: 0 }}>
-        {canEditPlaces && <button
+      <div className="!p-[14px_16px_10px] ![border-bottom:1px_solid_var(--border-faint)] !shrink-[0]">
+        {canEditPlaces && <button className="!flex !items-center !justify-center !gap-[6px] !w-[100%] !p-[8px_12px] !rounded-[12px] ![border:none] ![color:var(--accent-text)] !text-[length:13px] !font-[500] !cursor-pointer ![font-family:inherit] !mb-[10px]"
           onClick={onAddPlace}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            width: '100%', padding: '8px 12px', borderRadius: 12, border: 'none',
-            background: 'var(--accent)', color: 'var(--accent-text)', fontSize: 13, fontWeight: 500,
-            cursor: 'pointer', fontFamily: 'inherit', marginBottom: 10,
-          }}
+          style={{ background: 'var(--accent)' }}
         >
           <Plus size={14} strokeWidth={2} /> {t('places.addPlace')}
         </button>}
         {canEditPlaces && <>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
-          <button
+        <div className="!flex !gap-[6px] !mb-[6px]">
+          <button className="!flex !items-center !justify-center !gap-[5px] !flex-[1] !p-[5px_12px] !rounded-[8px] ![border:1px_dashed_var(--border-primary)] ![color:var(--text-faint)] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]"
             onClick={() => setFileImportOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              flex: 1, padding: '5px 12px', borderRadius: 8,
-              border: '1px dashed var(--border-primary)', background: 'none',
-              color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            style={{ background: 'none' }}
           >
             <Upload size={11} strokeWidth={2} /> {t('places.importFile')}
           </button>
-          <button
+          <button className="!flex !items-center !justify-center !gap-[5px] !flex-[1] !p-[5px_12px] !rounded-[8px] ![border:1px_dashed_var(--border-primary)] ![color:var(--text-faint)] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit]"
             onClick={() => setListImportOpen(true)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
-              flex: 1, padding: '5px 12px', borderRadius: 8,
-              border: '1px dashed var(--border-primary)', background: 'none',
-              color: 'var(--text-faint)', fontSize: 11, fontWeight: 500,
-              cursor: 'pointer', fontFamily: 'inherit',
-            }}
+            style={{ background: 'none' }}
           >
             <MapPin size={11} strokeWidth={2} /> {t(hasMultipleListImportProviders ? 'places.importList' : 'places.importGoogleList')}
           </button>
         </div>
         {/* ✨ Must See — AI suggestions */}
-        <button className="trek-h-background-892a31"
+        <button className="trek-h-background-892a31 !flex !items-center !justify-center !gap-[6px] !w-[100%] !p-[6px_12px] !rounded-[8px] !mb-[10px] ![border:1px_solid_#f59e0b44] ![color:#b45309] !text-[length:11px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:background_0.15s]"
           onClick={() => setMustSeeOpen(true)}
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            width: '100%', padding: '6px 12px', borderRadius: 8, marginBottom: 10,
-            border: '1px solid #f59e0b44', background: '#fef3c71a',
-            color: '#b45309', fontSize: 11, fontWeight: 600,
-            cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s',
-          }} >
+          style={{ background: '#fef3c71a' }} >
           <Sparkles size={11} strokeWidth={2} />
           ✨ Lugares imprescindibles (IA)
         </button>
-        <div style={{ height: 1, background: 'var(--border-primary)', margin: '2px 0 10px' }} />
+        <div className="!h-[1px] !m-[2px_0_10px]" style={{ background: 'var(--border-primary)' }} />
         </>}
 
         {/* Filter-Tabs */}
@@ -428,31 +379,17 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
             hasTracks ? { id: 'tracks', label: t('places.filterTracks') } : null,
           ] as const).filter(Boolean) as Array<{ id: 'all' | 'unplanned' | 'tracks'; label: string }>
           return (
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
+            <div className="!flex !gap-[6px] !mb-[8px] !flex-wrap">
               {tabs.map(f => {
                 const active = filter === f.id
                 return (
-                  <button
+                  <button className="![appearance:none] ![border:none] !cursor-pointer ![font-family:inherit] !inline-flex !items-center !gap-[5px] !p-[4px_9px] !rounded-[99px] !text-[length:11px] !font-[500] !whitespace-nowrap ![transition:background_0.15s,_color_0.15s,_box-shadow_0.15s]"
                     key={f.id}
                     onClick={() => { setFilter(f.id); onPlacesFilterChange?.(f.id); setSelectedIds(new Set()) }}
-                    style={{
-                      appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '4px 9px', borderRadius: 99,
-                      fontSize: 11, fontWeight: 500, whiteSpace: 'nowrap',
-                      background: active ? 'var(--accent)' : 'var(--bg-card)',
-                      color: active ? 'var(--accent-text)' : 'var(--text-primary)',
-                      boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)',
-                      transition: 'background 0.15s, color 0.15s, box-shadow 0.15s',
-                    }}
+                    style={{ background: active ? 'var(--accent)' : 'var(--bg-card)', color: active ? 'var(--accent-text)' : 'var(--text-primary)', boxShadow: active ? 'none' : '0 1px 2px rgba(0,0,0,0.06)' }}
                   >
                     {f.label}
-                    <span style={{
-                      fontSize: 9, fontWeight: 600, lineHeight: 1,
-                      background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)',
-                      color: active ? 'var(--accent-text)' : 'var(--text-faint)',
-                      padding: '1px 5px', borderRadius: 99, minWidth: 14, textAlign: 'center',
-                    }}>
+                    <span className="!text-[length:9px] !font-[600] !leading-[1] !p-[1px_5px] !rounded-[99px] !min-w-[14px] !text-center" style={{ background: active ? 'color-mix(in srgb, var(--accent-text) 22%, transparent)' : 'var(--bg-tertiary)', color: active ? 'var(--accent-text)' : 'var(--text-faint)' }}>
                       {counts[f.id]}
                     </span>
                   </button>
@@ -463,21 +400,17 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
         })()}
 
         {/* Suchfeld */}
-        <div style={{ position: 'relative' }}>
+        <div className="!relative">
           <Search size={13} strokeWidth={1.8} color="var(--text-faint)" style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
-          <input
+          <input className="!w-[100%] !p-[7px_30px_7px_30px] !rounded-[10px] ![border:none] !text-[length:12px] ![color:var(--text-primary)] ![outline:none] ![font-family:inherit] !box-border"
             type="text"
             value={search}
             onChange={e => { setSearch(e.target.value); if (selectMode) setSelectedIds(new Set()) }}
             placeholder={t('places.search')}
-            style={{
-              width: '100%', padding: '7px 30px 7px 30px', borderRadius: 10,
-              border: 'none', background: 'var(--bg-tertiary)', fontSize: 12, color: 'var(--text-primary)',
-              outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box',
-            }}
+            style={{ background: 'var(--bg-tertiary)' }}
           />
           {search && (
-            <button onClick={() => setSearch('')} style={{ position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <button className="!absolute !right-[8px] !top-[50%] ![border:none] !cursor-pointer !p-[0] !flex" onClick={() => setSearch('')} style={{ transform: 'translateY(-50%)', background: 'none' }}>
               <X size={12} strokeWidth={2} color="var(--text-faint)" />
             </button>
           )}
@@ -491,111 +424,57 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
               ? (categoryFilters.has('uncategorized') ? t('places.noCategory') : categories.find(c => categoryFilters.has(String(c.id)))?.name || t('places.allCategories'))
               : `${categoryFilters.size} ${t('places.categoriesSelected')}`
           return (
-            <div style={{ marginTop: 6, position: 'relative', display: 'flex', gap: 6, alignItems: 'stretch' }}>
-              <button onClick={() => setCatDropOpen(v => !v)} style={{
-                flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border-primary)',
-                background: 'var(--bg-card)', fontSize: 12, color: 'var(--text-primary)',
-                cursor: 'pointer', fontFamily: 'inherit',
-              }}>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+            <div className="!mt-[6px] !relative !flex !gap-[6px] !items-stretch">
+              <button className="!flex-[1] !min-w-[0] !flex !items-center !justify-between !p-[6px_10px] !rounded-[8px] ![border:1px_solid_var(--border-primary)] !text-[length:12px] ![color:var(--text-primary)] !cursor-pointer ![font-family:inherit]" onClick={() => setCatDropOpen(v => !v)} style={{ background: 'var(--bg-card)' }}>
+                <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{label}</span>
                 <ChevronDown size={12} style={{ flexShrink: 0, color: 'var(--text-faint)', transform: catDropOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
               </button>
               {canEditPlaces && (
                 <Tooltip label={t('common.select')} placement="bottom">
-                <button
+                <button className="!relative !w-[30px] !shrink-[0] !rounded-[8px] !cursor-pointer ![font-family:inherit] !p-[0] ![transition:background_0.18s,_color_0.18s,_border-color_0.18s] !overflow-hidden"
                   onClick={() => { setSelectMode(v => !v); setSelectedIds(new Set()) }}
                   aria-label={t('common.select')}
                   aria-pressed={selectMode}
-                  style={{
-                    position: 'relative', width: 30, flexShrink: 0, borderRadius: 8,
-                    border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border-primary)'}`,
-                    background: selectMode ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)',
-                    color: selectMode ? 'var(--accent)' : 'var(--text-faint)',
-                    cursor: 'pointer', fontFamily: 'inherit', padding: 0,
-                    transition: 'background 0.18s, color 0.18s, border-color 0.18s',
-                    overflow: 'hidden',
-                  }}
+                  style={{ border: `1px solid ${selectMode ? 'var(--accent)' : 'var(--border-primary)'}`, background: selectMode ? 'color-mix(in srgb, var(--accent) 14%, transparent)' : 'var(--bg-card)', color: selectMode ? 'var(--accent)' : 'var(--text-faint)' }}
                 >
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: selectMode ? 0 : 1,
-                    transform: selectMode ? 'rotate(-90deg) scale(0.6)' : 'rotate(0) scale(1)',
-                  }}>
+                  <span className="!absolute !inset-[0] !flex !items-center !justify-center ![transition:opacity_0.18s_ease,_transform_0.22s_cubic-bezier(0.34,_1.56,_0.64,_1)]" style={{ opacity: selectMode ? 0 : 1, transform: selectMode ? 'rotate(-90deg) scale(0.6)' : 'rotate(0) scale(1)' }}>
                     <Check size={13} strokeWidth={2.4} />
                   </span>
-                  <span style={{
-                    position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    transition: 'opacity 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    opacity: selectMode ? 1 : 0,
-                    transform: selectMode ? 'rotate(0) scale(1)' : 'rotate(90deg) scale(0.6)',
-                  }}>
+                  <span className="!absolute !inset-[0] !flex !items-center !justify-center ![transition:opacity_0.18s_ease,_transform_0.22s_cubic-bezier(0.34,_1.56,_0.64,_1)]" style={{ opacity: selectMode ? 1 : 0, transform: selectMode ? 'rotate(0) scale(1)' : 'rotate(90deg) scale(0.6)' }}>
                     <X size={13} strokeWidth={2.4} />
                   </span>
                 </button>
                 </Tooltip>
               )}
               {catDropOpen && (
-                <div style={{
-                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, marginTop: 4,
-                  background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
-                  boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, maxHeight: 200, overflowY: 'auto',
-                }}>
+                <div className="!absolute !top-[100%] !left-[0] !right-[0] !z-[50] !mt-[4px] ![border:1px_solid_var(--border-primary)] !rounded-[10px] ![box-shadow:0_4px_16px_rgba(0,0,0,0.12)] !p-[4px] !max-h-[200px] !overflow-y-auto" style={{ background: 'var(--bg-card)' }}>
                   {categories.map(c => {
                     const active = categoryFilters.has(String(c.id))
                     const CatIcon = getCategoryIcon(c.icon)
                     return (
-                      <button key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: active ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-                        textAlign: 'left',
-                      }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: active ? 'none' : '1.5px solid var(--border-primary)',
-                          background: active ? (c.color || 'var(--accent)') : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
+                      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-primary)] !text-left" key={c.id} onClick={() => toggleCategoryFilter(String(c.id))} style={{ background: active ? 'var(--bg-hover)' : 'transparent' }}>
+                        <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: active ? 'none' : '1.5px solid var(--border-primary)', background: active ? (c.color || 'var(--accent)') : 'transparent' }}>
                           {active && <Check size={10} strokeWidth={3} color="white" />}
                         </div>
                         <CatIcon size={12} strokeWidth={2} color={c.color || 'var(--text-muted)'} />
-                        <span style={{ flex: 1 }}>{c.name}</span>
+                        <span className="!flex-[1]">{c.name}</span>
                       </button>
                     )
                   })}
                   {places.some(p => p.category_id == null) && (() => {
                     const active = categoryFilters.has('uncategorized')
                     return (
-                      <button onClick={() => toggleCategoryFilter('uncategorized')} style={{
-                        display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-                        padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                        background: active ? 'var(--bg-hover)' : 'transparent',
-                        fontFamily: 'inherit', fontSize: 12, color: 'var(--text-muted)',
-                        textAlign: 'left', borderTop: '1px solid var(--border-faint)', marginTop: 2,
-                      }}>
-                        <div style={{
-                          width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                          border: active ? 'none' : '1.5px solid var(--border-primary)',
-                          background: active ? 'var(--text-faint)' : 'transparent',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
+                      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-muted)] !text-left ![border-top:1px_solid_var(--border-faint)] !mt-[2px]" onClick={() => toggleCategoryFilter('uncategorized')} style={{ background: active ? 'var(--bg-hover)' : 'transparent' }}>
+                        <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: active ? 'none' : '1.5px solid var(--border-primary)', background: active ? 'var(--text-faint)' : 'transparent' }}>
                           {active && <Check size={10} strokeWidth={3} color="white" />}
                         </div>
                         <MapPin size={12} strokeWidth={2} color="var(--text-faint)" />
-                        <span style={{ flex: 1 }}>{t('places.noCategory')}</span>
+                        <span className="!flex-[1]">{t('places.noCategory')}</span>
                       </button>
                     )
                   })()}
                   {categoryFilters.size > 0 && (
-                    <button onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
-                      width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
-                      background: 'transparent', fontFamily: 'inherit', fontSize: 11, color: 'var(--text-faint)',
-                      marginTop: 2, borderTop: '1px solid var(--border-faint)',
-                    }}>
+                    <button className="!flex !items-center !justify-center !gap-[4px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:11px] ![color:var(--text-faint)] !mt-[2px] ![border-top:1px_solid_var(--border-faint)]" onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{ background: 'transparent' }}>
                       <X size={10} /> {t('places.clearFilter')}
                     </button>
                   )}
@@ -608,26 +487,18 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
 
       {/* Anzahl / Auswahl-Leiste */}
       {selectMode ? (
-        <div style={{
-          margin: '6px 16px', padding: '5px 8px 5px 10px', borderRadius: 8,
-          background: 'color-mix(in srgb, var(--accent) 10%, transparent)',
-          display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, fontSize: 11,
-        }}>
-          <span style={{ flex: 1, color: 'var(--accent)', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div className="!m-[6px_16px] !p-[5px_8px_5px_10px] !rounded-[8px] !flex !items-center !gap-[4px] !shrink-[0] !text-[length:11px]" style={{ background: 'color-mix(in srgb, var(--accent) 10%, transparent)' }}>
+          <span className="!flex-[1] ![color:var(--accent)] !font-[600] !whitespace-nowrap !overflow-hidden !text-ellipsis">
             {t('places.selectionCount', { count: selectedIds.size })}
           </span>
           <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
-          <button className="trek-hover"
+          <button className="trek-hover !flex !items-center !justify-center !w-[24px] !h-[24px] !rounded-[6px] ![border:none] ![color:var(--text-muted)] !cursor-pointer !p-[0]"
             onClick={() => {
               if (selectedIds.size === filtered.length) setSelectedIds(new Set())
               else setSelectedIds(new Set(filtered.map(p => p.id)))
             }}
             aria-label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: 24, height: 24, borderRadius: 6, border: 'none',
-              background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
-            }} >
+            style={{ background: 'transparent' }} >
             <Check size={13} strokeWidth={2.2} />
           </button>
           </Tooltip>
@@ -655,19 +526,19 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
           </Tooltip>
         </div>
       ) : (
-        <div style={{ padding: '6px 16px', flexShrink: 0 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
+        <div className="!p-[6px_16px] !shrink-[0]">
+          <span className="!text-[length:11px] ![color:var(--text-faint)]">{filtered.length === 1 ? t('places.countSingular') : t('places.count', { count: filtered.length })}</span>
         </div>
       )}
 
       {/* Liste */}
       <div className="trek-stagger" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {filtered.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 16px', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'var(--text-faint)' }}>
+          <div className="!flex !flex-col !items-center !p-[40px_16px] !gap-[8px]">
+            <span className="!text-[length:13px] ![color:var(--text-faint)]">
               {filter === 'unplanned' ? t('places.allPlanned') : t('places.noneFound')}
             </span>
-            {canEditPlaces && <button onClick={onAddPlace} style={{ fontSize: 12, color: 'var(--text-primary)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'inherit' }}>
+            {canEditPlaces && <button className="!text-[length:12px] ![color:var(--text-primary)] ![border:none] !cursor-pointer ![text-decoration:underline] ![font-family:inherit]" onClick={onAddPlace} style={{ background: 'none' }}>
               {t('places.addPlace')}
             </button>}
           </div>
@@ -704,45 +575,31 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
       </div>
 
       {dayPickerPlace && ReactDOM.createPortal(
-        <div
+        <div className="!fixed !inset-[0] !z-[99999] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-end !justify-center"
           onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 99999,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-            display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
-          }}
+          style={{ background: 'var(--modal-backdrop)' }}
         >
-          <div
+          <div className="![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![border-bottom:none] ![box-shadow:var(--glass-shadow-lg)] !rounded-[20px_20px_0_0] !w-[100%] !max-w-[500px] !max-h-[70vh] !flex !flex-col !overflow-hidden !pb-[var(--bottom-nav-h)]"
             onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--modal-bg)',
-              backdropFilter: 'var(--glass-blur-lg)',
-              WebkitBackdropFilter: 'var(--glass-blur-lg)',
-              border: '1px solid var(--modal-border)',
-              borderBottom: 'none',
-              boxShadow: 'var(--glass-shadow-lg)',
-              borderRadius: '20px 20px 0 0', width: '100%', maxWidth: 500, maxHeight: '70vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingBottom: 'var(--bottom-nav-h)',
-            }}
+            style={{ background: 'var(--modal-bg)' }}
           >
-            <div style={{ padding: '16px 20px 12px', borderBottom: '1px solid var(--border-secondary)' }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>{dayPickerPlace.name}</div>
-              {dayPickerPlace.address && <div style={{ fontSize: 12, color: 'var(--text-faint)', marginTop: 2 }}>{dayPickerPlace.address}</div>}
+            <div className="!p-[16px_20px_12px] ![border-bottom:1px_solid_var(--border-secondary)]">
+              <div className="!text-[length:15px] !font-[700] ![color:var(--text-primary)]">{dayPickerPlace.name}</div>
+              {dayPickerPlace.address && <div className="!text-[length:12px] ![color:var(--text-faint)] !mt-[2px]">{dayPickerPlace.address}</div>}
             </div>
-            <div style={{ overflowY: 'auto', padding: '8px 12px' }}>
+            <div className="!overflow-y-auto !p-[8px_12px]">
               {/* View details */}
-              <button
+              <button className="!flex !items-center !gap-[12px] !w-[100%] !p-[12px_14px] !rounded-[12px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left !text-[length:14px] ![color:var(--text-primary)]"
                 onClick={() => { onPlaceClick(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+                style={{ background: 'transparent' }}
               >
                 <Eye size={18} color="var(--text-muted)" /> {t('places.viewDetails')}
               </button>
               {/* Edit */}
               {canEditPlaces && (
-                <button
+                <button className="!flex !items-center !gap-[12px] !w-[100%] !p-[12px_14px] !rounded-[12px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left !text-[length:14px] ![color:var(--text-primary)]"
                   onClick={() => { onEditPlace(dayPickerPlace); setDayPickerPlace(null); setMobileShowDays(false) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+                  style={{ background: 'transparent' }}
                 >
                   <Pencil size={18} color="var(--text-muted)" /> {t('common.edit')}
                 </button>
@@ -750,25 +607,25 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
               {/* Assign to day */}
               {days?.length > 0 && (
                 <>
-                  <button
+                  <button className="!flex !items-center !gap-[12px] !w-[100%] !p-[12px_14px] !rounded-[12px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left !text-[length:14px] ![color:var(--text-primary)]"
                     onClick={() => setMobileShowDays(v => !v)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: 'var(--text-primary)' }}
+                    style={{ background: 'transparent' }}
                   >
                     <CalendarDays size={18} color="var(--text-muted)" /> {t('places.assignToDay')}
                     <ChevronDown size={14} style={{ marginLeft: 'auto', color: 'var(--text-faint)', transform: mobileShowDays ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
                   </button>
                   {mobileShowDays && (
-                    <div style={{ paddingLeft: 20 }}>
+                    <div className="!pl-[20px]">
                       {days.map((day, i) => (
-                        <button
+                        <button className="!flex !items-center !gap-[10px] !w-[100%] !p-[10px_14px] !rounded-[10px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left"
                           key={day.id}
                           onClick={() => { onAssignToDay(dayPickerPlace.id, day.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left' }}
+                          style={{ background: 'transparent' }}
                         >
-                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', flexShrink: 0 }}>{i + 1}</div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)' }}>{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
-                            {day.date && <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
+                          <div className="!w-[28px] !h-[28px] !rounded-[50%] !flex !items-center !justify-center !text-[length:12px] !font-[700] ![color:var(--text-primary)] !shrink-[0]" style={{ background: 'var(--bg-tertiary)' }}>{i + 1}</div>
+                          <div className="!flex-[1] !min-w-[0]">
+                            <div className="!text-[length:13px] !font-[500] ![color:var(--text-primary)]">{day.title || t('dayplan.dayN', { n: i + 1 })}</div>
+                            {day.date && <div className="!text-[length:11px] ![color:var(--text-faint)]">{new Date(day.date + 'T00:00:00Z').toLocaleDateString(undefined, { timeZone: 'UTC' })}</div>}
                           </div>
                           {(assignments[String(day.id)] || []).some(a => a.place?.id === dayPickerPlace.id) && <Check size={14} color="var(--text-faint)" />}
                         </button>
@@ -779,9 +636,9 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
               )}
               {/* Delete */}
               {canEditPlaces && (
-                <button
+                <button className="!flex !items-center !gap-[12px] !w-[100%] !p-[12px_14px] !rounded-[12px] ![border:none] !cursor-pointer ![font-family:inherit] !text-left !text-[length:14px] ![color:#ef4444]"
                   onClick={() => { onDeletePlace(dayPickerPlace.id); setDayPickerPlace(null); setMobileShowDays(false) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px', borderRadius: 12, border: 'none', cursor: 'pointer', background: 'transparent', fontFamily: 'inherit', textAlign: 'left', fontSize: 14, color: '#ef4444' }}
+                  style={{ background: 'transparent' }}
                 >
                   <Trash2 size={18} /> {t('common.delete')}
                 </button>
@@ -792,95 +649,62 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
         document.body
       )}
       {listImportOpen && ReactDOM.createPortal(
-        <div
+        <div className="!fixed !inset-[0] !z-[99999] ![backdrop-filter:blur(12px)_saturate(150%)] ![-webkit-backdrop-filter:blur(12px)_saturate(150%)] !flex !items-center !justify-center !p-[16px]"
           onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-          style={{
-            position: 'fixed', inset: 0, zIndex: 99999,
-            background: 'var(--modal-backdrop)',
-            backdropFilter: 'blur(12px) saturate(150%)',
-            WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
-          }}
+          style={{ background: 'var(--modal-backdrop)' }}
         >
-          <div
+          <div className="![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] !rounded-[16px] !w-[100%] !max-w-[440px] !p-[24px] ![box-shadow:var(--modal-shadow)]"
             onClick={e => e.stopPropagation()}
-            style={{
-              background: 'var(--modal-bg)',
-              backdropFilter: 'var(--glass-blur-lg)',
-              WebkitBackdropFilter: 'var(--glass-blur-lg)',
-              border: '1px solid var(--modal-border)',
-              borderRadius: 16, width: '100%', maxWidth: 440, padding: 24,
-              boxShadow: 'var(--modal-shadow)',
-            }}
+            style={{ background: 'var(--modal-bg)' }}
           >
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+            <div className="!text-[length:15px] !font-[700] ![color:var(--text-primary)] !mb-[4px]">
               {t('places.importList')}
             </div>
             {hasMultipleListImportProviders && (
-              <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              <div className="!flex !gap-[6px] !mb-[10px]">
                 {availableListImportProviders.map(provider => (
-                  <button
+                  <button className="!p-[6px_10px] !rounded-[20px] ![border:none] !cursor-pointer !text-[length:11px] !font-[600] ![font-family:inherit]"
                     key={provider}
                     onClick={() => setListImportProvider(provider)}
-                    style={{
-                      padding: '6px 10px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                      fontSize: 11, fontWeight: 600, fontFamily: 'inherit',
-                      background: listImportProvider === provider ? 'var(--accent)' : 'var(--bg-tertiary)',
-                      color: listImportProvider === provider ? 'var(--accent-text)' : 'var(--text-muted)',
-                    }}
+                    style={{ background: listImportProvider === provider ? 'var(--accent)' : 'var(--bg-tertiary)', color: listImportProvider === provider ? 'var(--accent-text)' : 'var(--text-muted)' }}
                   >
                     {provider === 'google' ? t('places.importGoogleList') : t('places.importNaverList')}
                   </button>
                 ))}
               </div>
             )}
-            <div style={{ fontSize: 12, color: 'var(--text-faint)', marginBottom: 16 }}>
+            <div className="!text-[length:12px] ![color:var(--text-faint)] !mb-[16px]">
               {t(listImportProvider === 'google' ? 'places.googleListHint' : 'places.naverListHint')}
             </div>
-            <input
+            <input className="!w-[100%] !p-[10px_14px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] !text-[length:13px] ![color:var(--text-primary)] ![outline:none] ![font-family:inherit] !box-border"
               type="text"
               value={listImportUrl}
               onChange={e => setListImportUrl(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !listImportLoading) handleListImport() }}
               placeholder={listImportProvider === 'google' ? 'https://maps.app.goo.gl/...' : 'https://naver.me/...'}
               autoFocus
-              style={{
-                width: '100%', padding: '10px 14px', borderRadius: 10,
-                border: '1px solid var(--border-primary)', background: 'var(--bg-tertiary)',
-                fontSize: 13, color: 'var(--text-primary)', outline: 'none',
-                fontFamily: 'inherit', boxSizing: 'border-box',
-              }}
+              style={{ background: 'var(--bg-tertiary)' }}
             />
             {canEnrichImport && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="text-content" style={{ fontSize: 12, fontWeight: 600 }}>{t('places.enrichOnImport')}</div>
-                  <div className="text-content-faint" style={{ fontSize: 12, marginTop: 2 }}>{t('places.enrichOnImportHint')}</div>
+              <div className="!flex !items-start !gap-[12px] !mt-[12px]">
+                <div className="!flex-[1] !min-w-[0]">
+                  <div className="text-content !text-[length:12px] !font-[600]">{t('places.enrichOnImport')}</div>
+                  <div className="text-content-faint !text-[length:12px] !mt-[2px]">{t('places.enrichOnImportHint')}</div>
                 </div>
                 <ToggleSwitch on={listImportEnrich} onToggle={() => setListImportEnrich(!listImportEnrich)} />
               </div>
             )}
-            <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-              <button
+            <div className="!flex !gap-[8px] !mt-[16px] !justify-end">
+              <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![color:var(--text-primary)] !text-[length:13px] !font-[500] !cursor-pointer ![font-family:inherit]"
                 onClick={() => { setListImportOpen(false); setListImportUrl('') }}
-                style={{
-                  padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)',
-                  background: 'none', color: 'var(--text-primary)', fontSize: 13, fontWeight: 500,
-                  cursor: 'pointer', fontFamily: 'inherit',
-                }}
+                style={{ background: 'none' }}
               >
                 {t('common.cancel')}
               </button>
-              <button
+              <button className="!p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[500] ![font-family:inherit]"
                 onClick={handleListImport}
                 disabled={!listImportUrl.trim() || listImportLoading}
-                style={{
-                  padding: '8px 16px', borderRadius: 10, border: 'none',
-                  background: !listImportUrl.trim() || listImportLoading ? 'var(--bg-tertiary)' : 'var(--accent)',
-                  color: !listImportUrl.trim() || listImportLoading ? 'var(--text-faint)' : 'var(--accent-text)',
-                  fontSize: 13, fontWeight: 500, cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer',
-                  fontFamily: 'inherit',
-                }}
+                style={{ background: !listImportUrl.trim() || listImportLoading ? 'var(--bg-tertiary)' : 'var(--accent)', color: !listImportUrl.trim() || listImportLoading ? 'var(--text-faint)' : 'var(--accent-text)', cursor: !listImportUrl.trim() || listImportLoading ? 'default' : 'pointer' }}
               >
                 {listImportLoading ? t('common.loading') : t('common.import')}
               </button>

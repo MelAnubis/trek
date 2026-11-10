@@ -63,29 +63,17 @@ export default function ElevationProfileLive({ trackPoints, progressIdx, height 
   const slopeCol = slopeColor(currentSlope)
 
   return (
-    <div style={{
-      background: 'rgba(10,10,20,0.88)',
-      backdropFilter: 'blur(12px)',
-      WebkitBackdropFilter: 'blur(12px)',
-      borderTop: '1px solid rgba(255,255,255,0.08)',
-      padding: '6px 8px 4px',
-    }}>
+    <div className="![background:rgba(10,10,20,0.88)] ![backdrop-filter:blur(12px)] ![-webkit-backdrop-filter:blur(12px)] ![border-top:1px_solid_rgba(255,255,255,0.08)] !p-[6px_8px_4px]">
       {/* Slope info strip */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 4, paddingLeft: 4 }}>
-        <span style={{
-          fontSize: 11, fontWeight: 700,
-          color: slopeCol,
-          background: slopeCol + '20',
-          padding: '1px 6px',
-          borderRadius: 4,
-        }}>
+      <div className="!flex !items-center !gap-[8px] !pb-[4px] !pl-[4px]">
+        <span className="!text-[length:11px] !font-[700] !p-[1px_6px] !rounded-[4px]" style={{ color: slopeCol, background: slopeCol + '20' }}>
           {currentSlope > 0 ? '+' : ''}{currentSlope.toFixed(1)}%
         </span>
-        <span style={{ fontSize: 10, color: '#64748b' }}>
+        <span className="!text-[length:10px] ![color:#64748b]">
           {profile[Math.min(progressIdx, profile.length - 1)]?.ele?.toFixed(0) ?? '–'} m alt
         </span>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 10, color: '#475569' }}>
+        <span className="!flex-[1]" />
+        <span className="!text-[length:10px] ![color:#475569]">
           {minEle.toFixed(0)}–{maxEle.toFixed(0)} m
           {range > 0 ? ` · Δ${range.toFixed(0)} m` : ''}
         </span>

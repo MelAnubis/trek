@@ -73,7 +73,7 @@ function Lightbox({ state, ctx, onClose }: { state: LightboxState; ctx: BlogView
     <div className="fixed inset-0 z-[400] bg-black/95 flex items-center justify-center" onClick={onClose}
       onTouchStart={e => setX0(e.touches[0].clientX)}
       onTouchEnd={e => { if (x0 == null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 50) setI(v => (v + (dx < 0 ? 1 : -1) + n) % n); setX0(null) }}>
-      <button className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center" style={{ top: 'max(12px, env(safe-area-inset-top))' }} aria-label="Cerrar" onClick={onClose}><X size={20} /></button>
+      <button className="absolute top-3 right-3 w-11 h-11 rounded-full bg-white/10 text-white flex items-center justify-center !top-[max(12px,_env(safe-area-inset-top))]" aria-label="Cerrar" onClick={onClose}><X size={20} /></button>
       {n > 1 && <button className="absolute left-2 w-11 h-11 rounded-full bg-white/10 text-white hidden sm:flex items-center justify-center" onClick={e => { e.stopPropagation(); setI((i - 1 + n) % n) }} aria-label="‹"><ChevronLeft /></button>}
       <div className="max-w-[96vw] max-h-[92vh]" onClick={e => e.stopPropagation()}>
         <Photo refp={state.photos[i]} ctx={ctx} className="max-w-[96vw] max-h-[86vh] object-contain mx-auto" />
@@ -109,8 +109,8 @@ export function MapBlockView({ ctx, map, height = 320, isPublic }: { ctx: MapCon
     const trail = ctx.tracks.map((tr, i) => ({ points: tr.points.map(([lat, lng]) => ({ lat, lng })), color: DAY_COLORS[i % DAY_COLORS.length] }))
     return { entries, trail, empty: !entries.length && !trail.length && !ctx.photos.length }
   }, [ctx])
-  if (!data) return <div className="rounded-xl bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 text-sm font-sans flex items-center justify-center gap-2" style={{ height: 140 }}><MapPin size={16} />{t('blog.map.pending')}</div>
-  if (data.empty) return <div className="rounded-xl bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 text-sm font-sans flex items-center justify-center gap-2" style={{ height: 120 }}><MapPin size={16} />{t('blog.map.empty')}</div>
+  if (!data) return <div className="rounded-xl bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 text-sm font-sans flex items-center justify-center gap-2 !h-[140px]"><MapPin size={16} />{t('blog.map.pending')}</div>
+  if (data.empty) return <div className="rounded-xl bg-zinc-100 dark:bg-zinc-800/60 text-zinc-500 text-sm font-sans flex items-center justify-center gap-2 !h-[120px]"><MapPin size={16} />{t('blog.map.empty')}</div>
   const Map = isPublic ? JourneyMap : JourneyMapAuto
   return (
     <div className="rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 isolate">
@@ -164,7 +164,7 @@ export function BlockView({ block, ctx, openLightbox, isPublic }: { block: BlogB
       if (block.layout === 'carousel') {
         return (
           <figure className="w-screen max-w-[1200px] relative left-1/2 -translate-x-1/2">
-            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-2" style={{ scrollbarWidth: 'thin' }}>
+            <div className="flex gap-3 overflow-x-auto snap-x snap-mandatory px-4 pb-2 ![scrollbar-width:thin]">
               {ps.map((p, i) => <Photo key={i} refp={p} ctx={ctx} size="original" onOpen={() => open(i)} className="h-[260px] sm:h-[380px] w-auto snap-center rounded-xl object-cover shrink-0" />)}
             </div>
             <Caption text={block.caption} />

@@ -128,7 +128,7 @@ export default function JourneyBlogPage() {
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100">
       <Navbar />
-      <div style={{ paddingTop: 'var(--nav-h, 56px)', paddingBottom: 'calc(var(--bottom-nav-h, 0px) + 24px)' }}>
+      <div className="!pt-[var(--nav-h,_56px)] !pb-[calc(var(--bottom-nav-h,_0px)_+_24px)]">
         <div className="max-w-[1100px] mx-auto px-4 sm:px-6">
           <div className="flex items-center gap-3 pt-5 pb-2">
             <button type="button" onClick={() => navigate(`/journey/${journeyId}`)} aria-label={t('blog.backToJourney')}
@@ -375,7 +375,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
     <div className="min-h-screen bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100" style={{ ['--blog-accent' as string]: 'var(--accent)' }}>
       <Navbar />
       {/* Barra superior del post */}
-      <div className="sticky z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur border-b border-zinc-100 dark:border-zinc-900" style={{ top: 'var(--nav-h, 56px)', marginTop: 'var(--nav-h, 56px)' }}>
+      <div className="sticky z-40 bg-white/90 dark:bg-zinc-950/90 backdrop-blur border-b border-zinc-100 dark:border-zinc-900 !top-[var(--nav-h,_56px)] !mt-[var(--nav-h,_56px)]">
         <div className="flex items-center gap-2 px-3 sm:px-4 h-14">
           <button type="button" onClick={async () => { await persist(); navigate(`/journey/${journeyId}/blog`) }} aria-label={t('blog.title')}
             className="w-10 h-10 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-900 shrink-0"><ArrowLeft size={17} /></button>
@@ -432,7 +432,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
       <div className="flex">
         {/* Escritorio: los posts a mano para saltar de uno a otro */}
         {showSidebar && canEdit && (
-          <aside className={`${sideTab === 'entries' && !reading ? 'w-[340px]' : 'w-[250px]'} shrink-0 border-r border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-3 bg-white dark:bg-zinc-950`} style={{ top: 'calc(var(--nav-h, 56px) + 56px)' }}>
+          <aside className={`${sideTab === 'entries' && !reading ? 'w-[340px]' : 'w-[250px]'} shrink-0 border-r border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-3 bg-white dark:bg-zinc-950 !top-[calc(var(--nav-h,_56px)_+_56px)]`}>
             {!reading && (
               <div className="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl bg-zinc-100 dark:bg-zinc-900">
                 {(['posts', 'entries'] as const).map(k => (
@@ -491,7 +491,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
         </main>
 
         {showSidebar && canEdit && !reading && (
-          <aside className="w-[320px] shrink-0 border-l border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-5" style={{ top: 'calc(var(--nav-h, 56px) + 56px)' }}>
+          <aside className="w-[320px] shrink-0 border-l border-zinc-100 dark:border-zinc-900 h-[calc(100dvh-var(--nav-h,56px)-56px)] sticky overflow-y-auto p-5 !top-[calc(var(--nav-h,_56px)_+_56px)]">
             {settings}
           </aside>
         )}
@@ -499,7 +499,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
 
       {/* Táctil: barra para añadir bloques, siempre a mano encima del teclado/la barra de la app */}
       {touch && canEdit && !reading && (
-        <div className="fixed left-0 right-0 z-40 px-3" style={{ bottom: 'calc(var(--bottom-nav-h, 0px) + 10px)' }}>
+        <div className="fixed left-0 right-0 z-40 px-3 !bottom-[calc(var(--bottom-nav-h,_0px)_+_10px)]">
           <div className="relative mx-auto max-w-[560px] flex items-center justify-between gap-1 px-2 py-1.5 rounded-2xl bg-white/95 dark:bg-zinc-900/95 backdrop-blur border border-zinc-200 dark:border-zinc-800 shadow-xl">
             {([
               ['paragraph', Pilcrow, 'blog.block.paragraph'],
@@ -525,9 +525,8 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
       {/* Táctil / pantallas medianas: las entradas de la travesía en una hoja lateral */}
       {entriesOpen && (
         <div className="fixed inset-0 z-[70] bg-black/40" onClick={() => setEntriesOpen(false)}>
-          <div className="absolute left-0 top-0 bottom-0 w-full sm:w-[440px] bg-white dark:bg-zinc-950 shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}
-            role="dialog" aria-modal="true" aria-label={t('blog.tabs.entries')}
-            style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="absolute left-0 top-0 bottom-0 w-full sm:w-[440px] bg-white dark:bg-zinc-950 shadow-2xl overflow-y-auto !pt-[max(16px,_env(safe-area-inset-top))] !pb-[max(16px,_env(safe-area-inset-bottom))]" onClick={e => e.stopPropagation()}
+            role="dialog" aria-modal="true" aria-label={t('blog.tabs.entries')}>
             <div className="flex items-center justify-between px-4 pb-3">
               <h2 className="text-[16px] font-semibold">{t('blog.tabs.entries')}</h2>
               <button type="button" onClick={() => setEntriesOpen(false)} aria-label={t('common.cancel')} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-900"><X size={18} /></button>
@@ -542,8 +541,7 @@ function PostScreen({ journeyId, postId, isNew, fromEntry, canEditKnown, online,
       {/* Táctil / pantallas medianas: ajustes en una hoja lateral */}
       {settingsOpen && (
         <div className="fixed inset-0 z-[70] bg-black/40" onClick={() => setSettingsOpen(false)}>
-          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[400px] bg-white dark:bg-zinc-950 shadow-2xl overflow-y-auto" onClick={e => e.stopPropagation()}
-            style={{ paddingTop: 'max(16px, env(safe-area-inset-top))', paddingBottom: 'max(16px, env(safe-area-inset-bottom))' }}>
+          <div className="absolute right-0 top-0 bottom-0 w-full sm:w-[400px] bg-white dark:bg-zinc-950 shadow-2xl overflow-y-auto !pt-[max(16px,_env(safe-area-inset-top))] !pb-[max(16px,_env(safe-area-inset-bottom))]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 pb-3">
               <h2 className="text-[16px] font-semibold">{t('blog.settings.title')}</h2>
               <button type="button" onClick={() => setSettingsOpen(false)} aria-label={t('common.cancel')} className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-900"><X size={18} /></button>

@@ -148,10 +148,10 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'loading' || pageState === 'auto_approving') {
     return (
-        <div className="page-bg min-h-screen flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+        <div className="page-bg min-h-screen flex items-center justify-center ![background:var(--bg-secondary)]">
           <div className="flex flex-col items-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm ![color:var(--text-secondary)]">
               {pageState === 'auto_approving' ? 'Authorizing…' : 'Loading…'}
             </p>
           </div>
@@ -161,15 +161,11 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'error') {
     return (
-        <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="w-full max-w-sm rounded-xl p-8 space-y-4 text-center" style={{
-            background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
-            boxShadow: 'var(--modal-shadow)',
-          }}>
+        <div className="page-bg min-h-screen flex items-center justify-center p-4 ![background:var(--bg-secondary)]">
+          <div className="w-full max-w-sm rounded-xl p-8 space-y-4 text-center ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)]">
             <AlertTriangle className="w-10 h-10 mx-auto text-red-500" />
-            <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Authorization Error</h1>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>{errorMsg}</p>
+            <h1 className="text-xl font-semibold ![color:var(--text-primary)]">Authorization Error</h1>
+            <p className="text-sm ![color:var(--text-secondary)]">{errorMsg}</p>
           </div>
         </div>
     )
@@ -177,23 +173,18 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   if (pageState === 'login_required') {
     return (
-        <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
-          <div className="w-full max-w-sm rounded-xl p-8 space-y-5" style={{
-            background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
-            WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
-            boxShadow: 'var(--modal-shadow)',
-          }}>
+        <div className="page-bg min-h-screen flex items-center justify-center p-4 ![background:var(--bg-secondary)]">
+          <div className="w-full max-w-sm rounded-xl p-8 space-y-5 ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)]">
             <div className="text-center space-y-2">
               <Lock className="w-10 h-10 mx-auto" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
-              <h1 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>Sign in to continue</h1>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+              <h1 className="text-xl font-semibold ![color:var(--text-primary)]">Sign in to continue</h1>
+              <p className="text-sm ![color:var(--text-secondary)]">
                 <strong>{validation?.client?.name || clientId}</strong> wants access to your TREK account. Please sign in first.
               </p>
             </div>
             <button
                 onClick={handleLoginRedirect}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white"
-                style={{ background: 'var(--accent-primary, #4f46e5)' }}>
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white ![background:var(--accent-primary,_#4f46e5)]">
               <LogIn className="w-4 h-4" />
               Sign in to TREK
             </button>
@@ -204,39 +195,34 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
   // pageState === 'consent'
   return (
-      <div className="page-bg min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--bg-secondary)' }}>
-        <div className="w-full max-w-2xl rounded-xl overflow-hidden flex flex-col sm:flex-row" style={{
-          background: 'var(--modal-bg)', backdropFilter: 'var(--glass-blur-lg)',
-          WebkitBackdropFilter: 'var(--glass-blur-lg)', border: '1px solid var(--modal-border)',
-          boxShadow: 'var(--modal-shadow)',
-        }}>
+      <div className="page-bg min-h-screen flex items-center justify-center p-4 ![background:var(--bg-secondary)]">
+        <div className="w-full max-w-2xl rounded-xl overflow-hidden flex flex-col sm:flex-row ![background:var(--modal-bg)] ![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![box-shadow:var(--modal-shadow)]">
 
           {/* Left panel — app identity + actions */}
-          <div className="sm:w-64 sm:flex-shrink-0 flex flex-col px-8 py-8 sm:border-r" style={{ borderColor: 'var(--border-primary)' }}>
+          <div className="sm:w-64 sm:flex-shrink-0 flex flex-col px-8 py-8 sm:border-r ![border-color:var(--border-primary)]">
             <div className="flex-1 space-y-4">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: 'var(--bg-secondary)' }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center ![background:var(--bg-secondary)]">
                 <ShieldCheck className="w-6 h-6" style={{ color: 'var(--accent-primary, #4f46e5)' }} />
               </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide mb-1" style={{ color: 'var(--text-tertiary)' }}>Authorization Request</p>
-                <h1 className="text-lg font-semibold leading-snug" style={{ color: 'var(--text-primary)' }}>
+                <p className="text-xs font-medium uppercase tracking-wide mb-1 ![color:var(--text-tertiary)]">Authorization Request</p>
+                <h1 className="text-lg font-semibold leading-snug ![color:var(--text-primary)]">
                   {validation?.client?.name || clientId}
                 </h1>
-                <p className="text-sm mt-2" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm mt-2 ![color:var(--text-secondary)]">
                   This application is requesting access to your TREK account.
                 </p>
               </div>
             </div>
 
             <div className="mt-8 space-y-2">
-              <p className="text-xs mb-3" style={{ color: 'var(--text-tertiary)' }}>
+              <p className="text-xs mb-3 ![color:var(--text-tertiary)]">
                 Only grant access to applications you trust. Your data stays on your server.
               </p>
               <button
                   onClick={() => submitConsent(true)}
                   disabled={submitting || (validation?.scopeSelectable === true && selectedScopes.length === 0)}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 transition-opacity"
-                  style={{ background: 'var(--accent-primary, #4f46e5)' }}>
+                  className="w-full px-4 py-2.5 rounded-lg text-sm font-medium text-white disabled:opacity-60 transition-opacity ![background:var(--accent-primary,_#4f46e5)]">
                 {submitting
                     ? 'Authorizing…'
                     : validation?.scopeSelectable && selectedScopes.length === 0
@@ -248,8 +234,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
               <button
                   onClick={() => submitConsent(false)}
                   disabled={submitting}
-                  className="w-full px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
-                  style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)' }}>
+                  className="w-full px-4 py-2.5 rounded-lg text-sm font-medium border transition-colors hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60 ![border-color:var(--border-primary)] ![color:var(--text-secondary)]">
                 Deny
               </button>
             </div>
@@ -260,7 +245,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
             <div className="space-y-6">
               {Object.keys(scopesByGroup).length > 0 && (
                   <div>
-                    <p className="text-xs font-medium uppercase tracking-wide mb-4" style={{ color: 'var(--text-tertiary)' }}>
+                    <p className="text-xs font-medium uppercase tracking-wide mb-4 ![color:var(--text-tertiary)]">
                       {validation?.scopeSelectable ? 'Choose which permissions to grant' : 'Permissions requested'}
                     </p>
 
@@ -271,8 +256,8 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                             const allGroupSelected = groupScopes.every(s => selectedScopes.includes(s))
                             const someGroupSelected = groupScopes.some(s => selectedScopes.includes(s))
                             return (
-                                <div key={group} className="rounded-lg border overflow-hidden" style={{ borderColor: 'var(--border-primary)' }}>
-                                  <label className="flex items-center gap-2.5 px-3 py-2 cursor-pointer" style={{ background: 'var(--bg-secondary)' }}>
+                                <div key={group} className="rounded-lg border overflow-hidden ![border-color:var(--border-primary)]">
+                                  <label className="flex items-center gap-2.5 px-3 py-2 cursor-pointer ![background:var(--bg-secondary)]">
                                     <input
                                         type="checkbox"
                                         checked={allGroupSelected}
@@ -280,12 +265,12 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                                         onChange={() => toggleGroup(groupScopes, allGroupSelected)}
                                         className="rounded flex-shrink-0"
                                     />
-                                    <span className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>{group}</span>
-                                    <span className="ml-auto text-xs" style={{ color: 'var(--text-tertiary)' }}>
+                                    <span className="text-xs font-semibold ![color:var(--text-secondary)]">{group}</span>
+                                    <span className="ml-auto text-xs ![color:var(--text-tertiary)]">
                               {groupScopes.filter(s => selectedScopes.includes(s)).length}/{groupScopes.length}
                             </span>
                                   </label>
-                                  <div className="divide-y" style={{ borderColor: 'var(--border-primary)' }}>
+                                  <div className="divide-y ![border-color:var(--border-primary)]">
                                     {groupScopes.map(s => {
                                       const keys = SCOPE_GROUPS[s]
                                       return (
@@ -302,8 +287,8 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                                     {s.endsWith(':delete') ? '🗑️' : s.endsWith(':write') ? '✏️' : '👁️'}
                                   </span>
                                             <div className="min-w-0">
-                                              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{keys ? t(keys.labelKey) : s}</p>
-                                              <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{keys ? t(keys.descriptionKey) : ''}</p>
+                                              <p className="text-sm font-medium ![color:var(--text-primary)]">{keys ? t(keys.labelKey) : s}</p>
+                                              <p className="text-xs mt-0.5 ![color:var(--text-tertiary)]">{keys ? t(keys.descriptionKey) : ''}</p>
                                             </div>
                                           </label>
                                       )
@@ -318,18 +303,18 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                         <div className="space-y-5">
                           {Object.entries(scopesByGroup).map(([group, groupScopes]) => (
                               <div key={group}>
-                                <p className="text-xs font-semibold mb-2" style={{ color: 'var(--text-secondary)' }}>{group}</p>
+                                <p className="text-xs font-semibold mb-2 ![color:var(--text-secondary)]">{group}</p>
                                 <div className="space-y-1.5">
                                   {groupScopes.map(s => {
                                     const keys = SCOPE_GROUPS[s]
                                     return (
-                                        <div key={s} className="flex items-start gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                                        <div key={s} className="flex items-start gap-2.5 px-3 py-2 rounded-lg ![background:var(--bg-secondary)]">
                                 <span className="mt-0.5 text-base leading-none flex-shrink-0">
                                   {s.endsWith(':delete') ? '🗑️' : s.endsWith(':write') ? '✏️' : '👁️'}
                                 </span>
                                           <div className="min-w-0">
-                                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{keys ? t(keys.labelKey) : s}</p>
-                                            <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{keys ? t(keys.descriptionKey) : ''}</p>
+                                            <p className="text-sm font-medium ![color:var(--text-primary)]">{keys ? t(keys.labelKey) : s}</p>
+                                            <p className="text-xs mt-0.5 ![color:var(--text-tertiary)]">{keys ? t(keys.descriptionKey) : ''}</p>
                                           </div>
                                         </div>
                                     )
@@ -344,7 +329,7 @@ export default function OAuthAuthorizePage(): React.ReactElement {
 
               {/* Always-available tools — granted regardless of scopes */}
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide mb-3" style={{ color: 'var(--text-tertiary)' }}>
+                <p className="text-xs font-medium uppercase tracking-wide mb-3 ![color:var(--text-tertiary)]">
                   Always included
                 </p>
                 <div className="space-y-1.5">
@@ -352,11 +337,11 @@ export default function OAuthAuthorizePage(): React.ReactElement {
                     { name: 'list_trips',       desc: 'List your trips so the AI can discover trip IDs' },
                     { name: 'get_trip_summary', desc: 'Read a trip overview needed to use any other tool' },
                   ].map(({ name, desc }) => (
-                      <div key={name} className="flex items-start gap-2.5 px-3 py-2 rounded-lg" style={{ background: 'var(--bg-secondary)' }}>
+                      <div key={name} className="flex items-start gap-2.5 px-3 py-2 rounded-lg ![background:var(--bg-secondary)]">
                         <span className="mt-0.5 text-base leading-none flex-shrink-0">👁️</span>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium font-mono" style={{ color: 'var(--text-primary)' }}>{name}</p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--text-tertiary)' }}>{desc}</p>
+                          <p className="text-sm font-medium font-mono ![color:var(--text-primary)]">{name}</p>
+                          <p className="text-xs mt-0.5 ![color:var(--text-tertiary)]">{desc}</p>
                         </div>
                       </div>
                   ))}
