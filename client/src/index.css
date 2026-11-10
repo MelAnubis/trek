@@ -1139,3 +1139,27 @@ img[alt="Trek Wanderer"] {
   .trek-ctx-item { min-height: 44px; padding: 10px 12px; font-size: 15px; gap: 12px; border-radius: 10px; }
   .trek-ctx-item .trek-ctx-icon { width: 18px; height: 18px; }
 }
+
+/* Hover states for buttons that used to set them in onMouseEnter/onMouseLeave.
+   Only with a real pointer (on touch the JS version left a "stuck" hover after
+   a tap); !important because the resting look is an inline style. */
+@media (hover: hover) {
+  .trek-hover-tertiary:hover { background: var(--bg-tertiary) !important; }
+  .trek-hover-secondary:hover { background: var(--bg-secondary) !important; }
+  .trek-hover-gray:hover { background: #f3f4f6 !important; }
+  .trek-hover-dim:hover { background: rgba(0,0,0,0.08) !important; }
+  .trek-hover-text:hover { color: var(--text-primary) !important; }
+  .trek-hover-text2:hover { color: var(--text-secondary) !important; }
+  .trek-hover-danger:hover { color: #ef4444 !important; }
+  .trek-hover-success:hover { color: #22c55e !important; }
+  .trek-hover-border-faint:hover { border-color: var(--text-faint) !important; }
+  .trek-hover-border-muted:hover { border-color: var(--text-muted) !important; }
+  .trek-hover-border-accent:hover { border-color: var(--accent) !important; }
+  .trek-hover-opaque:hover { opacity: 1 !important; }
+  .trek-hover-o90:hover { opacity: 0.9 !important; }
+  .trek-hover-o88:hover { opacity: 0.88 !important; }
+  .trek-hover-o85:hover { opacity: 0.85 !important; }
+  .trek-hover-o80:hover { opacity: 0.8 !important; }
+  .trek-hover-o75:hover { opacity: 0.75 !important; }
+  .trek-hover-o70:hover { opacity: 0.7 !important; }
+}

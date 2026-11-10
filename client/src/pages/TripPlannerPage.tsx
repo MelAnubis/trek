@@ -1108,7 +1108,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
             )}
 
             <div className="hidden md:block" style={{ position: 'absolute', left: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button onClick={() => setLeftCollapsed(c => !c)}
+              <button className={(!leftCollapsed) ? 'trek-hover-text' : undefined} onClick={() => setLeftCollapsed(c => !c)}
                 style={{
                   position: leftCollapsed ? 'fixed' : 'absolute', top: leftCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, left: leftCollapsed ? 10 : undefined, right: leftCollapsed ? undefined : -28, zIndex: -1,
                   width: 36, height: 36, borderRadius: leftCollapsed ? 10 : '0 10px 10px 0',
@@ -1116,9 +1116,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   boxShadow: leftCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', border: 'none',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: leftCollapsed ? '#fff' : 'var(--text-faint)', transition: 'color 0.15s',
-                }}
-                onMouseEnter={e => { if (!leftCollapsed) e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { if (!leftCollapsed) e.currentTarget.style.color = 'var(--text-faint)' }}>
+                }}>
                 {leftCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
               </button>
 
@@ -1178,18 +1176,15 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   mapTileUrl={mapTileUrl}
                 />
                 {!leftCollapsed && (
-                  <div
+                  <div className="trek-hover-dim"
                     onMouseDown={startResizeLeft}
-                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  />
+                    style={{ position: 'absolute', right: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }} />
                 )}
               </div>
             </div>
 
             <div className="hidden md:block" style={{ position: 'absolute', right: 10, top: 10, bottom: 10, zIndex: 20 }}>
-              <button onClick={() => setRightCollapsed(c => !c)}
+              <button className={(!rightCollapsed) ? 'trek-hover-text' : undefined} onClick={() => setRightCollapsed(c => !c)}
                 style={{
                   position: rightCollapsed ? 'fixed' : 'absolute', top: rightCollapsed ? 'calc(var(--nav-h) + 44px + 14px)' : 14, right: rightCollapsed ? 10 : undefined, left: rightCollapsed ? undefined : -28, zIndex: -1,
                   width: 36, height: 36, borderRadius: rightCollapsed ? 10 : '10px 0 0 10px',
@@ -1197,9 +1192,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   boxShadow: rightCollapsed ? '0 2px 12px rgba(0,0,0,0.2)' : 'none', border: 'none',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: rightCollapsed ? '#fff' : 'var(--text-faint)', transition: 'color 0.15s',
-                }}
-                onMouseEnter={e => { if (!rightCollapsed) e.currentTarget.style.color = 'var(--text-primary)' }}
-                onMouseLeave={e => { if (!rightCollapsed) e.currentTarget.style.color = 'var(--text-faint)' }}>
+                }}>
                 {rightCollapsed ? <PanelRightOpen size={16} /> : <PanelRightClose size={16} />}
               </button>
 
@@ -1215,12 +1208,9 @@ export default function TripPlannerPage(): React.ReactElement | null {
                 opacity: rightCollapsed ? 0 : 1,
               }}>
                 {!rightCollapsed && (
-                  <div
+                  <div className="trek-hover-dim"
                     onMouseDown={startResizeRight}
-                    style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.08)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  />
+                    style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 4, cursor: 'col-resize', background: 'transparent' }} />
                 )}
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', paddingLeft: 4 }}>
                   <PlacesSidebar
@@ -1510,7 +1500,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
               <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
                 {t('trip.tabs.tracksTitle')}
               </h2>
-              <button
+              <button className="trek-h-background-2e6b9b"
                 onClick={() => navigate(`/navigate?tripId=${tripId}`)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 7,
@@ -1519,10 +1509,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
                   color: '#ef4444', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   fontFamily: 'inherit', transition: 'background 0.15s',
                   flexShrink: 0,
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.2)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239,68,68,0.12)'}
-              >
+                }} >
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
                 Grabar ruta
               </button>

@@ -247,17 +247,13 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
         {canEdit && (
           <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
             {!isClosed && (
-              <button onClick={() => onClose(poll.id)} title={t('collab.polls.close')}
-                style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" onClick={() => onClose(poll.id)} title={t('collab.polls.close')}
+                style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
                 <Lock size={12} />
               </button>
             )}
-            <button onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}
-              style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-danger" onClick={() => onDelete(poll.id)} title={t('collab.polls.delete')}
+              style={{ padding: 4, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
               <Trash2 size={12} />
             </button>
           </div>

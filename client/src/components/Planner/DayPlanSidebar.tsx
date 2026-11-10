@@ -1008,7 +1008,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
             const label = allExpanded ? t('dayplan.collapseAll') : t('dayplan.expandAll')
             return (
               <Tooltip label={label} placement="bottom">
-                <button
+                <button className="trek-hover"
                   onClick={() => {
                     const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                     setExpandedDays(next)
@@ -1024,10 +1024,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                     transition: 'color 0.15s, border-color 0.15s, background 0.15s',
                     overflow: 'hidden',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-                >
+                  }} >
                   <span style={{
                     position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
                     transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -1084,7 +1081,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
           {canEditDays && onReorderDays && onAddDay && days.length > 0 && (
             <div style={{ position: 'relative', flexShrink: 0 }}>
               <Tooltip label={t('dayplan.reorderDays')} placement="bottom">
-                <button
+                <button className={(!reorderOpen) ? 'trek-hover' : undefined}
                   onClick={() => setReorderOpen(v => !v)}
                   aria-label={t('dayplan.reorderDays')}
                   aria-pressed={reorderOpen}
@@ -1095,10 +1092,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     background: reorderOpen ? 'var(--bg-hover)' : 'none',
                     color: 'var(--text-primary)', cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                     transition: 'color 0.15s, border-color 0.15s, background 0.15s',
-                  }}
-                  onMouseEnter={e => { if (!reorderOpen) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { if (!reorderOpen) e.currentTarget.style.background = 'transparent' }}
-                >
+                  }} >
                   <ArrowUpDown size={14} strokeWidth={2} />
                 </button>
               </Tooltip>
@@ -1202,7 +1196,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                       </button>}
                       {canEditDays && (
                         <Tooltip label={t('dayplan.addToDay')} placement="top">
-                        <button
+                        <button className="trek-hover-opaque"
                           data-testid={`day-add-menu-${day.id}`}
                           onClick={e => {
                             e.stopPropagation()
@@ -1224,10 +1218,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             display: 'flex',
                             alignItems: 'center',
                             borderRadius: 4,
-                          }}
-                          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-                          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.45' }}
-                        >
+                          }} >
                           <Plus size={15} strokeWidth={1.8} color="var(--text-secondary)" />
                         </button>
                         </Tooltip>
@@ -1290,13 +1281,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   </div>
                 </div>
 
-                {canEditDays && <Tooltip label={t('dayplan.addNote')} placement="top"><button
+                {canEditDays && <Tooltip label={t('dayplan.addNote')} placement="top"><button className="trek-hover-text"
                   onClick={e => openAddNote(day.id, e)}
                   aria-label={t('dayplan.addNote')}
-                  style={{ flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}
-                >
+                  style={{ flexShrink: 0, background: 'none', border: 'none', padding: 6, cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--text-faint)' }} >
                   <FileText size={16} strokeWidth={2} />
                 </button></Tooltip>}
                 <button
@@ -1625,7 +1613,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                       })()}
                                     </div>
                                     {hasEndpoints && (
-                                      <button
+                                      <button className={(!active) ? 'trek-hover-text' : undefined}
                                         type="button"
                                         onClick={e => { e.stopPropagation(); onToggleConnection!(res.id) }}
                                         title={t(active ? 'map.hideConnections' : 'map.showConnections')}
@@ -1637,10 +1625,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                           background: active ? '#3b82f6' : 'transparent',
                                           color: active ? '#fff' : 'var(--text-faint)',
                                           transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                        }}
-                                        onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
-                                        onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
-                                      >
+                                        }} >
                                         <RouteIcon size={11} />
                                       </button>
                                     )}
@@ -1649,7 +1634,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                       const handler = isTransport ? onEditTransport : onEditReservation
                                       if (!handler) return null
                                       return (
-                                        <button
+                                        <button className="trek-hover-text"
                                           type="button"
                                           onClick={e => { e.stopPropagation(); handler(res) }}
                                           title={t('common.edit')}
@@ -1660,10 +1645,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                             border: 'none', background: 'transparent',
                                             color: 'var(--text-faint)',
                                             transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                          }}
-                                          onMouseEnter={e => { e.currentTarget.style.color = 'var(--text-primary)' }}
-                                          onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-faint)' }}
-                                        >
+                                          }} >
                                           <Pencil size={11} />
                                         </button>
                                       )
@@ -1865,7 +1847,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                             {onToggleConnection && (res.endpoints || []).length >= 2 && (() => {
                               const active = visibleConnectionIds.includes(res.id)
                               return (
-                                <button
+                                <button className={(!active) ? 'trek-hover-text' : undefined}
                                   type="button"
                                   onClick={e => { e.stopPropagation(); onToggleConnection(res.id) }}
                                   title={t(active ? 'map.hideConnections' : 'map.showConnections')}
@@ -1877,10 +1859,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                                     background: active ? color : 'transparent',
                                     color: active ? '#fff' : 'var(--text-faint)',
                                     transition: 'color 120ms cubic-bezier(0.23,1,0.32,1), background 120ms cubic-bezier(0.23,1,0.32,1)',
-                                  }}
-                                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = 'var(--text-primary)' }}
-                                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = 'var(--text-faint)' }}
-                                >
+                                  }} >
                                   <RouteIcon size={13} />
                                 </button>
                               )
@@ -2304,10 +2283,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         return (
                           <div key={i} style={{ padding: '8px 10px', background: 'var(--bg-tertiary)', borderRadius: 8 }}>
                             <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 3 }}>{f.label}</div>
-                            <div
-                              onMouseEnter={e => { if (shouldBlur) e.currentTarget.style.filter = 'none' }}
-                              onMouseLeave={e => { if (shouldBlur) e.currentTarget.style.filter = 'blur(5px)' }}
-                              onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
+                            <div className={(shouldBlur) ? 'trek-h-filter-6e247f' : undefined} onClick={e => { if (shouldBlur) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(5px)' : 'none' } }}
                               style={{
                                 fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', wordBreak: 'break-word',
                                 filter: shouldBlur ? 'blur(5px)' : 'none', transition: 'filter 0.2s',
@@ -2343,16 +2319,13 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                         <div style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-faint)', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 6 }}>{t('files.title')}</div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                           {resFiles.map(f => (
-                            <div key={f.id}
+                            <div className="trek-hover" key={f.id}
                               onClick={() => { setTransportDetail(null); onNavigateToFiles?.() }}
                               style={{
                                 display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px',
                                 background: 'var(--bg-tertiary)', borderRadius: 8, cursor: 'pointer',
                                 transition: 'background 0.1s',
-                              }}
-                              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                              onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                            >
+                              }} >
                               <FileText size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                               <span style={{ flex: 1, fontSize: 12, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {f.original_name}

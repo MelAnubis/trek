@@ -78,15 +78,12 @@ export default function ConfirmDialog({
         <div className="flex justify-end gap-2.5 mt-6">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
+            className="trek-hover px-4 py-2 text-sm font-medium rounded-xl transition-all duration-150"
             style={{
               color: 'var(--text-secondary)',
               background: 'var(--glass-bg-subtle)',
               border: '1px solid var(--glass-border)',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--glass-bg-subtle)' }}
-          >
+            }} >
             {cancelLabel || t('common.cancel')}
           </button>
           <button

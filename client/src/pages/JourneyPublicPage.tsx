@@ -511,14 +511,11 @@ export default function JourneyPublicPage() {
           {showLangPicker && (
             <div style={{ position: 'absolute', top: '100%', right: 0, marginTop: 6, background: 'white', borderRadius: 10, boxShadow: '0 4px 16px rgba(0,0,0,0.2)', padding: 4, zIndex: 50, minWidth: 150 }}>
               {SUPPORTED_LANGUAGES.map(lang => (
-                <button key={lang.value} onClick={() => {
+                <button className="trek-hover-gray" key={lang.value} onClick={() => {
                   useSettingsStore.setState(s => ({ settings: { ...s.settings, language: lang.value } }))
                   setShowLangPicker(false)
                 }}
-                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit' }}
-                  onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                >{lang.label}</button>
+                  style={{ display: 'block', width: '100%', padding: '6px 12px', border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer', fontSize: 12, color: '#374151', borderRadius: 6, fontFamily: 'inherit' }} >{lang.label}</button>
               ))}
             </div>
           )}

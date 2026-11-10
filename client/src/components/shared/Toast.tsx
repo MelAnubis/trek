@@ -129,16 +129,13 @@ export function ToastContainer() {
             </span>
             <button
               onClick={() => removeToast(toast.id)}
-              className="nomad-toast-close"
+              className="trek-hover-o70 nomad-toast-close"
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 display: 'flex', padding: 2,
                 flexShrink: 0, borderRadius: 6, transition: 'opacity 0.15s',
                 opacity: 0.35,
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.7'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '0.35'}
-            >
+              }} >
               <X size={14} />
             </button>
           </div>

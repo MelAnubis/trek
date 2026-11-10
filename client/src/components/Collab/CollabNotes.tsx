@@ -72,15 +72,13 @@ function WebsiteThumbnail({ url, tripId, color }: WebsiteThumbnailProps) {
   const domain = (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return 'link' } })()
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" title={data?.title || url}
+    <a className="trek-h-transform-244d20 trek-h-box-shadow-7cd433" href={url} target="_blank" rel="noopener noreferrer" title={data?.title || url}
       style={{
         width: 48, height: 48, borderRadius: 8, cursor: 'pointer', overflow: 'hidden',
         background: data?.image ? 'none' : 'var(--bg-tertiary)', border: 'none',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
         textDecoration: 'none', transition: 'transform 0.12s, box-shadow 0.12s', flexShrink: 0,
-      }}
-      onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-      onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
+      }}>
       {data?.image && !failed ? (
         <img src={data.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={() => setFailed(true)} />
       ) : (
@@ -162,12 +160,12 @@ function FilePreviewPortal({ file, onClose }: FilePreviewPortalProps) {
   )
 }
 
-function AuthedImg({ src, style, onClick, onMouseEnter, onMouseLeave, alt }: { src: string; style?: React.CSSProperties; onClick?: () => void; onMouseEnter?: React.MouseEventHandler<HTMLImageElement>; onMouseLeave?: React.MouseEventHandler<HTMLImageElement>; alt?: string }) {
+function AuthedImg({ src, style, className, onClick, onMouseEnter, onMouseLeave, alt }: { src: string; style?: React.CSSProperties; className?: string; onClick?: () => void; onMouseEnter?: React.MouseEventHandler<HTMLImageElement>; onMouseLeave?: React.MouseEventHandler<HTMLImageElement>; alt?: string }) {
   const [authSrc, setAuthSrc] = useState('')
   useEffect(() => {
     getAuthUrl(src, 'download').then(setAuthSrc)
   }, [src])
-  return authSrc ? <img src={authSrc} alt={alt} style={style} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} /> : null
+  return authSrc ? <img src={authSrc} alt={alt} style={style} className={className} onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} /> : null
 }
 
 const NOTE_COLORS = [
@@ -674,11 +672,9 @@ function CategorySettingsModal({ onClose, categories, categoryColors, onSave, on
               {/* Category name — editable */}
               <EditableCatName name={cat} onRename={(newName) => handleRenameCategory(cat, newName)} />
               {/* Delete */}
-              <button onClick={() => handleRemoveCategory(cat)} style={{
+              <button className="trek-hover-danger" onClick={() => handleRemoveCategory(cat)} style={{
                 background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', padding: 3, display: 'flex',
-              }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              }}>
                 <Trash2 size={13} />
               </button>
             </div>
@@ -785,10 +781,8 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
             display: 'flex', gap: 2,
           }}>
             {note.content && (
-              <button onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
-                style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" onClick={() => onView?.(note)} title={t('collab.notes.expand') || 'Expand'}
+                style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
                 <Maximize2 size={10} />
               </button>
             )}
@@ -798,16 +792,12 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
               onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
               {note.pinned ? <PinOff size={10} /> : <Pin size={10} />}
             </button>}
-            {canEdit && <button onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            {canEdit && <button className="trek-hover-text" onClick={() => onEdit?.(note)} title={t('collab.notes.edit')}
+              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
               <Pencil size={10} />
             </button>}
-            {canEdit && <button onClick={handleDelete} title={t('collab.notes.delete')}
-              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            {canEdit && <button className="trek-hover-danger" onClick={handleDelete} title={t('collab.notes.delete')}
+              style={{ padding: 3, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
               <Trash2 size={10} />
             </button>}
             <div style={{ width: 1, height: 12, background: 'var(--border-faint)', flexShrink: 0, marginLeft: 1, marginRight: 1 }} />
@@ -870,21 +860,17 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
                     const isImage = a.mime_type?.startsWith('image/')
                     const ext = (a.original_name || '').split('.').pop()?.toUpperCase() || '?'
                     return isImage ? (
-                      <AuthedImg key={a.id} src={a.url} alt={a.original_name}
+                      <AuthedImg className="trek-h-transform-244d20 trek-h-box-shadow-7cd433" key={a.id} src={a.url} alt={a.original_name}
                         style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
-                        onClick={() => onPreviewFile?.(a)}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
+                        onClick={() => onPreviewFile?.(a)} />
                     ) : (
-                      <div key={a.id} title={a.original_name} onClick={() => onPreviewFile?.(a)}
+                      <div className="trek-h-transform-244d20 trek-h-box-shadow-7cd433" key={a.id} title={a.original_name} onClick={() => onPreviewFile?.(a)}
                         style={{
                           width: 48, height: 48, borderRadius: 8, cursor: 'pointer',
                           background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
                           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                           transition: 'transform 0.12s, box-shadow 0.12s',
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.08)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
+                        }}>
                         <span style={{ fontSize: 9, fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
                       </div>
                     )
@@ -1159,10 +1145,8 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
           {t('collab.notes.title')}
         </h3>
         <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-          {canEdit && <button onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings') || 'Categories'}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', transition: 'color 0.12s' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+          {canEdit && <button className="trek-hover-text" onClick={() => setShowSettings(true)} title={t('collab.notes.categorySettings') || 'Categories'}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-faint)', transition: 'color 0.12s' }}>
             <Settings size={14} />
           </button>}
           {canEdit && <button onClick={() => setShowNewModal(true)}
@@ -1339,16 +1323,12 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-                {canEdit && <button onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
-                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+                {canEdit && <button className="trek-hover-text" onClick={() => { setViewingNote(null); setEditingNote(viewingNote) }}
+                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
                   <Pencil size={16} />
                 </button>}
-                <button onClick={() => setViewingNote(null)}
-                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+                <button className="trek-hover-text" onClick={() => setViewingNote(null)}
+                  style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', borderRadius: 6 }}>
                   <X size={18} />
                 </button>
               </div>
@@ -1365,21 +1345,17 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
                       return (
                         <div key={a.id} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, maxWidth: 72 }}>
                           {isImage ? (
-                            <AuthedImg src={a.url} alt={a.original_name}
+                            <AuthedImg className="trek-h-transform-6b162d trek-h-box-shadow-7cd433" src={a.url} alt={a.original_name}
                               style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 8, cursor: 'pointer', transition: 'transform 0.12s, box-shadow 0.12s' }}
-                              onClick={() => setPreviewFile(a)}
-                              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }} />
+                              onClick={() => setPreviewFile(a)} />
                           ) : (
-                            <div title={a.original_name} onClick={() => setPreviewFile(a)}
+                            <div className="trek-h-transform-6b162d trek-h-box-shadow-7cd433" title={a.original_name} onClick={() => setPreviewFile(a)}
                               style={{
                                 width: 64, height: 64, borderRadius: 8, cursor: 'pointer',
                                 background: a.mime_type === 'application/pdf' ? '#ef44441a' : 'var(--bg-secondary)',
                                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1,
                                 transition: 'transform 0.12s, box-shadow 0.12s',
-                              }}
-                              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.06)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)' }}
-                              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = 'none' }}>
+                              }}>
                               <span style={{ fontSize: 10, fontWeight: 700, color: a.mime_type === 'application/pdf' ? '#ef4444' : 'var(--text-muted)', letterSpacing: 0.3 }}>{ext}</span>
                             </div>
                           )}

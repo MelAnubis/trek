@@ -711,9 +711,8 @@ function SavedPlacesColumn({ tripId, onPick }: { tripId: number | string; onPick
       <div style={{ maxHeight: 420, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2 }}>
         {data && data.places.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-faint)', padding: '8px 2px' }}>{t('places.saved.empty')}</div>}
         {data?.places.map(sp => (
-          <button key={sp.id} type="button" onClick={() => onPick(sp)} data-testid={`saved-place-${sp.id}`}
-            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '6px 4px', borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <button className="trek-hover" key={sp.id} type="button" onClick={() => onPick(sp)} data-testid={`saved-place-${sp.id}`}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '6px 4px', borderRadius: 10, border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
             <PlaceAvatar place={sp} size={34} />
             <span style={{ minWidth: 0, flex: 1 }}>
               <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sp.name}</span>

@@ -349,14 +349,11 @@ export default function TripMembersModal({ isOpen, onClose, tripId, tripTitle }:
                       </div>
                     </div>
                     {canRemove && (
-                      <button
+                      <button className="trek-hover-danger"
                         onClick={() => handleRemove(member.id, isSelf)}
                         disabled={removingId === member.id}
                         title={isSelf ? t('members.leaveTrip') : t('members.removeAccess')}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)', opacity: removingId === member.id ? 0.4 : 1 }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#9ca3af'}
-                      >
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)', opacity: removingId === member.id ? 0.4 : 1 }} >
                         {isSelf ? <LogOut size={14} /> : <UserMinus size={14} />}
                       </button>
                     )}

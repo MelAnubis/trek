@@ -127,7 +127,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 
   // Sidebar filter item
   const SidebarItem = ({ id, icon: Icon, label, count, color }: { id: string; icon: any; label: string; count: number; color?: string }) => (
-    <button onClick={() => setFilter(id as FilterType)}
+    <button className={(filter !== id) ? 'trek-hover' : undefined} onClick={() => setFilter(id as FilterType)}
       title={isMobile ? label : undefined}
       style={{
         display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
@@ -137,9 +137,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         color: filter === id ? 'var(--text-primary)' : 'var(--text-secondary)',
         fontWeight: filter === id ? 600 : 400, transition: 'all 0.1s',
         position: 'relative',
-      }}
-      onMouseEnter={e => { if (filter !== id) e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { if (filter !== id) e.currentTarget.style.background = 'transparent' }}>
+      }}>
       {color ? (
         <span style={{ width: isMobile ? 12 : 10, height: isMobile ? 12 : 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
       ) : (
@@ -210,7 +208,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {!isMobile && <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', padding: '16px 12px 4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
           {t('todo.sidebar.sortBy')}
         </div>}
-        <button onClick={() => setSortByPrio(v => !v)}
+        <button className={(!sortByPrio) ? 'trek-hover' : undefined} onClick={() => setSortByPrio(v => !v)}
           title={isMobile ? t('todo.priority') : undefined}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: isMobile ? 'center' : 'flex-start',
@@ -219,9 +217,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
             background: sortByPrio ? '#f59e0b12' : 'transparent',
             color: sortByPrio ? '#f59e0b' : 'var(--text-secondary)',
             fontWeight: sortByPrio ? 600 : 400, transition: 'all 0.1s',
-          }}
-          onMouseEnter={e => { if (!sortByPrio) e.currentTarget.style.background = 'var(--bg-hover)' }}
-          onMouseLeave={e => { if (!sortByPrio) e.currentTarget.style.background = 'transparent' }}>
+          }}>
           <Flag size={isMobile ? 18 : 15} style={{ flexShrink: 0, opacity: 0.7 }} />
           {!isMobile && <span style={{ flex: 1, textAlign: 'left' }}>{t('todo.priority')}</span>}
         </button>
@@ -279,16 +275,14 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
               const catColor = item.category ? katColor(item.category, categories) : null
 
               return (
-                <div key={item.id}
+                <div className={(!isSelected) ? 'trek-h-background-d9ff9a' : undefined} key={item.id}
                   onClick={() => { setSelectedId(isSelected ? null : item.id); setIsAddingNew(false) }}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
                     borderBottom: '1px solid var(--border-faint)', cursor: 'pointer',
                     background: isSelected ? 'var(--bg-hover)' : 'transparent',
                     transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'rgba(0,0,0,0.02)' }}
-                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
+                  }}>
 
                   {/* Checkbox */}
                   <button onClick={e => { e.stopPropagation(); canEdit && toggleTodoItem(tripId, item.id, !done) }}

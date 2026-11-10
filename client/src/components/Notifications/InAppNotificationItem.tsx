@@ -94,22 +94,16 @@ export default function InAppNotificationItem({ notification, onClose }: Notific
                 <button
                   onClick={() => markRead(notification.id)}
                   title={t('notifications.markRead')}
-                  className="p-1 rounded transition-colors"
-                  style={{ color: 'var(--text-faint)' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-                  onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
-                >
+                  className="trek-hover trek-hover-text p-1 rounded transition-colors"
+                  style={{ color: 'var(--text-faint)' }} >
                   <CheckCheck className="w-3.5 h-3.5" />
                 </button>
               )}
               <button
                 onClick={() => deleteNotification(notification.id)}
                 title={t('notifications.delete')}
-                className="p-1 rounded transition-colors"
-                style={{ color: 'var(--text-faint)' }}
-                onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444' }}
-                onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}
-              >
+                className="trek-h-background-25af55 trek-hover-danger p-1 rounded transition-colors"
+                style={{ color: 'var(--text-faint)' }} >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>

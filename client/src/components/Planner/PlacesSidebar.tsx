@@ -69,7 +69,7 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
 }: MemoPlaceRowProps) {
   const hasGeometry = Boolean(place.route_geometry)
   return (
-    <div
+    <div className={(!isSelected && !isChecked) ? 'trek-hover' : undefined}
       key={place.id}
       draggable={!selectMode}
       onDragStart={e => {
@@ -96,10 +96,7 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
         transition: 'background 0.1s',
         contentVisibility: 'auto',
         containIntrinsicSize: '0 52px',
-      }}
-      onMouseEnter={e => { if (!isSelected && !isChecked) e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { if (!isSelected && !isChecked) e.currentTarget.style.background = 'transparent' }}
-    >
+      }} >
       {selectMode && (
         <div style={{
           width: 16, height: 16, borderRadius: 4, flexShrink: 0,
@@ -132,17 +129,14 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
       </div>
       <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
         {!selectMode && !inDay && selectedDayId && (
-          <button
+          <button className="trek-h-background-abc7f5 trek-h-color-f780f2"
             onClick={e => { e.stopPropagation(); onAssignToDay(place.id) }}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 20, height: 20, borderRadius: 6,
               background: 'var(--bg-hover)', border: 'none', cursor: 'pointer',
               color: 'var(--text-faint)', padding: 0, transition: 'background 0.15s, color 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-text)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.color = 'var(--text-faint)' }}
-          ><Plus size={12} strokeWidth={2.5} /></button>
+            }} ><Plus size={12} strokeWidth={2.5} /></button>
         )}
       </div>
     </div>
@@ -396,7 +390,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
           </button>
         </div>
         {/* ✨ Must See — AI suggestions */}
-        <button
+        <button className="trek-h-background-892a31"
           onClick={() => setMustSeeOpen(true)}
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -404,10 +398,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
             border: '1px solid #f59e0b44', background: '#fef3c71a',
             color: '#b45309', fontSize: 11, fontWeight: 600,
             cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s',
-          }}
-          onMouseEnter={e => (e.currentTarget.style.background = '#fef3c740')}
-          onMouseLeave={e => (e.currentTarget.style.background = '#fef3c71a')}
-        >
+          }} >
           <Sparkles size={11} strokeWidth={2} />
           ✨ Lugares imprescindibles (IA)
         </button>
@@ -626,7 +617,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
             {t('places.selectionCount', { count: selectedIds.size })}
           </span>
           <Tooltip label={selectedIds.size === filtered.length && filtered.length > 0 ? t('common.deselectAll') : t('common.selectAll')} placement="bottom">
-          <button
+          <button className="trek-hover"
             onClick={() => {
               if (selectedIds.size === filtered.length) setSelectedIds(new Set())
               else setSelectedIds(new Set(filtered.map(p => p.id)))
@@ -636,10 +627,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               width: 24, height: 24, borderRadius: 6, border: 'none',
               background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-          >
+            }} >
             <Check size={13} strokeWidth={2.2} />
           </button>
           </Tooltip>

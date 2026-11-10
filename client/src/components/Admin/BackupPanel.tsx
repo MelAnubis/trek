@@ -503,12 +503,9 @@ export default function BackupPanel() {
               >
                 {t('common.cancel')}
               </button>
-              <button
+              <button className="trek-h-background-9bcf75"
                 onClick={executeRestore}
-                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: '#dc2626', color: 'white' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#b91c1c'}
-                onMouseLeave={e => e.currentTarget.style.background = '#dc2626'}
-              >
+                style={{ padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'inherit', background: '#dc2626', color: 'white' }} >
                 {t('backup.restoreConfirm')}
               </button>
             </div>

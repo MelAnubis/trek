@@ -31,16 +31,13 @@ export function MapCompassPill({ map }: { map: mapboxgl.Map }) {
         type="button"
         onClick={() => map.easeTo({ bearing: 0, pitch: 0, duration: 300 })}
         aria-label="Reset north"
-        className="text-content-muted"
+        className="trek-hover text-content-muted"
         style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: 34, height: 34, borderRadius: 999, border: 'none', cursor: 'pointer',
           background: 'transparent', padding: 0,
           transition: 'background 0.14s, color 0.14s',
-        }}
-        onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-        onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
-      >
+        }} >
         <Navigation size={16} strokeWidth={2} style={{ transform: `rotate(${-bearing}deg)`, transition: 'transform 0.1s linear' }} />
       </button>
     </div>

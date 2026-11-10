@@ -140,10 +140,8 @@ function BagCard({ bag, bagItems, totalWeight, pct, tripId, tripMembers, canEdit
             {tripMembers.map(m => {
               const isSelected = memberIds.includes(m.id)
               return (
-                <button key={m.id} onClick={() => { toggleMember(m.id); }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-primary)', fontFamily: 'inherit' }}
-                  onMouseEnter={e => { if (!isSelected) e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                  onMouseLeave={e => { if (!isSelected) e.currentTarget.style.background = 'transparent' }}>
+                <button className={(!isSelected) ? 'trek-hover-secondary' : undefined} key={m.id} onClick={() => { toggleMember(m.id); }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px', borderRadius: 6, border: 'none', background: isSelected ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer', fontSize: 11, color: 'var(--text-primary)', fontFamily: 'inherit' }}>
                   {m.avatar ? (
                     <img src={m.avatar} alt="" style={{ width: 20, height: 20, borderRadius: '50%', objectFit: 'cover' }} />
                   ) : (
@@ -352,14 +350,12 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                   </button>
                 )}
                 {bags.map(b => (
-                  <button key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch {} }}
+                  <button className={(item.bag_id !== b.id) ? 'trek-hover-tertiary' : undefined} key={b.id} onClick={async () => { setShowBagPicker(false); try { await updatePackingItem(tripId, item.id, { bag_id: b.id }) } catch {} }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 7, width: '100%', padding: '6px 10px',
                       background: item.bag_id === b.id ? 'var(--bg-tertiary)' : 'none',
                       border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit', color: 'var(--text-secondary)', borderRadius: 7,
-                    }}
-                    onMouseEnter={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                    onMouseLeave={e => { if (item.bag_id !== b.id) e.currentTarget.style.background = 'none' }}>
+                    }}>
                     <span style={{ width: 10, height: 10, borderRadius: '50%', background: b.color, flexShrink: 0 }} />
                     {b.name}
                   </button>
@@ -391,10 +387,8 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
                       </button>
                     </div>
                   ) : (
-                    <button onClick={() => setBagInlineCreate(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}
-                      onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                      onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+                    <button className="trek-hover-text2" onClick={() => setBagInlineCreate(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 5, width: '100%', padding: '5px 6px', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'inherit', color: 'var(--text-faint)', borderRadius: 7 }}>
                       <Plus size={11} /> {t('packing.addBag')}
                     </button>
                   )}
@@ -436,13 +430,11 @@ function ArtikelZeile({ item, tripId, categories, onCategoryChange, bagTrackingE
           )}
         </div>
 
-        <button onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+        <button className="trek-hover-text2" onClick={() => setEditing(true)} title={t('common.rename')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
           <Pencil size={13} />
         </button>
 
-        <button onClick={handleDelete} title={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+        <button className="trek-hover-danger" onClick={handleDelete} title={t('common.delete')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '3px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
           <Trash2 size={13} />
         </button>
       </div>
@@ -586,15 +578,12 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
           ))}
           {canEdit && (
           <div ref={assigneeDropdownRef} style={{ position: 'relative' }}>
-            <button onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
+            <button className="trek-hover-border-muted trek-h-color-5b795a" onClick={e => { e.stopPropagation(); setShowAssigneeDropdown(v => !v) }}
               style={{
                 width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
                 background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'var(--text-faint)', flexShrink: 0, padding: 0, transition: 'all 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-muted)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.color = 'var(--text-faint)' }}
-            >
+              }} >
               <UserPlus size={10} />
             </button>
             {showAssigneeDropdown && (
@@ -606,7 +595,7 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
                 {tripMembers.map(m => {
                   const isAssigned = assignees.some(a => a.user_id === m.id)
                   return (
-                    <button key={m.id} onClick={e => {
+                    <button className={(!isAssigned) ? 'trek-hover-tertiary' : undefined} key={m.id} onClick={e => {
                       e.stopPropagation()
                       const newIds = isAssigned
                         ? assignees.filter(a => a.user_id !== m.id).map(a => a.user_id)
@@ -619,10 +608,7 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
                         background: isAssigned ? 'var(--bg-hover)' : 'transparent',
                         fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
                         transition: 'background 0.1s',
-                      }}
-                      onMouseEnter={e => { if (!isAssigned) e.currentTarget.style.background = 'var(--bg-tertiary)' }}
-                      onMouseLeave={e => { if (!isAssigned) e.currentTarget.style.background = 'transparent' }}
-                    >
+                      }} >
                       <div style={{
                         width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
                         background: `hsl(${m.username.charCodeAt(0) * 37 % 360}, 55%, 55%)`,
@@ -654,8 +640,7 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
         </span>
 
         <div style={{ position: 'relative' }}>
-          <button ref={menuBtnRef} onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-            onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+          <button className="trek-hover-text2" ref={menuBtnRef} onClick={() => setShowMenu(m => !m)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
             <MoreHorizontal size={15} />
           </button>
           {showMenu && (() => {
@@ -713,10 +698,8 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
               </button>
             </div>
           ) : (
-            <button onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
-              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-faint)', fontFamily: 'inherit' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text2" onClick={() => { setShowAddItem(true); setTimeout(() => addItemRef.current?.focus(), 30) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', margin: '2px 4px', borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--text-faint)', fontFamily: 'inherit' }}>
               <Plus size={12} /> {t('packing.addItem')}
             </button>
           ))}
@@ -1151,16 +1134,13 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                     boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 200,
                   }}>
                     {availableTemplates.map(tmpl => (
-                      <button key={tmpl.id} onClick={() => handleApplyTemplate(tmpl.id)}
+                      <button className="trek-hover-tertiary" key={tmpl.id} onClick={() => handleApplyTemplate(tmpl.id)}
                         style={{
                           display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                           padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                           background: 'transparent', fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
                           transition: 'background 0.1s',
-                        }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                      >
+                        }} >
                         <Package size={13} style={{ color: 'var(--text-faint)' }} />
                         <div style={{ flex: 1, textAlign: 'left' }}>
                           <div style={{ fontWeight: 600 }}>{tmpl.name}</div>
@@ -1198,23 +1178,19 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                     background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 10,
                     boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 190,
                   }}>
-                    <button onClick={() => handlePrintChecklist('category')} style={{
+                    <button className="trek-hover-tertiary" onClick={() => handlePrintChecklist('category')} style={{
                       display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                       padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                       background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    }}>
                       {t('packing.printByCategory')}
                     </button>
                     {bagTrackingEnabled && bags.length > 0 && (
-                      <button onClick={() => handlePrintChecklist('bag')} style={{
+                      <button className="trek-hover-tertiary" onClick={() => handlePrintChecklist('bag')} style={{
                         display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                         padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                         background: 'transparent', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left',
-                      }}
-                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      }}>
                         {t('packing.printByBag')}
                       </button>
                     )}
@@ -1323,10 +1299,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             </button>
           </div>
         ) : (
-          <button onClick={() => setAddingCategory(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', transition: 'all 0.15s' }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.color = 'var(--text-faint)' }}>
+          <button className="trek-hover-border-muted trek-hover-text2" onClick={() => setAddingCategory(true)}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', transition: 'all 0.15s' }}>
             <FolderPlus size={14} /> {t('packing.addCategory')}
           </button>
         ))}
@@ -1517,10 +1491,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
                 </button>
               </div>
             ) : (
-              <button onClick={() => setShowAddBag(true)}
-                style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%', transition: 'all 0.15s' }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-secondary)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.color = 'var(--text-faint)' }}>
+              <button className="trek-hover-border-muted trek-hover-text2" onClick={() => setShowAddBag(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 14, padding: '9px 14px', borderRadius: 10, border: '1px dashed var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-faint)', fontFamily: 'inherit', width: '100%', transition: 'all 0.15s' }}>
                 <Plus size={14} /> {t('packing.addBag')}
               </button>
             ))}

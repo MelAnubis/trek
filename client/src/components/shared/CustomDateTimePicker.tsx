@@ -139,13 +139,11 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
         }}>
           {/* Month nav */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-            <button type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={prevMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
               <ChevronLeft size={16} />
             </button>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{monthLabel}</span>
-            <button type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={nextMonth} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', color: 'var(--text-faint)' }}>
               <ChevronRight size={16} />
             </button>
           </div>
@@ -165,7 +163,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
               const sel = d === selectedDay
               const td = isToday(d)
               return (
-                <button key={d} type="button" onClick={() => selectDay(d)}
+                <button className={(!sel) ? 'trek-hover' : undefined} key={d} type="button" onClick={() => selectDay(d)}
                   style={{
                     width: 32, height: 32, borderRadius: 8, border: 'none',
                     background: sel ? 'var(--accent)' : 'transparent',
@@ -174,9 +172,7 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2,
                     transition: 'background 0.1s',
-                  }}
-                  onMouseEnter={e => { if (!sel) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                  onMouseLeave={e => { if (!sel) e.currentTarget.style.background = 'transparent' }}>
+                  }}>
                   {d}
                 </button>
               )
@@ -186,9 +182,8 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
           {/* Clear */}
           {value && (
             <div style={{ marginTop: 8, display: 'flex', justifyContent: 'center' }}>
-              <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-danger" type="button" onClick={() => { onChange(''); setOpen(false) }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-faint)', padding: '3px 8px', borderRadius: 6 }}>
                 ✕
               </button>
             </div>

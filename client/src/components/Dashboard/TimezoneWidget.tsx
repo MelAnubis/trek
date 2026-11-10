@@ -161,10 +161,8 @@ export default function TimezoneWidget() {
           {/* Popular zones */}
           {POPULAR_ZONES.filter(z => !zones.find(existing => existing.tz === z.tz)).map(z => (
             <button key={z.tz} onClick={() => addZone(z)}
-              className="w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs text-left transition-colors"
-              style={{ color: 'var(--text-primary)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              className="trek-hover w-full flex items-center justify-between px-2 py-1.5 rounded-lg text-xs text-left transition-colors"
+              style={{ color: 'var(--text-primary)' }}>
               <span className="font-medium">{z.label}</span>
               <span className="text-[10px]" style={{ color: 'var(--text-faint)' }}>{getTime(z.tz, locale, is12h)}</span>
             </button>

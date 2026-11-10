@@ -43,11 +43,8 @@ export default function InAppNotificationBell(): React.ReactElement {
       <button
         onClick={handleOpen}
         title={t('notifications.title')}
-        className="relative p-2 rounded-lg transition-colors"
-        style={{ color: 'var(--text-muted)' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-      >
+        className="trek-hover relative p-2 rounded-lg transition-colors"
+        style={{ color: 'var(--text-muted)' }} >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
           <span
@@ -107,11 +104,8 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <button
                     onClick={markAllRead}
                     title={t('notifications.markAllRead')}
-                    className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
+                    className="trek-hover p-1.5 rounded-lg transition-colors"
+                    style={{ color: 'var(--text-muted)' }} >
                     <CheckCheck className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -119,11 +113,8 @@ export default function InAppNotificationBell(): React.ReactElement {
                   <button
                     onClick={deleteAll}
                     title={t('notifications.deleteAll')}
-                    className="p-1.5 rounded-lg transition-colors"
-                    style={{ color: 'var(--text-muted)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                  >
+                    className="trek-hover p-1.5 rounded-lg transition-colors"
+                    style={{ color: 'var(--text-muted)' }} >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 )}
@@ -152,15 +143,12 @@ export default function InAppNotificationBell(): React.ReactElement {
             {/* Footer */}
             <button
               onClick={handleShowAll}
-              className="w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0"
+              className="trek-hover w-full py-2.5 text-xs font-medium transition-colors flex-shrink-0"
               style={{
                 borderTop: '1px solid var(--border-secondary)',
                 color: 'var(--text-primary)',
                 background: 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
+              }} >
               {t('notifications.showAll')}
             </button>
           </div>

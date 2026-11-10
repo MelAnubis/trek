@@ -121,9 +121,8 @@ function PointMenu({ planner, id, index, count }: { planner: TourPlanner; id: st
           {visible.map((it, i) => it === 'sep'
             ? (i > 0 && i < visible.length - 1 && visible[i - 1] !== 'sep' ? <div key={i} style={{ height: 1, background: 'var(--border-faint)', margin: '4px 6px' }} /> : null)
             : (
-              <button key={i} type="button" onClick={() => { it.run(); setOpen(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <button className="trek-hover" key={i} type="button" onClick={() => { it.run(); setOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '8px 10px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}>
                 <it.icon size={14} style={{ color: 'var(--text-muted)' }} />{it.label}
               </button>
             ))}
@@ -153,8 +152,7 @@ function GpxMenu({ exportUrl, stages }: { exportUrl: string; stages: { number: n
           <a href={exportUrl} style={{ ...item, fontWeight: 600 }} onClick={() => setOpen(false)}><Download size={13} />{t('tours.gpxExport.whole')}</a>
           <div style={{ height: 1, background: 'var(--border-faint)', margin: '4px 6px' }} />
           {stages.map(st => (
-            <a key={st.number} href={`${exportUrl}?stage=${st.number}`} style={item} onClick={() => setOpen(false)}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <a className="trek-hover" key={st.number} href={`${exportUrl}?stage=${st.number}`} style={item} onClick={() => setOpen(false)}>
               <Download size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{t('tours.gpxExport.stage', { number: st.number, from: st.from, to: st.to })}</span>
             </a>
           ))}
@@ -177,9 +175,8 @@ function TripPlacePicker({ places, onPick, onClose }: { places: TripPlaceOption[
       <div style={{ maxHeight: 220, overflowY: 'auto' }}>
         {list.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-faint)', padding: 8 }}>{t('tours.placePicker.empty')}</div>}
         {list.map(p => (
-          <button key={p.id} type="button" onClick={() => onPick(p)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 8px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left' }}
-            onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+          <button className="trek-hover" key={p.id} type="button" onClick={() => onPick(p)}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '7px 8px', border: 'none', background: 'transparent', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left' }}>
             <MapPinned size={13} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
           </button>

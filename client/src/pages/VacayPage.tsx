@@ -181,7 +181,7 @@ export default function VacayPage(): React.ReactElement {
                 {t('vacay.subtitle')}
               </span>
               <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                <button
+                <button className="trek-hover-o88"
                   onClick={() => setShowSettings(true)}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -190,10 +190,7 @@ export default function VacayPage(): React.ReactElement {
                     background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                     marginLeft: 2,
                     transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
+                  }} >
                   <Settings size={14} strokeWidth={2.5} /> {t('vacay.settings')}
                 </button>
               </div>

@@ -212,11 +212,8 @@ export default function AccountTab(): React.ReactElement {
                     toast.error(getApiErrorMessage(err, t('common.error')))
                   }
                 }}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}
-              >
+                className="trek-hover flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-secondary)' }} >
                 <Lock size={14} />
                 {t('settings.updatePassword')}
               </button>
@@ -419,7 +416,7 @@ export default function AccountTab(): React.ReactElement {
               </div>
             )}
             <input ref={avatarInputRef} type="file" accept="image/*" onChange={handleAvatarUpload} style={{ display: 'none' }} />
-            <button
+            <button className="trek-h-transform-c590c0 trek-hover-o85"
               onClick={() => avatarInputRef.current?.click()}
               style={{
                 position: 'absolute', bottom: -3, right: -3,
@@ -428,10 +425,7 @@ export default function AccountTab(): React.ReactElement {
                 border: '2px solid var(--bg-card)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0, transition: 'transform 0.15s, opacity 0.15s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.15)'; e.currentTarget.style.opacity = '0.85' }}
-              onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.opacity = '1' }}
-            >
+              }} >
               <Camera size={14} />
             </button>
             {user?.avatar_url && (

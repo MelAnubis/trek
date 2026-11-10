@@ -254,11 +254,8 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/issues/new"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#ef4444'; e.currentTarget.style.boxShadow = '0 0 0 1px #ef444422' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
+          className="trek-h-border-color-96af4f trek-h-box-shadow-cdf48e rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
           <div style={{ width: 40, height: 40, borderRadius: 10, background: '#ef444415', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Bug size={20} style={{ color: '#ef4444' }} />
           </div>
@@ -272,11 +269,8 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/discussions"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#f59e0b'; e.currentTarget.style.boxShadow = '0 0 0 1px #f59e0b22' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
+          className="trek-h-border-color-add850 trek-h-box-shadow-d3a4d7 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
           <div style={{ width: 40, height: 40, borderRadius: 10, background: '#f59e0b15', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <Lightbulb size={20} style={{ color: '#f59e0b' }} />
           </div>
@@ -290,11 +284,8 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           href="https://github.com/MelAnubis/trek/wiki"
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#6366f1'; e.currentTarget.style.boxShadow = '0 0 0 1px #6366f122' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.boxShadow = 'none' }}
-        >
+          className="trek-h-border-color-ffa2aa trek-h-box-shadow-c46881 rounded-xl border overflow-hidden flex items-center gap-4 px-5 py-4 transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]"
+          style={{ background: 'var(--bg-card)', borderColor: 'var(--border-primary)', textDecoration: 'none' }} >
           <div style={{ width: 40, height: 40, borderRadius: 10, background: '#6366f115', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <BookOpen size={20} style={{ color: '#6366f1' }} />
           </div>

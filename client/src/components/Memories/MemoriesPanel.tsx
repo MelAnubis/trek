@@ -499,17 +499,14 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
               {albums.map(album => {
                 const isLinked = linkedIds.has(album.id)
                 return (
-                  <button key={album.id} onClick={() => !isLinked && linkAlbum(album.id, album.albumName, album.passphrase)}
+                  <button className={(!isLinked) ? 'trek-hover' : undefined} key={album.id} onClick={() => !isLinked && linkAlbum(album.id, album.albumName, album.passphrase)}
                     disabled={isLinked}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: '12px 14px',
                       borderRadius: 10, border: 'none', cursor: isLinked ? 'default' : 'pointer',
                       background: isLinked ? 'var(--bg-tertiary)' : 'transparent', fontFamily: 'inherit', textAlign: 'left',
                       opacity: isLinked ? 0.5 : 1,
-                    }}
-                    onMouseEnter={e => { if (!isLinked) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                    onMouseLeave={e => { if (!isLinked) e.currentTarget.style.background = 'transparent' }}
-                  >
+                    }} >
                     <FolderOpen size={20} color="var(--text-muted)" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{album.albumName}</div>

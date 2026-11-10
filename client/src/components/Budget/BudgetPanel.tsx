@@ -170,12 +170,10 @@ function InlineEditCell({ value, onSave, type = 'text', style = {} as React.CSSP
     : (value || '')
 
   return (
-    <div onClick={() => { if (readOnly) return; setEditValue(value ?? ''); setEditing(true) }} title={readOnly ? undefined : editTooltip}
+    <div className={(!readOnly) ? 'trek-hover' : undefined} onClick={() => { if (readOnly) return; setEditValue(value ?? ''); setEditing(true) }} title={readOnly ? undefined : editTooltip}
       style={{ cursor: readOnly ? 'default' : 'pointer', padding: '2px 4px', borderRadius: 4, minHeight: 22, display: 'flex', alignItems: 'center',
         justifyContent: style?.textAlign === 'center' ? 'center' : 'flex-start', transition: 'background 0.15s',
-        color: display ? 'var(--text-primary)' : 'var(--text-faint)', fontSize: 13, ...style }}
-      onMouseEnter={e => { if (!readOnly) e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { if (!readOnly) e.currentTarget.style.background = 'transparent' }}>
+        color: display ? 'var(--text-primary)' : 'var(--text-faint)', fontSize: 13, ...style }}>
       {display || placeholder || '-'}
     </div>
   )
@@ -385,14 +383,11 @@ function BudgetMemberChips({ members = [], tripMembers = [], onSetMembers, onTog
           {tripMembers.map(tm => {
             const isActive = memberIds.includes(tm.id)
             return (
-              <button key={tm.id} onClick={() => toggleMember(tm.id)} style={{
+              <button className={(!isActive) ? 'trek-hover' : undefined} key={tm.id} onClick={() => toggleMember(tm.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                 borderRadius: 6, border: 'none', background: isActive ? 'var(--bg-hover)' : 'none', cursor: 'pointer',
                 fontFamily: 'inherit', fontSize: 11, color: 'var(--text-primary)', textAlign: 'left',
-              }}
-                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'none' }}
-              >
+              }} >
                 <div style={{
                   width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700,
@@ -752,17 +747,14 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                 </button>
               </div>
             )}
-            <button onClick={handleExportCsv} title={t('budget.exportCsv')}
+            <button className="trek-hover-o88" onClick={handleExportCsv} title={t('budget.exportCsv')}
               style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
                 background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                 transition: 'opacity 0.15s ease',
-              }}
-              onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >
+              }} >
               <Download size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">CSV</span>
             </button>
           </div>
@@ -830,9 +822,8 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                       <>
                         <span style={{ fontWeight: 600, fontSize: 13 }}>{cat}</span>
                         {canEdit && (
-                          <button onClick={() => setEditingCat({ name: cat, value: cat })}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', padding: 1 }}
-                            onMouseEnter={e => e.currentTarget.style.color = '#fff'} onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}>
+                          <button className="trek-h-color-4eb23a" onClick={() => setEditingCat({ name: cat, value: cat })}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', display: 'flex', padding: 1 }}>
                             <Pencil size={10} />
                           </button>
                         )}
@@ -842,9 +833,8 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <span style={{ fontSize: 13, fontWeight: 500, opacity: 0.9 }}>{fmt(subtotal, currency)}</span>
                     {canEdit && (
-                      <button onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
-                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', opacity: 0.6 }}
-                        onMouseEnter={e => e.currentTarget.style.opacity = '1'} onMouseLeave={e => e.currentTarget.style.opacity = '0.6'}>
+                      <button className="trek-hover-opaque" onClick={() => handleDeleteCategory(cat)} title={t('budget.deleteCategory')}
+                        style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 4, color: '#fff', cursor: 'pointer', padding: '3px 6px', display: 'flex', alignItems: 'center', opacity: 0.6 }}>
                         <Trash2 size={13} />
                       </button>
                     )}
@@ -875,7 +865,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                         const ppd = calcPPD(item.total_price, item.persons, item.days)
                         const hasMembers = item.members?.length > 0
                         return (
-                          <tr key={item.id}
+                          <tr className="trek-hover" key={item.id}
                             style={{
                               transition: 'background 0.1s, opacity 0.15s',
                               opacity: dragItem === item.id ? 0.4 : 1,
@@ -897,9 +887,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                                 reorderBudgetItems(tripId, ids)
                                 setDragItem(null); setDragOverItem(null); setDragItemCat(null)
                               }
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            }}>
                             <td style={td}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                                 {canEdit && (
@@ -960,9 +948,8 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
                             <td className="hidden sm:table-cell" style={td}><InlineEditCell value={item.note} onSave={v => handleUpdateField(item.id, 'note', v)} placeholder={t('budget.table.note')} locale={locale} editTooltip={t('budget.editTooltip')} readOnly={!canEdit} /></td>
                             <td style={{ ...td, textAlign: 'center' }}>
                               {canEdit && (
-                              <button onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
-                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-faint)', borderRadius: 4, display: 'inline-flex', transition: 'color 0.15s' }}
-                                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = '#d1d5db'}>
+                              <button className="trek-hover-danger" onClick={() => handleDeleteItem(item.id)} title={t('common.delete')}
+                                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, color: 'var(--text-faint)', borderRadius: 4, display: 'inline-flex', transition: 'color 0.15s' }}>
                                 <Trash2 size={14} />
                               </button>
                               )}

@@ -257,7 +257,7 @@ export default function JourneyPage() {
               </span>
 
               <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', marginLeft: 'auto', flexShrink: 0 }}>
-                <button
+                <button className="trek-hover-o88"
                   onClick={() => openCreateModal()}
                   style={{
                     appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
@@ -266,10 +266,7 @@ export default function JourneyPage() {
                     background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                     marginLeft: 2,
                     transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                >
+                  }} >
                   <Plus size={14} strokeWidth={2.5} />
                   {t('journey.frontpage.createJourney')}
                 </button>
@@ -788,17 +785,14 @@ function JourneyCard({ journey, onClick }: { journey: Journey & { entry_count?: 
   return (
     <div
       onClick={onClick}
-      className="rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
+      className="trek-h-box-shadow-ce6143 rounded-2xl overflow-hidden cursor-pointer transition-[transform,box-shadow] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-1 flex flex-col"
       style={{
         background: 'var(--glass-bg)',
         backdropFilter: 'var(--glass-blur)',
         WebkitBackdropFilter: 'var(--glass-blur)',
         border: '1px solid var(--glass-border)',
         boxShadow: 'var(--glass-shadow)',
-      }}
-      onMouseEnter={e => { e.currentTarget.style.boxShadow = 'var(--glass-shadow-lg)' }}
-      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'var(--glass-shadow)' }}
-    >
+      }} >
       {/* Cover */}
       <div className="h-[170px] relative overflow-hidden trek-gradient" style={{ background: pickGradient(j.id) }}>
         {j.cover_image && (

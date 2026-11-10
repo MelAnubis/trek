@@ -150,14 +150,11 @@ function EmojiPicker({ onSelect, onClose, anchorRef, containerRef }: EmojiPicker
       {/* Emoji grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: 2, padding: 8 }}>
         {EMOJI_CATEGORIES[cat].map((emoji, i) => (
-          <button key={i} onClick={() => onSelect(emoji)} style={{
+          <button className="trek-hover trek-h-transform-8d07d0" key={i} onClick={() => onSelect(emoji)} style={{
             width: 28, height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
             background: 'none', border: 'none', cursor: 'pointer', borderRadius: 6,
             padding: 2, transition: 'transform 0.1s',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)'; e.currentTarget.style.transform = 'scale(1.2)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.transform = 'scale(1)' }}
-          >
+          }} >
             <TwemojiImg emoji={emoji} size={20} />
           </button>
         ))}
@@ -198,14 +195,11 @@ function ReactionMenu({ x, y, onReact, onClose }: ReactionMenuProps) {
       display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2, width: menuWidth,
     }}>
       {QUICK_REACTIONS.map(emoji => (
-        <button key={emoji} onClick={() => onReact(emoji)} style={{
+        <button className="trek-h-transform-8d07d0 trek-hover" key={emoji} onClick={() => onReact(emoji)} style={{
           width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'none', border: 'none', cursor: 'pointer', borderRadius: '50%',
           padding: 3, transition: 'transform 0.1s, background 0.1s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.2)'; e.currentTarget.style.background = 'var(--bg-hover)' }}
-          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'none' }}
-        >
+        }} >
           <TwemojiImg emoji={emoji} size={18} />
         </button>
       ))}
@@ -263,15 +257,12 @@ function LinkPreview({ url, tripId, own, onLoad }: LinkPreviewProps) {
   const domain = (() => { try { return new URL(url).hostname.replace('www.', '') } catch { return '' } })()
 
   return (
-    <a href={url} target="_blank" rel="noopener noreferrer" style={{
+    <a className="trek-hover-o85" href={url} target="_blank" rel="noopener noreferrer" style={{
       display: 'block', textDecoration: 'none', marginTop: 6, borderRadius: 12, overflow: 'hidden',
       border: own ? '1px solid rgba(255,255,255,0.15)' : '1px solid var(--border-faint)',
       background: own ? 'rgba(255,255,255,0.1)' : 'var(--bg-secondary)',
       maxWidth: 280, transition: 'opacity 0.15s',
-    }}
-      onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-      onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-    >
+    }} >
       {data.image && (
         <img src={data.image} alt="" style={{ width: '100%', height: 140, objectFit: 'cover', display: 'block' }}
           onError={e => { (e.target as HTMLElement).style.display = 'none' }} />
@@ -703,27 +694,21 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
                         transition: 'opacity .1s',
                         ...(own ? { left: -6 } : { right: -6 }),
                       }}>
-                        <button onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
+                        <button className="trek-h-transform-8d07d0" onClick={() => setReplyTo(msg)} title={t('collab.chat.reply')} style={{
                           width: 24, height: 24, borderRadius: '50%', border: 'none',
                           background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                           cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
                           boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.12s',
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.2)' }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)' }}
-                        >
+                        }} >
                           <Reply size={11} />
                         </button>
                         {own && canEdit && (
-                          <button onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
+                          <button className="trek-h-transform-8d07d0 trek-h-background-82b6ef trek-h-color-4eb23a" onClick={() => handleDelete(msg.id)} title={t('common.delete')} style={{
                             width: 24, height: 24, borderRadius: '50%', border: 'none',
                             background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: 'var(--accent-text)', padding: 0,
                             boxShadow: '0 2px 8px rgba(0,0,0,0.15)', transition: 'transform 0.12s, background 0.15s, color 0.15s',
-                          }}
-                            onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.2)'; e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = '#fff' }}
-                            onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.background = 'var(--accent)'; e.currentTarget.style.color = 'var(--accent-text)' }}
-                          >
+                          }} >
                             <Trash2 size={11} />
                           </button>
                         )}

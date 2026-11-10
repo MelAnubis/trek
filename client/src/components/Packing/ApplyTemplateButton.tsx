@@ -78,15 +78,12 @@ export default function ApplyTemplateButton({ tripId, style, className }: ApplyT
           }}
         >
           {templates.map(tmpl => (
-            <button key={tmpl.id} onClick={() => handleApply(tmpl.id)}
+            <button className="trek-hover-tertiary" key={tmpl.id} onClick={() => handleApply(tmpl.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%',
                 padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
                 background: 'transparent', fontFamily: 'inherit', fontSize: 12, color: 'var(--text-primary)',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
+              }} >
               <Package size={13} style={{ color: 'var(--text-faint)' }} />
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontWeight: 600 }}>{tmpl.name}</div>

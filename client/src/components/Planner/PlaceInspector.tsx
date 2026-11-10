@@ -309,12 +309,9 @@ export default function PlaceInspector({
               </div>
             )}
           </div>
-          <button
+          <button className="trek-hover-tertiary"
             onClick={onClose}
-            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-          >
+            style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-hover)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, alignSelf: 'flex-start', transition: 'background 0.15s' }} >
             <X size={14} strokeWidth={2} color="var(--text-secondary)" />
           </button>
         </div>
@@ -812,14 +809,11 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
         {/* Add button */}
         {availableToAdd.length > 0 && (
           <div style={{ position: 'relative' }}>
-            <button onClick={() => setShowAdd(!showAdd)} style={{
+            <button className="trek-hover-border-muted trek-hover-text" onClick={() => setShowAdd(!showAdd)} style={{
               width: 22, height: 22, borderRadius: '50%', border: '1.5px dashed var(--border-primary)',
               background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'var(--text-faint)', fontSize: 12, transition: 'all 0.12s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--text-muted)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-primary)'; e.currentTarget.style.color = 'var(--text-faint)' }}
-            >+</button>
+            }} >+</button>
 
             {showAdd && (
               <div style={{
@@ -828,15 +822,12 @@ function ParticipantsBox({ tripMembers, participantIds, allJoined, onSetParticip
                 boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 140,
               }}>
                 {availableToAdd.map(member => (
-                  <button key={member.id} onClick={() => handleAdd(member.id)} style={{
+                  <button className="trek-hover" key={member.id} onClick={() => handleAdd(member.id)} style={{
                     display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '5px 8px',
                     borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer',
                     fontFamily: 'inherit', fontSize: 11, color: 'var(--text-primary)', textAlign: 'left',
                     transition: 'background 0.1s',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'none'}
-                  >
+                  }} >
                     <div style={{
                       width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, fontWeight: 700,

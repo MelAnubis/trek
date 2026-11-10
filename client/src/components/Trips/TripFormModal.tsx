@@ -326,13 +326,11 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
+            <button className="trek-h-border-color-b6a5da trek-h-color-908c64" type="button" onClick={() => fileRef.current?.click()} disabled={uploadingCover}
               onDragOver={e => { e.preventDefault(); e.currentTarget.style.borderColor = 'var(--accent)'; e.currentTarget.style.background = 'var(--accent-light)' }}
               onDragLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none' }}
               onDrop={e => { e.preventDefault(); e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.background = 'none'; const file = e.dataTransfer.files?.[0]; if (file?.type.startsWith('image/')) handleCoverSelect(file) }}
-              style={{ width: '100%', padding: '18px', border: '2px dashed #e5e7eb', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, color: '#9ca3af', fontFamily: 'inherit', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.color = '#6b7280' }}
-              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#9ca3af' }}>
+              style={{ width: '100%', padding: '18px', border: '2px dashed #e5e7eb', borderRadius: 10, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, fontSize: 13, color: '#9ca3af', fontFamily: 'inherit', transition: 'all 0.15s' }}>
               <Camera size={15} /> {uploadingCover ? t('common.uploading') : t('dashboard.addCoverImage')}
             </button>
           )}
@@ -344,11 +342,9 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
           {coverSuggestions.length > 0 && (
             <div style={{ display: 'flex', gap: 8, overflowX: 'auto', marginTop: 8, paddingBottom: 4 }}>
               {coverSuggestions.map((photo, i) => (
-                <button key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
+                <button className="trek-hover-border-accent" key={i} type="button" onClick={() => handleSelectSuggestion(photo)}
                   title={photo.attribution}
-                  style={{ flexShrink: 0, width: 84, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid transparent', padding: 0, cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent)' }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'transparent' }}>
+                  style={{ flexShrink: 0, width: 84, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid transparent', padding: 0, cursor: 'pointer' }}>
                   <img src={photo.thumb} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </button>
               ))}

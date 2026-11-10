@@ -1,0 +1,35 @@
+/* Generated from the old onMouseEnter/onMouseLeave style handlers: one class per
+   hover look. Only with a real pointer; !important beats the inline resting style. */
+@media (hover: hover) {
+  .trek-h-background-25af55:hover { background: rgba(239,68,68,0.1) !important; }
+  .trek-h-background-2c9f8f:hover { background: #E85D24 !important; }
+  .trek-h-background-2e6b9b:hover { background: rgba(239,68,68,0.2) !important; }
+  .trek-h-background-404ced:hover { background: rgba(0,0,0,0.05) !important; }
+  .trek-h-background-40d487:hover { background: rgba(239,68,68,0.08) !important; }
+  .trek-h-background-82b6ef:hover { background: #ef4444 !important; }
+  .trek-h-background-892a31:hover { background: #fef3c740 !important; }
+  .trek-h-background-9bcf75:hover { background: #b91c1c !important; }
+  .trek-h-background-abc7f5:hover { background: var(--accent) !important; }
+  .trek-h-background-d3ab94:hover { background: rgba(0,0,0,0.75) !important; }
+  .trek-h-border-color-96af4f:hover { border-color: #ef4444 !important; }
+  .trek-h-border-color-add850:hover { border-color: #f59e0b !important; }
+  .trek-h-border-color-b6a5da:hover { border-color: #d1d5db !important; }
+  .trek-h-border-color-ffa2aa:hover { border-color: #6366f1 !important; }
+  .trek-h-box-shadow-7cd433:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important; }
+  .trek-h-box-shadow-c46881:hover { box-shadow: 0 0 0 1px #6366f122 !important; }
+  .trek-h-box-shadow-cdf48e:hover { box-shadow: 0 0 0 1px #ef444422 !important; }
+  .trek-h-box-shadow-ce6143:hover { box-shadow: var(--glass-shadow-lg) !important; }
+  .trek-h-box-shadow-cea719:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06) !important; }
+  .trek-h-box-shadow-d3a4d7:hover { box-shadow: 0 0 0 1px #f59e0b22 !important; }
+  .trek-h-color-4eb23a:hover { color: #fff !important; }
+  .trek-h-color-5b795a:hover { color: var(--text-muted) !important; }
+  .trek-h-color-908c64:hover { color: #6b7280 !important; }
+  .trek-h-color-f780f2:hover { color: var(--accent-text) !important; }
+  .trek-h-transform-244d20:hover { transform: scale(1.08) !important; }
+  .trek-h-transform-6b162d:hover { transform: scale(1.06) !important; }
+  .trek-h-transform-8d07d0:hover { transform: scale(1.2) !important; }
+  .trek-h-transform-c590c0:hover { transform: scale(1.15) !important; }
+  .trek-h-background-d9ff9a:hover { background: rgba(0,0,0,0.02) !important; }
+  .trek-h-color-bcbd42:hover { color: #facc15 !important; }
+  .trek-h-filter-6e247f:hover { filter: none !important; }
+}

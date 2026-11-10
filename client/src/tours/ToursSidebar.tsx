@@ -172,9 +172,8 @@ function AddToDay({ days, onPick }: { days: Props['days']; onPick: (dayId: numbe
         <div style={{ position: 'absolute', right: 0, top: 30, zIndex: 50, width: 210, maxHeight: 260, overflowY: 'auto', background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4 }}>
           <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '6px 8px' }}>{t('tours.addToDay')}</div>
           {days.map((d, i) => (
-            <button key={d.id} type="button" onClick={() => { onPick(d.id); setOpen(false) }}
-              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', padding: '7px 8px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <button className="trek-hover" key={d.id} type="button" onClick={() => { onPick(d.id); setOpen(false) }}
+              style={{ display: 'flex', justifyContent: 'space-between', gap: 8, width: '100%', padding: '7px 8px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 12.5, color: 'var(--text-primary)', textAlign: 'left' }}>
               <span>{t('tours.days.short.one', { days: d.day_number ?? i + 1 })}{d.title ? ` · ${d.title}` : ''}</span>
               {d.date && <span style={{ color: 'var(--text-faint)' }}>{new Date(d.date + 'T00:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}</span>}
             </button>
@@ -253,9 +252,8 @@ export default function ToursSidebar(props: Props) {
         {menuOpen && (
           <div style={{ position: 'absolute', right: 12, top: 44, zIndex: 50, width: 230, background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12, boxShadow: 'var(--shadow-elevated)', padding: 4 }} onMouseLeave={() => setMenuOpen(false)}>
             {[{ icon: Crosshair, label: t('tours.planner.newTour'), run: props.onNew }, { icon: Upload, label: t('tours.import.button'), run: props.onImport }].map((it, i) => (
-              <button key={i} type="button" onClick={() => { it.run(); setMenuOpen(false) }}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-hover)')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <button className="trek-hover" key={i} type="button" onClick={() => { it.run(); setMenuOpen(false) }}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '9px 10px', border: 'none', borderRadius: 8, background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, color: 'var(--text-primary)', textAlign: 'left' }}>
                 <it.icon size={14} />{it.label}
               </button>
             ))}

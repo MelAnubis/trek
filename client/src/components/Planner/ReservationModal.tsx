@@ -593,7 +593,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                       boxShadow: '0 4px 16px rgba(0,0,0,0.12)', padding: 4, minWidth: 220, maxHeight: 200, overflowY: 'auto',
                     }}>
                       {files.filter(f => !f.deleted_at && !attachedFiles.some(af => af.id === f.id)).map(f => (
-                        <button key={f.id} type="button" onClick={async () => {
+                        <button className="trek-hover-tertiary" key={f.id} type="button" onClick={async () => {
                           try {
                             await apiClient.post(`/trips/${tripId}/files/${f.id}/link`, { reservation_id: reservation.id })
                             setLinkedFileIds(prev => [...prev, f.id])
@@ -605,9 +605,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
                             display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '6px 10px',
                             background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontFamily: 'inherit',
                             color: 'var(--text-secondary)', borderRadius: 7, textAlign: 'left',
-                          }}
-                          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                          onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                          }}>
                           <FileText size={12} style={{ color: 'var(--text-faint)', flexShrink: 0 }} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.original_name}</span>
                         </button>

@@ -68,11 +68,8 @@ export default function InAppNotificationsPage(): React.ReactElement {
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
-                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                >
+                  className="trek-hover-tertiary flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm transition-colors"
+                  style={{ background: 'var(--bg-hover)', color: 'var(--text-secondary)' }} >
                   <CheckCheck className="w-4 h-4" />
                   <span className="hidden sm:inline">{t('notifications.markAllRead')}</span>
                 </button>

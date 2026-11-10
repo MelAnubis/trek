@@ -82,15 +82,13 @@ function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxProps) {
   const hasPrev = index > 0
   const hasNext = index < files.length - 1
   const navBtn = (side: 'left' | 'right', onClick: () => void, show: boolean): React.ReactNode => show ? (
-    <button onClick={e => { e.stopPropagation(); onClick() }}
+    <button className="trek-h-background-d3ab94" onClick={e => { e.stopPropagation(); onClick() }}
       style={{
         position: 'absolute', top: '50%', [side]: 12, transform: 'translateY(-50%)', zIndex: 10,
         background: 'rgba(0,0,0,0.5)', border: 'none', borderRadius: '50%', width: 40, height: 40,
         display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
         color: 'rgba(255,255,255,0.8)', transition: 'background 0.15s',
-      }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.75)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(0,0,0,0.5)')}>
+      }}>
       {side === 'left' ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
     </button>
   ) : null
@@ -448,15 +446,12 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
     for (const rid of (file.linked_reservation_ids || [])) allLinkedResIds.add(rid)
     const linkedReservations = [...allLinkedResIds].map(rid => reservations?.find(r => r.id === rid)).filter(Boolean)
     return (
-      <div key={file.id} style={{
+      <div className="trek-hover-border-faint group" key={file.id} style={{
         background: 'var(--bg-card)', border: '1px solid var(--border-primary)', borderRadius: 12,
         padding: '10px 12px', display: 'flex', alignItems: 'flex-start', gap: 10,
         transition: 'border-color 0.12s',
         opacity: isTrash ? 0.7 : 1,
       }}
-        onMouseEnter={e => e.currentTarget.style.borderColor = 'var(--text-faint)'}
-        onMouseLeave={e => e.currentTarget.style.borderColor = 'var(--border-primary)'}
-        className="group"
       >
         {/* Icon or thumbnail */}
         <div
@@ -522,35 +517,28 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
         <div className="file-actions" style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
           {isTrash ? (
             <>
-              {can('file_delete', trip) && <button onClick={() => handleRestore(file.id)} title={t('files.restore') || 'Restore'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#22c55e'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              {can('file_delete', trip) && <button className="trek-hover-success" onClick={() => handleRestore(file.id)} title={t('files.restore') || 'Restore'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <RotateCcw size={14} />
               </button>}
-              {can('file_delete', trip) && <button onClick={() => handlePermanentDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              {can('file_delete', trip) && <button className="trek-hover-danger" onClick={() => handlePermanentDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <Trash2 size={14} />
               </button>}
             </>
           ) : (
             <>
-              <button onClick={() => handleStar(file.id)} title={file.starred ? t('files.unstar') || 'Unstar' : t('files.star') || 'Star'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: file.starred ? '#facc15' : 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => { if (!file.starred) e.currentTarget.style.color = '#facc15' }} onMouseLeave={e => { if (!file.starred) e.currentTarget.style.color = 'var(--text-faint)' }}>
+              <button className={(!file.starred) ? 'trek-h-color-bcbd42' : undefined} onClick={() => handleStar(file.id)} title={file.starred ? t('files.unstar') || 'Unstar' : t('files.star') || 'Star'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: file.starred ? '#facc15' : 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <Star size={14} fill={file.starred ? '#facc15' : 'none'} />
               </button>
-              {can('file_edit', trip) && <button onClick={() => setAssignFileId(file.id)} title={t('files.assign') || 'Assign'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              {can('file_edit', trip) && <button className="trek-hover-text" onClick={() => setAssignFileId(file.id)} title={t('files.assign') || 'Assign'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <Pencil size={14} />
               </button>}
-              <button onClick={() => openFile(file)} title={t('common.open')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" onClick={() => openFile(file)} title={t('common.open')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <ExternalLink size={14} />
               </button>
-              <button onClick={() => triggerDownload(file.url, file.original_name)} title={t('files.download') || 'Download'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" onClick={() => triggerDownload(file.url, file.original_name)} title={t('files.download') || 'Download'} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <Download size={14} />
               </button>
-              {can('file_delete', trip) && <button onClick={() => handleDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}
-                onMouseEnter={e => e.currentTarget.style.color = '#ef4444'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              {can('file_delete', trip) && <button className="trek-hover-danger" onClick={() => handleDelete(file.id)} title={t('common.delete')} style={{ padding: 6, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', borderRadius: 6, display: 'flex' }}>
                 <Trash2 size={14} />
               </button>}
             </>
@@ -625,7 +613,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                 const placeBtn = (p: Place) => {
                   const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
                   return (
-                    <button key={p.id} onClick={async () => {
+                    <button className="trek-hover" key={p.id} onClick={async () => {
                       if (isLinked) {
                         if (file.place_id === p.id) {
                           await handleAssign(file.id, { place_id: null })
@@ -652,9 +640,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                       border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)',
                       borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                       display: 'flex', alignItems: 'center', gap: 6,
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = isLinked ? 'var(--bg-hover)' : 'transparent'}>
+                    }}>
                       <MapPin size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
@@ -700,7 +686,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                   const isLinked = file.reservation_id === r.id || (file.linked_reservation_ids || []).includes(r.id)
                   const Icon = TRANSPORT_TYPES.has(r.type) ? transportIcon(r.type) : Ticket
                   return (
-                    <button key={r.id} onClick={async () => {
+                    <button className="trek-hover" key={r.id} onClick={async () => {
                       if (isLinked) {
                         if (file.reservation_id === r.id) {
                           await handleAssign(file.id, { reservation_id: null })
@@ -727,9 +713,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                       border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--text-primary)',
                       borderRadius: 8, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400,
                       display: 'flex', alignItems: 'center', gap: 6,
-                    }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = isLinked ? 'var(--bg-hover)' : 'transparent'}>
+                    }}>
                       <Icon size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.title || r.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
@@ -787,24 +771,18 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border-primary)', flexShrink: 0 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{previewFile.original_name}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                <button
+                <button className="trek-hover-text"
                   onClick={() => openFileUrl(previewFile.url, previewFile.original_name).catch(() => toast.error(t('files.openError')))}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}>
                   <ExternalLink size={13} /> {t('files.openTab')}
                 </button>
-                <button
+                <button className="trek-hover-text"
                   onClick={() => triggerDownload(previewFile.url, previewFile.original_name)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)'}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}>
                   <Download size={13} /> {t('files.download') || 'Download'}
                 </button>
-                <button onClick={() => setPreviewFile(null)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 4, borderRadius: 6, transition: 'color 0.15s' }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+                <button className="trek-hover-text" onClick={() => setPreviewFile(null)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', padding: 4, borderRadius: 6, transition: 'color 0.15s' }}>
                   <X size={18} />
                 </button>
               </div>
@@ -884,7 +862,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             </>
           )}
 
-          <button onClick={toggleTrash} style={{
+          <button className="trek-hover-opaque" onClick={toggleTrash} style={{
             appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
             display: 'inline-flex', alignItems: 'center', gap: 6,
             padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
@@ -892,10 +870,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             flexShrink: 0, marginLeft: 'auto',
             opacity: showTrash ? 1 : 0.88,
             transition: 'opacity 0.15s ease',
-          }}
-            onMouseEnter={e => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={e => e.currentTarget.style.opacity = showTrash ? '1' : '0.88'}
-          >
+          }} >
             <Trash2 size={14} strokeWidth={2.5} /> <span className="hidden sm:inline">{t('files.trash') || 'Trash'}</span>
           </button>
         </div>

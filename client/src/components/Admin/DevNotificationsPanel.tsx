@@ -68,11 +68,8 @@ export default function DevNotificationsPanel(): React.ReactElement {
     <button
       onClick={onClick}
       disabled={sending !== null}
-      className="flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full"
-      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }}
-      onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-hover)' }}
-      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)' }}
-    >
+      className="trek-hover flex items-center gap-3 px-4 py-3 rounded-lg border transition-colors text-left w-full"
+      style={{ borderColor: 'var(--border-primary)', background: 'var(--bg-card)' }} >
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
         style={{ background: `${color}20`, color }}>
         <Icon className="w-4 h-4" />

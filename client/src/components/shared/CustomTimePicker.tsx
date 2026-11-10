@@ -136,16 +136,14 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
             minWidth: 0,
           }}
         />
-        <button
+        <button className="trek-hover-text"
           type="button"
           onClick={() => setOpen(o => !o)}
           style={{
             background: 'none', border: 'none', cursor: 'pointer', padding: '8px 10px',
             display: 'flex', alignItems: 'center', color: 'var(--text-faint)',
             transition: 'color 0.15s', flexShrink: 0,
-          }}
-          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+          }}>
           <Clock size={14} />
         </button>
       </div>
@@ -164,9 +162,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
         }}>
           {/* Hours */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <button type="button" onClick={incHour} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={incHour} style={btnStyle}>
               <ChevronUp size={16} />
             </button>
             <div style={{
@@ -177,9 +173,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
             }}>
               {hour !== null ? (is12h ? String(hour === 0 ? 12 : hour > 12 ? hour - 12 : hour) : String(hour).padStart(2, '0')) : '--'}
             </div>
-            <button type="button" onClick={decHour} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={decHour} style={btnStyle}>
               <ChevronDown size={16} />
             </button>
           </div>
@@ -188,9 +182,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
           {/* Minutes */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-            <button type="button" onClick={incMin} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={incMin} style={btnStyle}>
               <ChevronUp size={16} />
             </button>
             <div style={{
@@ -201,9 +193,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
             }}>
               {minute !== null ? String(minute).padStart(2, '0') : '--'}
             </div>
-            <button type="button" onClick={decMin} style={btnStyle}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-text" type="button" onClick={decMin} style={btnStyle}>
               <ChevronDown size={16} />
             </button>
           </div>
@@ -211,9 +201,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
           {/* AM/PM Toggle */}
           {is12h && hour !== null && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, marginLeft: 4 }}>
-              <button type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}>
                 <ChevronUp size={16} />
               </button>
               <div style={{
@@ -223,9 +211,7 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
               }}>
                 {hour >= 12 ? 'PM' : 'AM'}
               </div>
-              <button type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}
-                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+              <button className="trek-hover-text" type="button" onClick={() => { if (hour < 12) update(hour + 12, minute ?? 0); else update(hour - 12, minute ?? 0) }} style={btnStyle}>
                 <ChevronDown size={16} />
               </button>
             </div>
@@ -233,10 +219,8 @@ export default function CustomTimePicker({ value, onChange, placeholder = '00:00
 
           {/* Clear */}
           {value && (
-            <button type="button" onClick={() => { onChange(''); setOpen(false) }}
-              style={{ ...btnStyle, marginLeft: 4, fontSize: 11, color: 'var(--text-faint)', padding: '4px 6px' }}
-              onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-faint)'}>
+            <button className="trek-hover-danger" type="button" onClick={() => { onChange(''); setOpen(false) }}
+              style={{ ...btnStyle, marginLeft: 4, fontSize: 11, color: 'var(--text-faint)', padding: '4px 6px' }}>
               ✕
             </button>
           )}

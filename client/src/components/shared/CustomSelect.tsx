@@ -183,7 +183,7 @@ export default function CustomSelect({
                 }
                 const isSelected = option.value === value
                 return (
-                  <button
+                  <button className="trek-hover"
                     key={option.value}
                     type="button"
                     onClick={() => { onChange(option.value); setOpen(false); setSearch('') }}
@@ -193,10 +193,7 @@ export default function CustomSelect({
                       border: 'none', background: isSelected ? 'var(--bg-hover)' : 'transparent',
                       color: 'var(--text-primary)', fontSize: 13, fontFamily: 'inherit',
                       cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = isSelected ? 'var(--bg-hover)' : 'transparent'}
-                  >
+                    }} >
                     {option.icon && <span style={{ display: 'flex', flexShrink: 0 }}>{option.icon}</span>}
                     <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
                     {option.badge && (

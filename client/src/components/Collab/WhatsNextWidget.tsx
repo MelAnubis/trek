@@ -123,13 +123,10 @@ export default function WhatsNextWidget({ tripMembers = [] }: WhatsNextWidgetPro
                     </div>
                   )}
 
-                  <div style={{
+                  <div className="trek-hover" style={{
                     display: 'flex', gap: 10, padding: '8px 10px', borderRadius: 10,
                     background: 'var(--bg-secondary)', transition: 'background 0.1s',
-                  }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  >
+                  }} >
                     {/* Time column */}
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minWidth: 44, flexShrink: 0 }}>
                       <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', lineHeight: 1 }}>

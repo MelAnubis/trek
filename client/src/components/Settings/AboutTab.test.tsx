@@ -75,36 +75,27 @@ describe('AboutTab', () => {
     expect(screen.queryByText('v2.9.10')).toBeNull();
   });
 
-  it('FE-COMP-ABOUT-015: Bug report link hover changes border and box-shadow styles', () => {
+  it('FE-COMP-ABOUT-015: Bug report link has CSS hover classes for border and box-shadow', () => {
     render(<AboutTab appVersion="1.0.0" />);
     const link = document.querySelector('a[href*="issues/new"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(239, 68, 68)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
+    // The hover look is CSS now (styles/hover.css): a border-color and a box-shadow class.
+    expect(link.className).toMatch(/trek-h-border-color-/);
+    expect(link.className).toMatch(/trek-h-box-shadow-/);
   });
 
-  it('FE-COMP-ABOUT-016: Feature request link hover changes border and box-shadow styles', () => {
+  it('FE-COMP-ABOUT-016: Feature request link has CSS hover classes for border and box-shadow', () => {
     render(<AboutTab appVersion="1.0.0" />);
     const link = document.querySelector('a[href$="/discussions"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(245, 158, 11)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
+    // The hover look is CSS now (styles/hover.css): a border-color and a box-shadow class.
+    expect(link.className).toMatch(/trek-h-border-color-/);
+    expect(link.className).toMatch(/trek-h-box-shadow-/);
   });
 
-  it('FE-COMP-ABOUT-017: Wiki link hover changes border and box-shadow styles', () => {
+  it('FE-COMP-ABOUT-017: Wiki link has CSS hover classes for border and box-shadow', () => {
     render(<AboutTab appVersion="1.0.0" />);
     const link = document.querySelector('a[href*="wiki"]') as HTMLAnchorElement;
-    fireEvent.mouseEnter(link);
-    expect(link.style.borderColor).toBe('rgb(99, 102, 241)');
-    expect(link.style.boxShadow).not.toBe('');
-    fireEvent.mouseLeave(link);
-    expect(link.style.borderColor).toBe('var(--border-primary)');
-    expect(link.style.boxShadow).toBe('none');
+    // The hover look is CSS now (styles/hover.css): a border-color and a box-shadow class.
+    expect(link.className).toMatch(/trek-h-border-color-/);
+    expect(link.className).toMatch(/trek-h-box-shadow-/);
   });
 });

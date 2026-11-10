@@ -657,9 +657,7 @@ export default function BikepackApp() {
 
         {/* Resize handle */}
         <div onMouseDown={startResize} style={{ background:'transparent', cursor:'col-resize', display:'flex', alignItems:'center', justifyContent:'center', userSelect:'none', zIndex:10, flexShrink:0, width:6 }}>
-          <div style={{ width:3, height:48, background:'#D3D1C7', borderRadius:2, transition:'background .15s' }}
-            onMouseEnter={e=>(e.currentTarget.style.background='#E85D24')}
-            onMouseLeave={e=>(e.currentTarget.style.background='#D3D1C7')}/>
+          <div className="trek-h-background-2c9f8f" style={{ width:3, height:48, background:'#D3D1C7', borderRadius:2, transition:'background .15s' }}/>
         </div>
 
         {/* Right panel */}

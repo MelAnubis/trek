@@ -199,15 +199,11 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             </div>
             {!collapsed && formattedDate && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>{formattedDate}</div>}
           </div>
-          <button onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}
-            style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s ease' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
+          <button className="trek-hover" onClick={(e) => { e.stopPropagation(); toggleCollapse() }} title={collapsed ? t('common.expand') : t('common.collapse')}
+            style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0, transition: 'all 0.15s ease' }}>
             {collapsed ? <ChevronsUp size={14} style={{ color: 'var(--text-muted)' }} /> : <ChevronsDown size={14} style={{ color: 'var(--text-muted)' }} />}
           </button>
-          <button onClick={(e) => { e.stopPropagation(); onClose() }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-secondary)'}>
+          <button className="trek-hover" onClick={(e) => { e.stopPropagation(); onClose() }} style={{ background: 'var(--bg-secondary)', border: 'none', borderRadius: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
             <X size={14} style={{ color: 'var(--text-muted)' }} />
           </button>
         </div>
@@ -420,10 +416,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                             <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{linked.title}</div>
                             <div style={{ fontSize: 9, color: 'var(--text-faint)', display: 'flex', gap: 6, marginTop: 1 }}>
                               <span>{confirmed ? t('reservations.confirmed') : t('reservations.pending')}</span>
-                              {linked.confirmation_number && <span
-                                onMouseEnter={e => { if (blurCodes) e.currentTarget.style.filter = 'none' }}
-                                onMouseLeave={e => { if (blurCodes) e.currentTarget.style.filter = 'blur(4px)' }}
-                                onClick={e => { if (blurCodes) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(4px)' : 'none' } }}
+                              {linked.confirmation_number && <span className={(blurCodes) ? 'trek-h-filter-6e247f' : undefined} onClick={e => { if (blurCodes) { const el = e.currentTarget; el.style.filter = el.style.filter === 'none' ? 'blur(4px)' : 'none' } }}
                                 style={{ filter: blurCodes ? 'blur(4px)' : 'none', transition: 'filter 0.2s', cursor: blurCodes ? 'pointer' : 'default' }}
                               >#{linked.confirmation_number}</span>}
                             </div>
@@ -583,7 +576,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       return filtered.length === 0 ? (
                         <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--text-faint)' }}>{t('day.noPlacesForHotel')}</div>
                       ) : filtered.map(p => (
-                      <button key={p.id} onClick={() => handleSelectPlace(p.id)} style={{
+                      <button className={(hotelForm.place_id !== p.id) ? 'trek-hover' : undefined} key={p.id} onClick={() => handleSelectPlace(p.id)} style={{
                         display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 18px',
                         border: 'none', borderBottom: '1px solid var(--border-faint)',
                         background: hotelForm.place_id === p.id ? 'var(--bg-hover)' : 'none',
@@ -591,10 +584,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                         transition: 'background 0.1s',
                         outline: hotelForm.place_id === p.id ? '2px solid var(--accent)' : 'none',
                         outlineOffset: -2, borderRadius: hotelForm.place_id === p.id ? 8 : 0,
-                      }}
-                        onMouseEnter={e => { if (hotelForm.place_id !== p.id) e.currentTarget.style.background = 'var(--bg-hover)' }}
-                        onMouseLeave={e => { if (hotelForm.place_id !== p.id) e.currentTarget.style.background = 'none' }}
-                      >
+                      }} >
                         <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--bg-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                           {p.image_url ? (
                             <img src={p.image_url} style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />

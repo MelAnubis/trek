@@ -1034,7 +1034,7 @@ export default function AtlasPage(): React.ReactElement {
 
             {confirmAction.type === 'choose' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <button onClick={async () => {
+                <button className="trek-hover-secondary" onClick={async () => {
                   try {
                     await apiClient.post(`/addons/atlas/country/${confirmAction.code}/mark`)
                     setData(prev => {
@@ -1044,19 +1044,15 @@ export default function AtlasPage(): React.ReactElement {
                   } catch {}
                   setConfirmAction(null)
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}>
                   <MapPin size={18} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.markVisited')}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.markVisitedHint')}</div>
                   </div>
                 </button>
-                <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <button className="trek-hover-secondary" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' as any })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}>
                   <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.addToBucket')}</div>
@@ -1071,7 +1067,7 @@ export default function AtlasPage(): React.ReactElement {
                 {confirmAction.countryName && (
                   <p style={{ margin: '-8px 0 8px', fontSize: 12, color: 'var(--text-muted)' }}>{confirmAction.countryName}</p>
                 )}
-                <button onClick={async () => {
+                <button className="trek-hover-secondary" onClick={async () => {
                   const { code: countryCode, name: rName, regionCode: rCode } = confirmAction
                   if (!rCode) return
                   try {
@@ -1088,19 +1084,15 @@ export default function AtlasPage(): React.ReactElement {
                   } catch {}
                   setConfirmAction(null)
                 }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}>
                   <MapPin size={18} style={{ color: 'var(--text-primary)', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.markVisited')}</div>
                     <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1 }}>{t('atlas.markRegionVisitedHint')}</div>
                   </div>
                 </button>
-                <button onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                <button className="trek-hover-secondary" onClick={() => setConfirmAction({ ...confirmAction, type: 'bucket' })}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left', transition: 'background 0.12s' }}>
                   <Star size={18} style={{ color: '#fbbf24', flexShrink: 0 }} />
                   <div>
                     <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{t('atlas.addToBucket')}</div>

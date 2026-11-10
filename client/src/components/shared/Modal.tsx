@@ -90,21 +90,12 @@ export default function Modal({
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150"
+              className="trek-hover trek-hover-text w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150"
               style={{
                 color: 'var(--text-muted)',
                 background: 'var(--glass-bg-subtle)',
                 border: '1px solid var(--glass-border-inner)',
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--bg-hover)'
-                e.currentTarget.style.color = 'var(--text-primary)'
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'var(--glass-bg-subtle)'
-                e.currentTarget.style.color = 'var(--text-muted)'
-              }}
-            >
+              }} >
               <X className="w-4 h-4" />
             </button>
           )}

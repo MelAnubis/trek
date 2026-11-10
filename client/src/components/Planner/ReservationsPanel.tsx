@@ -148,15 +148,12 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
   }
 
   return (
-    <div style={{
+    <div className="trek-h-box-shadow-cea719" style={{
       borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column',
       border: `1px solid ${confirmed ? 'rgba(22,163,74,0.25)' : 'rgba(217,119,6,0.25)'}`,
       background: 'var(--bg-card)',
       transition: 'box-shadow 0.15s ease',
-    }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.06)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
-    >
+    }} >
       {/* Header — wraps to a second row on narrow screens so the status/category chips
           never collide with the title. */}
       <div style={{
@@ -214,24 +211,20 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
             maxWidth: 140, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>{r.title}</span>
           {canEdit && (
-            <button onClick={() => onEdit(r)} title={t('common.edit')} style={{
+            <button className="trek-h-background-404ced trek-hover-text" onClick={() => onEdit(r)} title={t('common.edit')} style={{
               appearance: 'none', border: 'none', background: 'transparent',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
               cursor: 'pointer', color: 'var(--text-faint)', flexShrink: 0,
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; e.currentTarget.style.color = 'var(--text-primary)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}>
+            }}>
               <Pencil size={13} />
             </button>
           )}
           {canEdit && (
-            <button onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} style={{
+            <button className="trek-h-background-40d487 trek-hover-danger" onClick={() => setShowDeleteConfirm(true)} title={t('common.delete')} style={{
               appearance: 'none', border: 'none', background: 'transparent',
               width: 26, height: 26, borderRadius: 6, display: 'grid', placeItems: 'center',
               cursor: 'pointer', color: 'var(--text-faint)', flexShrink: 0,
-            }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.08)'; e.currentTarget.style.color = '#ef4444' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-faint)' }}>
+            }}>
               <Trash2 size={13} />
             </button>
           )}
@@ -650,63 +643,51 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
           {canEdit && (
             <div style={{ display: 'flex', gap: 6, marginLeft: 'auto', flexShrink: 0 }}>
               {bookingImportAvailable && (onImportBooking || onImport) && (
-                <button onClick={onImportBooking ?? onImport} style={{
+                <button className="trek-hover-o75" onClick={onImportBooking ?? onImport} style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 13px', borderRadius: 10, fontSize: 13, fontWeight: 500,
                   background: 'var(--bg-card)', color: 'var(--text-primary)',
                   transition: 'opacity 0.15s ease',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title={t('reservations.import.cta')}
+                }} title={t('reservations.import.cta')}
                 >
                   <Upload size={14} strokeWidth={2.5} />
                   <span className="hidden sm:inline">{t('reservations.import.cta')}</span>
                 </button>
               )}
               {onAirTrailImport && airTrailAvailable && (
-                <button onClick={onAirTrailImport} style={{
+                <button className="trek-hover-o75" onClick={onAirTrailImport} style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
                   background: 'var(--bg-secondary)', color: 'var(--text-primary)',
                   transition: 'opacity 0.15s ease',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title={t('reservations.airtrail.title')}
+                }} title={t('reservations.airtrail.title')}
                 >
                   <Plane size={14} strokeWidth={2} />
                   <span className="hidden sm:inline">{t('reservations.airtrail.cta')}</span>
                 </button>
               )}
               {lodgingTools && days.length > 0 && (
-                <button onClick={() => setShowGenerateLodging(true)} style={{
+                <button className="trek-hover-o75" onClick={() => setShowGenerateLodging(true)} style={{
                   appearance: 'none', border: '1px solid var(--border-primary)', cursor: 'pointer', fontFamily: 'inherit',
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   padding: '8px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxSizing: 'border-box',
                   background: 'var(--bg-secondary)', color: 'var(--text-primary)',
                   transition: 'opacity 0.15s ease',
-                }}
-                  onMouseEnter={e => e.currentTarget.style.opacity = '0.75'}
-                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                  title={t('lodging.generate.title')}
+                }} title={t('lodging.generate.title')}
                 >
                   <Hotel size={14} strokeWidth={2} />
                   <span className="hidden sm:inline">{t('lodging.generate.open')}</span>
                 </button>
               )}
-              <button onClick={onAdd} style={{
+              <button className="trek-hover-o88" onClick={onAdd} style={{
                 appearance: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit',
                 display: 'inline-flex', alignItems: 'center', gap: 6,
                 padding: '9px 14px', borderRadius: 10, fontSize: 13, fontWeight: 500,
                 background: 'var(--accent)', color: 'var(--accent-text)', flexShrink: 0,
                 transition: 'opacity 0.15s ease',
-              }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              >
+              }} >
                 <Plus size={14} strokeWidth={2.5} />
                 <span className="hidden sm:inline">{t(addManualKey)}</span>
               </button>
