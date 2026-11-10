@@ -734,3 +734,23 @@ html[data-scheme="mono"] .trek-dash .welcome-cta { background: var(--ink); color
 
 /* A long press opens the trip's menu: no text selection or iOS image callout on top of it. */
 .trek-dash .trip-card, .trek-dash .hero-trip { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+
+/* Former inline styles (toolbar buttons, empty filters, small helpers) */
+.trek-dash .tool-action-lg { width: 38px; height: 38px; border-radius: 11px; position: relative; }
+.trek-dash .tool-badge {
+  position: absolute; top: 3px; right: 3px; min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 999px; background: var(--accent); color: #fff;
+  font-size: 9px; font-weight: 700; line-height: 15px; text-align: center;
+}
+html[data-scheme="mono"] .trek-dash .tool-badge { color: var(--surface); }
+.trek-dash .filters-empty { padding: 32px 16px; text-align: center; color: var(--ink-3); }
+.trek-dash .filters-empty p { margin: 0 0 10px; font-size: 13px; }
+.trek-dash .filters-empty button {
+  padding: 7px 14px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg-2); color: var(--ink); font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.trek-dash .buddy-avatar.is-photo { object-fit: cover; }
+.trek-dash .trip-cover-fill { width: 100%; height: 100%; }
+.trek-dash .trip-meta-3 { grid-template-columns: repeat(3, 1fr); }
+.trek-dash .tz-add { margin-bottom: 14px; }
+.trek-dash .upc-empty { font-size: 13px; color: var(--ink-3); }

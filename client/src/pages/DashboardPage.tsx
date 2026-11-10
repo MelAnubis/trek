@@ -182,23 +182,17 @@ export default function DashboardPage(): React.ReactElement {
                     <button className={tripFilter === 'archive' ? 'on' : ''} onClick={() => setTripFilter('archive')}>{t('dashboard.archived')}</button>
                     <button className={tripFilter === 'completed' ? 'on' : ''} onClick={() => setTripFilter('completed')}>{t('dashboard.mobile.completed')}</button>
                   </div>
-                  <button className="tool-action" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode} style={{ width: 38, height: 38, borderRadius: 11 }}>
+                  <button className="tool-action tool-action-lg" aria-label={t('dashboard.aria.toggleView')} onClick={toggleViewMode}>
                     {viewMode === 'grid' ? <List size={17} /> : <LayoutGrid size={17} />}
                   </button>
                   <button
-                    className="tool-action"
+                    className="tool-action tool-action-lg"
                     aria-label={t('dashboard.filters.title')}
                     onClick={() => setShowFilterPanel(true)}
-                    style={{ width: 38, height: 38, borderRadius: 11, position: 'relative' }}
                   >
                     <SlidersHorizontal size={16} />
                     {activeFilterCount > 0 && (
-                      <span style={{
-                        position: 'absolute', top: 3, right: 3,
-                        minWidth: 15, height: 15, padding: '0 3px', borderRadius: 999,
-                        background: 'var(--accent)', color: '#fff',
-                        fontSize: 9, fontWeight: 700, lineHeight: '15px', textAlign: 'center',
-                      }}>
+                      <span className="tool-badge">
                         {activeFilterCount}
                       </span>
                     )}
@@ -242,16 +236,9 @@ export default function DashboardPage(): React.ReactElement {
                 </div>
               )}
               {gridTrips.length === 0 && activeFilterCount > 0 && !isLoading && (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-3)' }}>
-                  <p style={{ margin: '0 0 10px', fontSize: 13 }}>{t('dashboard.filters.noResults')}</p>
-                  <button
-                    onClick={() => setFilters({ search: '', place: '', minDays: '', maxDays: '', sortBy: 'date' })}
-                    style={{
-                      padding: '7px 14px', borderRadius: 8, border: '1px solid var(--line)',
-                      background: 'var(--bg-2)', color: 'var(--ink)', fontSize: 12, fontWeight: 600,
-                      cursor: 'pointer', fontFamily: 'inherit',
-                    }}
-                  >
+                <div className="filters-empty">
+                  <p>{t('dashboard.filters.noResults')}</p>
+                  <button onClick={() => setFilters({ search: '', place: '', minDays: '', maxDays: '', sortBy: 'date' })}>
                     {t('dashboard.filters.clear')}
                   </button>
                 </div>
@@ -366,7 +353,7 @@ function BoardingPassHero({ trip, bundle, locale, mobile, onOpen, onMenu, onMenu
         <div className="buddies-avatars">
           {members.slice(0, 4).map((m, i) => (
             m.avatar_url
-              ? <img key={m.id} className="buddy-avatar" src={m.avatar_url} alt={m.username} style={{ objectFit: 'cover' }} />
+              ? <img key={m.id} className="buddy-avatar is-photo" src={m.avatar_url} alt={m.username} />
               : <div key={m.id} className="buddy-avatar" style={{ background: buddyColor(i) }}>{initials(m.username)}</div>
           ))}
           {members.length > 4 && <div className="buddy-more">+{members.length - 4}</div>}
@@ -524,7 +511,7 @@ function TripCard({ trip, locale, onOpen, onMenu, onMenuAt }: {
       <div className="trip-cover">
         {trip.cover_image
           ? <img src={trip.cover_image} alt={trip.title} />
-          : <div style={{ width: '100%', height: '100%', background: tripGradient(trip.id) }} />}
+          : <div className="trip-cover-fill" style={{ background: tripGradient(trip.id) }} />}
         <div className={`trip-status ${statusClass}`}><span className="indicator" /> {statusLabel}</div>
         <div className="trip-actions">
           <button className="trip-action-btn" aria-label={t('dashboard.aria.tripActions')} aria-haspopup="menu" onClick={onMenu}><MoreHorizontal size={18} /></button>
@@ -543,7 +530,7 @@ function TripCard({ trip, locale, onOpen, onMenu, onMenuAt }: {
             </>
           ) : <span>{t('dashboard.hero.noDates')}</span>}
         </div>
-        <div className="trip-meta" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="trip-meta trip-meta-3">
           <div><span className="n mono">{trip.day_count ?? 0}</span><span className="k">{t('dashboard.days')}</span></div>
           <div><span className="n mono">{trip.place_count ?? 0}</span><span className="k">{t('dashboard.places')}</span></div>
           <div><span className="n mono">{trip.shared_count ?? 0}</span><span className="k">{trip.shared_count === 1 ? t('dashboard.card.buddyOne') : t('dashboard.members')}</span></div>
@@ -674,7 +661,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
         </button>
       </div>
       {adding && (
-        <div style={{ marginBottom: 14 }}>
+        <div className="tz-add">
           <CustomSelect value="" onChange={addZone} options={tzOptions} searchable size="sm" placeholder={t('dashboard.tz.searchPlaceholder')} />
         </div>
       )}
@@ -709,7 +696,7 @@ function UpcomingTool({ items, locale, onOpen }: {
         <div className="tool-title"><Calendar size={14} /> {t('dashboard.upcoming.title')}</div>
       </div>
       {items.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>{t('dashboard.upcoming.empty')}</div>
+        <div className="upc-empty">{t('dashboard.upcoming.empty')}</div>
       ) : (
         <div className="upc-list">
           {items.map(r => {

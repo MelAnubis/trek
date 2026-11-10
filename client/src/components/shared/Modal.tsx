@@ -1,6 +1,8 @@
 import React, { useEffect, useCallback, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { X } from 'lucide-react'
+import '../../styles/chrome.css'
+import { useTranslation } from '../../i18n'
 
 const sizeClasses: Record<string, string> = {
   sm: 'max-w-sm',
@@ -34,6 +36,7 @@ export default function Modal({
   hideCloseButton = false,
   wideTitle = false,
 }: ModalProps) {
+  const { t } = useTranslation()
   const handleEsc = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose()
   }, [onClose])
@@ -55,15 +58,7 @@ export default function Modal({
 
   return ReactDOM.createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
-      style={{
-        backgroundColor: 'var(--modal-backdrop)',
-        backdropFilter: 'blur(12px) saturate(150%)',
-        WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        paddingTop: 70,
-        paddingBottom: 'calc(20px + var(--bottom-nav-h))',
-        overflow: 'hidden',
-      }}
+      className="trek-modal-backdrop fixed inset-0 z-[200] flex items-start sm:items-center justify-center px-4 modal-backdrop trek-backdrop-enter"
       onMouseDown={e => { mouseDownTarget.current = e.target }}
       onClick={e => {
         if (e.target === e.currentTarget && mouseDownTarget.current === e.currentTarget) onClose()
@@ -81,21 +76,16 @@ export default function Modal({
       >
         {/* Header */}
         <div
-          className={`flex ${wideTitle ? 'items-start gap-4' : 'items-center'} justify-between px-6 py-4 flex-shrink-0`}
-          style={{ borderBottom: '1px solid var(--modal-border)', ...(wideTitle ? { background: 'var(--bg-tertiary)' } : {}) }}
+          className={`trek-modal-head${wideTitle ? ' is-wide items-start gap-4' : ' items-center'} flex justify-between px-6 py-4 flex-shrink-0`}
         >
           {wideTitle
-            ? <div className="flex-1 min-w-0" style={{ color: 'var(--text-primary)' }}>{title}</div>
-            : <h2 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>{title}</h2>}
+            ? <div className="trek-text-primary flex-1 min-w-0">{title}</div>
+            : <h2 className="trek-text-primary text-base font-semibold">{title}</h2>}
           {!hideCloseButton && (
             <button
               onClick={onClose}
-              className="trek-hover trek-hover-text w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150"
-              style={{
-                color: 'var(--text-muted)',
-                background: 'var(--glass-bg-subtle)',
-                border: '1px solid var(--glass-border-inner)',
-              }} >
+              aria-label={t('common.close')}
+              className="trek-modal-close trek-hover trek-hover-text w-8 h-8 rounded-xl flex items-center justify-center transition-all duration-150">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -109,8 +99,7 @@ export default function Modal({
         {/* Footer */}
         {footer && (
           <div
-            className="px-6 py-4 flex-shrink-0"
-            style={{ borderTop: '1px solid var(--modal-border)' }}
+            className="trek-modal-foot px-6 py-4 flex-shrink-0"
           >
             {footer}
           </div>

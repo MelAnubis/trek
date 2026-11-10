@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n'
 import { Mountain, Plane, LogOut, Settings, Radio, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import '../../styles/chrome.css'
 import { useIsDark } from '../../hooks/useIsDark'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass }
@@ -91,41 +92,27 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   }
 
   return (
-    <nav style={{
-      background: dark
-        ? (scrolled ? 'rgba(9,9,11,0.82)' : 'rgba(9,9,11,0.94)')
-        : (scrolled ? 'rgba(250,250,250,0.78)' : 'rgba(250,250,250,0.94)'),
-      backdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
-      WebkitBackdropFilter: scrolled ? 'blur(32px) saturate(180%)' : 'blur(24px) saturate(160%)',
-      borderBottom: '1px solid var(--chrome-border)',
-      boxShadow: scrolled
-        ? (dark ? '0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--chrome-border)' : '0 4px 24px rgba(0,0,0,0.06), 0 0 0 1px var(--chrome-border)')
-        : (dark ? '0 1px 16px rgba(0,0,0,0.25)' : '0 1px 12px rgba(0,0,0,0.04)'),
-      touchAction: 'manipulation',
-      paddingTop: 'env(safe-area-inset-top, 0px)',
-      height: 'var(--nav-h)',
-      transition: 'background 240ms cubic-bezier(0.23,1,0.32,1), backdrop-filter 240ms cubic-bezier(0.23,1,0.32,1), box-shadow 240ms cubic-bezier(0.23,1,0.32,1)',
-    }} className="hidden md:flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]">
+    <nav className={`trek-navbar${scrolled ? ' is-scrolled' : ''} hidden md:flex items-center px-4 gap-4 fixed top-0 left-0 right-0 z-[200]`}>
       {/* Left side */}
       <div className="flex items-center gap-3 min-w-0">
         {showBack && (
           <button onClick={onBack}
             className="trek-hover trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
-            style={{ color: 'var(--text-muted)' }}>
+            >
             <ArrowLeft className="trek-back-icon w-4 h-4" />
             <span className="hidden sm:inline">{t('common.back')}</span>
           </button>
         )}
 
         <Link to="/dashboard" className="flex items-center transition-colors flex-shrink-0">
-          <img src={dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg'} alt="Trek Wanderer" className="sm:hidden" style={{ height: 22, width: 22 }} />
-          <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="Trek Wanderer" className="hidden sm:block" style={{ height: 28 }} />
+          <img src={dark ? '/icons/icon-white.svg' : '/icons/icon-dark.svg'} alt="Trek Wanderer" className="sm:hidden h-[22px] w-[22px]" />
+          <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="Trek Wanderer" className="hidden sm:block h-7" />
         </Link>
 
         {/* App destinations: my trips, the global addons that are on, the route planner and Explora. */}
         {!tripTitle && (
           <>
-            <span style={{ color: 'var(--text-faint)' }}>|</span>
+            <span className="trek-navbar-sep">|</span>
             {[
               { to: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase as LucideIcon },
               ...globalAddons.map(addon => ({ to: `/${addon.id}`, label: getAddonName(addon), Icon: ADDON_ICONS[addon.icon] || CalendarDays })),
@@ -147,8 +134,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
         {tripTitle && (
           <>
-            <span className="hidden sm:inline" style={{ color: 'var(--text-faint)' }}>/</span>
-            <span className="hidden sm:inline text-sm font-medium truncate max-w-48" style={{ color: 'var(--text-muted)' }}>
+            <span className="trek-navbar-sep hidden sm:inline">/</span>
+            <span className="trek-navbar-trip hidden sm:inline text-sm font-medium truncate max-w-48">
               {tripTitle}
             </span>
           </>
@@ -173,8 +160,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {/* Share button */}
       {onShare && (
         <button onClick={onShare}
-          className="trek-hover flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
-          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}>
+          className="trek-hover trek-navbar-share flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0">
           <Users className="w-4 h-4" />
           <span className="hidden sm:inline">{t('nav.share')}</span>
         </button>
@@ -187,16 +173,14 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {appVersion && (
         isPrerelease ? (
           <span
-            className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
-            style={{ background: 'rgba(245,158,11,0.15)', color: '#d97706', border: '1px solid rgba(245,158,11,0.3)' }}
+            className="trek-pill-prerelease hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
           >
-            <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: '#f59e0b' }} />
+            <span className="trek-pill-prerelease-dot w-1.5 h-1.5 rounded-full flex-shrink-0" />
             {appVersion}
           </span>
         ) : (
           <span
-            className="hidden lg:flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
-            style={{ background: 'var(--bg-tertiary)', color: 'var(--text-faint)' }}
+            className="trek-pill-version hidden lg:flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold flex-shrink-0"
             title={t('nav.versionTitle')}
           >
             v{appVersion}
@@ -206,12 +190,9 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
-        className="trek-hover p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center"
-        style={{ color: 'var(--text-muted)' }}>
-        <Sun className="w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ opacity: dark ? 1 : 0, transform: dark ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.6)' }} />
-        <Moon className="w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
-          style={{ opacity: dark ? 0 : 1, transform: dark ? 'rotate(90deg) scale(0.6)' : 'rotate(0deg) scale(1)' }} />
+        className="trek-hover trek-navbar-btn p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center">
+        <Sun className="trek-theme-sun w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]" />
+        <Moon className="trek-theme-moon w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]" />
       </button>
 
       {/* Notification bell — only in trip view on mobile, everywhere on desktop */}
@@ -224,38 +205,29 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           <button onClick={() => setUserMenuOpen(!userMenuOpen)}
             className="trek-hover flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors">
             {user.avatar_url ? (
-              <img src={user.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+              <img src={user.avatar_url} alt="" className="trek-navbar-avatar" />
             ) : (
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold"
-                style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
+              <div className="trek-navbar-avatar-initial w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold">
                 {user.username?.charAt(0).toUpperCase()}
               </div>
             )}
-            <span className="text-sm hidden sm:inline max-w-24 truncate" style={{ color: 'var(--text-secondary)' }}>
+            <span className="trek-text-secondary text-sm hidden sm:inline max-w-24 truncate">
               {user.username}
             </span>
-            <ChevronDown className="w-4 h-4" style={{ color: 'var(--text-faint)' }} />
+            <ChevronDown className="trek-text-faint w-4 h-4" />
           </button>
 
           {userMenuOpen && ReactDOM.createPortal(
             <>
-              <div style={{ position: 'fixed', inset: 0, zIndex: 9998 }} onClick={() => setUserMenuOpen(false)} />
+              <div className="fixed inset-0 z-[9998]" onClick={() => setUserMenuOpen(false)} />
               <div
-                className="trek-menu-enter w-52 rounded-xl overflow-hidden"
-                style={{
-                  position: 'fixed', top: 'var(--nav-h)', right: 8, zIndex: 9999,
-                  background: 'var(--modal-bg)',
-                  backdropFilter: 'var(--glass-blur-lg)',
-                  WebkitBackdropFilter: 'var(--glass-blur-lg)',
-                  border: '1px solid var(--modal-border)',
-                  boxShadow: 'var(--glass-shadow-lg)',
-                }}
+                className="trek-menu-enter trek-menu-panel w-52 rounded-xl overflow-hidden"
               >
-                <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--modal-border)' }}>
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{user.username}</p>
-                  <p className="text-xs truncate" style={{ color: 'var(--text-muted)' }}>{user.email}</p>
+                <div className="trek-menu-head px-4 py-3">
+                  <p className="trek-text-primary text-sm font-medium">{user.username}</p>
+                  <p className="trek-text-muted text-xs truncate">{user.email}</p>
                   {user.role === 'admin' && (
-                    <span className="inline-flex items-center gap-1 text-xs font-medium mt-1" style={{ color: 'var(--text-secondary)' }}>
+                    <span className="trek-text-secondary inline-flex items-center gap-1 text-xs font-medium mt-1">
                       <Shield className="w-3 h-3" /> {t('nav.administrator')}
                     </span>
                   )}
@@ -263,41 +235,41 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
                 <div className="py-1">
                   <Link to="/settings" onClick={() => setUserMenuOpen(false)}
-                    className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}>
+                    className="trek-hover trek-menu-link flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                    >
                     <Settings className="w-4 h-4" />
                     {t('nav.settings')}
                   </Link>
 
                   <Link to="/tracking" onClick={() => setUserMenuOpen(false)}
-                    className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}>
+                    className="trek-hover trek-menu-link flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                    >
                     <Radio className="w-4 h-4" />
                     {t('tracking.title')}
                   </Link>
 
                   {user.role === 'admin' && (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)}
-                      className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                      style={{ color: 'var(--text-secondary)' }}>
+                      className="trek-hover trek-menu-link flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                      >
                       <Shield className="w-4 h-4" />
                       {t('nav.admin')}
                     </Link>
                   )}
                 </div>
 
-                <div className="py-1" style={{ borderTop: '1px solid var(--modal-border)' }}>
+                <div className="trek-menu-section py-1">
                   <button onClick={handleLogout}
                     className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-500 hover:bg-red-500/10 transition-colors">
                     <LogOut className="w-4 h-4" />
                     {t('nav.logout')}
                   </button>
                   {appVersion && (
-                    <div className="px-4 pt-2 pb-2.5 text-center" style={{ marginTop: 4, borderTop: '1px solid var(--border-secondary)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'var(--bg-tertiary)', borderRadius: 99, padding: '4px 12px' }}>
-                          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="Trek Wanderer" style={{ height: 10, opacity: 0.5 }} />
-                          <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)' }}>v{appVersion}</span>
+                    <div className="trek-menu-version-row px-4 pt-2 pb-2.5 text-center">
+                      <div className="flex items-center justify-center gap-1.5">
+                        <div className="trek-menu-version">
+                          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="Trek Wanderer" />
+                          <span>v{appVersion}</span>
                         </div>
                       </div>
                     </div>

@@ -4,14 +4,15 @@ import { useAddonStore } from '../../store/addonStore'
 import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
-import { User, Settings, Shield, LogOut, Bell, Radio } from 'lucide-react'
+import { User, Settings, Shield, LogOut, Bell, Radio, type LucideIcon } from 'lucide-react'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore'
 import { resolveMobileNav } from './mobileNav'
-import { useIsDark } from '../../hooks/useIsDark'
+import '../../styles/chrome.css'
+
+// Look: styles/chrome.css (.trek-bottomnav, .trek-sheet…), light and dark via the .dark class.
 
 export default function BottomNav() {
   const { t } = useTranslation()
-  const dark = useIsDark()
   const addons = useAddonStore(s => s.addons)
   const savedNav = useSettingsStore(s => s.settings.mobile_nav)
   const enabledAddons = addons.filter(a => a.type === 'global' && a.enabled).map(a => a.id)
@@ -20,52 +21,41 @@ export default function BottomNav() {
   // the bell only lives in the dashboard's top strip on a phone.
   const unread = useInAppNotificationStore(s => s.unreadCount)
 
-  // Configurable in Settings → Display (see mobileNav.ts); the default is the old fixed bar.
+  // Configurable in Settings → Display (see mobileNav.ts).
   const items = resolveMobileNav(savedNav, enabledAddons).map(i => ({ to: i.to, label: t(i.labelKey), icon: i.icon }))
 
   return (
     <>
-      <nav
-        className="md:hidden sticky bottom-0 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0"
-        style={{
-          height: 'calc(84px + env(safe-area-inset-bottom, 0px))',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: dark ? 'rgba(9,9,11,0.94)' : 'rgba(250,250,250,0.94)',
-          backdropFilter: 'blur(24px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(24px) saturate(160%)',
-          borderTop: '1px solid var(--chrome-border)',
-        }}
-      >
+      <nav className="trek-bottomnav md:hidden sticky bottom-0 flex justify-around items-start pt-3 z-50 mt-auto flex-shrink-0">
         {items.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className="flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
-            style={({ isActive }) => ({
-              color: isActive ? 'var(--accent)' : 'var(--text-faint)',
-              transition: 'color 180ms cubic-bezier(0.23,1,0.32,1)',
-            })}
-          >
+          <NavLink key={to} to={to} className="trek-bottomnav-item flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]">
             <Icon size={22} strokeWidth={2} />
             <span className="text-[10px] font-medium">{label}</span>
           </NavLink>
         ))}
         <button
           onClick={() => setShowProfile(true)}
-          className="relative flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
-          style={{ color: 'var(--text-faint)' }}
+          className="trek-bottomnav-item relative flex flex-col items-center gap-1 px-3 py-1 min-w-[60px]"
           aria-label={unread > 0 ? t('nav.profileUnread', { count: unread }) : t('nav.profile')}
         >
           <User size={22} strokeWidth={2} />
-          {unread > 0 && (
-            <span aria-hidden="true" className="absolute top-0.5 right-4 w-2 h-2 rounded-full" style={{ background: 'var(--accent)', boxShadow: '0 0 0 2px var(--bg-primary, #fff)' }} />
-          )}
-          <span className="text-[10px] font-medium">{t("nav.profile")}</span>
+          {unread > 0 && <span aria-hidden="true" className="trek-unread-dot absolute top-0.5 right-4" />}
+          <span className="text-[10px] font-medium">{t('nav.profile')}</span>
         </button>
       </nav>
 
       {showProfile && <ProfileSheet onClose={() => setShowProfile(false)} />}
     </>
+  )
+}
+
+function SheetLink({ icon: Icon, label, onClick, children }: { icon: LucideIcon; label: string; onClick: () => void; children?: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className="trek-sheet-link trek-hover w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors">
+      <Icon size={18} className="trek-sheet-link-icon" />
+      <span className="text-[14px] font-medium flex-1">{label}</span>
+      {children}
+    </button>
   )
 }
 
@@ -89,128 +79,54 @@ export function ProfileSheet({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[300] md:hidden" onClick={onClose}>
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: 'var(--modal-backdrop)',
-          backdropFilter: 'blur(12px) saturate(150%)',
-          WebkitBackdropFilter: 'blur(12px) saturate(150%)',
-        }}
-      />
+      <div className="trek-sheet-backdrop absolute inset-0" />
 
-      {/* Sheet */}
-      <div
-        className="absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden"
-        style={{
-          animation: 'slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-          background: 'var(--modal-bg)',
-          backdropFilter: 'var(--glass-blur-lg)',
-          WebkitBackdropFilter: 'var(--glass-blur-lg)',
-          border: '1px solid var(--modal-border)',
-          borderBottomWidth: 0,
-          boxShadow: 'var(--glass-shadow-lg)',
-        }}
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Handle */}
+      <div className="trek-sheet absolute bottom-0 left-0 right-0 rounded-t-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
         <div className="flex justify-center pt-3 pb-2">
-          <div className="w-10 h-1 rounded-full" style={{ background: 'var(--border-primary)' }} />
+          <div className="trek-sheet-handle w-10 h-1 rounded-full" />
         </div>
 
         {/* User info */}
         <div className="px-6 pb-4 pt-1">
           <div className="flex items-center gap-3">
-            <div
-              className="w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center text-[16px] font-bold flex-shrink-0"
-              style={{
-                background: 'var(--accent)',
-                color: 'var(--accent-text)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              }}
-            >
+            <div className="trek-sheet-avatar w-11 h-11 rounded-2xl overflow-hidden flex items-center justify-center text-[16px] font-bold flex-shrink-0">
               {user?.avatar_url
                 ? <img src={user.avatar_url} alt="" className="w-full h-full object-cover" />
                 : (user?.username || '?')[0].toUpperCase()}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[15px] font-semibold" style={{ color: 'var(--text-primary)' }}>{user?.username}</p>
-              <p className="text-[12px] truncate" style={{ color: 'var(--text-muted)' }}>{user?.email}</p>
+              <p className="trek-text-primary text-[15px] font-semibold">{user?.username}</p>
+              <p className="trek-text-muted text-[12px] truncate">{user?.email}</p>
             </div>
             {user?.role === 'admin' && (
-              <span
-                className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-                style={{
-                  background: 'var(--glass-bg-subtle)',
-                  border: '1px solid var(--glass-border)',
-                  color: 'var(--text-muted)',
-                }}
-              >
+              <span className="trek-sheet-badge flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide">
                 <Shield size={10} /> {t('nav.administrator')}
               </span>
             )}
           </div>
         </div>
 
-        <div className="h-px mx-4" style={{ background: 'var(--modal-border)' }} />
+        <div className="trek-sheet-divider h-px mx-4" />
 
-        {/* Links */}
         <div className="py-2 px-2">
-          <button
-            onClick={() => handleNav('/notifications')}
-            className="trek-hover w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <Bell size={18} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-[14px] font-medium flex-1">{t('nav.mobile.notifications')}</span>
+          <SheetLink icon={Bell} label={t('nav.mobile.notifications')} onClick={() => handleNav('/notifications')}>
             {unread > 0 && (
-              <span className="min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center" style={{ background: 'var(--accent)', color: 'var(--accent-text)' }}>
+              <span className="trek-count-badge min-w-[20px] h-5 px-1.5 rounded-full text-[11px] font-bold flex items-center justify-center">
                 {unread > 99 ? '99+' : unread}
               </span>
             )}
-          </button>
-
-          <button
-            onClick={() => handleNav('/tracking')}
-            className="trek-hover w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <Radio size={18} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-[14px] font-medium">{t('tracking.title')}</span>
-          </button>
-
-          <button
-            onClick={() => handleNav('/settings')}
-            className="trek-hover w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
-            style={{ color: 'var(--text-primary)' }}
-          >
-            <Settings size={18} style={{ color: 'var(--text-muted)' }} />
-            <span className="text-[14px] font-medium">{t("nav.bottomSettings")}</span>
-          </button>
-
-          {user?.role === 'admin' && (
-            <button
-              onClick={() => handleNav('/admin')}
-              className="trek-hover w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
-              style={{ color: 'var(--text-primary)' }}
-            >
-              <Shield size={18} style={{ color: 'var(--text-muted)' }} />
-              <span className="text-[14px] font-medium">{t("nav.bottomAdmin")}</span>
-            </button>
-          )}
+          </SheetLink>
+          <SheetLink icon={Radio} label={t('tracking.title')} onClick={() => handleNav('/tracking')} />
+          <SheetLink icon={Settings} label={t('nav.bottomSettings')} onClick={() => handleNav('/settings')} />
+          {user?.role === 'admin' && <SheetLink icon={Shield} label={t('nav.bottomAdmin')} onClick={() => handleNav('/admin')} />}
         </div>
 
-        <div className="h-px mx-4" style={{ background: 'var(--modal-border)' }} />
+        <div className="trek-sheet-divider h-px mx-4" />
 
-        {/* Logout */}
         <div className="py-2 px-2">
-          <button
-            onClick={handleLogout}
-            className="hover:bg-red-500/10 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors"
-          >
+          <button onClick={handleLogout} className="hover:bg-red-500/10 w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left transition-colors">
             <LogOut size={18} className="text-red-500" />
-            <span className="text-[14px] font-medium text-red-500">{t("nav.bottomLogout")}</span>
+            <span className="text-[14px] font-medium text-red-500">{t('nav.bottomLogout')}</span>
           </button>
         </div>
 

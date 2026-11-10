@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Menu, X, type LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import '../../styles/chrome.css'
 
 export interface PageSidebarTab {
   id: string
@@ -49,30 +50,20 @@ export default function PageSidebar({
 
   return (
     <div
-      className="rounded-2xl overflow-hidden flex flex-col lg:flex-row relative"
-      style={{
-        background: 'var(--modal-bg)',
-        backdropFilter: 'var(--glass-blur)',
-        WebkitBackdropFilter: 'var(--glass-blur)',
-        border: '1px solid var(--modal-border)',
-        boxShadow: 'var(--glass-shadow)',
-        minHeight: 'min(820px, calc(100vh - var(--nav-h) - 120px))',
-      }}
+      className="trek-pagepanel rounded-2xl overflow-hidden flex flex-col lg:flex-row relative"
     >
       {/* Mobile top bar with hamburger */}
       <div
-        className="lg:hidden flex items-center justify-between px-4 py-3 border-b"
-        style={{ borderColor: 'var(--border-primary)' }}
+        className="trek-pagepanel-topbar lg:hidden flex items-center justify-between px-4 py-3 border-b"
       >
         <button
           onClick={() => setMobileOpen(true)}
-          className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
+          className="trek-text-primary w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
           aria-label={t('nav.openMenu')}
-          style={{ color: 'var(--text-primary)' }}
         >
           <Menu size={18} />
         </button>
-        <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
+        <div className="trek-text-primary flex items-center gap-2 text-sm font-semibold">
           {activeLabel}
         </div>
         <div className="w-9" />
@@ -80,15 +71,7 @@ export default function PageSidebar({
 
       {/* Desktop sidebar (always visible on lg) */}
       <aside
-        className="hidden lg:flex flex-col shrink-0 relative"
-        style={{
-          width: 260,
-          background: 'var(--glass-bg-subtle)',
-          backdropFilter: 'var(--glass-blur)',
-          WebkitBackdropFilter: 'var(--glass-blur)',
-          borderRight: '1px solid var(--modal-border)',
-          padding: '24px 14px',
-        }}
+        className="trek-pagepanel-aside hidden lg:flex flex-col shrink-0 relative"
       >
         <SidebarInner
           sidebarLabel={sidebarLabel}
@@ -103,35 +86,23 @@ export default function PageSidebar({
       {mobileOpen && (
         <>
           <div
-            className="lg:hidden fixed inset-0 z-40"
-            style={{ background: 'rgba(0,0,0,0.35)' }}
+            className="lg:hidden fixed inset-0 z-40 bg-black/35"
             onClick={() => setMobileOpen(false)}
           />
           <aside
             ref={drawerRef}
-            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col"
-            style={{
-              width: 280,
-              background: 'var(--modal-bg)',
-              backdropFilter: 'var(--glass-blur-lg)',
-              WebkitBackdropFilter: 'var(--glass-blur-lg)',
-              borderRight: '1px solid var(--modal-border)',
-              boxShadow: 'var(--glass-shadow-lg)',
-              padding: '18px 14px',
-            }}
+            className="trek-pagepanel-drawer lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col"
           >
             <div className="flex items-center justify-between mb-3 px-2">
               <span
-                className="text-[11px] font-bold tracking-widest uppercase"
-                style={{ color: 'var(--text-muted)' }}
+                className="trek-text-muted text-[11px] font-bold tracking-widest uppercase"
               >
                 {sidebarLabel}
               </span>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
+                className="trek-text-primary w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
                 aria-label={t('nav.closeMenu')}
-                style={{ color: 'var(--text-primary)' }}
               >
                 <X size={16} />
               </button>
@@ -151,7 +122,7 @@ export default function PageSidebar({
       )}
 
       {/* Panel */}
-      <div className="flex-1 min-w-0" style={{ padding: '26px 28px' }}>
+      <div className="trek-pagepanel-body flex-1 min-w-0">
         {children}
       </div>
     </div>
@@ -175,8 +146,7 @@ function SidebarInner({
     <>
       {sidebarLabel && (
         <div
-          className="text-[11px] font-bold tracking-widest uppercase mb-3 px-3"
-          style={{ color: 'var(--text-muted)' }}
+          className="trek-text-muted text-[11px] font-bold tracking-widest uppercase mb-3 px-3"
         >
           {sidebarLabel}
         </div>
@@ -189,18 +159,8 @@ function SidebarInner({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors"
-              style={{
-                background: active ? 'var(--bg-hover)' : 'transparent',
-                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
-                fontWeight: active ? 600 : 500,
-              }}
-              onMouseEnter={(e) => {
-                if (!active) e.currentTarget.style.background = 'var(--bg-hover)'
-              }}
-              onMouseLeave={(e) => {
-                if (!active) e.currentTarget.style.background = 'transparent'
-              }}
+              aria-current={active ? 'page' : undefined}
+              className={`trek-pagepanel-tab${active ? ' is-active' : ''} flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-left transition-colors`}
             >
               <Icon size={16} className="shrink-0" />
               <span className="truncate">{tab.label}</span>
@@ -210,8 +170,7 @@ function SidebarInner({
       </nav>
       {footer && (
         <div
-          className="mt-4 pt-3 px-3 text-[10px] tracking-wide"
-          style={{ color: 'var(--text-faint)', borderTop: '1px solid var(--border-primary)' }}
+          className="trek-pagepanel-footer mt-4 pt-3 px-3 text-[10px] tracking-wide"
         >
           {footer}
         </div>

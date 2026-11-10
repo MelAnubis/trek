@@ -1,0 +1,173 @@
+/* ============================================================================
+   App chrome: top bar, bottom bar, profile sheet, page sidebar.
+   Moved out of inline styles so light/dark and the colour scheme come from
+   one place (the .dark class and the tokens in index.css), not from a
+   per-component `dark ? … : …`.
+   ============================================================================ */
+
+/* Small text helpers */
+.trek-text-primary { color: var(--text-primary); }
+.trek-text-secondary { color: var(--text-secondary); }
+.trek-text-muted { color: var(--text-muted); }
+.trek-text-faint { color: var(--text-faint); }
+
+/* Shared bits */
+.trek-unread-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px var(--bg-primary, #fff);
+}
+.trek-count-badge { background: var(--accent); color: var(--accent-text); }
+.trek-chrome-glass {
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+/* ── Bottom bar (phone) ─────────────────────────────────────────────────── */
+.trek-bottomnav {
+  height: calc(84px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: rgba(250,250,250,0.94);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-top: 1px solid var(--chrome-border);
+}
+.dark .trek-bottomnav { background: rgba(9,9,11,0.94); }
+.trek-bottomnav-item {
+  color: var(--text-faint);
+  transition: color 180ms cubic-bezier(0.23,1,0.32,1);
+}
+.trek-bottomnav-item.active { color: var(--accent); }
+
+/* ── Profile sheet (phone) ──────────────────────────────────────────────── */
+.trek-sheet-backdrop {
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+}
+.trek-sheet {
+  animation: slideUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--modal-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--modal-border);
+  border-bottom-width: 0;
+  box-shadow: var(--glass-shadow-lg);
+}
+.trek-sheet-handle { background: var(--border-primary); }
+.trek-sheet-avatar { background: var(--accent); color: var(--accent-text); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+.trek-sheet-badge { background: var(--glass-bg-subtle); border: 1px solid var(--glass-border); color: var(--text-muted); }
+.trek-sheet-divider { background: var(--modal-border); }
+.trek-sheet-link { color: var(--text-primary); }
+.trek-sheet-link-icon { color: var(--text-muted); flex-shrink: 0; }
+
+/* ── Top bar (desktop) ──────────────────────────────────────────────────── */
+.trek-navbar {
+  height: var(--nav-h);
+  padding-top: env(safe-area-inset-top, 0px);
+  touch-action: manipulation;
+  background: rgba(250,250,250,0.94);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+  border-bottom: 1px solid var(--chrome-border);
+  box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+  transition: background 240ms cubic-bezier(0.23,1,0.32,1), backdrop-filter 240ms cubic-bezier(0.23,1,0.32,1), box-shadow 240ms cubic-bezier(0.23,1,0.32,1);
+}
+.trek-navbar.is-scrolled {
+  background: rgba(250,250,250,0.78);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06), 0 0 0 1px var(--chrome-border);
+}
+.dark .trek-navbar { background: rgba(9,9,11,0.94); box-shadow: 0 1px 16px rgba(0,0,0,0.25); }
+.dark .trek-navbar.is-scrolled { background: rgba(9,9,11,0.82); box-shadow: 0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--chrome-border); }
+.trek-navbar-sep { color: var(--text-faint); }
+.trek-navbar-trip { color: var(--text-muted); }
+.trek-navbar-btn { color: var(--text-muted); }
+.trek-navbar-share { border-color: var(--border-primary); color: var(--text-secondary); background: var(--bg-card); }
+.trek-pill-version { background: var(--bg-tertiary); color: var(--text-faint); }
+.trek-pill-prerelease { background: rgba(245,158,11,0.15); color: #d97706; border: 1px solid rgba(245,158,11,0.3); }
+.trek-pill-prerelease-dot { background: #f59e0b; }
+.trek-navbar-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.trek-navbar-avatar-initial { background: var(--accent); color: var(--accent-text); }
+
+/* The account menu that drops from the top bar */
+.trek-menu-panel {
+  position: fixed; top: var(--nav-h); right: 8px; z-index: 9999;
+  background: var(--modal-bg);
+  backdrop-filter: var(--glass-blur-lg);
+  -webkit-backdrop-filter: var(--glass-blur-lg);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+.trek-menu-head { border-bottom: 1px solid var(--modal-border); }
+.trek-menu-section { border-top: 1px solid var(--modal-border); }
+.trek-menu-link { color: var(--text-secondary); }
+.trek-menu-version-row { margin-top: 4px; border-top: 1px solid var(--border-secondary); }
+.trek-menu-version {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: var(--bg-tertiary); border-radius: 99px; padding: 4px 12px;
+  font-size: 10px; font-weight: 600; color: var(--text-faint);
+}
+.trek-menu-version img { height: 10px; opacity: 0.5; }
+
+/* ── Page sidebar (Settings, Admin) ─────────────────────────────────────── */
+.trek-pagepanel {
+  background: var(--modal-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--modal-border);
+  box-shadow: var(--glass-shadow);
+  min-height: min(820px, calc(100vh - var(--nav-h) - 120px));
+}
+
+/* Light/dark toggle in the top bar: the sun shows in dark mode (to go light), the moon in light mode */
+.trek-theme-sun { opacity: 0; transform: rotate(-90deg) scale(0.6); }
+.trek-theme-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+.dark .trek-theme-sun { opacity: 1; transform: rotate(0deg) scale(1); }
+.dark .trek-theme-moon { opacity: 0; transform: rotate(90deg) scale(0.6); }
+.trek-pagepanel-topbar { border-color: var(--border-primary); }
+.trek-pagepanel-aside {
+  width: 260px; padding: 24px 14px;
+  background: var(--glass-bg-subtle);
+  backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+  border-right: 1px solid var(--modal-border);
+}
+.trek-pagepanel-drawer {
+  width: 280px; padding: 18px 14px;
+  background: var(--modal-bg);
+  backdrop-filter: var(--glass-blur-lg); -webkit-backdrop-filter: var(--glass-blur-lg);
+  border-right: 1px solid var(--modal-border);
+  box-shadow: var(--glass-shadow-lg);
+}
+.trek-pagepanel-body { padding: 26px 28px; }
+@media (max-width: 640px) { .trek-pagepanel-body { padding: 18px 16px; } }
+.trek-pagepanel-tab { background: transparent; color: var(--text-secondary); font-weight: 500; }
+.trek-pagepanel-tab.is-active { background: var(--bg-hover); color: var(--text-primary); font-weight: 600; }
+@media (hover: hover) { .trek-pagepanel-tab:hover { background: var(--bg-hover); } }
+.trek-pagepanel-footer { color: var(--text-faint); border-top: 1px solid var(--border-primary); }
+
+/* ── Dashboard's top strip (phone) ──────────────────────────────────────── */
+.trek-mtopbar { padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 10px; }
+.trek-mtopbar-bell { width: 36px; height: 36px; color: var(--ink-2, var(--text-secondary)); }
+.trek-mtopbar-dot {
+  position: absolute; top: 7px; right: 7px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 0 2px var(--bg, #fff);
+}
+.trek-mtopbar-avatar { width: 34px; height: 34px; }
+/* The initial's circle takes the accent (follows the colour scheme). */
+.trek-mtopbar-avatar.is-initial { background: linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, black)); }
+
+/* ── Modal (shared/Modal) ───────────────────────────────────────────────── */
+.trek-modal-backdrop {
+  background-color: var(--modal-backdrop);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  padding-top: 70px;
+  padding-bottom: calc(20px + var(--bottom-nav-h));
+  overflow: hidden;
+}
+.trek-modal-head { border-bottom: 1px solid var(--modal-border); }
+.trek-modal-head.is-wide { background: var(--bg-tertiary); }
+.trek-modal-close { color: var(--text-muted); background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-inner); }
+.trek-modal-foot { border-top: 1px solid var(--modal-border); }
