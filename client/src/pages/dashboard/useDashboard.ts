@@ -14,6 +14,7 @@ import {
   type TripFilters,
   getTripStatus,
   sortTrips,
+  pickSpotlight,
   filterAndSortTrips,
   countActiveTripFilters,
   EMPTY_TRIP_FILTERS,
@@ -77,12 +78,7 @@ export function useDashboard() {
     }
   }
 
-  const today = new Date().toISOString().split('T')[0]
-  const spotlight = trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
-    || trips.find(t => t.start_date && t.start_date >= today)
-    || trips[0]
-    || null
-  const rest = spotlight ? trips.filter(t => t.id !== spotlight.id) : trips
+  const spotlight = pickSpotlight(trips)
 
   useEffect(() => {
     if (!spotlight) { setHeroBundle(null); return }
@@ -162,15 +158,19 @@ export function useDashboard() {
     setCopyTrip(null)
   }
 
+  const activeFilterCount = countActiveTripFilters(filters)
+  // The hero already shows the spotlight trip, so the plain list leaves it out —
+  // but a search or filter must still find it.
+  const rest = spotlight && activeFilterCount === 0 ? trips.filter(t => t.id !== spotlight.id) : trips
   const statusFiltered = tripFilter === 'archive' ? archivedTrips
     : tripFilter === 'completed' ? rest.filter(t => getTripStatus(t) === 'past')
     : rest.filter(t => getTripStatus(t) !== 'past')
   const gridTrips = filterAndSortTrips(statusFiltered, filters)
-  const activeFilterCount = countActiveTripFilters(filters)
+  const hasNoTripsAtAll = !isLoading && trips.length === 0 && archivedTrips.length === 0
 
   return {
     demoMode, locale, t, navigate,
-    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
+    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading, hasNoTripsAtAll,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     filters, setFilters, activeFilterCount, showFilterPanel, setShowFilterPanel,
     showForm, setShowForm, editingTrip, setEditingTrip,

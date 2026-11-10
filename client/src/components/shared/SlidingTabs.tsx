@@ -35,11 +35,13 @@ export function SlidingTabs<T extends string>({
     if (!active || !container) return
     const containerRect = container.getBoundingClientRect()
     const activeRect = active.getBoundingClientRect()
-    setIndicator({
-      left: activeRect.left - containerRect.left + container.scrollLeft,
-      width: activeRect.width,
-      ready: true,
-    })
+    const left = activeRect.left - containerRect.left + container.scrollLeft
+    setIndicator({ left, width: activeRect.width, ready: true })
+    // On a narrow screen the row scrolls sideways: keep the active tab in view
+    // (horizontally only — scrollIntoView would also move the page).
+    if (left < container.scrollLeft || left + activeRect.width > container.scrollLeft + container.clientWidth) {
+      container.scrollTo?.({ left: Math.max(0, left - (container.clientWidth - activeRect.width) / 2), behavior: 'smooth' })
+    }
   }, [activeTab, tabs.length])
 
   const padding = size === 'sm' ? '5px 12px' : '6px 14px'
@@ -49,6 +51,7 @@ export function SlidingTabs<T extends string>({
   return (
     <div
       ref={containerRef}
+      role="tablist"
       className={className}
       style={{
         position: 'relative', display: 'flex', alignItems: 'center',
@@ -103,6 +106,9 @@ export function SlidingTabs<T extends string>({
             ref={el => { tabRefs.current.set(tab.id, el) }}
             onClick={() => onChange(tab.id)}
             style={btnStyle}
+            role="tab"
+            aria-selected={isActive}
+            aria-label={tab.title}
             title={tab.title ?? (typeof tab.label === 'string' ? tab.label : undefined)}
           >
             {Icon && <Icon size={size === 'sm' ? 13 : 15} />}

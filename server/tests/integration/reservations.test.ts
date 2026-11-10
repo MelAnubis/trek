@@ -224,6 +224,78 @@ describe('Update reservation', () => {
     expect(accom.check_out).toBe('11:00');
     expect(accom.confirmation).toBe('HTL-XYZ-999');
   });
+
+  // liketrek/TREK#3025: the form always resends reservation_time, and a time
+  // without a date used to re-derive day_id as null — the booking vanished
+  // from the planner when only its notes were edited.
+  it('RESV-012 — editing only the notes keeps a time-only booking on its day', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id, { date: '2025-08-01' });
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Dinner', type: 'restaurant', day_id: day.id, reservation_time: '20:30' });
+    expect(createRes.status).toBe(201);
+    const id = createRes.body.reservation.id;
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Dinner', type: 'restaurant', reservation_time: '20:30', reservation_end_time: null, notes: 'Table by the window' });
+    expect(res.status).toBe(200);
+    const row = testDb.prepare('SELECT day_id, notes FROM reservations WHERE id = ?').get(id) as any;
+    expect(row.notes).toBe('Table by the window');
+    expect(row.day_id).toBe(day.id);
+  });
+
+  it('RESV-013 — a new dated time still moves the booking to that day, and clearing the time clears it', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { date: '2025-08-01' });
+    const day2 = createDay(testDb, trip.id, { date: '2025-08-02' });
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Museum', type: 'event', reservation_time: '2025-08-01T10:00' });
+    const id = createRes.body.reservation.id;
+    expect((testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(id) as any).day_id).toBe(day1.id);
+
+    await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ reservation_time: '2025-08-02T10:00' });
+    expect((testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(id) as any).day_id).toBe(day2.id);
+
+    await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ reservation_time: null });
+    expect((testDb.prepare('SELECT day_id FROM reservations WHERE id = ?').get(id) as any).day_id).toBeNull();
+  });
+
+  it('RESV-014 — a hotel booking returns the times saved on its linked stay', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day1 = createDay(testDb, trip.id, { date: '2025-08-01' });
+    const day2 = createDay(testDb, trip.id, { date: '2025-08-03' });
+    const place = createPlace(testDb, trip.id, { name: 'Stay Hotel' });
+    const createRes = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({
+        title: 'Stay', type: 'hotel',
+        create_accommodation: { place_id: place.id, start_day_id: day1.id, end_day_id: day2.id, check_in: '15:00', check_out: '10:30' },
+      });
+    expect(createRes.status).toBe(201);
+
+    const list = await request(app)
+      .get(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id));
+    const hotel = list.body.reservations.find((r: any) => r.title === 'Stay');
+    expect(hotel.accommodation_check_in).toBe('15:00');
+    expect(hotel.accommodation_check_out).toBe('10:30');
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

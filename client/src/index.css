@@ -1102,3 +1102,19 @@ img[alt="Trek Wanderer"] {
 .trek-bn .trek-bn-bar { opacity: 0; transition: opacity .15s; }
 .trek-bn .trek-bn-media:hover .trek-bn-bar, .trek-bn .trek-bn-media:focus-within .trek-bn-bar { opacity: 1; }
 @media (max-width: 640px) { .trek-bn { margin-left: 0; } .trek-bn .bn-editor { padding-inline: 0; } .trek-bn .trek-bn-bar { opacity: 1; } }
+
+/* The app-wide accent as resolved on <html> (scheme included), readable inside
+   scopes that redefine --accent for themselves, such as the dashboard. */
+:root { --app-accent: var(--accent); }
+
+/* Hover for chrome buttons and links, in CSS instead of onMouseEnter handlers
+   (those never fire on touch and left a stuck highlight). !important beats the
+   inline background some of these buttons carry. */
+@media (hover: hover) {
+  .trek-hover:hover { background: var(--bg-hover) !important; }
+}
+.trek-nav-link { color: var(--text-muted); transition: background 160ms var(--ease-out-quint), color 160ms var(--ease-out-quint); }
+.trek-nav-link:hover { background: var(--bg-hover); }
+.trek-nav-link.is-active { color: var(--text-primary); background: var(--bg-hover); }
+.trek-nav-go { border-color: rgba(34,217,110,0.35); color: #22d96e; background: rgba(34,217,110,0.08); }
+.trek-nav-go:hover { background: rgba(34,217,110,0.16); }

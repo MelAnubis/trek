@@ -1,5 +1,5 @@
-// FE-DASHMODEL-001 to FE-DASHMODEL-014
-import { filterAndSortTrips, countActiveTripFilters, EMPTY_TRIP_FILTERS, type TripFilters, type DashboardTrip } from './dashboardModel'
+// FE-DASHMODEL-001 to FE-DASHMODEL-018
+import { filterAndSortTrips, countActiveTripFilters, EMPTY_TRIP_FILTERS, localToday, pickSpotlight, groupTripsByYear, type TripFilters, type DashboardTrip } from './dashboardModel'
 
 function trip(overrides: Partial<DashboardTrip> = {}): DashboardTrip {
   return {
@@ -96,5 +96,40 @@ describe('filterAndSortTrips — sort', () => {
   it('FE-DASHMODEL-014: "days-desc"/"days-asc" sort by day_count', () => {
     expect(filterAndSortTrips(trips, filters({ sortBy: 'days-desc' })).map(t => t.id)).toEqual([2, 1, 3])
     expect(filterAndSortTrips(trips, filters({ sortBy: 'days-asc' })).map(t => t.id)).toEqual([3, 1, 2])
+  })
+})
+
+describe('localToday', () => {
+  it('FE-DASHMODEL-015: uses the local calendar day, not the UTC one', () => {
+    // 00:30 local on 15 June — in any zone east of UTC this is still 14 June in UTC.
+    expect(localToday(new Date(2026, 5, 15, 0, 30))).toBe('2026-06-15')
+    expect(localToday(new Date(2026, 11, 31, 23, 59))).toBe('2026-12-31')
+  })
+})
+
+describe('pickSpotlight', () => {
+  const past = trip({ id: 1, start_date: '2026-01-01', end_date: '2026-01-05' })
+  const later = trip({ id: 2, start_date: '2026-09-01', end_date: '2026-09-05' })
+  const sooner = trip({ id: 3, start_date: '2026-07-01', end_date: '2026-07-05' })
+  const now = trip({ id: 4, start_date: '2026-06-10', end_date: '2026-06-20' })
+
+  it('FE-DASHMODEL-016: the trip under way wins, else the soonest upcoming one', () => {
+    expect(pickSpotlight([past, later, sooner, now], '2026-06-15')?.id).toBe(4)
+    expect(pickSpotlight([past, later, sooner], '2026-06-15')?.id).toBe(3)
+  })
+
+  it('FE-DASHMODEL-017: only past trips → no spotlight', () => {
+    expect(pickSpotlight([past], '2026-06-15')).toBeNull()
+    expect(pickSpotlight([], '2026-06-15')).toBeNull()
+  })
+})
+
+describe('groupTripsByYear', () => {
+  it('FE-DASHMODEL-018: consecutive trips of one year form a group, undated trips their own', () => {
+    const groups = groupTripsByYear([
+      trip({ id: 1, start_date: '2025-08-01' }), trip({ id: 2, start_date: '2025-03-01' }),
+      trip({ id: 3, start_date: '2024-05-01' }), trip({ id: 4, start_date: null, end_date: null }),
+    ])
+    expect(groups.map(g => [g.year, g.trips.map(t => t.id)])).toEqual([['2025', [1, 2]], ['2024', [3]], ['', [4]]])
   })
 })

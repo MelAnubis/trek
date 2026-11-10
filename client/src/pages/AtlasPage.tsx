@@ -9,6 +9,7 @@ import { Globe, MapPin, Briefcase, Calendar, Flag, ChevronRight, PanelLeftOpen, 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { AtlasPlace, GeoJsonFeatureCollection, TranslationFn } from '../types'
+import { useIsDark } from '../hooks/useIsDark'
 
 // Convert country code to flag emoji
 interface AtlasCountry {
@@ -125,8 +126,7 @@ export default function AtlasPage(): React.ReactElement {
   const { settings } = useSettingsStore()
   const navigate = useNavigate()
   const resolveName = useCountryNames(language)
-  const dm = settings.dark_mode
-  const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<L.Map | null>(null)
   const geoLayerRef = useRef<L.GeoJSON | null>(null)

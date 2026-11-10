@@ -68,6 +68,17 @@ function resolveDayIdFromTime(
   return row?.id ?? null;
 }
 
+// Whether an update's time should re-derive the booking's day. Saving the
+// form always resends the time, so an unchanged value, or a time with no
+// date ("14:00"), must keep the day it already has — otherwise editing only
+// the notes of such a booking dropped it from the planner. A time cleared
+// on purpose still clears the day.
+function timeMovesDay(next: string | null | undefined, current: string | null | undefined): boolean {
+  if ((next || null) === (current || null)) return false;
+  if (!next) return true;
+  return /^\d{4}-\d{2}-\d{2}/.test(next);
+}
+
 function saveEndpoints(reservationId: number, endpoints: EndpointInput[]): void {
   // Bind the transaction lazily on each call. Binding at module load time
   // captures the DB connection that was open then, which becomes invalid
@@ -91,7 +102,8 @@ export function listReservations(tripId: string | number) {
   const reservations = db.prepare(`
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
       ap.place_id as accommodation_place_id, acc_p.name as accommodation_name,
-      ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
+      ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id,
+      ap.check_in as accommodation_check_in, ap.check_in_end as accommodation_check_in_end, ap.check_out as accommodation_check_out
     FROM reservations r
     LEFT JOIN days d ON r.day_id = d.id
     LEFT JOIN places p ON r.place_id = p.id
@@ -128,7 +140,8 @@ export function getReservationWithJoins(id: string | number) {
   const row = db.prepare(`
     SELECT r.*, d.day_number, p.name as place_name, r.assignment_id,
       ap.place_id as accommodation_place_id, acc_p.name as accommodation_name,
-      ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id
+      ap.start_day_id as accommodation_start_day_id, ap.end_day_id as accommodation_end_day_id,
+      ap.check_in as accommodation_check_in, ap.check_in_end as accommodation_check_in_end, ap.check_out as accommodation_check_out
     FROM reservations r
     LEFT JOIN days d ON r.day_id = d.id
     LEFT JOIN places p ON r.place_id = p.id
@@ -350,7 +363,7 @@ export function updateReservation(id: string | number, tripId: string | number, 
   let nextDayId: number | null;
   if (day_id !== undefined) {
     nextDayId = day_id || null;
-  } else if (reservation_time !== undefined && resolvedType !== 'hotel') {
+  } else if (reservation_time !== undefined && resolvedType !== 'hotel' && timeMovesDay(nextReservationTime, current.reservation_time)) {
     nextDayId = resolveDayIdFromTime(tripId, nextReservationTime);
   } else {
     nextDayId = current.day_id ?? null;
@@ -359,7 +372,7 @@ export function updateReservation(id: string | number, tripId: string | number, 
   let nextEndDayId: number | null;
   if (end_day_id !== undefined) {
     nextEndDayId = end_day_id ?? null;
-  } else if (reservation_end_time !== undefined && resolvedType !== 'hotel') {
+  } else if (reservation_end_time !== undefined && resolvedType !== 'hotel' && timeMovesDay(nextReservationEndTime, current.reservation_end_time)) {
     nextEndDayId = resolveDayIdFromTime(tripId, nextReservationEndTime);
   } else {
     nextEndDayId = (current as any).end_day_id ?? null;

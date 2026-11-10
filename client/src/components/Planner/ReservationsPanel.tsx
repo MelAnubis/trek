@@ -329,8 +329,16 @@ function ReservationCard({ r, tripId, onEdit, onDelete, files = [], onNavigateTo
 
         {/* Type-specific metadata */}
         {(() => {
-          const meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})
-          if (!meta || Object.keys(meta).length === 0) return null
+          const meta = { ...(typeof r.metadata === 'string' ? JSON.parse(r.metadata || '{}') : (r.metadata || {})) }
+          // Hotel times may live only on the linked stay (set from the day's lodging) — show those too.
+          if (r.type === 'hotel') {
+            if (!meta.check_in_time && r.accommodation_check_in) {
+              meta.check_in_time = r.accommodation_check_in
+              if (!meta.check_in_end_time && r.accommodation_check_in_end) meta.check_in_end_time = r.accommodation_check_in_end
+            }
+            if (!meta.check_out_time && r.accommodation_check_out) meta.check_out_time = r.accommodation_check_out
+          }
+          if (Object.keys(meta).length === 0) return null
           const hasEndpoints = (r.endpoints || []).some(e => e.role === 'from') && (r.endpoints || []).some(e => e.role === 'to')
           const cells: { label: string; value: string }[] = []
           if (meta.airline) cells.push({ label: t('reservations.meta.airline'), value: meta.airline })

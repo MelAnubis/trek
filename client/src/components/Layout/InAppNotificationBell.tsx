@@ -4,16 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { Bell, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore.ts'
-import { useSettingsStore } from '../../store/settingsStore'
 import { useAuthStore } from '../../store/authStore'
 import InAppNotificationItem from '../Notifications/InAppNotificationItem.tsx'
+import { useIsDark } from '../../hooks/useIsDark'
 
 export default function InAppNotificationBell(): React.ReactElement {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { settings } = useSettingsStore()
-  const darkMode = settings.dark_mode
-  const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
 
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const { notifications, unreadCount, isLoading, fetchNotifications, fetchUnreadCount, markAllRead, deleteAll } = useInAppNotificationStore()

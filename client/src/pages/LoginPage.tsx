@@ -765,7 +765,7 @@ export default function LoginPage(): React.ReactElement {
                       autoComplete="one-time-code"
                       value={mfaCode}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMfaCode(e.target.value.toUpperCase().slice(0, 24))}
-                      placeholder="000000 or XXXX-XXXX"
+                      placeholder={t('login.mfaCodePlaceholder')}
                       required
                       style={inputBase}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.style.borderColor = '#111111'}

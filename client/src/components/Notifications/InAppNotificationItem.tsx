@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { User, Check, X, ArrowRight, Trash2, CheckCheck } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { useInAppNotificationStore, InAppNotification } from '../../store/inAppNotificationStore'
-import { useSettingsStore } from '../../store/settingsStore'
+import { useIsDark } from '../../hooks/useIsDark'
 
 function relativeTime(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
@@ -24,9 +24,7 @@ interface NotificationItemProps {
 export default function InAppNotificationItem({ notification, onClose }: NotificationItemProps): React.ReactElement {
   const { t, locale } = useTranslation()
   const navigate = useNavigate()
-  const { settings } = useSettingsStore()
-  const darkMode = settings.dark_mode
-  const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
   const [responding, setResponding] = useState(false)
 
   const { markRead, markUnread, deleteNotification, respondToBoolean } = useInAppNotificationStore()

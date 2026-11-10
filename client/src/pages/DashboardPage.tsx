@@ -8,16 +8,19 @@ import CopyTripDialog from '../components/shared/CopyTripDialog'
 import CustomSelect from '../components/shared/CustomSelect'
 import PlaceAvatar from '../components/shared/PlaceAvatar'
 import MobileTopBar from '../components/Layout/MobileTopBar'
+import { ContextMenu, useContextMenu } from '../components/shared/ContextMenu'
+import { Skeleton } from '../components/shared/Skeleton'
+import { useExchangeRates } from '../hooks/useExchangeRates'
 import { useDashboard } from './dashboard/useDashboard'
 import DashboardFilterPanel from './dashboard/DashboardFilterPanel'
 import {
   type DashboardTrip, type HeroBundle, type TravelStats, type UpcomingReservation,
-  MS_PER_DAY, daysUntil, getTripStatus,
+  MS_PER_DAY, daysUntil, getTripStatus, groupTripsByYear,
 } from './dashboard/dashboardModel'
 import {
   Plus, Edit2, Trash2, Archive, Copy, ArrowRight, MapPin,
   Plane, Hotel, Utensils, Clock, RefreshCw, ArrowRightLeft, Calendar,
-  LayoutGrid, List, Ticket, X, SlidersHorizontal,
+  LayoutGrid, List, Ticket, X, SlidersHorizontal, MoreHorizontal, ArchiveRestore, Compass,
 } from 'lucide-react'
 import '../styles/dashboard.css'
 
@@ -59,6 +62,19 @@ function initials(name: string | null | undefined): string {
   return name.slice(0, 2).toUpperCase()
 }
 
+interface TripActions { onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void }
+
+/** The trip's actions as one menu ("⋯" button or right-click) instead of four icons over the cover — delete sits apart, last. */
+function tripMenuItems(trip: DashboardTrip, a: TripActions, t: (k: string) => string) {
+  return [
+    { label: t('common.edit'), icon: Edit2, onClick: a.onEdit },
+    { label: t('dashboard.aria.duplicate'), icon: Copy, onClick: a.onCopy },
+    { label: trip.is_archived ? t('dashboard.restore') : t('dashboard.archive'), icon: trip.is_archived ? ArchiveRestore : Archive, onClick: a.onArchive },
+    { divider: true },
+    { label: t('common.delete'), icon: Trash2, onClick: a.onDelete, danger: true },
+  ]
+}
+
 const RES_ICON: Record<string, React.ReactElement> = {
   flight: <Plane size={16} />, hotel: <Hotel size={16} />, restaurant: <Utensils size={16} />,
 }
@@ -81,13 +97,28 @@ export default function DashboardPage(): React.ReactElement {
   // useDashboard data hook; this component only renders what it returns.
   const {
     demoMode, locale, t, navigate,
-    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
+    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading, hasNoTripsAtAll,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     filters, setFilters, activeFilterCount, showFilterPanel, setShowFilterPanel,
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, setTrips,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
+  const mobile = useIsMobile()
+  const { menu, open: openMenu, close: closeMenu } = useContextMenu()
+  const openNewTrip = () => { setEditingTrip(null); setShowForm(true) }
+  const actionsFor = (trip: DashboardTrip): TripActions => ({
+    onEdit: () => { setEditingTrip(trip); setShowForm(true) },
+    onCopy: () => setCopyTrip(trip),
+    onArchive: () => trip.is_archived ? handleUnarchive(trip.id) : handleArchive(trip.id),
+    onDelete: () => setDeleteTrip(trip),
+  })
+  const openTripMenu = (e: React.MouseEvent, trip: DashboardTrip) => openMenu(e, tripMenuItems(trip, actionsFor(trip), t))
+  // While a trip is under way, its next bookings matter more than the rest of the list.
+  const travellingNow = !!spotlight && (getTripStatus(spotlight) === 'ongoing' || getTripStatus(spotlight) === 'today')
+  const upcomingFirst = mobile && travellingNow && upcoming.length > 0
+  const groupByYear = viewMode === 'list' && filters.sortBy === 'date' && tripFilter !== 'planned'
+  const emptySegment = !isLoading && !hasNoTripsAtAll && gridTrips.length === 0 && activeFilterCount === 0 && tripFilter !== 'planned'
 
   return (
     <>
@@ -106,15 +137,28 @@ export default function DashboardPage(): React.ReactElement {
                 trip={spotlight}
                 bundle={heroBundle}
                 locale={locale}
+                mobile={mobile}
                 onOpen={() => navigate(`/trips/${spotlight.id}`)}
-                onEdit={() => { setEditingTrip(spotlight); setShowForm(true) }}
-                onCopy={() => setCopyTrip(spotlight)}
-                onArchive={() => spotlight.is_archived ? handleUnarchive(spotlight.id) : handleArchive(spotlight.id)}
-                onDelete={() => setDeleteTrip(spotlight)}
+                onMenu={(e) => openTripMenu(e, spotlight)}
               />
             )}
 
-            <AtlasStats stats={stats} />
+            {upcomingFirst && (
+              <div className="upcoming-first">
+                <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />
+              </div>
+            )}
+
+            {hasNoTripsAtAll && (
+              <section className="welcome-card">
+                <div className="welcome-icon"><Compass size={26} /></div>
+                <h2>{t('dashboard.welcome.title')}</h2>
+                <p>{t('dashboard.welcome.body')}</p>
+                <button className="welcome-cta" onClick={openNewTrip}><Plus size={16} /> {t('dashboard.newTrip')}</button>
+              </section>
+            )}
+
+            {!hasNoTripsAtAll && <AtlasStats stats={stats} />}
 
             <section>
               <div className="sec-head">
@@ -149,21 +193,26 @@ export default function DashboardPage(): React.ReactElement {
                 </div>
               </div>
 
-              <div className={`trips${viewMode === 'list' ? ' list-view' : ''}`}>
-                {gridTrips.map(trip => (
-                  <TripCard
-                    key={trip.id}
-                    trip={trip}
-                    locale={locale}
-                    onOpen={() => navigate(`/trips/${trip.id}`)}
-                    onEdit={() => { setEditingTrip(trip); setShowForm(true) }}
-                    onCopy={() => setCopyTrip(trip)}
-                    onArchive={() => trip.is_archived ? handleUnarchive(trip.id) : handleArchive(trip.id)}
-                    onDelete={() => setDeleteTrip(trip)}
-                  />
+              <div className={`trips${viewMode === 'list' ? ' list-view' : ''}`} aria-busy={isLoading || undefined}>
+                {isLoading && gridTrips.length === 0 && [0, 1, 2].map(i => <TripCardSkeleton key={i} />)}
+                {(groupByYear ? groupTripsByYear(gridTrips) : [{ year: null as string | null, trips: gridTrips }]).map(group => (
+                  <React.Fragment key={group.year ?? 'all'}>
+                    {group.year !== null && (
+                      <h4 className="year-head">{group.year || t('dashboard.hero.noDates')}<span>{group.trips.length}</span></h4>
+                    )}
+                    {group.trips.map(trip => (
+                      <TripCard
+                        key={trip.id}
+                        trip={trip}
+                        locale={locale}
+                        onOpen={() => navigate(`/trips/${trip.id}`)}
+                        onMenu={(e) => openTripMenu(e, trip)}
+                      />
+                    ))}
+                  </React.Fragment>
                 ))}
-                {tripFilter === 'planned' && activeFilterCount === 0 && !isLoading && (
-                  <button className="add-trip-card" onClick={() => { setEditingTrip(null); setShowForm(true) }}>
+                {tripFilter === 'planned' && activeFilterCount === 0 && !isLoading && !hasNoTripsAtAll && (
+                  <button className="add-trip-card" onClick={openNewTrip}>
                     <div>
                       <div className="circ"><Plus size={20} /></div>
                       <div className="ttl">{t('dashboard.newTrip')}</div>
@@ -172,6 +221,12 @@ export default function DashboardPage(): React.ReactElement {
                   </button>
                 )}
               </div>
+              {emptySegment && (
+                <div className="segment-empty">
+                  {tripFilter === 'archive' ? <Archive size={22} /> : <Calendar size={22} />}
+                  <p>{tripFilter === 'archive' ? t('dashboard.empty.archive') : t('dashboard.empty.completed')}</p>
+                </div>
+              )}
               {gridTrips.length === 0 && activeFilterCount > 0 && !isLoading && (
                 <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-3)' }}>
                   <p style={{ margin: '0 0 10px', fontSize: 13 }}>{t('dashboard.filters.noResults')}</p>
@@ -193,14 +248,14 @@ export default function DashboardPage(): React.ReactElement {
           <aside className="page-sidebar">
             <CurrencyTool />
             <TimezoneTool locale={locale} />
-            <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />
+            {!upcomingFirst && <UpcomingTool items={upcoming} locale={locale} onOpen={(tripId) => navigate(`/trips/${tripId}`)} />}
           </aside>
         </main>
       </div>
 
       <button
         className="fab-new-trip"
-        onClick={() => { setEditingTrip(null); setShowForm(true) }}
+        onClick={openNewTrip}
         aria-label={t('dashboard.newTrip')}
         title={t('dashboard.newTrip')}
       >
@@ -236,6 +291,7 @@ export default function DashboardPage(): React.ReactElement {
           onClose={() => setCopyTrip(null)}
         />
       )}
+      <ContextMenu menu={menu} onClose={closeMenu} />
       <DashboardFilterPanel
         isOpen={showFilterPanel}
         onClose={() => setShowFilterPanel(false)}
@@ -248,13 +304,11 @@ export default function DashboardPage(): React.ReactElement {
 }
 
 // ── Boarding-pass hero ───────────────────────────────────────────────────────
-function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; bundle: HeroBundle | null; locale: string; onOpen: () => void
-  onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
+function BoardingPassHero({ trip, bundle, locale, mobile, onOpen, onMenu }: {
+  trip: DashboardTrip; bundle: HeroBundle | null; locale: string; mobile: boolean; onOpen: () => void
+  onMenu: (e: React.MouseEvent) => void
 }): React.ReactElement {
   const { t } = useTranslation()
-  const mobile = useIsMobile()
-  const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
   const status = getTripStatus(trip)
   const start = splitDate(trip.start_date, locale)
   const end = splitDate(trip.end_date, locale)
@@ -345,7 +399,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
 
   return (
     <>
-    <section className="hero-trip" onClick={onOpen}>
+    <section className="hero-trip" onClick={onOpen} onContextMenu={onMenu}>
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
         : <div className="bg" style={{ background: tripGradient(trip.id) }} />}
@@ -357,10 +411,7 @@ function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArch
             {badge}
           </div>
           <div className="hero-tools">
-            <button className="hero-tool" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-            <button className="hero-tool" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-            <button className="hero-tool" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-            <button className="hero-tool" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+            <button className="hero-tool" aria-label={t('dashboard.aria.tripActions')} aria-haspopup="menu" onClick={onMenu}><MoreHorizontal size={18} /></button>
           </div>
         </div>
 
@@ -385,6 +436,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
   const distanceKm = stats?.totalDistanceKm || 0
   const distanceText = distanceKm >= 1000 ? `${(distanceKm / 1000).toFixed(1)}k` : String(distanceKm)
   const equatorTimes = (distanceKm / 40075).toFixed(2)
+  const equatorDash = Math.round(Math.min(1, distanceKm / 40075) * 88)
+  const [brokenFlags, setBrokenFlags] = useState<Set<string>>(() => new Set())
 
   return (
     <section className="atlas">
@@ -394,7 +447,10 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
         <div className="passport-flags">
           {countries.slice(0, 5).map((c, i) => (
             <span key={i} className="flag" title={c}>
-              <img src={`https://flagcdn.com/w40/${c.toLowerCase()}.png`} alt={c} loading="lazy" />
+              {/* Offline (or the flag host unreachable) the country code stands in for the flag. */}
+              {brokenFlags.has(c)
+                ? <span className="flag-code">{c.toUpperCase()}</span>
+                : <img src={`https://flagcdn.com/w40/${c.toLowerCase()}.png`} alt={c} loading="lazy" onError={() => setBrokenFlags(prev => new Set(prev).add(c))} />}
             </span>
           ))}
           {countries.length > 5 && <span className="flag more">+{countries.length - 5}</span>}
@@ -406,18 +462,12 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
         <div className="label">{t('dashboard.atlas.tripsTotal')}</div>
         <div className="value mono">{stats?.totalTrips ?? 0}</div>
         <div className="delta">{t('dashboard.atlas.placesMapped', { count: stats?.totalPlaces ?? 0 })}</div>
-        <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
-          <polyline points="0,30 12,26 22,28 32,18 44,22 56,10 68,14 80,4" fill="none" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
       </div>
 
       <div className="atlas-card">
         <div className="label">{t('dashboard.atlas.daysTraveled')}</div>
         <div className="value mono">{stats?.totalDays ?? 0} <span className="unit">{t('dashboard.atlas.daysUnit')}</span></div>
         <div className="delta">{t('dashboard.atlas.acrossAllTrips')}</div>
-        <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
-          <path d="M0 30 Q10 24 20 26 T40 20 T60 14 T80 10" fill="none" strokeWidth="2" strokeLinecap="round" />
-        </svg>
       </div>
 
       <div className="atlas-card">
@@ -426,7 +476,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
         <div className="delta">{t('dashboard.atlas.aroundEquator', { count: equatorTimes })}</div>
         <svg className="spark" width="80" height="36" viewBox="0 0 80 36">
           <circle cx="40" cy="18" r="14" fill="none" stroke="oklch(0.88 0.01 70)" strokeWidth="2" />
-          <circle cx="40" cy="18" r="14" fill="none" strokeWidth="2" strokeDasharray="58 88" strokeLinecap="round" transform="rotate(-90 40 18)" />
+          {/* The ring fills with the share of one lap around the equator (full past one lap). */}
+          <circle cx="40" cy="18" r="14" fill="none" strokeWidth="2" strokeDasharray={`${equatorDash} 88`} strokeLinecap="round" transform="rotate(-90 40 18)" />
         </svg>
       </div>
     </section>
@@ -434,9 +485,8 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; locale: string; onOpen: () => void
-  onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
+function TripCard({ trip, locale, onOpen, onMenu }: {
+  trip: DashboardTrip; locale: string; onOpen: () => void; onMenu: (e: React.MouseEvent) => void
 }): React.ReactElement {
   const { t } = useTranslation()
   const status = getTripStatus(trip)
@@ -452,20 +502,15 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
     : status === 'past' ? t('dashboard.mobile.completed')
     : t('dashboard.card.idea')
 
-  const stop = (e: React.MouseEvent, fn: () => void) => { e.stopPropagation(); fn() }
-
   return (
-    <article className="trip-card" onClick={onOpen}>
+    <article className="trip-card" onClick={onOpen} onContextMenu={onMenu}>
       <div className="trip-cover">
         {trip.cover_image
           ? <img src={trip.cover_image} alt={trip.title} />
           : <div style={{ width: '100%', height: '100%', background: tripGradient(trip.id) }} />}
         <div className={`trip-status ${statusClass}`}><span className="indicator" /> {statusLabel}</div>
         <div className="trip-actions">
-          <button className="trip-action-btn" aria-label={t('common.edit')} onClick={(e) => stop(e, onEdit)}><Edit2 size={16} /></button>
-          <button className="trip-action-btn" aria-label={t('dashboard.aria.duplicate')} onClick={(e) => stop(e, onCopy)}><Copy size={16} /></button>
-          <button className="trip-action-btn" aria-label={trip.is_archived ? t('dashboard.restore') : t('dashboard.archive')} onClick={(e) => stop(e, onArchive)}><Archive size={16} /></button>
-          <button className="trip-action-btn" aria-label={t('common.delete')} onClick={(e) => stop(e, onDelete)}><Trash2 size={16} /></button>
+          <button className="trip-action-btn" aria-label={t('dashboard.aria.tripActions')} aria-haspopup="menu" onClick={onMenu}><MoreHorizontal size={18} /></button>
         </div>
         <div className="trip-cover-content">
           <h3 className="trip-name">{trip.title}</h3>
@@ -491,6 +536,18 @@ function TripCard({ trip, locale, onOpen, onEdit, onCopy, onArchive, onDelete }:
   )
 }
 
+function TripCardSkeleton(): React.ReactElement {
+  return (
+    <div className="trip-card trip-card-skeleton" aria-hidden>
+      <div className="trip-cover"><Skeleton width="100%" height="100%" radius={0} /></div>
+      <div className="trip-body">
+        <Skeleton width="45%" height={12} radius={6} style={{ marginBottom: 14 }} />
+        <Skeleton width="100%" height={30} radius={8} />
+      </div>
+    </div>
+  )
+}
+
 // ── Currency tool (self-contained, mirrors the design's fx widget) ───────────
 const FX_FALLBACK = ['EUR', 'USD', 'GBP', 'CHF', 'JPY', 'CAD', 'AUD', 'CNY', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'TRY', 'THB', 'INR', 'BRL', 'MXN', 'ZAR']
 
@@ -499,16 +556,8 @@ function CurrencyTool(): React.ReactElement {
   const [from, setFrom] = useState(() => localStorage.getItem('trek_fx_from') || 'EUR')
   const [to, setTo] = useState(() => localStorage.getItem('trek_fx_to') || 'USD')
   const [amount, setAmount] = useState('100')
-  const [rates, setRates] = useState<Record<string, number> | null>(null)
-
-  const fetchRate = React.useCallback(() => {
-    fetch(`https://api.exchangerate-api.com/v4/latest/${from}`)
-      .then(r => r.json())
-      .then(d => setRates(d.rates ?? null))
-      .catch(() => setRates(null))
-  }, [from])
-
-  useEffect(() => { fetchRate() }, [fetchRate])
+  // Shared with the Costs panel: cached for 6 h on the device, so the rate is still there offline.
+  const { rates, refresh: fetchRate } = useExchangeRates(from)
   useEffect(() => { localStorage.setItem('trek_fx_from', from); localStorage.setItem('trek_fx_to', to) }, [from, to])
 
   const currencies = rates ? Object.keys(rates).sort() : FX_FALLBACK

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { Menu, X, type LucideIcon } from 'lucide-react'
+import { useTranslation } from '../../i18n'
 
 export interface PageSidebarTab {
   id: string
@@ -33,6 +34,7 @@ export default function PageSidebar({
   children,
   footer,
 }: PageSidebarProps): React.ReactElement {
+  const { t } = useTranslation()
   const [mobileOpen, setMobileOpen] = useState(false)
   const activeLabel = tabs.find(t => t.id === activeTab)?.label ?? ''
 
@@ -65,7 +67,7 @@ export default function PageSidebar({
         <button
           onClick={() => setMobileOpen(true)}
           className="w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
-          aria-label="Open navigation"
+          aria-label={t('nav.openMenu')}
           style={{ color: 'var(--text-primary)' }}
         >
           <Menu size={18} />
@@ -128,7 +130,7 @@ export default function PageSidebar({
               <button
                 onClick={() => setMobileOpen(false)}
                 className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
-                aria-label="Close navigation"
+                aria-label={t('nav.closeMenu')}
                 style={{ color: 'var(--text-primary)' }}
               >
                 <X size={16} />

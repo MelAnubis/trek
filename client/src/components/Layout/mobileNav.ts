@@ -37,8 +37,12 @@ export const MOBILE_NAV_MAX = 5
 
 const BY_ID = new Map(MOBILE_NAV_CATALOG.map(i => [i.id, i]))
 
-/** What the bar showed before it was configurable — still the default. */
-export const DEFAULT_MOBILE_NAV = ['trips', 'vacay', 'atlas', 'journey', 'navigate']
+/**
+ * The default bar: the places used on the road — trips, the route planner,
+ * live tracking, the journey and turn-by-turn. Atlas and Vacay stay a choice
+ * in Settings → Display. Someone who saved their own bar keeps it.
+ */
+export const DEFAULT_MOBILE_NAV = ['trips', 'planner', 'tracking', 'journey', 'navigate']
 
 /** The destinations available to this user (addons that are on). */
 export function availableNavItems(enabledAddons: string[]): MobileNavItem[] {

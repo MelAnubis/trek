@@ -980,7 +980,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
           <SlidingTabs
             tabs={TRIP_TABS.map(tab => ({
               id: tab.id,
-              label: <span className="hidden sm:inline">{tab.shortLabel || tab.label}</span>,
+              // On a phone the tabs are icons only — except the active one, so you can tell where you are.
+              label: <span className={tab.id === activeTab ? undefined : 'hidden sm:inline'}>{tab.shortLabel || tab.label}</span>,
               title: tab.label,
               icon: tab.icon,
             }))}
@@ -991,7 +992,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
         {/* Navigate button — compact, always visible in trip context */}
         <button
           onClick={() => navigate(`/navigate?tripId=${tripId}`)}
-          title="Abrir navegación GPS"
+          title={t('nav.navigateTitle')}
           style={{
             flexShrink: 0,
             display: 'flex', alignItems: 'center', gap: 5,
@@ -1007,7 +1008,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
           }}
         >
           <Navigation size={14} />
-          <span className="hidden sm:inline">Navegar</span>
+          <span className="hidden sm:inline">{t('nav.navigate')}</span>
         </button>
       </div>
 

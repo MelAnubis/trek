@@ -38,6 +38,25 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+type User = ReturnType<typeof userEvent.setup>;
+
+/** A trip's actions live in its "⋯" menu: open it on the card (or hero) showing `title`, or the first one. */
+async function openTripMenu(user: User, title?: string) {
+  const scopes = Array.from(document.querySelectorAll('.hero-trip, .trips .trip-card'));
+  const scope = title ? scopes.find(s => s.textContent?.includes(title)) : scopes[0];
+  expect(scope).toBeDefined();
+  await user.click(scope!.querySelector('button[aria-label="Trip actions"]') as HTMLElement);
+}
+
+/** The item in the open trip menu (rendered last, in a portal). */
+function menuItem(name: RegExp) {
+  const items = screen.getAllByRole('button', { name });
+  return items[items.length - 1];
+}
+
+/** The "My Trips" section heading (the navbar also links to "My trips"). */
+const tripsHeading = () => screen.getByRole('heading', { name: /my trips/i });
+
 describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-001: Unauthenticated user is redirected', () => {
     it('does not render dashboard content when not authenticated', () => {
@@ -48,7 +67,7 @@ describe('DashboardPage', () => {
       seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
       render(<DashboardPage />);
       // Dashboard content is present when authenticated
-      expect(screen.getByText(/my trips/i)).toBeInTheDocument();
+      expect(tripsHeading()).toBeInTheDocument();
     });
   });
 
@@ -77,18 +96,18 @@ describe('DashboardPage', () => {
   });
 
   describe('FE-PAGE-DASH-004: Empty state when no trips', () => {
-    it('shows only the create-trip card when the API returns no trips', async () => {
+    it('shows a welcome card (and no stats) when the user has no trips at all', async () => {
       server.use(
         http.get('/api/trips', () => HttpResponse.json({ trips: [] })),
       );
 
       render(<DashboardPage />);
 
-      // No trip cards — just the "New Trip / Plan a new trip from scratch" card.
       await waitFor(() => {
-        expect(screen.getByText('Plan a new trip from scratch')).toBeInTheDocument();
+        expect(screen.getByText('Plan your first trip')).toBeInTheDocument();
       });
       expect(document.querySelectorAll('.trip-card')).toHaveLength(0);
+      expect(document.querySelector('.atlas')).toBeNull();
     });
   });
 
@@ -123,7 +142,7 @@ describe('DashboardPage', () => {
       render(<DashboardPage />);
 
       // Header renders immediately
-      expect(screen.getByText(/my trips/i)).toBeInTheDocument();
+      expect(tripsHeading()).toBeInTheDocument();
 
       // Loading is indicated by subtitle "Loading…" or skeleton cards
       // The subtitle during loading shows t('common.loading')
@@ -137,7 +156,7 @@ describe('DashboardPage', () => {
   describe('FE-PAGE-DASH-007: Dashboard title visible', () => {
     it('shows the dashboard title', async () => {
       render(<DashboardPage />);
-      expect(screen.getByText(/my trips/i)).toBeInTheDocument();
+      expect(tripsHeading()).toBeInTheDocument();
     });
   });
 
@@ -150,9 +169,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Find delete button — CardAction with label t('common.delete')
-      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-      await user.click(deleteButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^delete$/i));
 
       await waitFor(() => {
         // ConfirmDialog renders with title t('common.delete') and cancel/confirm buttons
@@ -171,8 +189,8 @@ describe('DashboardPage', () => {
       });
 
       // Open confirm dialog
-      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-      await user.click(deleteButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^delete$/i));
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
@@ -204,8 +222,8 @@ describe('DashboardPage', () => {
       });
 
       // Open confirm dialog
-      const deleteButtons = screen.getAllByRole('button', { name: /delete/i });
-      await user.click(deleteButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^delete$/i));
 
       await waitFor(() => {
         expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument();
@@ -238,9 +256,9 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      // Click archive button
-      const archiveButtons = screen.getAllByRole('button', { name: /archive/i });
-      await user.click(archiveButtons[0]);
+      // Archive from the trip's menu
+      await openTripMenu(user, 'Paris Adventure');
+      await user.click(menuItem(/^archive$/i));
 
       // Wait for archived section toggle to appear
       await waitFor(() => {
@@ -265,8 +283,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      const editButtons = screen.getAllByRole('button', { name: /edit/i });
-      await user.click(editButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^edit$/i));
 
       await waitFor(() => {
         const titleInput = screen.getByDisplayValue('Paris Adventure');
@@ -374,7 +392,11 @@ describe('DashboardPage', () => {
       const card = Array.from(document.querySelectorAll('.trips.list-view .trip-card')).find(c => c.textContent?.includes('Tokyo Trip'))!;
       expect(card).toBeDefined();
       const labels = Array.from(card.querySelectorAll('button')).map(b => b.getAttribute('aria-label'));
-      expect(labels).toEqual(expect.arrayContaining(['Edit', 'Duplicate', 'Archive', 'Delete']));
+      expect(labels).toEqual(['Trip actions']);
+      await openTripMenu(user, 'Tokyo Trip');
+      for (const name of [/^edit$/i, /^duplicate$/i, /^archive$/i, /^delete$/i]) {
+        expect(menuItem(name)).toBeInTheDocument();
+      }
     });
   });
 
@@ -393,9 +415,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      const copyButtons = screen.getAllByRole('button', { name: /duplicate/i });
-      expect(copyButtons.length).toBeGreaterThan(0);
-      await user.click(copyButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^duplicate$/i));
 
       const confirmButton = await screen.findByRole('button', { name: /copy trip/i });
       await user.click(confirmButton);
@@ -443,7 +464,8 @@ describe('DashboardPage', () => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
       });
 
-      await user.click(screen.getByRole('button', { name: /restore/i }));
+      await openTripMenu(user, 'Old Rome Trip');
+      await user.click(menuItem(/^restore$/i));
 
       await waitFor(() => {
         expect(screen.queryByText('Old Rome Trip')).not.toBeInTheDocument();
@@ -500,12 +522,12 @@ describe('DashboardPage', () => {
       render(<DashboardPage />);
 
       // Page should still render header
-      expect(screen.getByText(/my trips/i)).toBeInTheDocument();
+      expect(tripsHeading()).toBeInTheDocument();
 
       // Wait for loading to complete (error path)
       await waitFor(() => {
         // After error, loading state resolves and empty state or the title remains
-        expect(screen.queryByText(/my trips/i)).toBeInTheDocument();
+        expect(tripsHeading()).toBeInTheDocument();
       });
     });
   });
@@ -652,7 +674,8 @@ describe('DashboardPage', () => {
       await waitFor(() => {
         expect(screen.getByText('Old Rome Trip')).toBeInTheDocument();
       });
-      await user.click(screen.getByRole('button', { name: /restore/i }));
+      await openTripMenu(user, 'Old Rome Trip');
+      await user.click(menuItem(/^restore$/i));
 
       await user.click(screen.getByRole('button', { name: /^planned$/i }));
       await waitFor(() => {
@@ -676,9 +699,8 @@ describe('DashboardPage', () => {
         expect(screen.getAllByText('Paris Adventure')[0]).toBeInTheDocument();
       });
 
-      const copyButtons = screen.getAllByRole('button', { name: /duplicate/i });
-      expect(copyButtons.length).toBeGreaterThan(0);
-      await user.click(copyButtons[0]);
+      await openTripMenu(user);
+      await user.click(menuItem(/^duplicate$/i));
 
       const confirmButton = await screen.findByRole('button', { name: /copy trip/i });
       await user.click(confirmButton);
@@ -690,21 +712,20 @@ describe('DashboardPage', () => {
   });
 
   describe('FE-PAGE-DASH-030: Empty state renders create button', () => {
-    it('the create-trip card opens the new trip form', async () => {
+    it('the welcome card opens the new trip form', async () => {
       server.use(
         http.get('/api/trips', () => HttpResponse.json({ trips: [] })),
       );
 
       render(<DashboardPage />);
 
-      // No trip cards — just the "New Trip / Plan a new trip from scratch" card.
       await waitFor(() => {
-        expect(screen.getByText('Plan a new trip from scratch')).toBeInTheDocument();
+        expect(screen.getByText('Plan your first trip')).toBeInTheDocument();
       });
       expect(document.querySelectorAll('.trip-card')).toHaveLength(0);
 
       const user = userEvent.setup();
-      await user.click(screen.getByText('Plan a new trip from scratch').closest('button')!);
+      await user.click(document.querySelector('.welcome-cta') as HTMLElement);
       await waitFor(() => {
         expect(document.querySelector('[role="dialog"], .modal, form')).not.toBeNull();
       });
@@ -768,7 +789,44 @@ describe('DashboardPage', () => {
       });
 
       // Page renders successfully with dark_mode = 'auto'
-      expect(screen.getByText(/my trips/i)).toBeInTheDocument();
+      expect(tripsHeading()).toBeInTheDocument();
+    });
+  });
+
+  describe('FE-PAGE-DASH-033: Spotlight and search', () => {
+    it('a search still finds the trip shown in the hero', async () => {
+      const user = userEvent.setup();
+      render(<DashboardPage />);
+      await waitFor(() => {
+        expect(document.querySelector('.hero-trip')?.textContent).toContain('Paris Adventure');
+      });
+      // Not repeated in the plain list…
+      expect(document.querySelector('.trips')?.textContent).not.toContain('Paris Adventure');
+
+      await user.click(screen.getByRole('button', { name: /filters/i }));
+      await user.type(screen.getByPlaceholderText(/trip name or notes/i), 'Paris');
+
+      // …but found once you search for it.
+      await waitFor(() => {
+        expect(document.querySelector('.trips')?.textContent).toContain('Paris Adventure');
+      });
+    });
+
+    it('only past trips → no boarding-pass hero', async () => {
+      const oldTrip = buildTrip({ title: 'Lisbon 2024', start_date: '2024-04-01', end_date: '2024-04-05' });
+      server.use(
+        http.get('/api/trips', ({ request }) => {
+          const url = new URL(request.url);
+          if (url.searchParams.get('archived')) return HttpResponse.json({ trips: [] });
+          return HttpResponse.json({ trips: [oldTrip] });
+        }),
+      );
+      render(<DashboardPage />);
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /new trip/i, hidden: true })).toBeInTheDocument();
+      });
+      await waitFor(() => expect(document.querySelector('.add-trip-card')).not.toBeNull());
+      expect(document.querySelector('.hero-trip')).toBeNull();
     });
   });
 });

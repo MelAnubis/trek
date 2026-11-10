@@ -8,6 +8,7 @@ import { useTranslation } from '../../i18n'
 import { Mountain, Plane, LogOut, Settings, Radio, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
+import { useIsDark } from '../../hooks/useIsDark'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass }
 
@@ -35,8 +36,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   const location = useLocation()
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
-  const darkMode = settings.dark_mode
-  const dark = darkMode === true || darkMode === 'dark' || (darkMode === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8 || (document.body.scrollTop || 0) > 8)
@@ -109,10 +109,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       <div className="flex items-center gap-3 min-w-0">
         {showBack && (
           <button onClick={onBack}
-            className="trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
-            style={{ color: 'var(--text-muted)' }}
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            className="trek-hover trek-back-btn p-1.5 rounded-lg transition-colors flex items-center gap-1.5 text-sm flex-shrink-0"
+            style={{ color: 'var(--text-muted)' }}>
             <ArrowLeft className="trek-back-icon w-4 h-4" />
             <span className="hidden sm:inline">{t('common.back')}</span>
           </button>
@@ -123,83 +121,26 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
           <img src={dark ? '/logo-light.svg' : '/logo-dark.svg'} alt="Trek Wanderer" className="hidden sm:block" style={{ height: 28 }} />
         </Link>
 
-        {/* Global addon nav items */}
-        {globalAddons.length > 0 && !tripTitle && (
+        {/* App destinations: my trips, the global addons that are on, the route planner and Explora. */}
+        {!tripTitle && (
           <>
             <span style={{ color: 'var(--text-faint)' }}>|</span>
-            <Link to="/dashboard" title={t('nav.myTrips')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-              style={{
-                color: location.pathname === '/dashboard' ? 'var(--text-primary)' : 'var(--text-muted)',
-                background: location.pathname === '/dashboard' ? 'var(--bg-hover)' : 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => { if (location.pathname !== '/dashboard') e.currentTarget.style.background = 'transparent' }}>
-              <Briefcase className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{t('nav.myTrips')}</span>
-            </Link>
-            {globalAddons.map(addon => {
-              const Icon = ADDON_ICONS[addon.icon] || CalendarDays
-              const path = `/${addon.id}`
-              const isActive = location.pathname === path
+            {[
+              { to: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase as LucideIcon },
+              ...globalAddons.map(addon => ({ to: `/${addon.id}`, label: getAddonName(addon), Icon: ADDON_ICONS[addon.icon] || CalendarDays })),
+              { to: '/planner', label: t('planner.nav'), Icon: RouteIcon as LucideIcon },
+              { to: '/explora', label: t('site.tab'), Icon: Mountain as LucideIcon },
+            ].map(({ to, label, Icon }) => {
+              const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`)
               return (
-                <Link key={addon.id} to={path} title={getAddonName(addon)}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-                  style={{
-                    color: isActive ? 'var(--text-primary)' : 'var(--text-muted)',
-                    background: isActive ? 'var(--bg-hover)' : 'transparent',
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}>
+                <Link key={to} to={to} title={label}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`trek-nav-link flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium flex-shrink-0${isActive ? ' is-active' : ''}`}>
                   <Icon className="w-3.5 h-3.5" />
-                  <span className="hidden lg:inline">{getAddonName(addon)}</span>
+                  <span className="hidden lg:inline">{label}</span>
                 </Link>
               )
             })}
-            <Link to="/planner" title={t('planner.nav')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-              style={{
-                color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
-                background: location.pathname === '/planner' ? 'var(--bg-hover)' : 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
-              <RouteIcon className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{t('planner.nav')}</span>
-            </Link>
-            <Link to="/explora" title={t('site.tab')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-              <Mountain className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{t('site.tab')}</span>
-            </Link>
-          </>
-        )}
-        {/* Sin addons globales activos el bloque anterior no se pinta: el planificador sigue accesible. */}
-        {globalAddons.length === 0 && !tripTitle && (
-          <>
-            <span style={{ color: 'var(--text-faint)' }}>|</span>
-            <Link to="/planner" title={t('planner.nav')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-              style={{
-                color: location.pathname === '/planner' ? 'var(--text-primary)' : 'var(--text-muted)',
-                background: location.pathname === '/planner' ? 'var(--bg-hover)' : 'transparent',
-              }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => { if (location.pathname !== '/planner') e.currentTarget.style.background = 'transparent' }}>
-              <RouteIcon className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{t('planner.nav')}</span>
-            </Link>
-            <Link to="/explora" title={t('site.tab')}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
-              style={{ color: 'var(--text-muted)' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-              <Mountain className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">{t('site.tab')}</span>
-            </Link>
           </>
         )}
 
@@ -220,23 +161,19 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {tripId && (
         <Link
           to={`/navigate?tripId=${tripId}`}
-          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
-          style={{ borderColor: 'rgba(34,217,110,0.35)', color: '#22d96e', background: 'rgba(34,217,110,0.08)' }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(34,217,110,0.16)'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'rgba(34,217,110,0.08)'}
+          title={t('nav.navigateTitle')}
+          className="trek-nav-go flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
         >
           <Navigation className="w-4 h-4" />
-          <span className="hidden sm:inline">Navegar</span>
+          <span className="hidden sm:inline">{t('nav.navigate')}</span>
         </Link>
       )}
 
       {/* Share button */}
       {onShare && (
         <button onClick={onShare}
-          className="flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
-          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'var(--bg-card)'}>
+          className="trek-hover flex items-center gap-1.5 py-1.5 px-3 rounded-lg border transition-colors text-sm font-medium flex-shrink-0"
+          style={{ borderColor: 'var(--border-primary)', color: 'var(--text-secondary)', background: 'var(--bg-card)' }}>
           <Users className="w-4 h-4" />
           <span className="hidden sm:inline">{t('nav.share')}</span>
         </button>
@@ -268,10 +205,8 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
       {/* Dark mode toggle (light ↔ dark, overrides auto) — hidden on mobile */}
       <button onClick={toggleDarkMode} title={dark ? t('nav.lightMode') : t('nav.darkMode')}
-        className="p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center"
-        style={{ color: 'var(--text-muted)' }}
-        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+        className="trek-hover p-2 rounded-lg transition-colors flex-shrink-0 hidden sm:flex relative w-8 h-8 items-center justify-center"
+        style={{ color: 'var(--text-muted)' }}>
         <Sun className="w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
           style={{ opacity: dark ? 1 : 0, transform: dark ? 'rotate(0deg) scale(1)' : 'rotate(-90deg) scale(0.6)' }} />
         <Moon className="w-4 h-4 absolute transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]"
@@ -286,9 +221,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
       {user && (
         <div className="relative">
           <button onClick={() => setUserMenuOpen(!userMenuOpen)}
-            className="flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors"
-            onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            className="trek-hover flex items-center gap-2 py-1.5 px-3 rounded-lg transition-colors">
             {user.avatar_url ? (
               <img src={user.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
             ) : (
@@ -329,29 +262,23 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
 
                 <div className="py-1">
                   <Link to="/settings" onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                    style={{ color: 'var(--text-secondary)' }}>
                     <Settings className="w-4 h-4" />
                     {t('nav.settings')}
                   </Link>
 
                   <Link to="/tracking" onClick={() => setUserMenuOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                    style={{ color: 'var(--text-secondary)' }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                    className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                    style={{ color: 'var(--text-secondary)' }}>
                     <Radio className="w-4 h-4" />
                     {t('tracking.title')}
                   </Link>
 
                   {user.role === 'admin' && (
                     <Link to="/admin" onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-                      style={{ color: 'var(--text-secondary)' }}
-                      onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                      className="trek-hover flex items-center gap-2 px-4 py-2 text-sm transition-colors"
+                      style={{ color: 'var(--text-secondary)' }}>
                       <Shield className="w-4 h-4" />
                       {t('nav.admin')}
                     </Link>

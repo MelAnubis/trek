@@ -11,6 +11,7 @@ import { useTranslation } from '../../i18n'
 import { CustomDatePicker } from '../shared/CustomDateTimePicker'
 import CustomTimePicker from '../shared/CustomTimePicker'
 import { openFile } from '../../utils/fileDownload'
+import { splitReservationDateTime } from '../../utils/formatters'
 import type { Day, Place, Reservation, TripFile, AssignmentsMap, Accommodation } from '../../types'
 
 const TYPE_OPTIONS = [
@@ -123,9 +124,9 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         notes: reservation.notes || '',
         assignment_id: reservation.assignment_id || '',
         accommodation_id: reservation.accommodation_id || '',
-        meta_check_in_time: meta.check_in_time || '',
-        meta_check_in_end_time: meta.check_in_end_time || '',
-        meta_check_out_time: meta.check_out_time || '',
+        meta_check_in_time: meta.check_in_time || reservation.accommodation_check_in || '',
+        meta_check_in_end_time: meta.check_in_end_time || (meta.check_in_time ? '' : reservation.accommodation_check_in_end) || '',
+        meta_check_out_time: meta.check_out_time || reservation.accommodation_check_out || '',
         hotel_place_id: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.place_id || '' })(),
         hotel_start_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.start_day_id || '' })(),
         hotel_end_day: (() => { const acc = accommodations.find(a => a.id == reservation.accommodation_id); return acc?.end_day_id || '' })(),
@@ -160,9 +161,10 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const set = (field, value) => setForm(prev => ({ ...prev, [field]: value }))
 
   const isEndBeforeStart = (() => {
-    if (!form.end_date || !form.reservation_time) return false
-    const startDate = form.reservation_time.split('T')[0]
-    const startTime = form.reservation_time.split('T')[1] || '00:00'
+    const start = splitReservationDateTime(form.reservation_time)
+    if (!form.end_date || !start.date) return false
+    const startDate = start.date
+    const startTime = start.time || '00:00'
     const endTime = form.reservation_end_time || '00:00'
     const startFull = `${startDate}T${startTime}`
     const endFull = `${form.end_date}T${endTime}`
@@ -184,8 +186,8 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       let combinedEndTime = form.reservation_end_time
       if (form.end_date) {
         combinedEndTime = form.reservation_end_time ? `${form.end_date}T${form.reservation_end_time}` : form.end_date
-      } else if (form.reservation_end_time && form.reservation_time) {
-        combinedEndTime = `${form.reservation_time.split('T')[0]}T${form.reservation_end_time}`
+      } else if (form.reservation_end_time && splitReservationDateTime(form.reservation_time).date) {
+        combinedEndTime = `${splitReservationDateTime(form.reservation_time).date}T${form.reservation_end_time}`
       }
       if (isBudgetEnabled) {
         if (form.price) metadata.price = form.price
@@ -358,19 +360,19 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
               <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={labelStyle}>{t('reservations.date')}</label>
                 <CustomDatePicker
-                  value={(() => { const [d] = (form.reservation_time || '').split('T'); return d || '' })()}
+                  value={splitReservationDateTime(form.reservation_time).date || ''}
                   onChange={d => {
-                    const [, tm] = (form.reservation_time || '').split('T')
-                    set('reservation_time', d ? (tm ? `${d}T${tm}` : d) : '')
+                    const tm = splitReservationDateTime(form.reservation_time).time
+                    set('reservation_time', d ? (tm ? `${d}T${tm}` : d) : (tm || ''))
                   }}
                 />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <label style={labelStyle}>{t('reservations.startTime')}</label>
                 <CustomTimePicker
-                  value={(() => { const [, tm] = (form.reservation_time || '').split('T'); return tm || '' })()}
+                  value={splitReservationDateTime(form.reservation_time).time || ''}
                   onChange={tm => {
-                    const [d] = (form.reservation_time || '').split('T')
+                    const d = splitReservationDateTime(form.reservation_time).date
                     const selectedDay = days.find(dy => dy.id === selectedDayId)
                     const date = d || selectedDay?.date || new Date().toISOString().split('T')[0]
                     set('reservation_time', tm ? `${date}T${tm}` : date)

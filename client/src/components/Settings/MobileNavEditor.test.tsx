@@ -17,8 +17,9 @@ function setup(mobile_nav: unknown, addons = ['journey', 'atlas']) {
 const order = () => [...document.querySelectorAll('[data-nav-item]')].map(e => e.getAttribute('data-nav-item'))
 
 describe('mobileNav', () => {
-  it('FE-MOBILENAV-001: the default is the old bar, minus addons that are off', () => {
-    expect(resolveMobileNav(undefined, ['journey']).map(i => i.id)).toEqual(['trips', 'journey', 'navigate'])
+  it('FE-MOBILENAV-001: the default is trips, planner, tracking, journey and navigate, minus addons that are off', () => {
+    expect(resolveMobileNav(undefined, ['journey']).map(i => i.id)).toEqual(['trips', 'planner', 'tracking', 'journey', 'navigate'])
+    expect(resolveMobileNav(undefined, []).map(i => i.id)).toEqual(['trips', 'planner', 'tracking', 'navigate'])
     expect(resolveMobileNav([], ['vacay', 'atlas', 'journey']).map(i => i.id)).toEqual(DEFAULT_MOBILE_NAV)
   })
 

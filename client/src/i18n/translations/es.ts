@@ -4039,6 +4039,18 @@ const es: Record<string, string> = {
   'app.update.available': 'Hay una versión nueva de Trek.',
   'app.update.reload': 'Recargar',
   'app.update.reloading': 'Hay una versión nueva: recargando… Vuelve a pulsar cuando termine.',
+  // Navigation, login and dashboard (v5.8)
+  'nav.navigate': "Navegar",
+  'nav.navigateTitle': "Abrir navegación GPS",
+  'nav.openMenu': "Abrir menú",
+  'nav.closeMenu': "Cerrar menú",
+  'nav.profileUnread': "Perfil, {count} notificaciones sin leer",
+  'login.mfaCodePlaceholder': "000000 o XXXX-XXXX",
+  'dashboard.aria.tripActions': "Acciones del viaje",
+  'dashboard.welcome.title': "Planifica tu primer viaje",
+  'dashboard.welcome.body': "Crea un viaje para añadir lugares, días, reservas y rutas. Todo lo que planifiques aparecerá aquí.",
+  'dashboard.empty.archive': "No hay viajes archivados. Archiva un viaje desde su menú ⋯ para despejar la lista sin borrarlo.",
+  'dashboard.empty.completed': "Todavía no hay viajes completados. Un viaje pasa aquí cuando termina su último día.",
 }
 
 export default es

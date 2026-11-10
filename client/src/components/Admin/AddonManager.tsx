@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { adminApi } from '../../api/client'
 import { useTranslation } from '../../i18n'
-import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useToast } from '../shared/Toast'
 import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, MessageCircle, StickyNote, BarChart3, Sparkles, Luggage } from 'lucide-react'
+import { useIsDark } from '../../hooks/useIsDark'
 
 const ICON_MAP = {
   ListChecks, Wallet, FileText, CalendarDays, Puzzle, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen,
@@ -70,8 +70,7 @@ const COLLAB_SUB_FEATURES = [
 
 export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature }: { bagTrackingEnabled?: boolean; onToggleBagTracking?: () => void; collabFeatures?: CollabFeatures; onToggleCollabFeature?: (key: string) => void }) {
   const { t } = useTranslation()
-  const dm = useSettingsStore(s => s.settings.dark_mode)
-  const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+  const dark = useIsDark()
   const toast = useToast()
   const refreshGlobalAddons = useAddonStore(s => s.loadAddons)
   const [addons, setAddons] = useState<Addon[]>([])

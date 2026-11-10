@@ -85,7 +85,7 @@ describe('BottomNav', () => {
     const user = userEvent.setup();
     render(<BottomNav />);
     await user.click(screen.getByText('Profile'));
-    expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.getByText('Administrator')).toBeInTheDocument();
   });
 
   it('FE-COMP-BOTTOMNAV-009: backdrop click closes profile sheet', async () => {
@@ -115,7 +115,8 @@ describe('BottomNav', () => {
   });
 
   it('FE-COMP-BOTTOMNAV-012: addon labels translate when language is fr', () => {
-    seedStore(useSettingsStore, { settings: buildSettings({ language: 'fr' }) });
+    // Vacay and Atlas are no longer in the default bar — pin them like a user who chose them.
+    seedStore(useSettingsStore, { settings: buildSettings({ language: 'fr', mobile_nav: ['trips', 'vacay', 'atlas', 'journey'] }) });
     seedStore(useAddonStore, {
       addons: [
         { id: 'vacay', name: 'Vacay', type: 'global', icon: 'calendar', enabled: true },
@@ -135,5 +136,18 @@ describe('BottomNav', () => {
     });
     render(<BottomNav />);
     expect(screen.queryByText('Foo Addon')).not.toBeInTheDocument();
+  });
+
+  it('FE-COMP-BOTTOMNAV-014: the default bar leads to trips, planner, tracking and navigation', () => {
+    render(<BottomNav />);
+    const hrefs = Array.from(document.querySelectorAll('nav a')).map(a => a.getAttribute('href'));
+    expect(hrefs).toEqual(['/dashboard', '/planner', '/tracking', '/navigate']);
+  });
+
+  it('FE-COMP-BOTTOMNAV-015: the profile sheet links to notifications and tracking', () => {
+    render(<BottomNav />);
+    fireEvent.click(screen.getByText('Profile'));
+    expect(screen.getByText('Alerts')).toBeInTheDocument();
+    expect(screen.getAllByText('Live tracking').length).toBeGreaterThan(0);
   });
 });

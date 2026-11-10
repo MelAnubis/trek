@@ -27,11 +27,14 @@ function readCache(base: string): { rates: Record<string, number>; ts: number } 
 export function useExchangeRates(base: string) {
   const upper = (base || 'EUR').toUpperCase()
   const [rates, setRates] = useState<Record<string, number> | null>(() => readCache(upper)?.rates ?? null)
+  // Bumped by refresh() to fetch again even while the cache is fresh.
+  const [nonce, setNonce] = useState(0)
 
   useEffect(() => {
     const cached = readCache(upper)
-    if (cached) setRates(cached.rates)
-    if (cached && Date.now() - cached.ts < TTL_MS) return
+    // A new base without a cache shows nothing rather than the previous base's rates.
+    setRates(cached?.rates ?? null)
+    if (nonce === 0 && cached && Date.now() - cached.ts < TTL_MS) return
     let cancelled = false
     fetch(`https://api.exchangerate-api.com/v4/latest/${encodeURIComponent(upper)}`)
       .then(r => r.json())
@@ -44,7 +47,7 @@ export function useExchangeRates(base: string) {
       })
       .catch(() => { /* offline → keep cached/identity */ })
     return () => { cancelled = true }
-  }, [upper])
+  }, [upper, nonce])
 
   const convert = useCallback(
     (amount: number, from: string | null | undefined): number => {
@@ -56,5 +59,7 @@ export function useExchangeRates(base: string) {
     [rates, upper],
   )
 
-  return { rates, convert }
+  const refresh = useCallback(() => setNonce(n => n + 1), [])
+
+  return { rates, convert, refresh }
 }

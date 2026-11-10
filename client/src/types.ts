@@ -210,6 +210,10 @@ export interface Reservation {
   accommodation_id?: number | null
   accommodation_start_day_id?: number | null
   accommodation_end_day_id?: number | null
+  /** Times saved on the linked stay (day_accommodations), when the booking has none of its own. */
+  accommodation_check_in?: string | null
+  accommodation_check_in_end?: string | null
+  accommodation_check_out?: string | null
   day_plan_position?: number | null
   day_positions?: Record<number, number> | null
   metadata?: Record<string, string> | string | null

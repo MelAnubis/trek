@@ -18,6 +18,18 @@ export interface UpcomingReservation {
 
 export const MS_PER_DAY = 86400000
 
+/**
+ * Today as YYYY-MM-DD in the user's own time zone. `toISOString()` is UTC, so
+ * in Spain a trip used to flip to "ongoing"/"completed" an hour or two early
+ * or late around midnight.
+ */
+export function localToday(now: Date = new Date()): string {
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, '0')
+  const d = String(now.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 export function daysUntil(dateStr: string | null | undefined): number | null {
   if (!dateStr) return null
   const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -26,7 +38,7 @@ export function daysUntil(dateStr: string | null | undefined): number | null {
 }
 
 export function getTripStatus(trip: DashboardTrip): 'ongoing' | 'today' | 'tomorrow' | 'future' | 'past' | null {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localToday()
   if (trip.start_date && trip.end_date && trip.start_date <= today && trip.end_date >= today) return 'ongoing'
   const until = daysUntil(trip.start_date)
   if (until === null) return null
@@ -91,7 +103,7 @@ export function filterAndSortTrips(trips: DashboardTrip[], filters: TripFilters)
 }
 
 export function sortTrips(trips: DashboardTrip[]): DashboardTrip[] {
-  const today = new Date().toISOString().split('T')[0]
+  const today = localToday()
   const rank = (t: DashboardTrip) => {
     if (t.start_date && t.end_date && t.start_date <= today && t.end_date >= today) return 0
     if (t.start_date && t.start_date >= today) return 1
@@ -104,4 +116,29 @@ export function sortTrips(trips: DashboardTrip[]): DashboardTrip[] {
     if (ra <= 1) return ad.localeCompare(bd)
     return bd.localeCompare(ad)
   })
+}
+
+/**
+ * The trip the hero shows: the one under way, else the next to start.
+ * Nothing when every trip is in the past — an old trip doesn't belong in the
+ * "next up" boarding pass.
+ */
+export function pickSpotlight(trips: DashboardTrip[], today: string = localToday()): DashboardTrip | null {
+  return trips.find(t => t.start_date && t.end_date && t.start_date <= today && t.end_date >= today)
+    || trips
+      .filter(t => t.start_date && t.start_date >= today)
+      .sort((a, b) => (a.start_date || '').localeCompare(b.start_date || ''))[0]
+    || null
+}
+
+/** Trips grouped by the year they start ('' for trips without dates), keeping the given order. */
+export function groupTripsByYear(trips: DashboardTrip[]): { year: string; trips: DashboardTrip[] }[] {
+  const groups: { year: string; trips: DashboardTrip[] }[] = []
+  for (const trip of trips) {
+    const year = trip.start_date ? trip.start_date.slice(0, 4) : ''
+    const last = groups[groups.length - 1]
+    if (last && last.year === year) last.trips.push(trip)
+    else groups.push({ year, trips: [trip] })
+  }
+  return groups
 }

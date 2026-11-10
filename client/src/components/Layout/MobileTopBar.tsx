@@ -1,9 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../store/authStore'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore'
 import { useTranslation } from '../../i18n'
 import { Bell } from 'lucide-react'
+import { ProfileSheet } from './BottomNav'
 
 // Mobile-only: a slim strip at the very top of the dashboard with the
 // notification + profile icons (right-aligned). Scrolls with the page.
@@ -13,6 +14,8 @@ export default function MobileTopBar() {
   const { user, isAuthenticated } = useAuthStore()
   const unread = useInAppNotificationStore(s => s.unreadCount)
   const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
+
+  const [showProfile, setShowProfile] = useState(false)
 
   useEffect(() => { if (isAuthenticated) fetchUnreadCount() }, [isAuthenticated])
 
@@ -33,7 +36,7 @@ export default function MobileTopBar() {
         )}
       </button>
       <button
-        onClick={() => navigate('/settings')}
+        onClick={() => setShowProfile(true)}
         aria-label={t('nav.profile')}
         className="grid place-items-center rounded-full text-white font-semibold text-[12px] active:scale-95 transition-transform overflow-hidden"
         style={{ width: 34, height: 34, background: user?.avatar_url ? undefined : 'linear-gradient(135deg, oklch(0.7 0.14 38), oklch(0.55 0.13 25))' }}
@@ -43,6 +46,8 @@ export default function MobileTopBar() {
           : (user?.username || '?')[0].toUpperCase()
         }
       </button>
+      {/* Same sheet as the bottom bar's profile button — one place for account, settings and sign out. */}
+      {showProfile && <ProfileSheet onClose={() => setShowProfile(false)} />}
     </div>
   )
 }

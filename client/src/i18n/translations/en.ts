@@ -4347,6 +4347,18 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'app.update.available': 'A new version of Trek is available.',
   'app.update.reload': 'Reload',
   'app.update.reloading': 'A new version is available: reloading… Press again once it is done.',
+  // Navigation, login and dashboard (v5.8)
+  'nav.navigate': "Navigate",
+  'nav.navigateTitle': "Open GPS navigation",
+  'nav.openMenu': "Open menu",
+  'nav.closeMenu': "Close menu",
+  'nav.profileUnread': "Profile, {count} unread notifications",
+  'login.mfaCodePlaceholder': "000000 or XXXX-XXXX",
+  'dashboard.aria.tripActions': "Trip actions",
+  'dashboard.welcome.title': "Plan your first trip",
+  'dashboard.welcome.body': "Create a trip to add places, days, bookings and routes. Everything you plan shows up here.",
+  'dashboard.empty.archive': "No archived trips. Archive a trip from its ⋯ menu to tidy up the list without deleting it.",
+  'dashboard.empty.completed': "No completed trips yet. Trips move here once their last day has passed.",
 }
 
 export default en
