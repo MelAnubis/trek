@@ -156,7 +156,7 @@
 }
 .trek-mtopbar-avatar { width: 34px; height: 34px; }
 /* The initial's circle takes the accent (follows the colour scheme). */
-.trek-mtopbar-avatar.is-initial { background: linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, black)); }
+.trek-mtopbar-avatar.is-initial { background: linear-gradient(135deg, var(--accent), color-mix(in oklch, var(--accent) 70%, black)); color: var(--accent-text, #fff) !important; }
 
 /* ── Modal (shared/Modal) ───────────────────────────────────────────────── */
 .trek-modal-backdrop {

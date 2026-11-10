@@ -1006,6 +1006,8 @@ export default function TripPlannerPage(): React.ReactElement | null {
                     aria-haspopup="menu"
                     title={t('trip.tabs.more')}
                     onClick={(e) => {
+                      // Keep this click from reaching the menu's own outside-click listener (it would close it at once).
+                      e.stopPropagation()
                       const r = e.currentTarget.getBoundingClientRect()
                       openTabMenuAt({ x: r.right - 200, y: r.bottom + 6 }, overflow.map(tab => ({ label: tab.label, icon: tab.icon, onClick: () => handleTabChange(tab.id) })))
                     }}

@@ -639,10 +639,14 @@
   /* Phone: a round "+" above the bottom bar (the bar has no "+" of its own, and
      the "new trip" card at the end of the list hides behind filters). */
   .trek-dash .fab-new-trip {
+    /* Under sheets and notices (z-50), above the page. */
+    z-index: 40;
     right: 16px; bottom: calc(84px + env(safe-area-inset-bottom, 0px) + 14px);
     width: 52px; height: 52px; padding: 0; justify-content: center;
   }
   .trek-dash .fab-new-trip .fab-label { display: none; }
+  /* Room at the end of the list so the + never sits on the last card. */
+  .trek-dash .page-sidebar { padding-bottom: 72px; }
 }
 
 /* #ESTODOBAJADA (black & white, the default scheme): neutral greys instead
