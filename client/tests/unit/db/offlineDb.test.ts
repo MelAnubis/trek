@@ -154,7 +154,7 @@ describe('offlineDb — packing / todo / budget / reservations / files', () => {
 
   it('upserts budget items', async () => {
     const item: BudgetItem = {
-      id: 1, trip_id: 1, name: 'Flight', amount: 500, currency: 'EUR',
+      id: 1, trip_id: 1, name: 'Flight', total_price: 500, sort_order: 0, currency: 'EUR',
       category: 'Transport', paid_by: null, persons: 1, members: [], expense_date: null,
     };
     await upsertBudgetItems([item]);

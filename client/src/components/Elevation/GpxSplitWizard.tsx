@@ -47,7 +47,7 @@ interface StageSummary {
 }
 
 interface Props {
-  tripId: number
+  tripId: number | string
   trackId: number
   trackName: string
   days: Day[]

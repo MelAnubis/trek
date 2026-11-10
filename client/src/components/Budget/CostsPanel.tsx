@@ -21,7 +21,7 @@ import type { BudgetItem, TripFile } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
 
 interface CostsPanelProps {
-  tripId: number
+  tripId: number | string
   tripMembers?: TripMember[]
 }
 
@@ -750,7 +750,7 @@ function splitEqually(total: number, n: number): number[] {
 
 // ── Add / edit expense modal ───────────────────────────────────────────────
 function ExpenseModal({ tripId, base, people, me, editing, onClose, onSaved }: {
-  tripId: number; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; onClose: () => void; onSaved: () => void
+  tripId: number | string; base: string; people: TripMember[]; me: number; editing: BudgetItem | null; onClose: () => void; onSaved: () => void
 }) {
   const { t, locale } = useTranslation()
   const toast = useToast()

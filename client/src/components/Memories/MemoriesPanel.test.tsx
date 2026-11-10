@@ -94,7 +94,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-003: Displays trip photos from other users', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -128,7 +128,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-005: Album links are displayed in the gallery header', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('album-links')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('album-links')),
       http.get('/api/integrations/memories/unified/trips/:tripId/album-links', () =>
         HttpResponse.json({
           links: [
@@ -156,7 +156,7 @@ describe('MemoriesPanel', () => {
     let syncCalled = false;
 
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('album-links')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('album-links')),
       http.get('/api/integrations/memories/unified/trips/:tripId/album-links', () =>
         HttpResponse.json({
           links: [
@@ -193,7 +193,7 @@ describe('MemoriesPanel', () => {
     let deleteCalled = false;
 
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('album-links')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('album-links')),
       http.get('/api/integrations/memories/unified/trips/:tripId/album-links', () =>
         HttpResponse.json({
           links: [
@@ -229,7 +229,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-008: Sort toggle switches between oldest-first and newest-first', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -315,7 +315,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-012: Own photos render with share-toggle and private indicator', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -345,7 +345,7 @@ describe('MemoriesPanel', () => {
     let putCalled = false;
 
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -378,7 +378,7 @@ describe('MemoriesPanel', () => {
     let deleteCalled = false;
 
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -497,7 +497,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-018: Location filter dropdown appears when photos have multiple cities', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -633,7 +633,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-023: Picker marks already-added photos with "Added" overlay', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -672,7 +672,7 @@ describe('MemoriesPanel', () => {
 
   it('FE-COMP-MEMORIESPANEL-024: Location filter select filters the visible photos', async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('photos')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('photos')),
       http.get('/api/integrations/memories/unified/trips/:tripId/photos', () =>
         HttpResponse.json({
           photos: [
@@ -695,7 +695,7 @@ describe('MemoriesPanel', () => {
 
   it("FE-COMP-MEMORIESPANEL-025: Album link from another user shows username but no unlink button", async () => {
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('album-links')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('album-links')),
       http.get('/api/integrations/memories/unified/trips/:tripId/album-links', () =>
         HttpResponse.json({
           links: [
@@ -731,7 +731,7 @@ describe('MemoriesPanel', () => {
     let albumLinked = false;
 
     server.use(
-      ...connectedHandlers.filter(h => !h.info.path.includes('album-links')),
+      ...connectedHandlers.filter(h => !String(h.info.path).includes('album-links')),
       http.get('/api/integrations/memories/immich/albums', () =>
         HttpResponse.json({
           albums: [{ id: 'album1', albumName: 'Summer 2025', assetCount: 10 }],

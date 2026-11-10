@@ -27,7 +27,7 @@ interface Suggestion {
 }
 
 interface Props {
-  tripId: number
+  tripId: number | string
   onClose: () => void
   onAdded: () => void       // called after places are successfully added
   lang?: string

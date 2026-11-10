@@ -13,13 +13,16 @@ const TRANSPORT_TYPES = ['flight', 'train', 'bus', 'car', 'taxi', 'bicycle', 'cr
  * driving/walking durations via OSRM. Aborts in-flight requests when the day changes.
  * When activeGpxTrack is provided (cycling trip), uses the GPX track instead of OSRM.
  */
+/** The day route's distance and time as shown to people (already formatted). */
+export interface RouteSummary { distance: string; duration: string; walkingText?: string; drivingText?: string }
+
 export function useRouteCalculation(
   tripStore: TripStoreState,
   selectedDayId: number | null,
-  activeGpxTrack?: { points: { lat: number; lng: number }[] } | null
+  activeGpxTrack?: { points?: { lat: number; lng: number }[] } | null
 ) {
   const [route, setRoute] = useState<[number, number][][] | null>(null)
-  const [routeInfo, setRouteInfo] = useState<RouteResult | null>(null)
+  const [routeInfo, setRouteInfo] = useState<RouteSummary | null>(null)
   const [routeSegments, setRouteSegments] = useState<RouteSegment[]>([])
   const routeCalcEnabled = useSettingsStore((s) => s.settings.route_calculation) !== false
   const dayRouteProfile = useSettingsStore((s) => s.settings.day_route_profile)

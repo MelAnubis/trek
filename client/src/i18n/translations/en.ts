@@ -2260,7 +2260,6 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'todo.sidebar.sortBy': 'Sort by',
   'todo.priority': 'Priority',
   'todo.newCategoryLabel': 'new',
-  'budget.categoriesLabel': 'categories',
   'todo.newCategory': 'Category name',
   'todo.addCategory': 'Add category',
   'todo.newItem': 'New task',

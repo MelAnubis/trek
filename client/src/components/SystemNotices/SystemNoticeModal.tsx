@@ -227,8 +227,8 @@ function NoticeContent({ notice, title, body, ctaLabel, titleId, bodyId, isDark,
           backdropFilter: 'var(--glass-blur)',
           WebkitBackdropFilter: 'var(--glass-blur)',
           borderTop: '1px solid var(--modal-border)',
+          paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)',
         }}
-        style={{ paddingBottom: 'calc(var(--bottom-nav-h) + 1rem)' }}
       >
         {/* Pager — dots, arrows, counter (only when multiple notices) */}
         {total > 1 && (
@@ -675,8 +675,8 @@ export function ModalRenderer({ notices }: Props) {
             border: '1px solid var(--modal-border)',
             borderBottomWidth: 0,
             boxShadow: 'var(--glass-shadow-lg)',
+            touchAction: 'pan-y',
           }}
-          style={{ touchAction: 'pan-y' }}
           onTouchStart={e => {
             touchStartX.current = e.touches[0].clientX;
             touchStartY.current = e.touches[0].clientY;

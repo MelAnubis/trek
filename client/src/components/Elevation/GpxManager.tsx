@@ -19,7 +19,7 @@ interface Day {
 }
 
 interface GpxManagerProps {
-  tripId: number
+  tripId: number | string
   onTracksChange?: (tracks: GpxTrack[]) => void
 }
 
@@ -329,7 +329,7 @@ function TrackRow({ track, color, days, dayLabel, tripId, onToggle, onDelete, on
   color: string
   days: Day[]
   dayLabel?: string
-  tripId: number
+  tripId: number | string
   onToggle: () => void
   onDelete: () => void
   onAssignDay: (dayId: number | null) => void

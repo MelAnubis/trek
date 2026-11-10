@@ -25,9 +25,16 @@ export function resetAllStores(): void {
   usePermissionsStore.setState(initialPermsState, true);
 }
 
+/** Partial all the way down: a test seeds only the fields it cares about (settings: { dark_mode: true }). */
+type DeepPartial<T> = T extends (...args: never[]) => unknown ? T
+  : T extends readonly (infer U)[] ? readonly DeepPartial<U>[]
+  : T extends object ? { [K in keyof T]?: DeepPartial<T[K]> }
+  : T;
+
 export function seedStore<T extends object>(
   store: { setState: (partial: Partial<T>, replace?: boolean) => void },
-  state: Partial<T>,
+  state: DeepPartial<T>,
 ): void {
-  store.setState(state);
+  // Zustand merges the top level; nested objects are taken as given, as before.
+  store.setState(state as Partial<T>);
 }

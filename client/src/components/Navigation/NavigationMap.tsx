@@ -267,7 +267,6 @@ export default function NavigationMap({ position, trackPoints, recordedPoints, a
       style={{ width: '100%', height: '100%' }}
       zoomControl={false}
       attributionControl={false}
-      tap={false}
     >
       <TileLayer
         key={tileKey}

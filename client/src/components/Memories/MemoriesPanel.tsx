@@ -49,7 +49,7 @@ interface Asset {
 }
 
 interface MemoriesPanelProps {
-  tripId: number
+  tripId: number | string
   startDate: string | null
   endDate: string | null
 }

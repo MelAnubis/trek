@@ -121,7 +121,7 @@ interface TransportModalProps {
   days: Day[]
   selectedDayId: number | null
   files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<void>
+  onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete?: (fileId: number) => Promise<void>
 }
 

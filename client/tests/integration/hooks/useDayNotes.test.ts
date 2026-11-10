@@ -459,6 +459,6 @@ describe('useDayNotes', () => {
 // Type augment for window.__addToast
 declare global {
   interface Window {
-    __addToast?: (message: string, type: string, duration?: number) => void;
+    __addToast?: (message: string, type?: import('../../../src/components/shared/Toast').ToastType, duration?: number) => number;
   }
 }

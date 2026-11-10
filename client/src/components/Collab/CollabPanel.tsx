@@ -17,7 +17,7 @@ function useIsDesktop(breakpoint = 1024) {
   return isDesktop
 }
 
-const card = {
+const card: React.CSSProperties = {
   display: 'flex', flexDirection: 'column',
   background: 'var(--bg-card)', borderRadius: 16, border: '1px solid var(--border-faint)',
   overflow: 'hidden', minHeight: 0,
@@ -37,7 +37,7 @@ interface CollabFeatures {
 }
 
 interface CollabPanelProps {
-  tripId: number
+  tripId: number | string
   tripMembers?: TripMember[]
   collabFeatures?: CollabFeatures
 }

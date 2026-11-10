@@ -3,9 +3,13 @@ import { render, screen, fireEvent, waitFor } from '../../../tests/helpers/rende
 import userEvent from '@testing-library/user-event'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { PhotoLightbox } from './PhotoLightbox'
+import type { Photo, Day, Place } from '../../types'
 
-const buildPhoto = (overrides = {}) => ({
+const buildPhoto = (overrides: Partial<Photo> = {}): Photo => ({
   id: 1,
+  trip_id: 1,
+  filename: 'stored.jpg',
+  mime_type: 'image/jpeg',
   url: '/uploads/p1.jpg',
   caption: null,
   original_name: 'p1.jpg',
@@ -183,8 +187,8 @@ describe('PhotoLightbox', () => {
     const props = {
       ...defaultProps,
       photos: [buildPhoto({ id: 1, day_id: 1, place_id: 1 })],
-      days: [{ id: 1, day_number: 2, trip_id: 99, date: null, notes: null }],
-      places: [{ id: 1, name: 'Colosseum', trip_id: 99, lat: null, lng: null, category: null, notes: null, day_id: null, address: null, order_index: 0 }],
+      days: [{ id: 1, day_number: 2, trip_id: 99, date: null, notes: null }] as unknown as Day[],
+      places: [{ id: 1, name: 'Colosseum', trip_id: 99, lat: null, lng: null, category: null, notes: null, day_id: null, address: null, order_index: 0 }] as unknown as Place[],
     }
     render(<PhotoLightbox {...props} initialIndex={0} />)
 

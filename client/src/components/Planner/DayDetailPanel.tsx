@@ -48,7 +48,7 @@ interface DayDetailPanelProps {
   days: Day[]
   places: Place[]
   categories?: Category[]
-  tripId: number
+  tripId: number | string
   assignments: AssignmentsMap
   reservations?: Reservation[]
   lat: number | null
@@ -83,10 +83,10 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
   const [accommodation, setAccommodation] = useState(null)
   const [dayAccommodations, setDayAccommodations] = useState<any[]>([])
   const [accommodations, setAccommodations] = useState([])
-  const [showHotelPicker, setShowHotelPicker] = useState(false)
+  const [showHotelPicker, setShowHotelPicker] = useState<boolean | 'edit'>(false)
   const [showLodging, setShowLodging] = useState(false)
   const [hotelDayRange, setHotelDayRange] = useState({ start: day?.id, end: day?.id })
-  const [hotelCategoryFilter, setHotelCategoryFilter] = useState('')
+  const [hotelCategoryFilter, setHotelCategoryFilter] = useState<number | ''>('')
   const [hotelForm, setHotelForm] = useState({ check_in: '', check_in_end: '', check_out: '', confirmation: '', place_id: null })
 
   useEffect(() => {
@@ -666,7 +666,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
 }
 
 interface ChipProps {
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+  icon: React.ElementType
   value: string
 }
 
@@ -680,7 +680,7 @@ function Chip({ icon: Icon, value }: ChipProps) {
 }
 
 interface InfoChipProps {
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+  icon: React.ElementType
   label: string
   value: string
   placeholder: string

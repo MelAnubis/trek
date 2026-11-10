@@ -161,7 +161,7 @@ describe('MapView', () => {
   })
 
   it('FE-COMP-MAPVIEW-011: renders RouteLabel marker when routeSegments provided with route', () => {
-    const route = [[[48.0, 2.0], [49.0, 3.0]]] as [number, number][][][]
+    const route = [[[48.0, 2.0], [49.0, 3.0]]] as unknown as [number, number][][][]
     const routeSegments = [
       { mid: [48.5, 2.5] as [number, number], from: 0, to: 1, walkingText: '10 min', drivingText: '3 min' },
     ]

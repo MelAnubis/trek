@@ -361,7 +361,7 @@ describe('AdminPage', () => {
 
       const heading = await screen.findByRole('heading', { name: /authentication methods/i });
       const card = heading.closest('.bg-white');
-      const toggles = within(card!).getAllByRole('button');
+      const toggles = within(card as HTMLElement).getAllByRole('button');
       fireEvent.click(toggles[0]); // First toggle = password_login
 
       await waitFor(() => {
@@ -475,7 +475,7 @@ describe('AdminPage', () => {
 
       const mfaHeading = await screen.findByRole('heading', { name: /require two-factor/i });
       const mfaCard = mfaHeading.closest('.bg-white');
-      const mfaToggle = within(mfaCard!).getByRole('button');
+      const mfaToggle = within(mfaCard as HTMLElement).getByRole('button');
       fireEvent.click(mfaToggle);
 
       await waitFor(() => {
@@ -740,7 +740,7 @@ describe('AdminPage', () => {
       // Find and click the Save button in the file types section
       const fileTypesHeading = screen.getByRole('heading', { name: /allowed file types/i });
       const fileTypesCard = fileTypesHeading.closest('.bg-white');
-      const saveBtn = within(fileTypesCard!).getByRole('button', { name: /save/i });
+      const saveBtn = within(fileTypesCard as HTMLElement).getByRole('button', { name: /save/i });
       fireEvent.click(saveBtn);
 
       await waitFor(() => {
@@ -768,11 +768,11 @@ describe('AdminPage', () => {
       const oidcCard = oidcHeading.closest('.bg-white');
 
       // Type in the display name field (placeholder is 'z.B. Google, Authentik, Keycloak')
-      const displayNameInput = within(oidcCard!).getByPlaceholderText('z.B. Google, Authentik, Keycloak');
+      const displayNameInput = within(oidcCard as HTMLElement).getByPlaceholderText('z.B. Google, Authentik, Keycloak');
       fireEvent.change(displayNameInput, { target: { value: 'Google' } });
 
       // Click the Save button in the OIDC section
-      const oidcSaveBtn = within(oidcCard!).getByRole('button', { name: /save/i });
+      const oidcSaveBtn = within(oidcCard as HTMLElement).getByRole('button', { name: /save/i });
       fireEvent.click(oidcSaveBtn);
 
       // Button was clicked without error
@@ -801,7 +801,7 @@ describe('AdminPage', () => {
       // The Email (SMTP) panel header has the enable toggle
       const emailHeading = await screen.findByRole('heading', { name: /email \(smtp\)/i });
       const emailPanel = emailHeading.closest('.bg-white');
-      const emailToggle = within(emailPanel!).getAllByRole('button')[0];
+      const emailToggle = within(emailPanel as HTMLElement).getAllByRole('button')[0];
       fireEvent.click(emailToggle);
 
       await waitFor(() => {
@@ -843,7 +843,7 @@ describe('AdminPage', () => {
       // Click Save in the email panel
       const emailHeading = screen.getByRole('heading', { name: /email \(smtp\)/i });
       const emailPanel = emailHeading.closest('.bg-white');
-      const saveBtn = within(emailPanel!).getByRole('button', { name: /^save$/i });
+      const saveBtn = within(emailPanel as HTMLElement).getByRole('button', { name: /^save$/i });
       fireEvent.click(saveBtn);
 
       await waitFor(() => {
@@ -967,11 +967,11 @@ describe('AdminPage', () => {
       const apiKeysCard = apiKeysHeading.closest('.bg-white');
 
       // Type in the maps key field (type="password" by default)
-      const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
+      const keyInputs = within(apiKeysCard as HTMLElement).getAllByPlaceholderText('Enter key...');
       fireEvent.change(keyInputs[0], { target: { value: 'test-maps-key-123' } });
 
       // Find the Save button in the API Keys card
-      const saveBtn = within(apiKeysCard!).getByRole('button', { name: /^save$/i });
+      const saveBtn = within(apiKeysCard as HTMLElement).getByRole('button', { name: /^save$/i });
       fireEvent.click(saveBtn);
 
       await waitFor(() => {
@@ -1002,11 +1002,11 @@ describe('AdminPage', () => {
       const apiKeysCard = apiKeysHeading.closest('.bg-white');
 
       // Type a key value to enable the Test button
-      const keyInputs = within(apiKeysCard!).getAllByPlaceholderText('Enter key...');
+      const keyInputs = within(apiKeysCard as HTMLElement).getAllByPlaceholderText('Enter key...');
       fireEvent.change(keyInputs[0], { target: { value: 'test-maps-key' } });
 
       // Click the validate (Test) button for maps key — first "Test" button in the card
-      const testBtns = within(apiKeysCard!).getAllByRole('button', { name: /^test$/i });
+      const testBtns = within(apiKeysCard as HTMLElement).getAllByRole('button', { name: /^test$/i });
       fireEvent.click(testBtns[0]);
 
       await waitFor(() => {
@@ -1171,7 +1171,7 @@ describe('AdminPage', () => {
       // Find the email panel and click its "Send test email" button (scoped to avoid admin webhook panel)
       const emailHeading = screen.getByRole('heading', { name: /email \(smtp\)/i });
       const emailPanel = emailHeading.closest('.bg-white');
-      const testBtn = within(emailPanel!).getByRole('button', { name: /send test email/i });
+      const testBtn = within(emailPanel as HTMLElement).getByRole('button', { name: /send test email/i });
       fireEvent.click(testBtn);
 
       await waitFor(() => {
@@ -1209,7 +1209,7 @@ describe('AdminPage', () => {
       const webhookHeading = screen.getByRole('heading', { name: /^webhook$/i });
       const webhookCard = webhookHeading.closest('.bg-white');
       // Find the toggle button in webhook card
-      const webhookToggle = within(webhookCard!).getByRole('button');
+      const webhookToggle = within(webhookCard as HTMLElement).getByRole('button');
       fireEvent.click(webhookToggle);
 
       await waitFor(() => {
@@ -1246,7 +1246,7 @@ describe('AdminPage', () => {
       // Find the Save button in the admin webhook panel
       const adminWebhookHeading = screen.getByRole('heading', { name: /admin webhook/i });
       const adminWebhookCard = adminWebhookHeading.closest('.bg-white');
-      const saveBtn = within(adminWebhookCard!).getByRole('button', { name: /save/i });
+      const saveBtn = within(adminWebhookCard as HTMLElement).getByRole('button', { name: /save/i });
       fireEvent.click(saveBtn);
 
       await waitFor(() => {
@@ -1311,20 +1311,20 @@ describe('AdminPage', () => {
       const oidcCard = oidcHeading.closest('.bg-white');
 
       // Issuer field (placeholder: https://accounts.google.com)
-      const issuerInput = within(oidcCard!).getByPlaceholderText('https://accounts.google.com');
+      const issuerInput = within(oidcCard as HTMLElement).getByPlaceholderText('https://accounts.google.com');
       fireEvent.change(issuerInput, { target: { value: 'https://accounts.google.com' } });
 
       // Discovery URL field
-      const discoveryInput = within(oidcCard!).getByPlaceholderText(/openid-configuration/i);
+      const discoveryInput = within(oidcCard as HTMLElement).getByPlaceholderText(/openid-configuration/i);
       fireEvent.change(discoveryInput, { target: { value: 'https://auth.example.com/.well-known/openid-configuration' } });
 
       // Client ID field
-      const clientIdLabel = within(oidcCard!).getByText('Client ID');
+      const clientIdLabel = within(oidcCard as HTMLElement).getByText('Client ID');
       const clientIdInput = clientIdLabel.closest('div')!.querySelector('input')!;
       fireEvent.change(clientIdInput, { target: { value: 'my-client-id' } });
 
       // Client Secret field
-      const clientSecretLabel = within(oidcCard!).getByText('Client Secret');
+      const clientSecretLabel = within(oidcCard as HTMLElement).getByText('Client Secret');
       const clientSecretInput = clientSecretLabel.closest('div')!.querySelector('input')!;
       fireEvent.change(clientSecretInput, { target: { value: 'my-client-secret' } });
 

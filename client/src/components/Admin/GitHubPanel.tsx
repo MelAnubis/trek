@@ -9,6 +9,9 @@ const PER_PAGE = 10
 interface GithubRelease {
   id: number
   prerelease: boolean
+  tag_name: string
+  name: string | null
+  author?: { login: string } | null
   [key: string]: unknown
 }
 

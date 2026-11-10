@@ -25,7 +25,7 @@ export interface JourneyEntry {
   source_place_id?: number | null
   source_trip_name?: string | null
   author_id: number
-  type: 'entry' | 'skeleton'
+  type: 'entry' | 'skeleton' | 'gallery'
   title?: string | null
   story?: string | null
   entry_date: string

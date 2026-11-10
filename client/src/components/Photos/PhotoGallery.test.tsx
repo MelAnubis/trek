@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { render } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import PhotoGallery from './PhotoGallery'
+import type { Photo } from '../../types'
 
 vi.mock('./PhotoLightbox', () => ({
   PhotoLightbox: ({ onClose, onDelete, photos, initialIndex }: any) => (
@@ -27,8 +28,11 @@ vi.mock('../shared/Modal', () => ({
     isOpen ? <div data-testid="modal">{children}</div> : null,
 }))
 
-const buildPhoto = (overrides = {}) => ({
+const buildPhoto = (overrides: Partial<Photo> = {}): Photo => ({
   id: 1,
+  trip_id: 1,
+  filename: 'stored.jpg',
+  mime_type: 'image/jpeg',
   url: '/uploads/photo1.jpg',
   caption: null,
   original_name: 'photo1.jpg',

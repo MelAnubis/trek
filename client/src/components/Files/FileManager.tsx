@@ -47,7 +47,7 @@ function formatDateWithLocale(dateStr, locale) {
 
 // Image lightbox with gallery navigation
 interface ImageLightboxProps {
-  files: (TripFile & { url: string })[]
+  files: TripFile[]
   initialIndex: number
   onClose: () => void
 }
@@ -153,7 +153,7 @@ function ImageLightbox({ files, initialIndex, onClose }: ImageLightboxProps) {
   )
 }
 
-function ThumbImg({ file, active, onClick }: { file: TripFile & { url: string }; active: boolean; onClick: () => void }) {
+function ThumbImg({ file, active, onClick }: { file: TripFile; active: boolean; onClick: () => void }) {
   const [src, setSrc] = useState('')
   useEffect(() => { getAuthUrl(file.url, 'download').then(setSrc) }, [file.url])
   return (
@@ -177,7 +177,7 @@ function AuthedImg({ src, style }: { src: string; style?: React.CSSProperties })
 
 // Source badge
 interface SourceBadgeProps {
-  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>
+  icon: React.ElementType
   label: string
 }
 
@@ -257,13 +257,14 @@ interface FileManagerProps {
   files?: TripFile[]
   onUpload: (fd: FormData) => Promise<any>
   onDelete: (fileId: number) => Promise<void>
-  onUpdate: (fileId: number, data: Partial<TripFile>) => Promise<void>
+  onUpdate?: (fileId: number, data: Partial<TripFile>) => Promise<unknown>
   places: Place[]
   days?: Day[]
   assignments?: AssignmentsMap
   reservations?: Reservation[]
-  tripId: number
-  allowedFileTypes: Record<string, string[]>
+  tripId: number | string
+  /** Comma-separated extensions the admin allows ("jpg,png,pdf"), or null for the default list. */
+  allowedFileTypes?: string | null
 }
 
 export default function FileManager({ files = [], onUpload, onDelete, onUpdate, places, days = [], assignments = {}, reservations = [], tripId, allowedFileTypes }: FileManagerProps) {
@@ -373,8 +374,8 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
     if (!can('file_upload', trip)) return
     const items = e.clipboardData?.items
     if (!items) return
-    const pastedFiles = []
-    for (const item of Array.from(items)) {
+    const pastedFiles: File[] = []
+    for (const item of Array.from(items) as DataTransferItem[]) {
       if (item.kind === 'file') {
         const file = item.getAsFile()
         if (file) pastedFiles.push(file)

@@ -1,4 +1,4 @@
-const es: Record<string, string> = {
+const es: Record<string, string | { name: string; category: string }[]> = {
   // Common
   'common.save': 'Guardar',
   'common.showMore': 'Ver más',

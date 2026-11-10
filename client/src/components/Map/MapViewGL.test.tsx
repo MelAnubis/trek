@@ -215,7 +215,7 @@ describe('MapViewGL', () => {
     let sources: Record<string, any> = {}
     glMap.getSource.mockImplementation((id: string) => sources[id] ?? null)
     glMap.addSource.mockImplementation((id: string) => { sources[id] = { setData } })
-    glMap.getLayer = vi.fn(() => null) as any
+    ;(glMap as any).getLayer = vi.fn(() => null)
     let onLoad: (() => void) | null = null
     glMap.on.mockImplementation((ev: string, a: any, b?: any) => { if (ev === 'load' && typeof a === 'function') onLoad = a; return glMap })
     const route: [number, number][][] = [[[37.38, -5.98], [37.54, -6.05]]]

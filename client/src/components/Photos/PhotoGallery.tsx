@@ -8,12 +8,12 @@ import type { Photo, Place, Day } from '../../types'
 
 interface PhotoGalleryProps {
   photos: Photo[]
-  onUpload: (fd: FormData) => Promise<void>
+  onUpload: (fd: FormData) => Promise<unknown>
   onDelete: (photoId: number) => Promise<void>
   onUpdate: (photoId: number, data: Partial<Photo>) => Promise<void>
   places: Place[]
   days: Day[]
-  tripId: number
+  tripId: number | string
 }
 
 export default function PhotoGallery({ photos, onUpload, onDelete, onUpdate, places, days, tripId }: PhotoGalleryProps) {

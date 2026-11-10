@@ -5,14 +5,25 @@ import type { VacayPlan, VacayUser, VacayEntry, VacayStat, HolidaysMap, HolidayI
 
 const ax = apiClient
 
+/** A day the company closes (vacay_company_holidays row). */
+export interface CompanyHoliday { date: string; note?: string | null }
+
 interface PendingInvite {
+  id: number
   user_id: number
   username: string
+  email?: string
+  created_at?: string
 }
 
+/** A pending invitation to join someone's plan (vacayService: incomingInvites). */
 interface IncomingInvite {
+  id: number
   plan_id: number
-  owner_username: string
+  /** The plan owner's name. */
+  username: string
+  email?: string
+  created_at?: string
 }
 
 interface VacayPlanResponse {
@@ -30,7 +41,7 @@ interface VacayYearsResponse {
 
 interface VacayEntriesResponse {
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: CompanyHoliday[]
 }
 
 interface VacayStatsResponse {
@@ -104,7 +115,7 @@ interface VacayState {
   isFused: boolean
   years: number[]
   entries: VacayEntry[]
-  companyHolidays: string[]
+  companyHolidays: CompanyHoliday[]
   stats: VacayStat[]
   selectedYear: number
   selectedUserId: number | null

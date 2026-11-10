@@ -354,7 +354,7 @@ describe('DayPlanSidebar', () => {
     render(<DayPlanSidebar {...makeDefaultProps({ canUndo: true, lastActionLabel: 'Removed place', onUndo })} />)
     // The undo button should be present (Undo2 icon)
     const undoButtons = screen.getAllByRole('button')
-    const undoBtn = undoButtons.find(btn => !btn.disabled && btn.querySelector('svg'))
+    const undoBtn = undoButtons.find(btn => !(btn as HTMLButtonElement).disabled && btn.querySelector('svg'))
     expect(undoBtn).toBeDefined()
   })
 

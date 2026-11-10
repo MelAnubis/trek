@@ -5,10 +5,10 @@ import { useTranslation } from '../../i18n'
 import type { Place, Day } from '../../types'
 
 interface PhotoUploadProps {
-  tripId: number
+  tripId: number | string
   days: Day[]
   places: Place[]
-  onUpload: (fd: FormData) => Promise<void>
+  onUpload: (fd: FormData) => Promise<unknown>
   onClose: () => void
 }
 

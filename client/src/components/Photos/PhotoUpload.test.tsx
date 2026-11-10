@@ -4,6 +4,7 @@ import { vi, describe, it, expect, beforeEach, beforeAll } from 'vitest'
 import { render } from '../../../tests/helpers/render'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { PhotoUpload } from './PhotoUpload'
+import type { Day, Place } from '../../types'
 
 beforeAll(() => {
   Object.defineProperty(URL, 'createObjectURL', { value: vi.fn(() => 'blob:mock'), writable: true })
@@ -12,8 +13,9 @@ beforeAll(() => {
 
 const defaultProps = {
   tripId: 1,
-  days: [{ id: 1, day_number: 1, date: null }],
-  places: [{ id: 1, name: 'Eiffel Tower' }],
+  // Only the fields the upload form reads.
+  days: [{ id: 1, day_number: 1, date: null }] as unknown as Day[],
+  places: [{ id: 1, name: 'Eiffel Tower' }] as unknown as Place[],
   onUpload: vi.fn().mockResolvedValue(undefined),
   onClose: vi.fn(),
 }

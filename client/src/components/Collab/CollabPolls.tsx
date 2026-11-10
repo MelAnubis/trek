@@ -17,6 +17,8 @@ interface PollVoter {
 interface PollOption {
   id: number
   text: string
+  /** Older polls stored the option text as `label`. */
+  label?: string
   voters: PollVoter[]
 }
 
@@ -24,7 +26,8 @@ interface Poll {
   id: number
   question: string
   options: PollOption[]
-  multi_choice: boolean
+  /** The server's field name (collabService formats it from `multiple`). */
+  multiple_choice: boolean
   is_closed: boolean
   deadline: string | null
   created_by: number
@@ -57,7 +60,7 @@ function totalVotes(poll) {
 // ── Create Poll Modal ────────────────────────────────────────────────────────
 interface CreatePollModalProps {
   onClose: () => void
-  onCreate: (data: { question: string; options: string[]; multi_choice: boolean }) => Promise<void>
+  onCreate: (data: { question: string; options: string[]; multiple_choice: boolean }) => Promise<void>
   t: (key: string) => string
 }
 
@@ -305,7 +308,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
                 flex: 1, fontSize: 13, fontWeight: myVote || isWinner ? 600 : 400,
                 color: 'var(--text-primary)', position: 'relative', zIndex: 1,
               }}>
-                {typeof opt === 'string' ? opt : opt.label || opt}
+                {typeof opt === 'string' ? opt : opt.label || opt.text}
               </span>
 
               {/* Voter avatars */}
@@ -336,7 +339,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
 
 // ── Main Component ───────────────────────────────────────────────────────────
 interface CollabPollsProps {
-  tripId: number
+  tripId: number | string
   currentUser: User
 }
 

@@ -16,9 +16,10 @@ interface PlaceFormData {
   name: string
   description: string
   address: string
-  lat: string
-  lng: string
-  category_id: string
+  // Text while typed, a number when loaded from a saved place.
+  lat: string | number
+  lng: string | number
+  category_id: string | number
   place_time: string
   end_time: string
   notes: string
@@ -67,12 +68,13 @@ const DEFAULT_FORM: PlaceFormData = {
 interface PlaceFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: PlaceFormData, files?: File[]) => Promise<void> | void
+  /** The form with lat/lng parsed to numbers and pending files under `_pendingFiles`. */
+  onSave: (data: Record<string, unknown>, files?: File[]) => Promise<void> | void
   place: Place | null
   prefillCoords?: { lat: number; lng: number; name?: string; address?: string } | null
-  tripId: number
+  tripId: number | string
   categories: Category[]
-  onCategoryCreated: (category: Category) => void
+  onCategoryCreated: (category: Partial<Category>) => Promise<Category | undefined> | Category | void
   assignmentId: number | null
   dayAssignments?: Assignment[]
 }
@@ -205,7 +207,7 @@ export default function PlaceFormModal({
     }
   }, [mapsSearch, fetchSuggestions])
 
-  const handleChange = (field, value) => {
+  const handleChange = (field: keyof PlaceFormData, value: unknown) => {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
@@ -314,7 +316,7 @@ export default function PlaceFormModal({
     if (!newCategoryName.trim()) return
     try {
       const cat = await onCategoryCreated?.({ name: newCategoryName, color: '#6366f1', icon: 'MapPin' })
-      if (cat) setForm(prev => ({ ...prev, category_id: cat.id }))
+      if (cat && typeof cat === 'object' && 'id' in cat) setForm(prev => ({ ...prev, category_id: cat.id }))
       setNewCategoryName('')
       setShowNewCategory(false)
     } catch (err: unknown) {
@@ -333,7 +335,7 @@ export default function PlaceFormModal({
   }
 
   // Paste support for files/images
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     if (!canUploadFiles) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -359,8 +361,8 @@ export default function PlaceFormModal({
     try {
       await onSave({
         ...form,
-        lat: form.lat ? parseFloat(form.lat) : null,
-        lng: form.lng ? parseFloat(form.lng) : null,
+        lat: form.lat ? parseFloat(String(form.lat)) : null,
+        lng: form.lng ? parseFloat(String(form.lng)) : null,
         category_id: form.category_id || null,
         _pendingFiles: pendingFiles.length > 0 ? pendingFiles : undefined,
       })
@@ -663,7 +665,7 @@ interface SavedPlace {
 }
 
 /** Saved places (TREK v5): the user's places from their other trips, by trip and by whether they were on a day. */
-function SavedPlacesColumn({ tripId, onPick }: { tripId: number; onPick: (p: SavedPlace) => void }) {
+function SavedPlacesColumn({ tripId, onPick }: { tripId: number | string; onPick: (p: SavedPlace) => void }) {
   const { t } = useTranslation()
   const [q, setQ] = useState('')
   const [trip, setTrip] = useState('')
@@ -726,7 +728,7 @@ function SavedPlacesColumn({ tripId, onPick }: { tripId: number; onPick: (p: Sav
 
 interface TimeSectionProps {
   form: PlaceFormData
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void
+  handleChange: (field: keyof PlaceFormData, value: unknown) => void
   assignmentId: number | null
   dayAssignments: Assignment[]
   hasTimeError: boolean

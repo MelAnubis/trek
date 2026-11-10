@@ -38,9 +38,13 @@ type FilterType = 'all' | 'my' | 'overdue' | 'done' | string
 
 interface Member { id: number; username: string; avatar: string | null }
 
-export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number; items: TodoItem[]; addItemSignal?: number }) {
+export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tripId: number | string; items: TodoItem[]; addItemSignal?: number }) {
   const { addTodoItem, updateTodoItem, deleteTodoItem, toggleTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
+  // useCanDo() returns the checker; calling it with the key used to hand back
+  // the function itself, so canEdit was always truthy (edit controls for everyone).
+  const can = useCanDo()
+  const trip = useTripStore(s => s.trip)
+  const canEdit = can('packing_edit', trip)
   const toast = useToast()
   const { t, locale } = useTranslation()
   const formatDate = (d: string) => fmtDate(d, locale) || d
@@ -442,11 +446,15 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 // ── Detail Pane (right side) ──────────────────────────────────────────────
 
 function DetailPane({ item, tripId, categories, members, onClose }: {
-  item: TodoItem; tripId: number; categories: string[]; members: Member[];
+  item: TodoItem; tripId: number | string; categories: string[]; members: Member[];
   onClose: () => void;
 }) {
   const { updateTodoItem, deleteTodoItem } = useTripStore()
-  const canEdit = useCanDo('packing_edit')
+  // useCanDo() returns the checker; calling it with the key used to hand back
+  // the function itself, so canEdit was always truthy (edit controls for everyone).
+  const can = useCanDo()
+  const trip = useTripStore(s => s.trip)
+  const canEdit = can('packing_edit', trip)
   const toast = useToast()
   const { t } = useTranslation()
 
@@ -638,7 +646,7 @@ function DetailPane({ item, tripId, categories, members, onClose }: {
 // ── New Task Pane (right side, for creating) ──────────────────────────────
 
 function NewTaskPane({ tripId, categories, members, defaultCategory, onCreated, onClose }: {
-  tripId: number; categories: string[]; members: Member[]; defaultCategory: string | null;
+  tripId: number | string; categories: string[]; members: Member[]; defaultCategory: string | null;
   onCreated: (id: number) => void; onClose: () => void;
 }) {
   const { addTodoItem } = useTripStore()

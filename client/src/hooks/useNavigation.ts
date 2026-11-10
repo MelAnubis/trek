@@ -380,7 +380,7 @@ export function useNavigation() {
     setIsApproaching(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const captureNavPhoto = useCallback(async (file: File, tripId: number): Promise<NavPhoto | null> => {
+  const captureNavPhoto = useCallback(async (file: File, tripId: number | string): Promise<NavPhoto | null> => {
     // Use current GPS position; if not yet fixed, fall back to last recorded point
     const pos = geo.position
     const pts = recorder.current.points

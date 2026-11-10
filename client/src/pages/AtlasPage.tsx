@@ -473,7 +473,7 @@ export default function AtlasPage(): React.ReactElement {
           }
         }
       }
-    }).addTo(mapInstance.current)
+    } as L.GeoJSONOptions & L.PathOptions).addTo(mapInstance.current)
 
     // Restore map view after re-render
     mapInstance.current.setView(currentCenter, currentZoom, { animate: false })
@@ -618,7 +618,7 @@ export default function AtlasPage(): React.ReactElement {
           if (tt) tt.style.display = 'none'
         })
       },
-    })
+    } as L.GeoJSONOptions & L.PathOptions)
     // Only add to map if currently in region mode — otherwise hold it ready for when user zooms in
     if (mapInstance.current.getZoom() >= 6) {
       regionLayerRef.current.addTo(mapInstance.current)

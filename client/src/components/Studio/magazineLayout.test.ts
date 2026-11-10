@@ -130,7 +130,7 @@ describe('storyPieces', () => {
       { id: 'e', type: 'map', source: 'post', showTrack: true, showPhotos: true },
       { id: 'f', type: 'divider' },
       { id: 'g', type: 'entry', entryId: 9 },
-    ], [{ id: 9, title: 'Castillo', story: 'Sombra.', entry_date: '2026-05-01', location_name: null }])
+    ], [{ id: 9, title: 'Castillo', story: 'Sombra.', entry_date: '2026-05-01', location_name: null, photo_id: null }])
     expect(pieces).toEqual([
       { type: 'p', text: 'Salimos pronto.' }, { type: 'p', text: 'Y volvimos tarde.' },
       { type: 'h', text: 'Día 2' },

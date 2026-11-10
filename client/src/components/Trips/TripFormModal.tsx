@@ -14,9 +14,10 @@ import type { Trip } from '../../types'
 interface TripFormModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, string | number | null>) => Promise<void> | void
+  /** Resolves to the created/updated trip when the caller has it (used to add members and the cover). */
+  onSave: (data: Record<string, unknown>) => Promise<{ trip?: { id: number } } | void> | void
   trip: Trip | null
-  onCoverUpdate: (tripId: number, coverUrl: string) => void
+  onCoverUpdate?: (tripId: number, coverUrl: string) => void
 }
 
 export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUpdate }: TripFormModalProps) {
@@ -108,7 +109,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
     }
     setIsLoading(true)
     try {
-      const result = await onSave({
+      const result = (await onSave({
         title: formData.title.trim(),
         description: formData.description.trim() || null,
         start_date: formData.start_date || null,
@@ -117,7 +118,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
         trip_type: formData.trip_type,
         ...(canMakePublic ? { is_public: formData.is_public ? 1 : 0 } : {}),
         ...(!formData.start_date && !formData.end_date ? { day_count: formData.day_count } : {}),
-      })
+      })) || undefined
       // Add selected members for newly created trips
       if (selectedMembers.length > 0 && result?.trip?.id) {
         for (const userId of selectedMembers) {
@@ -247,7 +248,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
   }
 
   // Paste support for cover image
-  const handlePaste = (e) => {
+  const handlePaste = (e: React.ClipboardEvent) => {
     if (!canUploadCover) return
     const items = e.clipboardData?.items
     if (!items) return
@@ -269,7 +270,7 @@ export default function TripFormModal({ isOpen, onClose, onSave, trip, onCoverUp
       } else if (prev.start_date) {
         const oldStart = new Date(prev.start_date + 'T00:00:00Z')
         const oldEnd = new Date(prev.end_date + 'T00:00:00Z')
-        const duration = Math.round((oldEnd - oldStart) / 86400000)
+        const duration = Math.round((oldEnd.getTime() - oldStart.getTime()) / 86400000)
         const newEnd = new Date(value + 'T00:00:00Z')
         newEnd.setDate(newEnd.getDate() + duration)
         next.end_date = newEnd.toISOString().split('T')[0]

@@ -22,8 +22,11 @@ interface NoteFile {
   url?: string
 }
 
+interface NoteAttachment { id: number; filename: string; original_name: string; mime_type: string; url?: string }
+
 interface CollabNote {
   id: number
+  attachments?: NoteAttachment[]
   trip_id: number
   title: string
   content: string
@@ -53,7 +56,7 @@ const ogCache = {}
 
 interface WebsiteThumbnailProps {
   url: string
-  tripId: number
+  tripId: number | string
   color: string
 }
 
@@ -180,7 +183,7 @@ const formatTimestamp = (ts, t, locale) => {
   if (!ts) return ''
   const d = new Date(ts.endsWith?.('Z') ? ts : ts + 'Z')
   const now = new Date()
-  const diffMs = now - d
+  const diffMs = now.getTime() - d.getTime()
   const diffMins = Math.floor(diffMs / 60000)
   if (diffMins < 1) return t('collab.chat.justNow') || 'just now'
   if (diffMins < 60) return t('collab.chat.minutesAgo', { n: diffMins }) || `${diffMins}m ago`
@@ -240,13 +243,13 @@ function UserAvatar({ user, size = 14 }: UserAvatarProps) {
 // ── New Note Modal (portal to body) ─────────────────────────────────────────
 interface NoteFormModalProps {
   onClose: () => void
-  onSubmit: (data: { title: string; content: string; category: string; website: string; files?: File[] }) => Promise<void>
+  onSubmit: (data: { title: string; content: string; category: string | null; color?: string | null; website: string | null; _pendingFiles?: File[]; files?: File[] }) => Promise<void>
   onDeleteFile?: (noteId: number, fileId: number) => Promise<void>
   existingCategories: string[]
   categoryColors: Record<string, string>
   getCategoryColor: (category: string) => string
   note: CollabNote | null
-  tripId: number
+  tripId: number | string
   t: (key: string) => string
 }
 
@@ -585,7 +588,7 @@ interface CategorySettingsModalProps {
 
 function CategorySettingsModal({ onClose, categories, categoryColors, onSave, onRenameCategory, t }: CategorySettingsModalProps) {
   const [localColors, setLocalColors] = useState({ ...categoryColors })
-  const [renames, setRenames] = useState({}) // { oldName: newName }
+  const [renames, setRenames] = useState<Record<string, string>>({}) // { oldName: newName }
   const [newCatName, setNewCatName] = useState('')
 
   const handleColorChange = (cat, color) => {
@@ -724,7 +727,7 @@ interface NoteCardProps {
   onView: (note: CollabNote) => void
   onPreviewFile: (file: NoteFile) => void
   getCategoryColor: (category: string) => string
-  tripId: number
+  tripId: number | string
   t: (key: string) => string
 }
 
@@ -810,8 +813,8 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
             <div style={{ width: 1, height: 12, background: 'var(--border-faint)', flexShrink: 0, marginLeft: 1, marginRight: 1 }} />
             {/* Author avatar */}
             <div style={{ position: 'relative', flexShrink: 0 }}
-              onMouseEnter={e => { const tip = e.currentTarget.querySelector('[data-tip]'); if (tip) tip.style.opacity = '1' }}
-              onMouseLeave={e => { const tip = e.currentTarget.querySelector('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
+              onMouseEnter={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '1' }}
+              onMouseLeave={e => { const tip = e.currentTarget.querySelector<HTMLElement>('[data-tip]'); if (tip) tip.style.opacity = '0' }}>
               <UserAvatar user={author} size={16} />
               <div data-tip style={{
                 position: 'absolute', bottom: '100%', left: '50%', transform: 'translateX(-50%)',
@@ -902,7 +905,7 @@ function NoteCard({ note, currentUser, canEdit, onUpdate, onDelete, onEdit, onVi
 
 // ── Main Component ──────────────────────────────────────────────────────────
 interface CollabNotesProps {
-  tripId: number
+  tripId: number | string
   currentUser: User
 }
 

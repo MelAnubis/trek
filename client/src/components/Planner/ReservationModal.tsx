@@ -50,14 +50,15 @@ function buildAssignmentOptions(days, assignments, t, locale) {
 interface ReservationModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (data: Record<string, string | number | null>) => Promise<void> | void
+  /** Resolves to the saved booking (its id is used to attach pending files). */
+  onSave: (data: Record<string, unknown>) => Promise<{ id?: number } | void> | void
   reservation: Reservation | null
   days: Day[]
   places: Place[]
   assignments: AssignmentsMap
   selectedDayId: number | null
   files?: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<void>
+  onFileUpload?: (fd: FormData) => Promise<unknown>
   onFileDelete: (fileId: number) => Promise<void>
   accommodations?: Accommodation[]
   defaultAssignmentId?: number | null
@@ -223,11 +224,11 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
         }
       }
       const saved = await onSave(saveData)
-      if (!reservation?.id && saved?.id && pendingFiles.length > 0) {
+      if (!reservation?.id && saved && saved.id && pendingFiles.length > 0) {
         for (const file of pendingFiles) {
           const fd = new FormData()
           fd.append('file', file)
-          fd.append('reservation_id', saved.id)
+          fd.append('reservation_id', String(saved.id))
           fd.append('description', form.title)
           await onFileUpload(fd)
         }
@@ -245,7 +246,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       try {
         const fd = new FormData()
         fd.append('file', file)
-        fd.append('reservation_id', reservation.id)
+        fd.append('reservation_id', String(reservation.id))
         fd.append('description', reservation.title)
         await onFileUpload(fd)
         toast.success(t('reservations.toast.fileUploaded'))
@@ -269,7 +270,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       )
     : []
 
-  const inputStyle = {
+  const inputStyle: React.CSSProperties = {
     width: '100%', border: '1px solid var(--border-primary)', borderRadius: 10,
     padding: '8px 12px', fontSize: 13, fontFamily: 'inherit',
     outline: 'none', boxSizing: 'border-box', color: 'var(--text-primary)', background: 'var(--bg-input)',

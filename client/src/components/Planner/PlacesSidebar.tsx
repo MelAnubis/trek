@@ -21,7 +21,7 @@ import Tooltip from '../shared/Tooltip'
 import MustSeeSuggestionsModal from './MustSeeSuggestionsModal'
 
 interface PlacesSidebarProps {
-  tripId: number
+  tripId: number | string
   places: Place[]
   categories: Category[]
   assignments: AssignmentsMap
@@ -35,7 +35,7 @@ interface PlacesSidebarProps {
   onBulkDeletePlaces?: (ids: number[]) => void
   onBulkDeleteConfirm?: (ids: number[]) => void
   days: Day[]
-  isMobile: boolean
+  isMobile?: boolean
   onCategoryFilterChange?: (categoryIds: Set<string>) => void
   onPlacesFilterChange?: (filter: string) => void
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
@@ -113,10 +113,10 @@ const MemoPlaceRow = React.memo(function MemoPlaceRow({
       <PlaceAvatar place={place} category={cat} size={34} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 5, overflow: 'hidden' }}>
-          {hasGeometry && <Route size={11} strokeWidth={2} color="var(--text-faint)" style={{ flexShrink: 0 }} title="Track / Route" />}
+          {hasGeometry && <Route size={11} strokeWidth={2} color="var(--text-faint)" style={{ flexShrink: 0 }} aria-label="Track / Route" />}
           {cat && (() => {
             const CatIcon = getCategoryIcon(cat.icon)
-            return <CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} style={{ flexShrink: 0 }} title={cat.name} />
+            return <CatIcon size={11} strokeWidth={2} color={cat.color || '#6366f1'} style={{ flexShrink: 0 }} aria-label={cat.name} />
           })()}
           <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
             {place.name}

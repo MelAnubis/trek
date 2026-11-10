@@ -123,7 +123,7 @@ const calcPD = (p, d) => (d > 0 ? p / d : null)
 const calcPPD = (p, n, d) => (n > 0 && d > 0 ? p / (n * d) : null)
 
 // ── Inline Edit Cell ─────────────────────────────────────────────────────────
-function InlineEditCell({ value, onSave, type = 'text', style = {}, placeholder = '', decimals = 2, locale, editTooltip, readOnly = false }) {
+function InlineEditCell({ value, onSave, type = 'text', style = {} as React.CSSProperties, placeholder = '', decimals = 2, locale, editTooltip, readOnly = false }) {
   const [editing, setEditing] = useState(false)
   const [editValue, setEditValue] = useState(value ?? '')
   const inputRef = useRef(null)
@@ -417,7 +417,7 @@ function BudgetMemberChips({ members = [], tripMembers = [], onSetMembers, onTog
 
 // ── Per-Person Inline (inside total card) ────────────────────────────────────
 interface PerPersonInlineProps {
-  tripId: number
+  tripId: number | string
   budgetItems: BudgetItem[]
   currency: string
   locale: string
@@ -554,7 +554,7 @@ function PieChart({ segments, size = 200, totalLabel }: PieChartProps) {
 
 // ── Main Component ───────────────────────────────────────────────────────────
 interface BudgetPanelProps {
-  tripId: number
+  tripId: number | string
   tripMembers?: TripMember[]
 }
 
@@ -678,7 +678,7 @@ export default function BudgetPanel({ tripId, tripMembers = [] }: BudgetPanelPro
     URL.revokeObjectURL(url)
   }
 
-  const th = { padding: '6px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--border-primary)', whiteSpace: 'nowrap', background: 'var(--bg-secondary)' }
+  const th: React.CSSProperties = { padding: '6px 8px', textAlign: 'center', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--border-primary)', whiteSpace: 'nowrap', background: 'var(--bg-secondary)' }
   const td = { padding: '2px 6px', borderBottom: '1px solid var(--border-secondary)', fontSize: 13, verticalAlign: 'middle', color: 'var(--text-primary)' }
 
   // ── Empty State ──────────────────────────────────────────────────────────

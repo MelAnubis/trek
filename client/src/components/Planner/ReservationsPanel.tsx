@@ -73,7 +73,7 @@ const fieldValueStyle: React.CSSProperties = {
 
 interface ReservationCardProps {
   r: Reservation
-  tripId: number
+  tripId: number | string
   onEdit: (reservation: Reservation) => void
   onDelete: (id: number) => void
   files?: TripFile[]
@@ -510,7 +510,7 @@ function Section({ title, count, children, defaultOpen = true, accent, storageKe
 }
 
 interface ReservationsPanelProps {
-  tripId: number
+  tripId: number | string
   reservations: Reservation[]
   days: Day[]
   assignments: AssignmentsMap

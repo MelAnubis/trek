@@ -71,12 +71,12 @@ function katColor(kat, allCategories) {
   return KAT_COLORS[Math.abs(h) % KAT_COLORS.length]
 }
 
-interface PackingBag { id: number; trip_id: number; name: string; color: string; weight_limit_grams: number | null; user_id?: number | null; assigned_username?: string | null }
+interface PackingBag { id: number; trip_id: number; name: string; color: string; weight_limit_grams: number | null; user_id?: number | null; assigned_username?: string | null; members?: { user_id: number; username: string; avatar?: string | null }[] }
 
 // ── Bag Card ──────────────────────────────────────────────────────────────
 
 interface BagCardProps {
-  bag: PackingBag; bagItems: PackingItem[]; totalWeight: number; pct: number; tripId: number
+  bag: PackingBag; bagItems: PackingItem[]; totalWeight: number; pct: number; tripId: number | string
   tripMembers: TripMember[]; canEdit: boolean; onDelete: () => void
   onUpdate: (bagId: number, data: Record<string, any>) => void
   onSetMembers: (bagId: number, userIds: number[]) => void; t: any; compact?: boolean
@@ -203,7 +203,7 @@ function QuantityInput({ value, onSave }: { value: number; onSave: (qty: number)
 // ── Artikel-Zeile ──────────────────────────────────────────────────────────
 interface ArtikelZeileProps {
   item: PackingItem
-  tripId: number
+  tripId: number | string
   categories: string[]
   onCategoryChange: () => void
   bagTrackingEnabled?: boolean
@@ -468,7 +468,7 @@ interface CategoryAssignee {
 interface KategorieGruppeProps {
   kategorie: string
   items: PackingItem[]
-  tripId: number
+  tripId: number | string
   allCategories: string[]
   onRename: (oldName: string, newName: string) => Promise<void>
   onDeleteAll: (items: PackingItem[]) => Promise<void>
@@ -730,7 +730,7 @@ interface MenuItemProps {
   icon: React.ReactNode
   label: string
   onClick: () => void
-  danger: boolean
+  danger?: boolean
 }
 
 function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
@@ -751,7 +751,7 @@ function MenuItem({ icon, label, onClick, danger }: MenuItemProps) {
 
 // ── Haupt-Panel ────────────────────────────────────────────────────────────
 interface PackingListPanelProps {
-  tripId: number
+  tripId: number | string
   items: PackingItem[]
   openImportSignal?: number
   clearCheckedSignal?: number
@@ -804,7 +804,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
     return seen
   }, [items, t])
 
-  const gruppiert = useMemo(() => {
+  const gruppiert = useMemo((): Record<string, PackingItem[]> => {
     const filtered = items.filter(i => {
       if (filter === 'offen') return !i.checked
       if (filter === 'erledigt') return i.checked

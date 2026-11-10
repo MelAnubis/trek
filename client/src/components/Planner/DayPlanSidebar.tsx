@@ -37,7 +37,7 @@ import { useDayNotes } from '../../hooks/useDayNotes'
 import Tooltip from '../shared/Tooltip'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import { Eraser, Footprints, MapPinOff } from 'lucide-react'
-import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult } from '../../types'
+import type { Trip, Day, Place, Category, Assignment, Reservation, AssignmentsMap, RouteResult, Accommodation, DayNote } from '../../types'
 
 const NOTE_ICONS = [
   { id: 'FileText', Icon: FileText },
@@ -164,7 +164,7 @@ function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }
 }
 
 interface DayPlanSidebarProps {
-  tripId: number
+  tripId: number | string
   trip: Trip
   days: Day[]
   places: Place[]
@@ -173,25 +173,25 @@ interface DayPlanSidebarProps {
   selectedDayId: number | null
   selectedPlaceId: number | null
   selectedAssignmentId: number | null
-  onSelectDay: (dayId: number | null) => void
-  onPlaceClick: (placeId: number) => void
+  onSelectDay: (dayId: number | null, skipFit?: boolean) => void
+  onPlaceClick: (placeId: number | null, assignmentId?: number | null) => void
   onDayDetail: (day: Day) => void
-  accommodations?: Assignment[]
+  accommodations?: Accommodation[]
   onReorder: (dayId: number, orderedIds: number[]) => void
   onReorderDays?: (orderedIds: number[]) => void
   onAddDay?: (position?: number) => void
   onUpdateDayTitle: (dayId: number, title: string) => void
-  onRouteCalculated: (dayId: number, route: RouteResult | null) => void
-  onAssignToDay: (placeId: number, dayId: number) => void
-  onRemoveAssignment: (assignmentId: number, dayId: number) => void
-  onEditPlace: (place: Place) => void
-  onDeletePlace: (placeId: number) => void
+  onRouteCalculated: (route: RouteResult | null) => void
+  onAssignToDay: (placeId: number, dayId: number, position?: number) => void
+  onRemoveAssignment?: (dayId: number, assignmentId: number) => void
+  onEditPlace?: (place: Place, assignmentId?: number | null) => void
+  onDeletePlace?: (placeId: number) => void
   reservations?: Reservation[]
   visibleConnectionIds?: number[]
   onToggleConnection?: (reservationId: number) => void
   externalTransportDetail?: Reservation | null
   onExternalTransportDetailHandled?: () => void
-  onAddReservation: () => void
+  onAddReservation: (dayId?: number) => void
   onNavigateToFiles?: () => void
   onAddPlace?: () => void
   onAddPlaceToDay?: (placeId: number, dayId: number) => void
@@ -274,7 +274,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
   const { noteUi, setNoteUi, noteInputRef, dayNotes, openAddNote: _openAddNote, openEditNote: _openEditNote, cancelNote, saveNote, deleteNote: _deleteNote, moveNote: _moveNote } = useDayNotes(tripId)
 
-  const [expandedDays, setExpandedDays] = useState(() => {
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(() => {
     try {
       const saved = sessionStorage.getItem(`day-expanded-${tripId}`)
       if (saved) return new Set(JSON.parse(saved))
@@ -550,12 +550,12 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     return !simItems.every((item, i) => i === 0 || item.minutes >= simItems[i - 1].minutes)
   }
 
-  const openEditNote = (dayId, note, e) => {
+  const openEditNote = (dayId: number, note: DayNote, e?: React.SyntheticEvent) => {
     e?.stopPropagation()
     _openEditNote(dayId, note)
   }
 
-  const deleteNote = async (dayId, noteId, e) => {
+  const deleteNote = async (dayId: number, noteId: number, e?: React.SyntheticEvent) => {
     e?.stopPropagation()
     await _deleteNote(dayId, noteId)
   }
@@ -771,7 +771,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
     try {
       const result = await calculateRoute(waypoints, 'walking')
       // Luftlinien zwischen Wegpunkten anzeigen
-      const lineCoords = waypoints.map(p => [p.lat, p.lng])
+      const lineCoords = waypoints.map(p => [p.lat, p.lng] as [number, number])
       setRouteInfo({ distance: result.distanceText, duration: result.durationText })
       onRouteCalculated?.({ ...result, coordinates: lineCoords })
     } catch { toast.error(t('dayplan.toast.routeError')) }
@@ -1010,7 +1010,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
               <Tooltip label={label} placement="bottom">
                 <button
                   onClick={() => {
-                    const next = allExpanded ? new Set() : new Set(days.map(d => d.id))
+                    const next = allExpanded ? new Set<number>() : new Set(days.map(d => d.id))
                     setExpandedDays(next)
                     try { sessionStorage.setItem(`day-expanded-${tripId}`, JSON.stringify([...next])) } catch {}
                   }}
@@ -1145,7 +1145,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                   da.length > 0 && { label: t('dayplan.clearDay'), icon: Eraser, danger: true, onClick: () => setClearDayTarget({ id: day.id, label: day.title || t('dayplan.dayN', { n: index + 1 }) }) },
                 ]) : undefined}
                 onDragOver={e => { e.preventDefault(); if (dragOverDayId !== day.id) setDragOverDayId(day.id) }}
-                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverDayId(null) }}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragOverDayId(null) }}
                 onDrop={e => handleDropOnDay(e, day.id)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: 10,
@@ -1281,8 +1281,10 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                     {cost && <span style={{ fontSize: 11, color: '#059669' }}>{cost}</span>}
                     {day.date && anyGeoPlace && <span style={{ width: 1, height: 10, background: 'var(--text-faint)', opacity: 0.3, flexShrink: 0 }} />}
                     {day.date && anyGeoPlace && (() => {
-                      const wLat = loc?.place.lat ?? anyGeoPlace?.place?.lat ?? anyGeoPlace?.lat
-                      const wLng = loc?.place.lng ?? anyGeoPlace?.place?.lng ?? anyGeoPlace?.lng
+                      // anyGeoPlace is an assignment (with .place) or a bare place.
+                      const geo = anyGeoPlace && 'place' in anyGeoPlace ? anyGeoPlace.place : anyGeoPlace as Place | undefined
+                      const wLat = loc?.place.lat ?? geo?.lat
+                      const wLng = loc?.place.lng ?? geo?.lng
                       return <WeatherWidget lat={wLat} lng={wLng} date={day.date} compact />
                     })()}
                   </div>
@@ -1566,7 +1568,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                               <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
                                 {cat && (() => {
                                   const CatIcon = getCategoryIcon(cat.icon)
-                                  return <CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} title={cat.name} style={{ flexShrink: 0 }} />
+                                  return <CatIcon size={10} strokeWidth={2} color={cat.color || 'var(--text-muted)'} aria-label={cat.name} style={{ flexShrink: 0 }} />
                                 })()}
                                 <span style={{ fontSize: 12.5, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2 }}>
                                   {place.name}

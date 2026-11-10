@@ -4,7 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { TranslationProvider } from '../../src/i18n/TranslationContext';
 
 interface RenderWithProvidersOptions extends Omit<RenderOptions, 'wrapper'> {
-  initialEntries?: string[];
+  initialEntries?: (string | { pathname: string; state?: unknown })[];
 }
 
 function renderWithProviders(

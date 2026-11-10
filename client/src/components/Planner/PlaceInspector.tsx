@@ -108,6 +108,8 @@ interface TripMember {
   id: number
   username: string
   avatar_url?: string | null
+  /** Older endpoints send the avatar file name under this key. */
+  avatar?: string | null
 }
 
 interface PlaceInspectorProps {
@@ -121,10 +123,11 @@ interface PlaceInspectorProps {
   onClose: () => void
   onEdit: () => void
   onDelete: () => void
-  onAssignToDay: (placeId: number, dayId: number) => void
+  /** Without a day, the selected day is used. */
+  onAssignToDay: (placeId: number, dayId?: number) => void
   onRemoveAssignment: (assignmentId: number, dayId: number) => void
   files: TripFile[]
-  onFileUpload?: (fd: FormData) => Promise<void>
+  onFileUpload?: (fd: FormData) => Promise<unknown>
   tripMembers?: TripMember[]
   onSetParticipants: (assignmentId: number, dayId: number, participantIds: number[]) => void
   onUpdatePlace: (placeId: number, data: Partial<Place>) => void
@@ -195,7 +198,7 @@ export default function PlaceInspector({
       for (const file of selectedFiles) {
         const fd = new FormData()
         fd.append('file', file)
-        fd.append('place_id', place.id)
+        fd.append('place_id', String(place.id))
         await onFileUpload(fd)
       }
       setFilesExpanded(true)
@@ -335,7 +338,7 @@ export default function PlaceInspector({
                 />
               )
             })()}
-            {place.price > 0 && (
+            {Number(place.price) > 0 && (
               <Chip icon={<Euro size={12} />} text={`${place.price} ${place.currency || '€'}`} color="#059669" bg="#ecfdf5" />
             )}
           </div>

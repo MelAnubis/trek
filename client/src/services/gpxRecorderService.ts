@@ -122,7 +122,7 @@ export class GpxRecorderService {
   }
 
   /** Uploads the recording as a track of the trip and returns the track created ({ id, ... }). */
-  async saveToTrip(tripId: number, name = 'Trek Recording'): Promise<{ id: number } & Record<string, unknown>> {
+  async saveToTrip(tripId: number | string, name = 'Trek Recording'): Promise<{ id: number } & Record<string, unknown>> {
     const xml = this.exportGpx(name)
     const blob = new Blob([xml], { type: 'application/gpx+xml' })
     const file = new File([blob], `${name}.gpx`, { type: 'application/gpx+xml' })

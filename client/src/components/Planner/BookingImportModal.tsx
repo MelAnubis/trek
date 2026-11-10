@@ -11,7 +11,7 @@ import { useTripStore } from '../../store/tripStore'
 interface BookingImportModalProps {
   isOpen: boolean
   onClose: () => void
-  tripId: number
+  tripId: number | string
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
 }
 
@@ -19,7 +19,7 @@ const ACCEPTED_EXTS = ['.eml', '.pdf', '.pkpass', '.html', '.htm', '.txt']
 const MAX_FILE_BYTES = 10 * 1024 * 1024
 const MAX_FILES = 5
 
-const TYPE_ICONS: Record<string, React.FC<{ size: number; color?: string }>> = {
+const TYPE_ICONS: Record<string, React.ElementType> = {
   flight: Plane,
   train: Train,
   hotel: Hotel,

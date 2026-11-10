@@ -1,4 +1,5 @@
 // FE-COMP-FILEMANAGER-001 to FE-COMP-FILEMANAGER-012
+import type { TripFile } from '../../types';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -36,7 +37,9 @@ vi.mock('../../api/client', async (importOriginal) => {
 
 import { filesApi } from '../../api/client';
 
-const buildFile = (overrides = {}) => ({
+const buildFile = (overrides: Partial<TripFile> = {}): TripFile => ({
+  trip_id: 1,
+  filename: 'stored-name',
   id: 1,
   original_name: 'report.pdf',
   mime_type: 'application/pdf',
@@ -47,9 +50,8 @@ const buildFile = (overrides = {}) => ({
   deleted_at: null,
   place_id: null,
   reservation_id: null,
-  day_id: null,
   uploaded_by: 1,
-  uploader_name: 'Alice',
+  uploaded_by_name: 'Alice',
   ...overrides,
 });
 
@@ -487,7 +489,7 @@ describe('FileManager', () => {
     const { buildPlace, buildDay } = await import('../../../tests/helpers/factories');
     const place = buildPlace({ id: 10, name: 'Arc de Triomphe' });
     const day = buildDay({ id: 5, date: '2025-06-01', day_number: 1 });
-    const assignments = { '5': [{ id: 1, day_id: 5, place_id: 10, order_index: 0, place }] };
+    const assignments = { '5': [{ id: 1, day_id: 5, place_id: 10, order_index: 0, notes: null, place }] };
 
     render(<FileManager {...defaultProps} files={[buildFile()]} places={[place]} days={[day]} assignments={assignments} />);
     const user = userEvent.setup();

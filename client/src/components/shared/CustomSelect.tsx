@@ -2,8 +2,11 @@ import React, { useState, useRef, useEffect } from 'react'
 import ReactDOM from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 
-interface SelectOption {
-  value: string
+/** Options carry ids as often as text: both are compared with === as given. */
+export type SelectValue = string | number
+
+export interface SelectOption {
+  value: SelectValue
   label: string
   icon?: React.ReactNode
   isHeader?: boolean
@@ -13,8 +16,10 @@ interface SelectOption {
 }
 
 interface CustomSelectProps {
-  value: string
-  onChange: (value: string) => void
+  value: SelectValue | null | undefined
+  // The value of the option picked, as given in `options` (string or number).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onChange: (value: any) => void
   options?: SelectOption[]
   placeholder?: string
   searchable?: boolean

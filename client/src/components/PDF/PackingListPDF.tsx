@@ -186,6 +186,6 @@ export async function downloadPackingListPDF({ trip, items, bags = [], groupBy, 
   overlay.appendChild(card)
   document.body.appendChild(overlay)
 
-  header.querySelector('#pdf-close-btn').onclick = () => overlay.remove()
-  header.querySelector('#pdf-print-btn').onclick = () => { iframe.contentWindow?.print() }
+  header.querySelector<HTMLElement>('#pdf-close-btn')!.onclick = () => overlay.remove()
+  header.querySelector<HTMLElement>('#pdf-print-btn')!.onclick = () => { iframe.contentWindow?.print() }
 }

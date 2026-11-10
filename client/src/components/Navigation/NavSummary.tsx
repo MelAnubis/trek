@@ -14,8 +14,8 @@ interface Props {
   recordedPoints: RecordedPoint[]
   stats: NavStats
   navPhotos: NavPhoto[]
-  tripId?: number
-  onSaveToTrip: (name: string, tripId?: number) => Promise<void>
+  tripId?: number | string
+  onSaveToTrip: (name: string, tripId?: number | string) => Promise<void>
   onDownload: (name: string) => Promise<void>
   onDiscard: () => void
   /** A line under the save button, e.g. the tour the track will be linked to. */

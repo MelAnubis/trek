@@ -14,7 +14,7 @@ const NavSummary = React.lazy(() => import('./NavSummary'))
 interface Props {
   trackName?: string
   trackPoints?: TrackPoint[]
-  tripId?: number
+  tripId?: number | string
   onExit: () => void
   /** Fase B: record what is done while following the route. */
   recordWhileFollowing?: boolean
@@ -182,7 +182,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
     else onExit()
   }, [nav, onExit])
 
-  const handleSaveToTrip = async (name: string, targetTripId?: number) => {
+  const handleSaveToTrip = async (name: string, targetTripId?: number | string) => {
     const id = targetTripId ?? tripId
     if (!id) return
     const track = await nav.recorder.saveToTrip(id, name)

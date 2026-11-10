@@ -192,6 +192,12 @@ export default function MapSettingsTab(): React.ReactElement {
     route_geometry: null,
     place_time: null,
     end_time: null,
+    notes: null,
+    currency: null,
+    duration_minutes: null,
+    transport_mode: null,
+    website: null,
+    phone: null,
     created_at: Date(),
   }], [defaultLat, defaultLng])
 

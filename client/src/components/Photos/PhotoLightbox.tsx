@@ -11,7 +11,7 @@ interface PhotoLightboxProps {
   onDelete: (photoId: number) => Promise<void>
   days: Day[]
   places: Place[]
-  tripId: number
+  tripId: number | string
 }
 
 export function PhotoLightbox({ photos, initialIndex, onClose, onUpdate, onDelete, days, places, tripId }: PhotoLightboxProps) {

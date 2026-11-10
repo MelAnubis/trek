@@ -77,6 +77,8 @@ export interface Place {
   created_at: string
   /** Set when the place is a tour (Tours, TREK v5): hike, bike or run. */
   tour_type?: string | null
+  /** The category, joined in by the assignments endpoint. */
+  category?: { id: number; name: string; color: string | null; icon: string | null } | null
 }
 
 export interface Assignment {
@@ -86,6 +88,8 @@ export interface Assignment {
   order_index: number
   notes: string | null
   place: Place
+  /** People joining this stop (assignment_participants). */
+  participants?: { user_id: number; username: string; avatar_url?: string | null; avatar?: string | null }[]
   /** Leave out of route (TREK v5): on the day and the map, skipped by the day's route. */
   route_excluded?: boolean
 }
@@ -109,6 +113,9 @@ export interface PackingItem {
   category: string | null
   checked: number
   quantity: number
+  weight_grams?: number | null
+  bag_id?: number | null
+  sort_order?: number
 }
 
 export interface TodoItem {
@@ -134,8 +141,9 @@ export interface Tag {
 export interface Category {
   id: number
   name: string
+  color: string | null
   icon: string | null
-  user_id: number
+  user_id: number | null
 }
 
 export interface BudgetItem {
@@ -210,6 +218,8 @@ export interface Reservation {
   accommodation_id?: number | null
   accommodation_start_day_id?: number | null
   accommodation_end_day_id?: number | null
+  /** Name of the linked stay's place. */
+  accommodation_name?: string | null
   /** Times saved on the linked stay (day_accommodations), when the booking has none of its own. */
   accommodation_check_in?: string | null
   accommodation_check_in_end?: string | null
@@ -237,11 +247,13 @@ export interface TripFile {
   file_size?: number | null
   mime_type: string
   description?: string | null
-  starred?: number
+  starred?: number | boolean
   deleted_at?: string | null
   created_at: string
   reservation_title?: string
   linked_reservation_ids?: number[]
+  /** Places the file is linked to besides its own place_id (file_links). */
+  linked_place_ids?: number[]
   url?: string
 }
 
@@ -331,6 +343,11 @@ export interface Accommodation {
   notes: string | null
   url: string | null
   created_at: string
+  /** day_accommodations columns: the stay's place and its first/last day. */
+  place_id?: number | null
+  start_day_id?: number
+  end_day_id?: number
+  confirmation?: string | null
 }
 
 // Trip member (owner or collaborator)
@@ -339,6 +356,8 @@ export interface TripMember {
   username: string
   email?: string
   avatar_url?: string | null
+  /** Older endpoints send the avatar under this name. */
+  avatar?: string | null
   role?: string
 }
 
@@ -349,10 +368,14 @@ export interface Photo {
   filename: string
   original_name: string
   mime_type: string
-  size: number
+  size?: number
+  file_size?: number | null
   caption: string | null
   place_id: number | null
   day_id: number | null
+  taken_at?: string | null
+  /** Served URL of the photo. */
+  url?: string
   created_at: string
 }
 
@@ -429,6 +452,8 @@ export interface VacayPlan {
   carry_over_enabled: boolean
   company_holidays_enabled: boolean
   week_start?: number
+  /** Comma-separated weekday numbers (0 = Sunday), default '0,6'. */
+  weekend_days?: string
   name?: string
   year?: number
   owner_id?: number
@@ -450,10 +475,17 @@ export interface VacayEntry {
   person_name?: string
 }
 
+/** One person's year, as vacayService.getStats returns it. */
 export interface VacayStat {
   user_id: number
+  person_name: string
+  person_color: string
+  year: number
   vacation_days: number
+  carried_over: number
+  total_available: number
   used: number
+  remaining: number
 }
 
 export interface HolidayInfo {

@@ -4,7 +4,7 @@ export interface SlidingTab<T extends string> {
   id: T
   label: React.ReactNode
   title?: string
-  icon?: React.ComponentType<{ size?: number; className?: string }>
+  icon?: React.ElementType
   count?: number
 }
 

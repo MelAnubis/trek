@@ -18,7 +18,7 @@ interface PlacesImportSummary {
 interface FileImportModalProps {
   isOpen: boolean
   onClose: () => void
-  tripId: number
+  tripId: number | string
   pushUndo?: (label: string, undoFn: () => Promise<void> | void) => void
   initialFile?: File | null
 }

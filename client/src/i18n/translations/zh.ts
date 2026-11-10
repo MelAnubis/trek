@@ -1,4 +1,4 @@
-const zh: Record<string, string> = {
+const zh: Record<string, string | { name: string; category: string }[]> = {
   // Common
   'common.save': '保存',
   'common.showMore': '显示更多',

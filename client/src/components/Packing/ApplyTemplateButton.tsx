@@ -12,7 +12,7 @@ interface Template {
 }
 
 interface ApplyTemplateButtonProps {
-  tripId: number
+  tripId: number | string
   style: React.CSSProperties
   className?: string
 }

@@ -181,7 +181,7 @@ describe('PlaceFormModal', () => {
 
     // The search button is the sibling button of the search input
     const searchRow = searchInput.closest('.flex')!;
-    const searchBtn = within(searchRow).getByRole('button');
+    const searchBtn = within(searchRow as HTMLElement).getByRole('button');
     await user.click(searchBtn);
 
     await screen.findByText('Eiffel Tower');
@@ -368,7 +368,7 @@ describe('PlaceFormModal', () => {
 
     // The X button is inside the file item's container div
     const fileItem = screen.getByText('remove-me.jpg').closest('div.flex')!;
-    const removeBtn = within(fileItem).getByRole('button');
+    const removeBtn = within(fileItem as HTMLElement).getByRole('button');
     await user.click(removeBtn);
 
     expect(screen.queryByText('remove-me.jpg')).not.toBeInTheDocument();
