@@ -25,9 +25,12 @@ export function useContextMenu() {
     setMenu({ x: e.clientX, y: e.clientY, items })
   }
 
+  /** Open at a given point (a long press, or under a "⋯" button). The menu moves itself to fit on screen. */
+  const openAt = (point: { x: number; y: number }, items: MenuItem[]) => setMenu({ x: point.x, y: point.y, items })
+
   const close = () => setMenu(null)
 
-  return { menu, open, close }
+  return { menu, open, openAt, close }
 }
 
 interface ContextMenuProps {
@@ -41,11 +44,14 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   useEffect(() => {
     if (!menu) return
     const handler = () => onClose()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     document.addEventListener('click', handler)
     document.addEventListener('contextmenu', handler)
+    document.addEventListener('keydown', onKey)
     return () => {
       document.removeEventListener('click', handler)
       document.removeEventListener('contextmenu', handler)
+      document.removeEventListener('keydown', onKey)
     }
   }, [menu, onClose])
 
@@ -65,7 +71,7 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
   if (!menu) return null
 
   return ReactDOM.createPortal(
-    <div ref={ref} className="trek-popover-enter" style={{
+    <div ref={ref} className="trek-popover-enter trek-ctx-menu" style={{
       position: 'fixed', left: menu.x, top: menu.y, zIndex: 999999,
       background: 'var(--modal-bg)',
       backdropFilter: 'var(--glass-blur-lg)',
@@ -81,18 +87,9 @@ export function ContextMenu({ menu, onClose }: ContextMenuProps) {
         if (item.divider) return <div key={i} style={{ height: 1, background: 'var(--border-faint)', margin: '3px 6px' }} />
         const Icon = item.icon
         return (
-          <button key={i} onClick={() => { item.onClick?.(); onClose() }} style={{
-            display: 'flex', alignItems: 'center', gap: 8, width: '100%',
-            padding: '7px 10px', borderRadius: 7, border: 'none',
-            background: 'none', cursor: 'pointer', fontFamily: 'inherit',
-            fontSize: 12, fontWeight: 500, textAlign: 'left',
-            color: item.danger ? '#ef4444' : 'var(--text-primary)',
-            transition: 'background 0.1s',
-          }}
-            onMouseEnter={e => e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.08)' : 'var(--bg-hover)'}
-            onMouseLeave={e => e.currentTarget.style.background = 'none'}
-          >
-            {Icon && <Icon size={13} style={{ flexShrink: 0, color: item.danger ? '#ef4444' : 'var(--text-faint)' }} />}
+          <button key={i} onClick={() => { item.onClick?.(); onClose() }}
+            className={`trek-ctx-item${item.danger ? ' is-danger' : ''}`}>
+            {Icon && <Icon size={13} className="trek-ctx-icon" />}
             <span>{item.label}</span>
           </button>
         )

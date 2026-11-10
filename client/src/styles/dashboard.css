@@ -731,3 +731,6 @@ html[data-scheme="mono"] .trek-dash .welcome-cta { background: var(--ink); color
 .trek-dash .upcoming-first { margin-bottom: 22px; }
 
 .trek-dash .flag-code { font-size: 9px; font-weight: 700; color: #fff; letter-spacing: 0.02em; }
+
+/* A long press opens the trip's menu: no text selection or iOS image callout on top of it. */
+.trek-dash .trip-card, .trek-dash .hero-trip { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }

@@ -4051,6 +4051,7 @@ const es: Record<string, string | { name: string; category: string }[]> = {
   'dashboard.welcome.body': "Crea un viaje para añadir lugares, días, reservas y rutas. Todo lo que planifiques aparecerá aquí.",
   'dashboard.empty.archive': "No hay viajes archivados. Archiva un viaje desde su menú ⋯ para despejar la lista sin borrarlo.",
   'dashboard.empty.completed': "Todavía no hay viajes completados. Un viaje pasa aquí cuando termina su último día.",
+  'trip.tabs.more': "Más",
 }
 
 export default es

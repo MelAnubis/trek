@@ -67,8 +67,14 @@ describe('ContextMenu', () => {
     ]);
     render(<ContextMenu menu={menu} onClose={onClose} />);
     const btn = screen.getByRole('button', { name: /remove/i });
-    // Danger buttons use color #ef4444 inline style
-    expect(btn.style.color).toBe('rgb(239, 68, 68)');
+    // Danger items carry the is-danger class (red text, red hover — index.css).
+    expect(btn).toHaveClass('trek-ctx-item', 'is-danger');
+  });
+
+  it('FE-COMP-CTX-005b: Escape closes the menu', () => {
+    render(<ContextMenu menu={makeMenu()} onClose={onClose} />);
+    act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); });
+    expect(onClose).toHaveBeenCalled();
   });
 
   it('FE-COMP-CTX-006: clicking outside the menu closes it via document click listener', () => {

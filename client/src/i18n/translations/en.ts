@@ -4358,6 +4358,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'dashboard.welcome.body': "Create a trip to add places, days, bookings and routes. Everything you plan shows up here.",
   'dashboard.empty.archive': "No archived trips. Archive a trip from its ⋯ menu to tidy up the list without deleting it.",
   'dashboard.empty.completed': "No completed trips yet. Trips move here once their last day has passed.",
+  'trip.tabs.more': "More",
 }
 
 export default en

@@ -1118,3 +1118,24 @@ img[alt="Trek Wanderer"] {
 .trek-nav-link.is-active { color: var(--text-primary); background: var(--bg-hover); }
 .trek-nav-go { border-color: rgba(34,217,110,0.35); color: #22d96e; background: rgba(34,217,110,0.08); }
 .trek-nav-go:hover { background: rgba(34,217,110,0.16); }
+
+/* Context menus (shared/ContextMenu). Hover only where there is a mouse; on a
+   touch screen each item is a 44px target with larger text. */
+.trek-ctx-item {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 7px 10px; border-radius: 7px; border: none; background: none;
+  cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 500;
+  text-align: left; color: var(--text-primary); transition: background 0.1s;
+}
+.trek-ctx-item .trek-ctx-icon { flex-shrink: 0; color: var(--text-faint); }
+.trek-ctx-item.is-danger, .trek-ctx-item.is-danger .trek-ctx-icon { color: #ef4444; }
+@media (hover: hover) {
+  .trek-ctx-item:hover { background: var(--bg-hover); }
+  .trek-ctx-item.is-danger:hover { background: rgba(239,68,68,0.08); }
+}
+.trek-ctx-item:active { background: var(--bg-hover); }
+@media (pointer: coarse) {
+  .trek-ctx-menu { min-width: 200px !important; padding: 6px !important; border-radius: 14px !important; }
+  .trek-ctx-item { min-height: 44px; padding: 10px 12px; font-size: 15px; gap: 12px; border-radius: 10px; }
+  .trek-ctx-item .trek-ctx-icon { width: 18px; height: 18px; }
+}

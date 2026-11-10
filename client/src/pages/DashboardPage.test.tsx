@@ -829,4 +829,35 @@ describe('DashboardPage', () => {
       expect(document.querySelector('.hero-trip')).toBeNull();
     });
   });
+
+  describe('FE-PAGE-DASH-034: Long press opens the trip menu', () => {
+    it('a long press on a card opens its menu and does not open the trip', async () => {
+      render(<DashboardPage />);
+      await waitFor(() => {
+        expect(document.querySelector('.trips .trip-card')).not.toBeNull();
+      });
+      const card = document.querySelector('.trips .trip-card') as HTMLElement;
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.touchStart(card, { touches: [{ clientX: 50, clientY: 60 }] });
+      // Real timers: the press fires after 500 ms.
+      await waitFor(() => {
+        expect(screen.getAllByRole('button', { name: /^edit$/i }).length).toBeGreaterThan(0);
+      }, { timeout: 1500 });
+      fireEvent.touchEnd(card);
+      expect(screen.getAllByRole('button', { name: /^delete$/i }).length).toBeGreaterThan(0);
+    });
+
+    it('moving the finger (scrolling) does not open the menu', async () => {
+      render(<DashboardPage />);
+      await waitFor(() => {
+        expect(document.querySelector('.trips .trip-card')).not.toBeNull();
+      });
+      const card = document.querySelector('.trips .trip-card') as HTMLElement;
+      const { fireEvent } = await import('@testing-library/react');
+      fireEvent.touchStart(card, { touches: [{ clientX: 50, clientY: 60 }] });
+      fireEvent.touchMove(card, { touches: [{ clientX: 50, clientY: 120 }] });
+      await new Promise(r => setTimeout(r, 700));
+      expect(screen.queryByRole('button', { name: /^delete$/i })).toBeNull();
+    });
+  });
 });

@@ -29,7 +29,9 @@ import CostsPanel from '../components/Budget/CostsPanel'
 import CollabPanel from '../components/Collab/CollabPanel'
 import Navbar from '../components/Layout/Navbar'
 import { useToast } from '../components/shared/Toast'
-import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation, Activity } from 'lucide-react'
+import { Map, X, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Navigation, Activity, MoreHorizontal } from 'lucide-react'
+import { ContextMenu, useContextMenu } from '../components/shared/ContextMenu'
+import { splitTripTabs } from '../components/Planner/tripTabs'
 import { usePoiExplore } from '../components/Map/usePoiExplore'
 import PoiCategoryPill from '../components/Map/PoiCategoryPill'
 import { MapCompassPill } from '../components/Map/MapCompassPill'
@@ -357,6 +359,7 @@ export default function TripPlannerPage(): React.ReactElement | null {
   const [mapTransportDetail, setMapTransportDetail] = useState<Reservation | null>(null)
 
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+  const { menu: tabMenu, openAt: openTabMenuAt, close: closeTabMenu } = useContextMenu()
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 767px)')
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
@@ -977,18 +980,45 @@ export default function TripPlannerPage(): React.ReactElement | null {
         gap: 8,
       }}>
         <div style={{ flex: 1, display: 'flex', justifyContent: 'center', minWidth: 0 }}>
-          <SlidingTabs
-            tabs={TRIP_TABS.map(tab => ({
-              id: tab.id,
-              // On a phone the tabs are icons only — except the active one, so you can tell where you are.
-              label: <span className={tab.id === activeTab ? undefined : 'hidden sm:inline'}>{tab.shortLabel || tab.label}</span>,
-              title: tab.label,
-              icon: tab.icon,
-            }))}
-            activeTab={activeTab}
-            onChange={handleTabChange}
-          />
+          {(() => {
+            // A phone holds about five: the rest go under «Más» (the active one always stays in view).
+            const { visible, overflow } = isMobile
+              ? splitTripTabs(TRIP_TABS, activeTab, 5)
+              : { visible: TRIP_TABS, overflow: [] as typeof TRIP_TABS }
+            return (
+              <>
+                <SlidingTabs
+                  tabs={visible.map(tab => ({
+                    id: tab.id,
+                    // On a phone the tabs are icons only — except the active one, so you can tell where you are.
+                    label: <span className={tab.id === activeTab ? undefined : 'hidden sm:inline'}>{tab.shortLabel || tab.label}</span>,
+                    title: tab.label,
+                    icon: tab.icon,
+                  }))}
+                  activeTab={activeTab}
+                  onChange={handleTabChange}
+                />
+                {overflow.length > 0 && (
+                  <button
+                    type="button"
+                    className="trek-hover"
+                    aria-label={t('trip.tabs.more')}
+                    aria-haspopup="menu"
+                    title={t('trip.tabs.more')}
+                    onClick={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect()
+                      openTabMenuAt({ x: r.right - 200, y: r.bottom + 6 }, overflow.map(tab => ({ label: tab.label, icon: tab.icon, onClick: () => handleTabChange(tab.id) })))
+                    }}
+                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 30, borderRadius: 15, border: 'none', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                  >
+                    <MoreHorizontal size={17} />
+                  </button>
+                )}
+              </>
+            )
+          })()}
         </div>
+        <ContextMenu menu={tabMenu} onClose={closeTabMenu} />
         {/* Navigate button — compact, always visible in trip context */}
         <button
           onClick={() => navigate(`/navigate?tripId=${tripId}`)}

@@ -11,6 +11,7 @@ import MobileTopBar from '../components/Layout/MobileTopBar'
 import { ContextMenu, useContextMenu } from '../components/shared/ContextMenu'
 import { Skeleton } from '../components/shared/Skeleton'
 import { useExchangeRates } from '../hooks/useExchangeRates'
+import { useLongPress } from '../hooks/useLongPress'
 import { useDashboard } from './dashboard/useDashboard'
 import DashboardFilterPanel from './dashboard/DashboardFilterPanel'
 import {
@@ -105,7 +106,7 @@ export default function DashboardPage(): React.ReactElement {
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
   } = useDashboard()
   const mobile = useIsMobile()
-  const { menu, open: openMenu, close: closeMenu } = useContextMenu()
+  const { menu, open: openMenu, openAt: openMenuAt, close: closeMenu } = useContextMenu()
   const openNewTrip = () => { setEditingTrip(null); setShowForm(true) }
   const actionsFor = (trip: DashboardTrip): TripActions => ({
     onEdit: () => { setEditingTrip(trip); setShowForm(true) },
@@ -113,7 +114,18 @@ export default function DashboardPage(): React.ReactElement {
     onArchive: () => trip.is_archived ? handleUnarchive(trip.id) : handleArchive(trip.id),
     onDelete: () => setDeleteTrip(trip),
   })
-  const openTripMenu = (e: React.MouseEvent, trip: DashboardTrip) => openMenu(e, tripMenuItems(trip, actionsFor(trip), t))
+  const openTripMenu = (e: React.MouseEvent, trip: DashboardTrip) => {
+    const el = e.currentTarget as HTMLElement
+    // From the "⋯" button: open just under it (a tap point is not where the eye is); right-click: at the pointer.
+    if (el.getAttribute('aria-haspopup') === 'menu') {
+      e.preventDefault(); e.stopPropagation()
+      const r = el.getBoundingClientRect()
+      openMenuAt({ x: r.right - 200, y: r.bottom + 6 }, tripMenuItems(trip, actionsFor(trip), t))
+    } else {
+      openMenu(e, tripMenuItems(trip, actionsFor(trip), t))
+    }
+  }
+  const openTripMenuAt = (point: { x: number; y: number }, trip: DashboardTrip) => openMenuAt(point, tripMenuItems(trip, actionsFor(trip), t))
   // While a trip is under way, its next bookings matter more than the rest of the list.
   const travellingNow = !!spotlight && (getTripStatus(spotlight) === 'ongoing' || getTripStatus(spotlight) === 'today')
   const upcomingFirst = mobile && travellingNow && upcoming.length > 0
@@ -140,6 +152,7 @@ export default function DashboardPage(): React.ReactElement {
                 mobile={mobile}
                 onOpen={() => navigate(`/trips/${spotlight.id}`)}
                 onMenu={(e) => openTripMenu(e, spotlight)}
+                onMenuAt={(p) => openTripMenuAt(p, spotlight)}
               />
             )}
 
@@ -207,6 +220,7 @@ export default function DashboardPage(): React.ReactElement {
                         locale={locale}
                         onOpen={() => navigate(`/trips/${trip.id}`)}
                         onMenu={(e) => openTripMenu(e, trip)}
+                        onMenuAt={(p) => openTripMenuAt(p, trip)}
                       />
                     ))}
                   </React.Fragment>
@@ -304,11 +318,12 @@ export default function DashboardPage(): React.ReactElement {
 }
 
 // ── Boarding-pass hero ───────────────────────────────────────────────────────
-function BoardingPassHero({ trip, bundle, locale, mobile, onOpen, onMenu }: {
+function BoardingPassHero({ trip, bundle, locale, mobile, onOpen, onMenu, onMenuAt }: {
   trip: DashboardTrip; bundle: HeroBundle | null; locale: string; mobile: boolean; onOpen: () => void
-  onMenu: (e: React.MouseEvent) => void
+  onMenu: (e: React.MouseEvent) => void; onMenuAt: (point: { x: number; y: number }) => void
 }): React.ReactElement {
   const { t } = useTranslation()
+  const longPress = useLongPress(onMenuAt)
   const status = getTripStatus(trip)
   const start = splitDate(trip.start_date, locale)
   const end = splitDate(trip.end_date, locale)
@@ -399,7 +414,7 @@ function BoardingPassHero({ trip, bundle, locale, mobile, onOpen, onMenu }: {
 
   return (
     <>
-    <section className="hero-trip" onClick={onOpen} onContextMenu={onMenu}>
+    <section className="hero-trip" onClick={onOpen} onContextMenu={onMenu} {...longPress}>
       {trip.cover_image
         ? <img className="bg" src={trip.cover_image} alt={trip.title} />
         : <div className="bg" style={{ background: tripGradient(trip.id) }} />}
@@ -485,9 +500,11 @@ function AtlasStats({ stats }: { stats: TravelStats | null }): React.ReactElemen
 }
 
 // ── Trip card ────────────────────────────────────────────────────────────────
-function TripCard({ trip, locale, onOpen, onMenu }: {
+function TripCard({ trip, locale, onOpen, onMenu, onMenuAt }: {
   trip: DashboardTrip; locale: string; onOpen: () => void; onMenu: (e: React.MouseEvent) => void
+  onMenuAt: (point: { x: number; y: number }) => void
 }): React.ReactElement {
+  const longPress = useLongPress(onMenuAt)
   const { t } = useTranslation()
   const status = getTripStatus(trip)
   const start = splitDate(trip.start_date, locale)
@@ -503,7 +520,7 @@ function TripCard({ trip, locale, onOpen, onMenu }: {
     : t('dashboard.card.idea')
 
   return (
-    <article className="trip-card" onClick={onOpen} onContextMenu={onMenu}>
+    <article className="trip-card" onClick={onOpen} onContextMenu={onMenu} {...longPress}>
       <div className="trip-cover">
         {trip.cover_image
           ? <img src={trip.cover_image} alt={trip.title} />
