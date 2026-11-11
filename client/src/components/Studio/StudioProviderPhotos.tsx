@@ -28,10 +28,9 @@ export function StudioProviderPhotos({ journeyId, onAdded }: { journeyId: number
 
   return (
     <>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 10 }} data-testid="studio-providers">
+      <div className="!flex !flex-wrap !gap-[4px] !mb-[10px]" data-testid="studio-providers">
         {providers.map(p => (
-          <button key={p.id} type="button" data-testid={`studio-provider-${p.id}`} onClick={() => setPicking(p)}
-            style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '6px 8px', fontSize: 10.5, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: 'inherit' }}>
+          <button className="!flex-[1] !min-w-[0] !flex !items-center !justify-center !gap-[5px] !p-[6px_8px] !text-[length:10.5px] !font-[600] !rounded-[6px] !cursor-pointer ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !whitespace-nowrap !overflow-hidden !text-ellipsis ![font-family:inherit]" key={p.id} type="button" data-testid={`studio-provider-${p.id}`} onClick={() => setPicking(p)}>
             <Cloud size={12} aria-hidden style={{ flexShrink: 0 }} />
             {t('journey.studio.photo.fromProvider', { provider: providerLabel(p) })}
           </button>

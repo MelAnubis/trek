@@ -78,11 +78,10 @@ function CollapsibleSection({
 }) {
   return (
     <div style={PANEL_SECTION}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: collapsed ? 0 : 10 }}>
-        <button
+      <div className="!flex !items-center !justify-between" style={{ marginBottom: collapsed ? 0 : 10 }}>
+        <button className="!flex !items-center !gap-[6px] !flex-[1] !min-w-[0] !p-[0] ![border:none] ![background:none] !cursor-pointer !text-left"
           onClick={onToggle}
           aria-expanded={!collapsed}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left' }}
         >
           {collapsed ? <ChevronRight size={12} color="var(--text-faint)" /> : <ChevronDown size={12} color="var(--text-faint)" />}
           {icon}
@@ -91,7 +90,7 @@ function CollapsibleSection({
         {headerExtra}
       </div>
       {!collapsed && (disabled
-        ? <fieldset disabled style={{ border: 0, padding: 0, margin: 0, minWidth: 0, opacity: 0.55 }}>{children}</fieldset>
+        ? <fieldset className="![border:0] !p-[0] !m-[0] !min-w-[0]" disabled style={{ opacity: 0.55 }}>{children}</fieldset>
         : children)}
     </div>
   )
@@ -103,7 +102,7 @@ function LayoutSwatch({ template, single, page }: { template: Template; single: 
   const h = page.pageHeight
   const slots = template.build(page)
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', aspectRatio: `${w} / ${h}`, display: 'block', background: '#fff', borderRadius: 4 }}>
+    <svg className="!w-[100%] !block ![background:#fff] !rounded-[4px]" viewBox={`0 0 ${w} ${h}`} style={{ aspectRatio: `${w} / ${h}` }}>
       {slots.map((s, i) => (
         <rect key={i} x={s.frame.x} y={s.frame.y} width={s.frame.w} height={s.frame.h}
           fill={s.kind === 'photo' ? '#d4d4d8' : s.kind === 'heading' ? '#52525b' : s.kind === 'body' ? '#a1a1aa' : '#e4e4e7'} />
@@ -115,7 +114,7 @@ function LayoutSwatch({ template, single, page }: { template: Template; single: 
 /** A small filled preview of one shape from the library, for the picker grid. */
 function ShapeSwatch({ shape }: { shape: BookShapeId }) {
   return (
-    <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
+    <svg className="!w-[100%] !h-[100%] !block" viewBox="0 0 100 100">
       <path d={SHAPE_PATHS[shape]} fill="#52525b" fillRule={HOLED_SHAPES.has(shape) ? 'evenodd' : 'nonzero'} />
     </svg>
   )
@@ -310,40 +309,32 @@ export function StudioSidebar({
   }
 
   return (
-    <div style={{ width: 240, flexShrink: 0, borderRight: '1px solid var(--border-secondary)', overflowY: 'auto', height: '100%' }}>
+    <div className="!w-[240px] !shrink-[0] ![border-right:1px_solid_var(--border-secondary)] !overflow-y-auto !h-[100%]">
       {/* Pages */}
       <CollapsibleSection
         title={t('journey.studio.pageTab')}
         collapsed={!!collapsedSections.pages}
         onToggle={() => toggleSection('pages')}
         headerExtra={
-          <button onClick={() => addSpread(activeSpread)} title={t('journey.studio.addSpread')}
-            style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+          <button className="!w-[22px] !h-[22px] !flex !items-center !justify-center !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={() => addSpread(activeSpread)} title={t('journey.studio.addSpread')}>
             <Plus size={13} />
           </button>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="!flex !flex-col !gap-[4px]">
           {doc.spreads.map((sp, i) => {
             const active = i === activeSpread
             const editable = canEditSpread(i)
             return (
-              <div key={sp.id}
+              <div className="!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[8px] !cursor-pointer" key={sp.id}
                 onClick={() => setActiveSpread(i)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 8, cursor: 'pointer',
-                  background: active ? 'var(--bg-tertiary)' : 'transparent',
-                  border: active ? '1px solid var(--border-primary)' : '1px solid transparent',
-                }}>
-                <div style={{
-                  width: 28, height: 20, borderRadius: 3, flexShrink: 0,
-                  background: sp.background || '#fff', border: '1px solid var(--border-primary)',
-                }} />
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>
+                style={{ background: active ? 'var(--bg-tertiary)' : 'transparent', border: active ? '1px solid var(--border-primary)' : '1px solid transparent' }}>
+                <div className="!w-[28px] !h-[20px] !rounded-[3px] !shrink-[0] ![border:1px_solid_var(--border-primary)]" style={{ background: sp.background || '#fff' }} />
+                <span className="!text-[length:12px] ![color:var(--text-secondary)] !flex-[1]">
                   {sp.role === 'cover' ? t('journey.studio.role.cover') : sp.role === 'back' ? t('journey.studio.role.back') : sp.role === 'first' ? t('journey.studio.role.first') : sp.role === 'last' ? t('journey.studio.role.last') : folioLabel(foliosOf(doc.spreads, i, folioSettings(doc.page).startAt)) || `${i}`}
                 </span>
                 {editable && (
-                  <div style={{ display: 'flex', gap: 2 }} onClick={e => e.stopPropagation()}>
+                  <div className="!flex !gap-[2px]" onClick={e => e.stopPropagation()}>
                     <button onClick={() => moveSpread(i, -1)} title={t('journey.studio.moveSpreadUp')} className="st-sb-btn"><ChevronUp size={12} /></button>
                     <button onClick={() => moveSpread(i, 1)} title={t('journey.studio.moveSpreadDown')} className="st-sb-btn"><ChevronDown size={12} /></button>
                     <button onClick={() => duplicateSpread(i)} title={t('journey.studio.duplicateSpread')} className="st-sb-btn"><Copy size={12} /></button>
@@ -366,12 +357,11 @@ export function StudioSidebar({
           <>
             <input ref={photoFileRef} type="file" accept="image/*" multiple hidden onChange={e => void handlePhotoUpload(e)} />
             {uploading ? (
-              <span style={{ fontSize: 10, color: 'var(--text-faint)', display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span className="!text-[length:10px] ![color:var(--text-faint)] !flex !items-center !gap-[4px]">
                 {uploadProgress ? `${uploadProgress.done}/${uploadProgress.total}` : '…'}
               </span>
             ) : (
-              <button onClick={() => photoFileRef.current?.click()} title={t('journey.studio.uploadPhotos')}
-                style={{ width: 22, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+              <button className="!w-[22px] !h-[22px] !flex !items-center !justify-center !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={() => photoFileRef.current?.click()} title={t('journey.studio.uploadPhotos')}>
                 <Upload size={13} />
               </button>
             )}
@@ -383,7 +373,7 @@ export function StudioSidebar({
           const tab = recentPhotoIds ? 'recent' : entryPhotoIds && !showAllPhotos ? 'entry' : 'all'
           const chip = (on: boolean) => ({ flex: 1, padding: '5px 8px', fontSize: 10, fontWeight: 600, borderRadius: 6, cursor: 'pointer', border: on ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: on ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)' })
           return (
-            <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
+            <div className="!flex !gap-[4px] !mb-[10px]">
               {entryPhotoIds && (
                 <button onClick={() => { setRecentPhotoIds(null); setShowAllPhotos(false) }} aria-pressed={tab === 'entry'} style={chip(tab === 'entry')}>
                   {t('journey.studio.thisEntryPhotos')}
@@ -400,7 +390,7 @@ export function StudioSidebar({
             </div>
           )
         })()}
-        <div
+        <div className={['!rounded-[8px] ![transition:outline-color_120ms]', (photosDragOver) ? '![outline:2px_dashed_var(--text-primary)]' : '![outline:none]', '[&&]:![outline-offset:2px]'].join(' ')}
           data-testid="photos-dropzone"
           onDragOver={e => { if (e.dataTransfer.types.includes('Files')) { e.preventDefault(); setPhotosDragOver(true) } }}
           onDragLeave={() => setPhotosDragOver(false)}
@@ -410,29 +400,22 @@ export function StudioSidebar({
             setPhotosDragOver(false)
             if (e.dataTransfer.files.length) void uploadFiles(e.dataTransfer.files)
           }}
-          style={{
-            borderRadius: 8,
-            outline: photosDragOver ? '2px dashed var(--text-primary)' : 'none',
-            outlineOffset: 2,
-            transition: 'outline-color 120ms',
-          }}
         >
           {entryPhotoIds && !showAllPhotos && visiblePhotos.length === 0 && (
-            <div style={{ fontSize: 11, color: 'var(--text-faint)', padding: '8px 2px' }}>
+            <div className="!text-[length:11px] ![color:var(--text-faint)] !p-[8px_2px]">
               {t('journey.studio.noEntryPhotos')}
             </div>
           )}
           {groupPhotosByDay(visiblePhotos).map(group => (
-            <div key={group.dayKey} style={{ marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text-faint)', marginBottom: 6 }}>
+            <div className="!mb-[10px]" key={group.dayKey}>
+              <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !mb-[6px]">
                 {formatPhotoDayHeader(group.dayKey, locale)}
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
+              <div className="!grid ![grid-template-columns:repeat(2,_1fr)] !gap-[6px]">
                 {group.photos.map(p => (
-                  <div key={p.photoId}
+                  <div className="![aspect-ratio:1] !rounded-[6px] !overflow-hidden !cursor-grab ![background:var(--bg-tertiary)]" key={p.photoId}
                     draggable
-                    onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}
-                    style={{ aspectRatio: '1', borderRadius: 6, overflow: 'hidden', cursor: 'grab', background: 'var(--bg-tertiary)' }}>
+                    onDragStart={e => { e.dataTransfer.setData('application/x-trek-photo', String(p.photoId)); e.dataTransfer.effectAllowed = 'copy' }}>
                     <BookPhotoImg photoId={p.photoId} big={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </div>
                 ))}
@@ -453,18 +436,18 @@ export function StudioSidebar({
         <DesignedPagesPanel t={t} locale={locale}
           onEmptyFrames={() => { if (collapsedSections.photos) toggleSection('photos') }} />
         <SavedLayouts t={t} />
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '16px 0 6px' }}>
+        <div className="!text-[length:10px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !m-[16px_0_6px]">
           {t('journey.studio.builtInLayouts')}
         </div>
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '0 0 8px', lineHeight: 1.4 }}>
+        <p className="!text-[length:11px] ![color:var(--text-faint)] !m-[0_0_8px] !leading-[1.4]">
           {t('journey.studio.layoutsHint')}
         </p>
         {isSingle && (
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 8px', lineHeight: 1.4, padding: '6px 8px', borderRadius: 6, background: 'var(--bg-tertiary)' }}>
+          <p className="!text-[length:11px] ![color:var(--text-muted)] !m-[0_0_8px] !leading-[1.4] !p-[6px_8px] !rounded-[6px] ![background:var(--bg-tertiary)]">
             {t('journey.studio.layoutsCoverHint')}
           </p>
         )}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
           {layoutOptions.map(tpl => (
             <button key={tpl.id} onClick={() => applyLayout(tpl.id)} className="st-sb-layout" title={prettyId(tpl.id)}>
               <LayoutSwatch template={tpl} single={isSingle} page={doc.page} />
@@ -486,7 +469,7 @@ export function StudioSidebar({
         {elementsTab === 'text' && <LockupShelf t={t} photos={galleryPhotos} />}
         {elementsTab === 'stickers' && <StickerShelf t={t} />}
         {elementsTab === 'basic' && (<>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
           <button onClick={() => addCentered(80, 20, (id, frame) => ({
             id, frame, kind: 'text', rotation: 0, opacity: 1, locked: false,
             text: '', font: 'sans', size: 14, weight: 400, italic: false, align: 'left', leading: 1.4, tracking: 0, color: '#1a1a1a', binding: null, overridden: true,
@@ -498,27 +481,20 @@ export function StudioSidebar({
           <button onClick={() => addShape('rect')} className="st-sb-add"><Square size={15} /> {t('journey.studio.addRect')}</button>
           <button onClick={() => addShape('ellipse')} className="st-sb-add"><Circle size={15} /> {t('journey.studio.addEllipse')}</button>
         </div>
-        <div style={{ position: 'relative', marginTop: 6 }}>
-          <button onClick={() => setShowShapePicker(v => !v)} className="st-sb-add" style={{ width: '100%', flexDirection: 'row', gap: 6, padding: '8px 10px' }}>
+        <div className="!relative !mt-[6px]">
+          <button onClick={() => setShowShapePicker(v => !v)} className="st-sb-add !w-[100%] !flex-row !gap-[6px] !p-[8px_10px]">
             <Sparkles size={13} /> {t('journey.studio.moreShapes')}
           </button>
           {showShapePicker && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, right: 0, marginTop: 4, maxHeight: 260, overflowY: 'auto',
-              borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)',
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 8, zIndex: 20,
-            }}>
+            <div className="!absolute !top-[100%] !left-[0] !right-[0] !mt-[4px] !max-h-[260px] !overflow-y-auto !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![box-shadow:0_8px_24px_rgba(0,0,0,0.15)] !p-[8px] !z-[20]">
               {SHAPE_GROUPS.map(group => (
-                <div key={group.id} style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 4 }}>
+                <div className="!mb-[8px]" key={group.id}>
+                  <div className="!text-[length:10px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !mb-[4px]">
                     {t(`journey.studio.shapeGroup.${group.id}`)}
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 4 }}>
+                  <div className="!grid ![grid-template-columns:repeat(6,_1fr)] !gap-[4px]">
                     {group.shapes.map(s => (
-                      <button key={s} onClick={() => addShape(s)} title={s} style={{
-                        aspectRatio: '1', padding: 4, borderRadius: 6, border: '1px solid var(--border-primary)',
-                        background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
+                      <button className="![aspect-ratio:1] !p-[4px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer !flex !items-center !justify-center" key={s} onClick={() => addShape(s)} title={s}>
                         <ShapeSwatch shape={s} />
                       </button>
                     ))}
@@ -544,7 +520,7 @@ export function StudioSidebar({
         <SidebarTabs<typeof travelTab> value={travelTab} onChange={setTravelTab} label={t('journey.studio.travelTab')} testId="travel-tabs"
           tabs={[{ id: 'figures', label: t('journey.studio.travelFigures') }, { id: 'maps', label: t('journey.studio.travelMaps') }, { id: 'countries', label: t('journey.studio.travelCountries') }, { id: 'marks', label: t('journey.studio.travelMarks') }]} />
         {travelTab === 'figures' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
             <button onClick={() => {
               const metrics: BookMetric[] = ['days', 'photos', 'places']
               const values: Partial<Record<BookMetric, number>> = journeyStats ? { days: journeyStats.days, photos: journeyStats.photos, places: journeyStats.places } : {}
@@ -571,13 +547,13 @@ export function StudioSidebar({
             </div>
         )}
         {travelTab === 'maps' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
             <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
             <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
             </div>
         )}
         {travelTab === 'countries' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
             <button onClick={() => {
               const codes = (journeyStats?.countryCodes ?? []).slice(0, 60)
               const names = codes.map(c => countryName(c, locale))
@@ -591,7 +567,7 @@ export function StudioSidebar({
             </div>
         )}
         {travelTab === 'marks' && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+            <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
             <button onClick={() => addCentered(40, 24, (id, frame) => ({
               id, frame, kind: 'badge', rotation: 0, opacity: 1, locked: false,
               font: 'sans', color: '#1a1a1a', accent: '#111111',
@@ -622,7 +598,7 @@ export function StudioSidebar({
         title={t('journey.studio.layers')}
         collapsed={!!collapsedSections.layers}
         onToggle={() => toggleSection('layers')}
-        headerExtra={spread ? <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{spread.elements.length}</span> : undefined}
+        headerExtra={spread ? <span className="!text-[length:10px] ![color:var(--text-faint)]">{spread.elements.length}</span> : undefined}
       >
         <StudioLayersPanel t={t} />
       </CollapsibleSection>

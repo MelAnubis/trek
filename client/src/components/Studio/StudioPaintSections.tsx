@@ -89,26 +89,21 @@ export function EdgeSection({ edge, edgeSize, outline, onSet, t }: {
   return (
     <div style={FIELD} data-testid="edge-section">
       <span style={LABEL}>{t('journey.studio.edge.title')}</span>
-      {!takes && <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0 }}>{t('journey.studio.edge.unavailable')}</p>}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4 }}>
+      {!takes && <p className="!text-[length:11px] ![color:var(--text-faint)] !m-[0]">{t('journey.studio.edge.unavailable')}</p>}
+      <div className="!grid ![grid-template-columns:repeat(4,_1fr)] !gap-[4px]">
         {BOOK_EDGES.map(e => (
-          <button key={e} type="button" data-testid={`edge-${e}`} aria-pressed={current === e} title={t(`journey.studio.edge.${e}`)}
+          <button className="!flex !items-center !justify-center !p-[4px] !rounded-[6px] !cursor-pointer ![color:var(--text-muted)]" key={e} type="button" data-testid={`edge-${e}`} aria-pressed={current === e} title={t(`journey.studio.edge.${e}`)}
             aria-label={t(`journey.studio.edge.${e}`)}
             onClick={() => onSet({ edge: e === 'straight' ? undefined : e, ...(e === 'straight' ? { edgeSize: undefined } : {}) })}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 4, borderRadius: 6, cursor: 'pointer',
-              border: current === e ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-              background: current === e ? 'var(--bg-tertiary)' : 'var(--bg-card)', color: 'var(--text-muted)',
-            }}>
+            style={{ border: current === e ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: current === e ? 'var(--bg-tertiary)' : 'var(--bg-card)' }}>
             <EdgeGlyph edge={e} />
           </button>
         ))}
       </div>
       {takes && current !== 'straight' && (
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('journey.studio.edge.size')} (mm)</span>
-          <input type="number" data-testid="edge-size" value={edgeSize ?? DEFAULT_EDGE_SIZE} min={BOOK_EDGE_SIZE.min} max={BOOK_EDGE_SIZE.max} step={0.5}
-            style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12 }}
+        <label className="!flex !flex-col !gap-[2px]">
+          <span className="!text-[length:11px] ![color:var(--text-muted)]">{t('journey.studio.edge.size')} (mm)</span>
+          <input className="!p-[6px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:12px]" type="number" data-testid="edge-size" value={edgeSize ?? DEFAULT_EDGE_SIZE} min={BOOK_EDGE_SIZE.min} max={BOOK_EDGE_SIZE.max} step={0.5}
             onChange={e => {
               const v = Number(e.target.value)
               if (Number.isFinite(v)) onSet({ edgeSize: Math.min(BOOK_EDGE_SIZE.max, Math.max(BOOK_EDGE_SIZE.min, v)) })

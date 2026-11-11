@@ -42,12 +42,11 @@ export function StudioLineShelf({ page, single, onAdd, t }: {
     onAdd(bookNewLine(elementId('ln'), pts, preset.look))
   }
   const tiles = (list: readonly LinePreset[]) => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 4 }}>
+    <div className="!grid ![grid-template-columns:repeat(5,_1fr)] !gap-[4px]">
       {list.map(p => {
         const label = t(`journey.studio.line.preset.${p.id}`)
         return (
-          <button key={p.id} type="button" data-testid={`line-preset-${p.id}`} onClick={() => add(p)} title={label} aria-label={label}
-            style={{ aspectRatio: '5 / 3', padding: 3, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex' }}>
+          <button className="![aspect-ratio:5_/_3] !p-[3px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-primary)] !flex" key={p.id} type="button" data-testid={`line-preset-${p.id}`} onClick={() => add(p)} title={label} aria-label={label}>
             <LineGlyph preset={p} />
           </button>
         )

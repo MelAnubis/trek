@@ -79,12 +79,12 @@ export function StudioSlider({ label, value, min, max, step, format, onLive, onC
     onCommit(draft)
   }
   return (
-    <label style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', gap: '2px 8px', marginBottom: 8 }}>
+    <label className="!grid ![grid-template-columns:1fr_auto] !items-center !gap-[2px_8px] !mb-[8px]">
       <span style={SMALL}>{label}</span>
-      <output style={{ ...SMALL, fontVariantNumeric: 'tabular-nums' }}>{format(shown)}</output>
-      <input
+      <output className="![font-variant-numeric:tabular-nums]" style={{ ...SMALL }}>{format(shown)}</output>
+      <input className="![grid-column:1_/_-1] !w-[100%]"
         type="range" min={min} max={max} step={step} value={shown} data-testid={testId}
-        aria-label={label} aria-valuetext={format(shown)} style={{ gridColumn: '1 / -1', width: '100%' }}
+        aria-label={label} aria-valuetext={format(shown)}
         onChange={e => { const v = Number(e.target.value); setDraft(v); onLive(v) }}
         onPointerUp={end} onKeyUp={end} onBlur={end}
       />
@@ -96,7 +96,7 @@ function NumField({ label, value, min, max, step, onChange }: {
   label: string; value: number; min: number; max: number; step: number; onChange: (v: number) => void
 }) {
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <label className="!flex !flex-col !gap-[2px]">
       <span style={SMALL}>{label}</span>
       <input type="number" style={INPUT} value={value} min={min} max={max} step={step}
         onChange={e => {
@@ -109,8 +109,8 @@ function NumField({ label, value, min, max, step, onChange }: {
 
 function Switch({ label, on, onToggle, testId }: { label: string; on: boolean; onToggle: () => void; testId?: string }) {
   return (
-    <div data-testid={testId} data-on={on ? 'true' : 'false'} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
+    <div className="!flex !items-center !justify-between !mb-[6px]" data-testid={testId} data-on={on ? 'true' : 'false'}>
+      <span className="!text-[length:12px] !font-[600] ![color:var(--text-primary)]">{label}</span>
       <ToggleSwitch on={on} onToggle={onToggle} />
     </div>
   )
@@ -119,15 +119,14 @@ function Switch({ label, on, onToggle, testId }: { label: string; on: boolean; o
 function Section({ label, hint, defaultOpen, children, testId }: { label: string; hint?: string; defaultOpen: boolean; children: ReactNode; testId?: string }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div data-testid={testId} style={{ borderTop: '1px solid var(--border-faint, var(--border-primary))', padding: '9px 0 2px', marginBottom: 6 }}>
-      <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}
-        style={{ display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit' }}>
+    <div className="![border-top:1px_solid_var(--border-faint,_var(--border-primary))] !p-[9px_0_2px] !mb-[6px]" data-testid={testId}>
+      <button className="!flex !w-[100%] !items-center !justify-between ![background:none] ![border:none] !p-[0] !cursor-pointer ![font-family:inherit]" type="button" onClick={() => setOpen(o => !o)} aria-expanded={open}>
         <span style={LABEL}>{label}</span>
         <ChevronDown size={13} style={{ color: 'var(--text-faint)', transform: open ? 'rotate(180deg)' : undefined }} aria-hidden />
       </button>
       {open && (
-        <div style={{ marginTop: 8 }}>
-          {hint && <p style={{ ...SMALL, fontSize: 10.5, margin: '0 0 8px', color: 'var(--text-faint)' }}>{hint}</p>}
+        <div className="!mt-[8px]">
+          {hint && <p className="!text-[length:10.5px] !m-[0_0_8px] ![color:var(--text-faint)]" style={{ ...SMALL }}>{hint}</p>}
           {children}
         </div>
       )}
@@ -143,7 +142,7 @@ export function PhotoCropExtras({ el, set, live, t }: RowProps) {
   const look = photoLookOf(el)
   const zoomOf = (v: number) => (v > PHOTO_ZOOM.min ? Math.round(v * 100) / 100 : undefined)
   return (
-    <div style={{ marginBottom: 12 }}>
+    <div className="!mb-[12px]">
       <StudioSlider
         label={t('journey.studio.photo.zoom')} value={look.zoom} min={PHOTO_ZOOM.min} max={PHOTO_ZOOM.max} step={0.05}
         format={percent} testId="photo-zoom"
@@ -183,7 +182,7 @@ function ShadowRow({ el, set, live, t }: RowProps) {
         onToggle={() => set({ shadow: shadow ? undefined : { ...PHOTO_LOOK_STARTS.shadow } })} />
       {shadow && (
         <div style={BODY}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
             {(['dx', 'dy'] as const).map(axis => (
               <NumField key={axis} label={`${t(`journey.studio.photo.${axis}`)} (mm)`} value={shadow[axis]}
                 min={-PHOTO_SHADOW_REACH} max={PHOTO_SHADOW_REACH} step={0.5}
@@ -230,17 +229,13 @@ function DuotoneRows({ el, set, t }: Omit<RowProps, 'live'>) {
         onToggle={() => set({ duotone: duotone ? undefined : { ...PHOTO_LOOK_STARTS.duotone } })} />
       {duotone && (
         <div style={BODY}>
-          <div role="radiogroup" aria-label={t('journey.studio.photo.duotone')} style={{ display: 'flex', gap: 6 }}>
+          <div className="!flex !gap-[6px]" role="radiogroup" aria-label={t('journey.studio.photo.duotone')}>
             {PHOTO_DUOTONES.map(pair => {
               const on = pair.dark === duotone.dark && pair.light === duotone.light
               return (
-                <button type="button" key={pair.dark + pair.light} role="radio" aria-checked={on} aria-label={`${pair.dark} ${pair.light}`}
+                <button className="!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0]" type="button" key={pair.dark + pair.light} role="radio" aria-checked={on} aria-label={`${pair.dark} ${pair.light}`}
                   onClick={() => set({ duotone: { ...pair } })}
-                  style={{
-                    width: 26, height: 26, borderRadius: '50%', cursor: 'pointer', padding: 0,
-                    border: on ? '2px solid var(--text-primary)' : '1px solid var(--border-primary)',
-                    backgroundImage: `linear-gradient(135deg, ${pair.dark} 50%, ${pair.light} 50%)`,
-                  }} />
+                  style={{ border: on ? '2px solid var(--text-primary)' : '1px solid var(--border-primary)', backgroundImage: `linear-gradient(135deg, ${pair.dark} 50%, ${pair.light} 50%)` }} />
               )
             })}
           </div>

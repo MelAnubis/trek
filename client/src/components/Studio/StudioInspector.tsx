@@ -69,15 +69,15 @@ function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: n
   })
 
   return (
-    <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
-      <span style={{ ...LABEL, display: 'block', marginBottom: 14 }}>{t('journey.studio.document')}</span>
+    <div className="!w-[260px] !shrink-[0] ![border-left:1px_solid_var(--border-secondary)] !p-[14px] !overflow-y-auto">
+      <span className="!block !mb-[14px]" style={{ ...LABEL }}>{t('journey.studio.document')}</span>
 
       {spread && <PageBackgroundSection spread={spread} spreadIndex={spreadIndex} t={t} />}
 
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.pageNumbers')}</span>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('journey.studio.pageNumbers')}</span>
+        <div className="!flex !items-center !justify-between !mt-[2px]">
+          <span className="!text-[length:12px] ![color:var(--text-primary)]">{t('journey.studio.pageNumbers')}</span>
           <ToggleSwitch on={cfg.show} onToggle={() => setPageNumbers(!cfg.show)} />
         </div>
       </div>
@@ -86,7 +86,7 @@ function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: n
         <div data-testid="folio-settings">
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.folio.position')}</span>
-            <div style={{ display: 'flex', gap: 4 }}>
+            <div className="!flex !gap-[4px]">
               {(['outer', 'centre', 'inner'] as const).map(pos => (
                 <button key={pos} aria-pressed={cfg.position === pos} onClick={() => setPageNumbers({ position: pos })} style={seg(cfg.position === pos)}>
                   {t(`journey.studio.folio.position.${pos}`)}
@@ -95,7 +95,7 @@ function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: n
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+          <div className="!grid ![grid-template-columns:1fr_1fr_1fr] !gap-[6px]">
             <label style={FIELD}>
               <span style={LABEL}>{t('journey.studio.folio.startAt')}</span>
               <NumberField value={cfg.startAt} min={0} max={9999} step={1} onCommit={v => setPageNumbers({ startAt: Math.round(v) })} />
@@ -119,24 +119,23 @@ function DocumentPanel({ doc, spreadIndex }: { doc: BookDocument; spreadIndex: n
 
           <div style={FIELD}>
             <span style={LABEL}>{t('journey.studio.folio.color')}</span>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{t('journey.studio.folio.autoColor')}</span>
+            <div className="!flex !items-center !justify-between">
+              <span className="!text-[length:12px] ![color:var(--text-primary)]">{t('journey.studio.folio.autoColor')}</span>
               <ToggleSwitch on={cfg.autoColor} onToggle={() => setPageNumbers({ autoColor: !cfg.autoColor })} />
             </div>
             {!cfg.autoColor && (
-              <input type="color" aria-label={t('journey.studio.folio.color')} value={cfg.color}
-                onChange={e => setPageNumbers({ color: e.target.value, autoColor: false })}
-                style={{ width: '100%', height: 28, marginTop: 6, border: '1px solid var(--border-primary)', borderRadius: 6, background: 'none', cursor: 'pointer' }} />
+              <input className="!w-[100%] !h-[28px] !mt-[6px] ![border:1px_solid_var(--border-primary)] !rounded-[6px] ![background:none] !cursor-pointer" type="color" aria-label={t('journey.studio.folio.color')} value={cfg.color}
+                onChange={e => setPageNumbers({ color: e.target.value, autoColor: false })} />
             )}
-            <span style={{ fontSize: 10, color: 'var(--text-faint)', lineHeight: 1.4 }}>{t('journey.studio.folio.autoColorHint')}</span>
+            <span className="!text-[length:10px] ![color:var(--text-faint)] !leading-[1.4]">{t('journey.studio.folio.autoColorHint')}</span>
           </div>
         </div>
       )}
 
-      <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 24, marginBottom: 8 }}>
+      <p className="!text-[length:12px] ![color:var(--text-faint)] !text-center !mt-[24px] !mb-[8px]">
         {t('journey.studio.inspectorEmpty')}
       </p>
-      <p style={{ fontSize: 11, color: 'var(--text-faint)', textAlign: 'center' }}>
+      <p className="!text-[length:11px] ![color:var(--text-faint)] !text-center">
         {t('journey.studio.pageDimensions', { w: Math.round(doc.page.pageWidth), h: Math.round(doc.page.pageHeight) })}
       </p>
     </div>
@@ -178,8 +177,8 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
 
   if (!el) {
     return doc ? <DocumentPanel doc={doc} spreadIndex={spreadIndex} /> : (
-      <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 16 }}>
-        <p style={{ fontSize: 12, color: 'var(--text-faint)', textAlign: 'center', marginTop: 40 }}>
+      <div className="!w-[260px] !shrink-[0] ![border-left:1px_solid_var(--border-secondary)] !p-[16px]">
+        <p className="!text-[length:12px] ![color:var(--text-faint)] !text-center !mt-[40px]">
           {t('journey.studio.inspectorEmpty')}
         </p>
       </div>
@@ -200,21 +199,20 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
     : (el.name || t(`journey.studio.kind.${el.kind}`))
 
   return (
-    <div style={{ width: 260, flexShrink: 0, borderLeft: '1px solid var(--border-secondary)', padding: 14, overflowY: 'auto' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span data-testid="inspector-title" style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
-        <button onClick={() => patch({ locked: !el.locked })} title={t(el.locked ? 'journey.studio.unlock' : 'journey.studio.lock')}
-          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+    <div className="!w-[260px] !shrink-[0] ![border-left:1px_solid_var(--border-secondary)] !p-[14px] !overflow-y-auto">
+      <div className="!flex !items-center !justify-between !mb-[14px]">
+        <span className="!text-[length:12px] !font-[700] ![color:var(--text-primary)] !overflow-hidden !text-ellipsis !whitespace-nowrap" data-testid="inspector-title">{title}</span>
+        <button className="!flex !items-center !justify-center !w-[24px] !h-[24px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={() => patch({ locked: !el.locked })} title={t(el.locked ? 'journey.studio.unlock' : 'journey.studio.lock')}>
           {el.locked ? <Lock size={12} /> : <Unlock size={12} />}
         </button>
       </div>
 
       {/* Read-only (a newer Studio's book, or a viewer): every control shows its value and none can change it. */}
-      <fieldset disabled={readOnly} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      <fieldset className="![border:0] !p-[0] !m-[0] !min-w-[0]" disabled={readOnly}>
       <StudioArrangeSection spreadIndex={spreadIndex} t={t} />
 
       {visibleSelection.length > 1 && (
-        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '-4px 0 12px', lineHeight: 1.4 }}>
+        <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[-4px_0_12px] !leading-[1.4]">
           {t('journey.studio.inspectorLastPicked', { kind: el.name || t(`journey.studio.kind.${el.kind}`) })}
         </p>
       )}
@@ -222,7 +220,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
       {/* Position & size */}
       <div style={FIELD}>
         <span style={LABEL}>Position &amp; size (mm)</span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">
           {(['x', 'y', 'w', 'h'] as const).map(k => (
             <input key={k} type="number" style={INPUT} value={Math.round(el.frame[k] * 10) / 10}
               onChange={e => setFrame(spreadIndex, el.id, { ...el.frame, [k]: Number(e.target.value) || 0 })} />
@@ -256,13 +254,13 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
           <PrintResolution el={el} />
           <div style={FIELD}>
             <span style={LABEL}>Focal point</span>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 2 }}>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>X {Math.round(el.focalX * 100)}%</span>
+            <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mt-[2px]">
+              <label className="!flex !flex-col !gap-[2px]">
+                <span className="!text-[length:10px] ![color:var(--text-faint)]">X {Math.round(el.focalX * 100)}%</span>
                 <input type="range" min={0} max={1} step={0.02} value={el.focalX} onChange={e => patch({ focalX: Number(e.target.value) })} />
               </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>Y {Math.round(el.focalY * 100)}%</span>
+              <label className="!flex !flex-col !gap-[2px]">
+                <span className="!text-[length:10px] ![color:var(--text-faint)]">Y {Math.round(el.focalY * 100)}%</span>
                 <input type="range" min={0} max={1} step={0.02} value={el.focalY} onChange={e => patch({ focalY: Number(e.target.value) })} />
               </label>
             </div>
@@ -300,7 +298,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             <span style={LABEL}>{t('journey.studio.style.font')}</span>
             <FontPicker value={el.font} onPick={font => patch({ font, weight: nearestWeight(font, el.weight) as BookWeight })} t={t} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+          <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mb-[12px]">
             <div style={FIELD}>
               <span style={LABEL}>Size (pt)</span>
               <input type="number" style={INPUT} value={el.size} onChange={e => patch({ size: Number(e.target.value) || 11 })} />
@@ -361,7 +359,7 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
               <input type="number" min={0} style={INPUT} value={el.radius} onChange={e => patch({ radius: Number(e.target.value) || 0 })} />
             </div>
           )}
-          <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
             <span style={LABEL}>Stroke</span>
             <ToggleSwitch on={el.stroke != null} onToggle={() => patch({ stroke: el.stroke != null ? null : '#111827', strokeWidth: el.stroke != null ? el.strokeWidth : (el.strokeWidth || 1) })} />
           </div>
@@ -369,9 +367,9 @@ export function StudioInspector({ spreadIndex }: { spreadIndex: number }) {
             <>
               <div style={FIELD}>
                 <span style={LABEL}>Stroke color</span>
-                <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.stroke} onChange={e => patch({ stroke: e.target.value })} />
+                <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.stroke} onChange={e => patch({ stroke: e.target.value })} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+              <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mb-[12px]">
                 <div style={FIELD}>
                   <span style={LABEL}>Width (mm)</span>
                   <input type="number" min={0.1} step={0.1} style={INPUT} value={el.strokeWidth} onChange={e => patch({ strokeWidth: Number(e.target.value) || 1 })} />
@@ -450,16 +448,11 @@ function PrintResolution({ el }: { el: BookPhotoElement }) {
   if (dpi === null) return null
   const low = dpi < MIN_PRINT_DPI
   return (
-    <div role="status" data-testid="photo-dpi" data-low={low ? 'true' : 'false'} style={{
-      display: 'flex', gap: 8, alignItems: 'flex-start', padding: '7px 9px', marginBottom: 12, borderRadius: 8,
-      border: `1px solid ${low ? '#f59e0b' : 'var(--border-primary)'}`,
-      background: low ? 'rgba(245,158,11,0.10)' : 'var(--bg-tertiary)',
-      color: low ? '#b45309' : 'var(--text-muted)',
-    }}>
+    <div className="!flex !gap-[8px] !items-start !p-[7px_9px] !mb-[12px] !rounded-[8px]" role="status" data-testid="photo-dpi" data-low={low ? 'true' : 'false'} style={{ border: `1px solid ${low ? '#f59e0b' : 'var(--border-primary)'}`, background: low ? 'rgba(245,158,11,0.10)' : 'var(--bg-tertiary)', color: low ? '#b45309' : 'var(--text-muted)' }}>
       {low ? <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden /> : <Printer size={14} style={{ flexShrink: 0, marginTop: 1 }} aria-hidden />}
       <div>
-        <p style={{ margin: 0, fontSize: 11.5, fontWeight: 600 }}>{t('journey.studio.photo.dpi', { dpi })}</p>
-        {low && <p style={{ margin: '2px 0 0', fontSize: 10.5, lineHeight: 1.4 }}>{t('journey.studio.photo.dpiLow', { min: MIN_PRINT_DPI })}</p>}
+        <p className="!m-[0] !text-[length:11.5px] !font-[600]">{t('journey.studio.photo.dpi', { dpi })}</p>
+        {low && <p className="!m-[2px_0_0] !text-[length:10.5px] !leading-[1.4]">{t('journey.studio.photo.dpiLow', { min: MIN_PRINT_DPI })}</p>}
       </div>
     </div>
   )
@@ -470,7 +463,7 @@ function MapFields({ el, patch }: { el: BookMapElement; patch: Patch }) {
     <>
       <div style={FIELD}>
         <span style={LABEL}>Map</span>
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: '2px 0 0' }}>
+        <p className="!text-[length:11px] ![color:var(--text-faint)] !m-[2px_0_0]">
           {el.src ? 'Generated from the Travel panel.' : 'No map yet — add one from the Travel panel, then drop it here.'}
         </p>
       </div>
@@ -499,13 +492,9 @@ function StatsFields({ el, patch }: { el: BookStatsElement; patch: Patch }) {
     <>
       <div style={FIELD}>
         <span style={LABEL}>Metrics (up to 7)</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+        <div className="!flex !flex-wrap !gap-[4px] !mt-[4px]">
           {BOOK_METRICS.map(m => (
-            <button key={m} onClick={() => toggleMetric(m)} style={{
-              padding: '3px 8px', borderRadius: 999, fontSize: 11, cursor: 'pointer', fontFamily: 'inherit',
-              border: el.metrics.includes(m) ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-              background: el.metrics.includes(m) ? 'var(--bg-tertiary)' : 'none', color: 'var(--text-primary)',
-            }}>
+            <button className="!p-[3px_8px] !rounded-[999px] !text-[length:11px] !cursor-pointer ![font-family:inherit] ![color:var(--text-primary)]" key={m} onClick={() => toggleMetric(m)} style={{ border: el.metrics.includes(m) ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: el.metrics.includes(m) ? 'var(--bg-tertiary)' : 'none' }}>
               {m}
             </button>
           ))}
@@ -544,13 +533,13 @@ function StatsFields({ el, patch }: { el: BookStatsElement; patch: Patch }) {
           <option value="imperial">Imperial</option>
         </select>
       </div>
-      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
         <span style={LABEL}>Icons</span>
         <ToggleSwitch on={el.showIcons} onToggle={() => patch({ showIcons: !el.showIcons })} />
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Accent color</span>
-        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+        <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
       </div>
     </>
   )
@@ -574,26 +563,26 @@ function PlacesFields({ el, patch }: { el: BookPlacesElement; patch: Patch }) {
     <>
       <div style={FIELD}>
         <span style={LABEL}>Places</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div className="!flex !flex-col !gap-[6px] !mt-[4px]">
           {el.places.map((p, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: 6, borderRadius: 6, border: '1px solid var(--border-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{p.name}</span>
-                <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+            <div className="!flex !flex-col !gap-[3px] !p-[6px] !rounded-[6px] ![border:1px_solid_var(--border-primary)]" key={i}>
+              <div className="!flex !items-center !gap-[6px]">
+                <span className="!flex-[1] !text-[length:12px] !font-[600] ![color:var(--text-primary)]">{p.name}</span>
+                <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={() => removeAt(i)}>
                   <Trash2 size={12} />
                 </button>
               </div>
-              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Note" value={p.note ?? ''} onChange={e => setNote(i, e.target.value)} />
+              <input className="!text-[length:11px]" style={{ ...INPUT }} placeholder="Note" value={p.note ?? ''} onChange={e => setNote(i, e.target.value)} />
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+        <div className="!flex !flex-col !gap-[4px] !mt-[6px]">
           <input style={INPUT} placeholder="Place name" value={draftName}
             onChange={e => setDraftName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addPlace()} />
-          <div style={{ display: 'flex', gap: 4 }}>
-            <input style={{ ...INPUT, flex: 1 }} placeholder="Note (optional)" value={draftNote}
+          <div className="!flex !gap-[4px]">
+            <input className="!flex-[1]" style={{ ...INPUT }} placeholder="Note (optional)" value={draftNote}
               onChange={e => setDraftNote(e.target.value)} onKeyDown={e => e.key === 'Enter' && addPlace()} />
-            <button onClick={addPlace} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <button className="!flex !items-center !justify-center !w-[32px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={addPlace}>
               <Plus size={14} />
             </button>
           </div>
@@ -618,7 +607,7 @@ function PlacesFields({ el, patch }: { el: BookPlacesElement; patch: Patch }) {
 function CountriesFields({ el, patch }: { el: BookCountriesElement; patch: Patch }) {
   const { t } = useTranslation()
   const toggle = (key: 'showOutline' | 'showFlag' | 'showName', label: string) => (
-    <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
       <span style={LABEL}>{label}</span>
       <ToggleSwitch on={el[key]} onToggle={() => patch({ [key]: !el[key] } as Partial<BookCountriesElement>)} />
     </div>
@@ -627,18 +616,18 @@ function CountriesFields({ el, patch }: { el: BookCountriesElement; patch: Patch
     <>
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.countries.list')}</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div className="!flex !flex-col !gap-[4px]">
           {el.codes.map((code, i) => (
-            <div key={`${code}-${i}`} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontSize: 11, color: 'var(--text-faint)', width: 22 }}>{code}</span>
-              <input style={{ ...INPUT, flex: 1 }} value={el.names[i] ?? ''} onChange={e => patch({ names: el.codes.map((_, j) => (j === i ? e.target.value : el.names[j] ?? '')) })} />
-              <button onClick={() => patch({ codes: el.codes.filter((_, j) => j !== i), names: el.names.filter((_, j) => j !== i) })}
-                aria-label={t('common.delete')} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+            <div className="!flex !items-center !gap-[6px]" key={`${code}-${i}`}>
+              <span className="!text-[length:11px] ![color:var(--text-faint)] !w-[22px]">{code}</span>
+              <input className="!flex-[1]" style={{ ...INPUT }} value={el.names[i] ?? ''} onChange={e => patch({ names: el.codes.map((_, j) => (j === i ? e.target.value : el.names[j] ?? '')) })} />
+              <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={() => patch({ codes: el.codes.filter((_, j) => j !== i), names: el.names.filter((_, j) => j !== i) })}
+                aria-label={t('common.delete')}>
                 <Trash2 size={12} />
               </button>
             </div>
           ))}
-          {el.codes.length === 0 && <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.countries.empty')}</span>}
+          {el.codes.length === 0 && <span className="!text-[length:11px] ![color:var(--text-faint)]">{t('journey.studio.countries.empty')}</span>}
         </div>
       </div>
       {toggle('showOutline', t('journey.studio.countries.outline'))}
@@ -684,7 +673,7 @@ function BadgeFields({ el, patch }: { el: BookBadgeElement; patch: Patch }) {
           <span style={LABEL}>Country code</span>
           <input style={INPUT} placeholder="e.g. FR, JP, BR" value={el.code ?? ''} maxLength={24}
             onChange={e => patch({ code: e.target.value.trim() ? e.target.value.toUpperCase() : null })} />
-          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '4px 0 0' }}>
+          <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[4px_0_0]">
             Picks a distinct geometric flag glyph — not the real national flag, this app has no flag artwork.
           </p>
         </div>
@@ -697,7 +686,7 @@ function BadgeFields({ el, patch }: { el: BookBadgeElement; patch: Patch }) {
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Accent color</span>
-        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+        <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
       </div>
     </>
   )
@@ -709,11 +698,11 @@ function IconFields({ el, patch }: { el: BookIconElement; patch: Patch }) {
       <div style={FIELD}>
         <span style={LABEL}>Icon name (lucide, PascalCase)</span>
         <input style={INPUT} value={el.name} placeholder="Compass" onChange={e => patch({ name: e.target.value })} />
-        <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '4px 0 0' }}>See lucide.dev/icons for names — Compass, Plane, MountainSnow…</p>
+        <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[4px_0_0]">See lucide.dev/icons for names — Compass, Plane, MountainSnow…</p>
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Color</span>
-        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.color} onChange={e => patch({ color: e.target.value })} />
+        <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.color} onChange={e => patch({ color: e.target.value })} />
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Line weight</span>
@@ -733,22 +722,22 @@ function ListFields({ el, patch }: { el: BookListElement; patch: Patch }) {
     <>
       <div style={FIELD}>
         <span style={LABEL}>Items</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div className="!flex !flex-col !gap-[6px] !mt-[4px]">
           {el.items.map((it, i) => (
-            <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              <select style={{ ...INPUT, width: 64, flexShrink: 0 }} value={it.tone} onChange={e => setItem(i, { tone: e.target.value as 'pro' | 'con' | 'plain' })}>
+            <div className="!flex !gap-[4px] !items-center" key={i}>
+              <select className="!w-[64px] !shrink-[0]" style={{ ...INPUT }} value={it.tone} onChange={e => setItem(i, { tone: e.target.value as 'pro' | 'con' | 'plain' })}>
                 <option value="pro">+</option>
                 <option value="con">–</option>
                 <option value="plain">•</option>
               </select>
               <input style={INPUT} value={it.text} onChange={e => setItem(i, { text: e.target.value })} />
-              <button onClick={() => removeItem(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex', flexShrink: 0 }}>
+              <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex !shrink-[0]" onClick={() => removeItem(i)}>
                 <Trash2 size={12} />
               </button>
             </div>
           ))}
         </div>
-        <button onClick={addItem} style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 6, padding: '5px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', fontSize: 11, color: 'var(--text-muted)' }}>
+        <button className="!flex !items-center !gap-[4px] !mt-[6px] !p-[5px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer !text-[length:11px] ![color:var(--text-muted)]" onClick={addItem}>
           <Plus size={12} /> Add item
         </button>
       </div>
@@ -760,7 +749,7 @@ function ListFields({ el, patch }: { el: BookListElement; patch: Patch }) {
         </select>
       </div>
       {el.layout === 'columns' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+        <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px] !mb-[12px]">
           <div style={FIELD}>
             <span style={LABEL}>Pro label</span>
             <input style={INPUT} value={el.proLabel} onChange={e => patch({ proLabel: e.target.value })} />
@@ -771,7 +760,7 @@ function ListFields({ el, patch }: { el: BookListElement; patch: Patch }) {
           </div>
         </div>
       )}
-      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
         <span style={LABEL}>Marks</span>
         <ToggleSwitch on={el.showMarks} onToggle={() => patch({ showMarks: !el.showMarks })} />
       </div>
@@ -798,39 +787,39 @@ function PackingFields({ el, patch }: { el: BookPackingElement; patch: Patch }) 
     <>
       <div style={FIELD}>
         <span style={LABEL}>Items</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div className="!flex !flex-col !gap-[6px] !mt-[4px]">
           {el.items.map((it, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: 6, borderRadius: 6, border: '1px solid var(--border-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div className="!flex !flex-col !gap-[3px] !p-[6px] !rounded-[6px] ![border:1px_solid_var(--border-primary)]" key={i}>
+              <div className="!flex !items-center !gap-[6px]">
                 <input type="checkbox" checked={!!it.checked} onChange={e => setItem(i, { checked: e.target.checked })} />
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{it.name}</span>
-                <input type="number" min={1} style={{ ...INPUT, width: 48, padding: '2px 4px' }} value={it.quantity ?? 1}
+                <span className="!flex-[1] !text-[length:12px] !font-[600] ![color:var(--text-primary)]">{it.name}</span>
+                <input className="!w-[48px] !p-[2px_4px]" type="number" min={1} style={{ ...INPUT }} value={it.quantity ?? 1}
                   onChange={e => setItem(i, { quantity: Math.max(1, Number(e.target.value) || 1) })} />
-                <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+                <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={() => removeAt(i)}>
                   <Trash2 size={12} />
                 </button>
               </div>
-              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Category" value={it.category ?? ''} onChange={e => setItem(i, { category: e.target.value })} />
+              <input className="!text-[length:11px]" style={{ ...INPUT }} placeholder="Category" value={it.category ?? ''} onChange={e => setItem(i, { category: e.target.value })} />
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
+        <div className="!flex !flex-col !gap-[4px] !mt-[6px]">
           <input style={INPUT} placeholder="Item name" value={draftName}
             onChange={e => setDraftName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} />
-          <div style={{ display: 'flex', gap: 4 }}>
-            <input style={{ ...INPUT, flex: 1 }} placeholder="Category (optional)" value={draftCategory}
+          <div className="!flex !gap-[4px]">
+            <input className="!flex-[1]" style={{ ...INPUT }} placeholder="Category (optional)" value={draftCategory}
               onChange={e => setDraftCategory(e.target.value)} onKeyDown={e => e.key === 'Enter' && addItem()} />
-            <button onClick={addItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+            <button className="!flex !items-center !justify-center !w-[32px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={addItem}>
               <Plus size={14} />
             </button>
           </div>
         </div>
       </div>
-      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
         <span style={LABEL}>Group by category</span>
         <ToggleSwitch on={el.groupByCategory} onToggle={() => patch({ groupByCategory: !el.groupByCategory })} />
       </div>
-      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
         <span style={LABEL}>Show quantity</span>
         <ToggleSwitch on={el.showQuantity} onToggle={() => patch({ showQuantity: !el.showQuantity })} />
       </div>
@@ -843,7 +832,7 @@ function PackingFields({ el, patch }: { el: BookPackingElement; patch: Patch }) 
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Accent color</span>
-        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+        <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
       </div>
     </>
   )
@@ -866,33 +855,33 @@ function AccommodationFields({ el, patch }: { el: BookAccommodationElement; patc
     <>
       <div style={FIELD}>
         <span style={LABEL}>Stays</span>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+        <div className="!flex !flex-col !gap-[6px] !mt-[4px]">
           {el.stays.map((s, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: 6, borderRadius: 6, border: '1px solid var(--border-primary)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>{s.name}</span>
-                <button onClick={() => removeAt(i)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-faint)', display: 'flex' }}>
+            <div className="!flex !flex-col !gap-[3px] !p-[6px] !rounded-[6px] ![border:1px_solid_var(--border-primary)]" key={i}>
+              <div className="!flex !items-center !gap-[6px]">
+                <span className="!flex-[1] !text-[length:12px] !font-[600] ![color:var(--text-primary)]">{s.name}</span>
+                <button className="![border:none] ![background:none] !cursor-pointer ![color:var(--text-faint)] !flex" onClick={() => removeAt(i)}>
                   <Trash2 size={12} />
                 </button>
               </div>
-              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Address" value={s.address ?? ''} onChange={e => setStay(i, { address: e.target.value })} />
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                <input type="date" style={{ ...INPUT, fontSize: 11 }} value={s.checkIn?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkIn: e.target.value || null })} />
-                <input type="date" style={{ ...INPUT, fontSize: 11 }} value={s.checkOut?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkOut: e.target.value || null })} />
+              <input className="!text-[length:11px]" style={{ ...INPUT }} placeholder="Address" value={s.address ?? ''} onChange={e => setStay(i, { address: e.target.value })} />
+              <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[4px]">
+                <input className="!text-[length:11px]" type="date" style={{ ...INPUT }} value={s.checkIn?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkIn: e.target.value || null })} />
+                <input className="!text-[length:11px]" type="date" style={{ ...INPUT }} value={s.checkOut?.slice(0, 10) ?? ''} onChange={e => setStay(i, { checkOut: e.target.value || null })} />
               </div>
-              <input style={{ ...INPUT, fontSize: 11 }} placeholder="Confirmation number" value={s.confirmation ?? ''} onChange={e => setStay(i, { confirmation: e.target.value })} />
+              <input className="!text-[length:11px]" style={{ ...INPUT }} placeholder="Confirmation number" value={s.confirmation ?? ''} onChange={e => setStay(i, { confirmation: e.target.value })} />
             </div>
           ))}
         </div>
-        <div style={{ display: 'flex', gap: 4, marginTop: 6 }}>
-          <input style={{ ...INPUT, flex: 1 }} placeholder="Stay name" value={draftName}
+        <div className="!flex !gap-[4px] !mt-[6px]">
+          <input className="!flex-[1]" style={{ ...INPUT }} placeholder="Stay name" value={draftName}
             onChange={e => setDraftName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addStay()} />
-          <button onClick={addStay} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, borderRadius: 6, border: '1px solid var(--border-primary)', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+          <button className="!flex !items-center !justify-center !w-[32px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={addStay}>
             <Plus size={14} />
           </button>
         </div>
       </div>
-      <div style={{ ...FIELD, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div className="!flex-row !items-center !justify-between" style={{ ...FIELD }}>
         <span style={LABEL}>Show confirmation</span>
         <ToggleSwitch on={el.showConfirmation} onToggle={() => patch({ showConfirmation: !el.showConfirmation })} />
       </div>
@@ -905,7 +894,7 @@ function AccommodationFields({ el, patch }: { el: BookAccommodationElement; patc
       </div>
       <div style={FIELD}>
         <span style={LABEL}>Accent color</span>
-        <input type="color" style={{ ...INPUT, padding: 2, height: 32 }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
+        <input className="!p-[2px] !h-[32px]" type="color" style={{ ...INPUT }} value={el.accent} onChange={e => patch({ accent: e.target.value })} />
       </div>
     </>
   )

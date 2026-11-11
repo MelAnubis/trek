@@ -83,17 +83,17 @@ export function StudioArrangeSection({ spreadIndex, t }: { spreadIndex: number; 
   })
 
   return (
-    <div data-testid="arrange-section" style={{ marginBottom: 14, paddingBottom: 12, borderBottom: '1px solid var(--border-secondary)' }}>
-      <span style={{ ...LABEL, display: 'block', marginBottom: 6 }}>{t('journey.studio.layers.align')}</span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 6 }}>
+    <div className="!mb-[14px] !pb-[12px] ![border-bottom:1px_solid_var(--border-secondary)]" data-testid="arrange-section">
+      <span className="!block !mb-[6px]" style={{ ...LABEL }}>{t('journey.studio.layers.align')}</span>
+      <div className="!flex !flex-wrap !gap-[2px] !mb-[6px]">
         {ALIGN.map(a => (
           <IconButton key={a.edge} label={t(a.labelKey)} icon={a.icon} disabled={!movable.length} onClick={() => align(spreadIndex, a.edge, to)} />
         ))}
-        <span style={{ width: 1, background: 'var(--border-primary)', margin: '4px 2px' }} />
+        <span className="!w-[1px] ![background:var(--border-primary)] !m-[4px_2px]" />
         <IconButton label={t('journey.studio.layers.distributeH')} icon={AlignHorizontalDistributeCenter} disabled={units < 3} onClick={() => distribute(spreadIndex, 'horizontal')} />
         <IconButton label={t('journey.studio.layers.distributeV')} icon={AlignVerticalDistributeCenter} disabled={units < 3} onClick={() => distribute(spreadIndex, 'vertical')} />
       </div>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }} role="radiogroup" aria-label={t('journey.studio.layers.alignTo')}>
+      <div className="!flex !gap-[4px] !mb-[10px]" role="radiogroup" aria-label={t('journey.studio.layers.alignTo')}>
         {([
           { value: 'selection' as const, label: t('journey.studio.layers.toSelection'), disabled: units < 2 },
           { value: 'page' as const, label: t('journey.studio.layers.toPage') },
@@ -106,12 +106,12 @@ export function StudioArrangeSection({ spreadIndex, t }: { spreadIndex: number; 
         ))}
       </div>
 
-      <span style={{ ...LABEL, display: 'block', marginBottom: 6 }}>{t('journey.studio.order')}</span>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2, marginBottom: 10 }}>
+      <span className="!block !mb-[6px]" style={{ ...LABEL }}>{t('journey.studio.order')}</span>
+      <div className="!flex !flex-wrap !gap-[2px] !mb-[10px]">
         {STACK.map(s => (
           <IconButton key={s.to} label={t(s.labelKey)} icon={s.icon} keys={s.keys} onClick={() => raise(spreadIndex, selection, s.to)} />
         ))}
-        <span style={{ width: 1, background: 'var(--border-primary)', margin: '4px 2px' }} />
+        <span className="!w-[1px] ![background:var(--border-primary)] !m-[4px_2px]" />
         {(canGroup || !grouped) && (
           <IconButton label={t('journey.studio.layers.groupAction')} icon={Group} disabled={!canGroup} keys="Ctrl+G" onClick={() => group(spreadIndex)} />
         )}
@@ -120,8 +120,8 @@ export function StudioArrangeSection({ spreadIndex, t }: { spreadIndex: number; 
         )}
       </div>
 
-      <span style={{ ...LABEL, display: 'block', marginBottom: 6 }}>{t('journey.studio.styleClip')}</span>
-      <div style={{ display: 'flex', gap: 4 }}>
+      <span className="!block !mb-[6px]" style={{ ...LABEL }}>{t('journey.studio.styleClip')}</span>
+      <div className="!flex !gap-[4px]">
         <button type="button" className="st-ar-chip" onClick={() => copyStyle(spreadIndex)} title="Ctrl+Alt+C">
           <Pipette size={12} /> {t('journey.studio.layers.copyStyle')}
         </button>
@@ -129,7 +129,7 @@ export function StudioArrangeSection({ spreadIndex, t }: { spreadIndex: number; 
           <Paintbrush size={12} /> {t('journey.studio.layers.pasteStyle')}
         </button>
       </div>
-      {asGroup && <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '8px 0 0', lineHeight: 1.4 }}>{t('journey.studio.layers.groupHint')}</p>}
+      {asGroup && <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[8px_0_0] !leading-[1.4]">{t('journey.studio.layers.groupHint')}</p>}
       <style>{`
         .st-ar-btn { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 1px solid transparent; background: none; border-radius: 6px; cursor: pointer; color: var(--text-muted); }
         .st-ar-btn:hover:not(:disabled) { background: var(--bg-hover); border-color: var(--border-primary); }

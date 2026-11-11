@@ -202,10 +202,10 @@ export function StudioLayersPanel({ t }: { t: T }) {
   return (
     <div data-testid="layers-panel">
       {rows.length === 0 ? (
-        <p style={{ fontSize: 11, color: 'var(--text-faint)', margin: 0 }}>{t('journey.studio.layers.empty')}</p>
+        <p className="!text-[length:11px] ![color:var(--text-faint)] !m-[0]">{t('journey.studio.layers.empty')}</p>
       ) : (
         <>
-          <p style={{ fontSize: 10, color: 'var(--text-faint)', margin: '0 0 6px', lineHeight: 1.4 }}>{t('journey.studio.layers.hint')}</p>
+          <p className="!text-[length:10px] ![color:var(--text-faint)] !m-[0_0_6px] !leading-[1.4]">{t('journey.studio.layers.hint')}</p>
           <div
             ref={list}
             role="tree"
@@ -284,7 +284,7 @@ export function StudioLayersPanel({ t }: { t: T }) {
             })}
           </div>
           {!readOnly && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+            <div className="!flex !gap-[6px] !mt-[8px]">
               <button type="button" className="st-layer-chip" disabled={!canGroup} onClick={() => group(spreadIndex)} title="Ctrl+G">
                 <Group size={12} /> {t('journey.studio.layers.groupAction')}
               </button>

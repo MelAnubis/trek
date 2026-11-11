@@ -38,7 +38,7 @@ function DesignSketch({ id }: { id: EditorialDesign }) {
     band: [r(0, 0, 2, 20, '#c2410c'), r(2, 0, 18, 12, soft, 0.5), r(23, 3, 14, 10, 'none'), r(23, 15, 6, 4, soft, 0.5), r(30, 15, 6, 4, soft, 0.5)],
   }
   return (
-    <svg width={40} height={20} viewBox="0 0 40 20" style={{ display: 'block', borderRadius: 2, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', flexShrink: 0 }} aria-hidden>
+    <svg className="!block !rounded-[2px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] !shrink-[0]" width={40} height={20} viewBox="0 0 40 20" aria-hidden>
       {parts[id]}
       {id === 'band' && <rect x={23} y={3} width={14} height={10} fill="none" stroke={soft} strokeWidth={0.5} />}
       <line x1={20} y1={0} x2={20} y2={20} stroke="var(--border-primary)" strokeWidth={0.4} />
@@ -79,34 +79,24 @@ export function AutoLayoutMenu({ t, style, onStyle, canSpread, building, onSprea
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(v => !v)} aria-haspopup="menu" aria-expanded={open} style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-        border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-muted)',
-        fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-      }}>
+      <button className="!flex !items-center !gap-[6px] !p-[7px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-muted)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setOpen(v => !v)} aria-haspopup="menu" aria-expanded={open}>
         <Sparkles size={14} /> {t('journey.studio.autoLayout')}
         <ChevronDown size={13} style={{ opacity: 0.6 }} />
       </button>
 
       {open && (
-        <div role="menu" style={{
-          position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 270, maxWidth: 'calc(100vw - 32px)', maxHeight: '70vh', overflowY: 'auto',
-          borderRadius: 10, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)', padding: 4, zIndex: 20,
-        }}>
+        <div className="!absolute !top-[100%] !right-[0] !mt-[4px] !w-[270px] !max-w-[calc(100vw_-_32px)] !max-h-[70vh] !overflow-y-auto !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![box-shadow:0_8px_24px_rgba(0,0,0,0.15)] !p-[4px] !z-[20]" role="menu">
           <div style={heading}>{t('journey.studio.autoStyle')}</div>
-          <div role="radiogroup" aria-label={t('journey.studio.autoStyle')} style={{ display: 'flex', gap: 4, padding: '0 6px 4px' }}>
+          <div className="!flex !gap-[4px] !p-[0_6px_4px]" role="radiogroup" aria-label={t('journey.studio.autoStyle')}>
             {(['classic', 'editorial'] as const).map(s => (
-              <button key={s} role="radio" aria-checked={style === s} onClick={() => { onStyle(s); writeAutoStyle(s) }} style={{
-                flex: 1, padding: '6px 8px', borderRadius: 7, fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-primary)',
-                border: style === s ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: style === s ? 'var(--bg-tertiary)' : 'none',
-              }}>
+              <button className="!flex-[1] !p-[6px_8px] !rounded-[7px] !text-[length:12px] !cursor-pointer ![font-family:inherit] ![color:var(--text-primary)]" key={s} role="radio" aria-checked={style === s} onClick={() => { onStyle(s); writeAutoStyle(s) }} style={{ border: style === s ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: style === s ? 'var(--bg-tertiary)' : 'none' }}>
                 {t(`journey.studio.autoStyle.${s}`)}
               </button>
             ))}
           </div>
-          <div style={{ fontSize: 10.5, color: 'var(--text-faint)', padding: '0 10px 6px', lineHeight: 1.4 }}>{t(`journey.studio.autoStyleHint.${style}`)}</div>
+          <div className="!text-[length:10.5px] ![color:var(--text-faint)] !p-[0_10px_6px] !leading-[1.4]">{t(`journey.studio.autoStyleHint.${style}`)}</div>
 
-          <div style={{ height: 1, background: 'var(--border-secondary)', margin: '4px 2px' }} />
+          <div className="!h-[1px] ![background:var(--border-secondary)] !m-[4px_2px]" />
           <button role="menuitem" disabled={!canSpread} onClick={() => { onSpread(); setOpen(false) }} style={item(canSpread)}>
             {t('journey.studio.autoLayoutSpread')}
           </button>
@@ -114,15 +104,15 @@ export function AutoLayoutMenu({ t, style, onStyle, canSpread, building, onSprea
             {building ? t('journey.studio.autoLayoutBookBuilding') : t('journey.studio.autoLayoutBook')}
           </button>
 
-          <div style={{ height: 1, background: 'var(--border-secondary)', margin: '4px 2px' }} />
+          <div className="!h-[1px] ![background:var(--border-secondary)] !m-[4px_2px]" />
           <div style={heading}>{t('journey.studio.design.title')}</div>
-          {!canSpread && <div style={{ fontSize: 10.5, color: 'var(--text-faint)', padding: '0 10px 6px' }}>{t('journey.studio.design.needsEntry')}</div>}
+          {!canSpread && <div className="!text-[length:10.5px] ![color:var(--text-faint)] !p-[0_10px_6px]">{t('journey.studio.design.needsEntry')}</div>}
           {EDITORIAL_DESIGNS.map(d => (
             <button key={d} role="menuitem" data-design={d} disabled={!canSpread} onClick={() => { onDesign(d); setOpen(false) }} style={item(canSpread)}>
               <DesignSketch id={d} />
-              <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+              <span className="!flex !flex-col !min-w-[0]">
                 <span>{t(`journey.studio.design.${d}`)}</span>
-                <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{t(`journey.studio.design.${d}.hint`)}</span>
+                <span className="!text-[length:10px] ![color:var(--text-faint)]">{t(`journey.studio.design.${d}.hint`)}</span>
               </span>
             </button>
           ))}

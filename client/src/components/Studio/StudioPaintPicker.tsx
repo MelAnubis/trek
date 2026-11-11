@@ -90,10 +90,9 @@ function NumField({ label, value, min, max, step, unit, onChange }: {
   label: string; value: number; min: number; max: number; step: number; unit?: string; onChange: (v: number) => void;
 }) {
   return (
-    <label className="st-num" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <label className="st-num !flex !flex-col !gap-[2px]">
       <span className="st-paint-caption">{label}{unit ? ` (${unit})` : ''}</span>
-      <input type="number" value={value} min={min} max={max} step={step}
-        style={{ padding: '4px 6px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12, width: '100%' }}
+      <input className="!p-[4px_6px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:12px] !w-[100%]" type="number" value={value} min={min} max={max} step={step}
         onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onChange(Math.min(max, Math.max(min, v))); }} />
     </label>
   );

@@ -34,7 +34,7 @@ function MiniLine({ over }: { over: Partial<GlyphLook> }) {
   }
   const g = lineGeometry(el, 28, 12, 'glyph')
   return (
-    <svg viewBox="0 0 28 12" width="28" height="12" aria-hidden style={{ overflow: 'visible' }}>
+    <svg className="!overflow-visible" viewBox="0 0 28 12" width="28" height="12" aria-hidden>
       <LinePaths g={g} color="currentColor" width={el.strokeWidth} />
     </svg>
   )
@@ -49,16 +49,11 @@ function Choice<V extends string>({ value, options, onPick, label, testId }: {
   testId?: string
 }) {
   return (
-    <div role="radiogroup" aria-label={label} data-testid={testId} style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+    <div className="!flex !flex-wrap !gap-[4px]" role="radiogroup" aria-label={label} data-testid={testId}>
       {options.map(o => (
-        <button key={o.value} type="button" role="radio" aria-checked={value === o.value} title={o.title}
+        <button className="!min-w-[34px] !h-[28px] !p-[0_8px] !inline-flex !items-center !justify-center !rounded-[6px] !cursor-pointer !text-[length:11px] ![font-family:inherit] ![color:var(--text-primary)]" key={o.value} type="button" role="radio" aria-checked={value === o.value} title={o.title}
           data-value={o.value} onClick={() => onPick(o.value)}
-          style={{
-            minWidth: 34, height: 28, padding: '0 8px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 6, cursor: 'pointer', fontSize: 11, fontFamily: 'inherit',
-            border: value === o.value ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)',
-            background: value === o.value ? 'var(--bg-tertiary)' : 'var(--bg-card)', color: 'var(--text-primary)',
-          }}>
+          style={{ border: value === o.value ? '1.5px solid var(--text-primary)' : '1px solid var(--border-primary)', background: value === o.value ? 'var(--bg-tertiary)' : 'var(--bg-card)' }}>
           {o.label}
         </button>
       ))}
@@ -94,22 +89,21 @@ export function LineInspector({ el, spreadIndex, t }: { el: BookLineElement; spr
           options={(['straight', 'smooth'] as const).map(value => ({ value, label: t(`journey.studio.line.curve.${value}`) }))} />
         <Choice value={el.squiggle} label={t('journey.studio.line.body')} testId="line-squiggle" onPick={squiggle => set({ squiggle })}
           options={(['none', 'wave', 'zigzag'] as const).map(value => ({ value, label: t(`journey.studio.line.squiggle.${value}`) }))} />
-        <label style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '2px 8px', alignItems: 'center' }}>
+        <label className="!grid ![grid-template-columns:1fr_auto] !gap-[2px_8px] !items-center">
           <span style={SMALL}>{t('journey.studio.line.wobble')}</span>
           <output style={SMALL}>{Math.round(el.wobble * 100)}%</output>
-          <input type="range" min={0} max={1} step={0.1} value={el.wobble} data-testid="line-wobble" style={{ gridColumn: '1 / -1' }}
+          <input className="![grid-column:1_/_-1]" type="range" min={0} max={1} step={0.1} value={el.wobble} data-testid="line-wobble"
             onChange={e => set({ wobble: Number(e.target.value) })} />
         </label>
-        <p style={{ fontSize: 10.5, color: 'var(--text-faint)', margin: 0 }}>{t('journey.studio.line.pointsHint')}</p>
+        <p className="!text-[length:10.5px] ![color:var(--text-faint)] !m-[0]">{t('journey.studio.line.pointsHint')}</p>
       </div>
 
       <div style={FIELD}>
         <span style={LABEL}>{t('journey.studio.line.look')}</span>
         <ColorSwatches value={el.stroke} onPick={stroke => set({ stroke })} label={t('journey.studio.line.look')} t={t} />
-        <label style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <label className="!flex !flex-col !gap-[2px]">
           <span style={SMALL}>{t('journey.studio.line.width')} (mm)</span>
-          <input type="number" min={0.05} max={20} step={0.05} value={el.strokeWidth} data-testid="line-width"
-            style={{ padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 12 }}
+          <input className="!p-[6px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:12px]" type="number" min={0.05} max={20} step={0.05} value={el.strokeWidth} data-testid="line-width"
             onChange={e => { const v = Number(e.target.value); if (Number.isFinite(v) && v >= 0.05) set({ strokeWidth: Math.min(20, v) }) }} />
         </label>
         <Choice value={el.dash} label={t('journey.studio.line.dash')} testId="line-dash" onPick={dash => set({ dash })}
@@ -122,8 +116,7 @@ export function LineInspector({ el, spreadIndex, t }: { el: BookLineElement; spr
         <Choice value={el.startCap} label={t('journey.studio.line.start')} testId="line-start" options={caps(true)} onPick={startCap => set({ startCap })} />
         <span style={SMALL}>{t('journey.studio.line.end')}</span>
         <Choice value={el.endCap} label={t('journey.studio.line.end')} testId="line-end" options={caps(false)} onPick={endCap => set({ endCap })} />
-        <button type="button" onClick={swapEnds} data-testid="line-swap"
-          style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 9px', borderRadius: 99, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button className="!self-start !inline-flex !items-center !gap-[5px] !p-[5px_9px] !rounded-[99px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] !text-[length:11.5px] !font-[600] !cursor-pointer ![font-family:inherit]" type="button" onClick={swapEnds} data-testid="line-swap">
           <ArrowLeftRight size={13} />
           {t('journey.studio.line.swap')}
         </button>

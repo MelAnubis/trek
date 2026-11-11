@@ -91,7 +91,7 @@ export default function MagazineDialog({ onClose }: { onClose: () => void }) {
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-4 overflow-y-auto" style={{ background: 'var(--modal-backdrop)' }} onClick={() => !busy && onClose()}>
+    <div className="fixed inset-0 z-[300] flex items-start sm:items-center justify-center p-4 overflow-y-auto ![background:var(--modal-backdrop)]" onClick={() => !busy && onClose()}>
       <div role="dialog" aria-modal="true" aria-label={t('magazine.new')} className="w-full max-w-[560px] rounded-2xl bg-white dark:bg-zinc-900 shadow-2xl my-8" onClick={e => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 px-6 pt-6">
           <div>

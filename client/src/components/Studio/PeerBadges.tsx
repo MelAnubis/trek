@@ -30,34 +30,26 @@ export function PeerBadges({ peers, t }: { peers: BookPeer[]; t: (k: string) => 
   const rest = people.length - shown.length
 
   return (
-    <div
+    <div className="!flex !items-center !gap-[6px]"
       title={people.map(p => p.username).join(', ')}
-      style={{ display: 'flex', alignItems: 'center', gap: 6 }}
     >
-      <div style={{ display: 'flex' }}>
+      <div className="!flex">
         {shown.map((p, i) => (
-          <span
+          <span className="!w-[24px] !h-[24px] !rounded-[50%] !flex !items-center !justify-center ![color:#fff] !text-[length:11px] !font-[700] !overflow-hidden ![border:2px_solid_var(--bg-primary)]"
             key={p.userId}
             aria-label={p.username}
-            style={{
-              width: 24, height: 24, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: peerColour(p.userId), color: '#fff',
-              fontSize: 11, fontWeight: 700, overflow: 'hidden',
-              border: '2px solid var(--bg-primary)',
-              marginLeft: i === 0 ? 0 : -8,
-            }}
+            style={{ background: peerColour(p.userId), marginLeft: i === 0 ? 0 : -8 }}
           >
             {p.avatar
-              ? <img src={p.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ? <img className="!w-[100%] !h-[100%] !object-cover" src={p.avatar} alt="" />
               : (p.username?.[0] ?? '?').toUpperCase()}
           </span>
         ))}
       </div>
       {rest > 0 && (
-        <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>+{rest}</span>
+        <span className="!text-[length:11px] !font-[600] ![color:var(--text-muted)]">+{rest}</span>
       )}
-      <span style={{ fontSize: 11, color: 'var(--text-faint)' }}>{t('journey.studio.peersHere')}</span>
+      <span className="!text-[length:11px] ![color:var(--text-faint)]">{t('journey.studio.peersHere')}</span>
     </div>
   )
 }

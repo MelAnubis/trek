@@ -44,9 +44,9 @@ function MmField({ label, value, min, max, step, onCommit, testId }: {
     onCommit(n)
   }
   return (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 10, color: 'var(--text-faint)', flex: 1, minWidth: 0 }}>
+    <label className="!flex !flex-col !gap-[3px] !text-[length:10px] ![color:var(--text-faint)] !flex-[1] !min-w-[0]">
       {label}
-      <input
+      <input className="!w-[100%] !p-[6px_8px] !rounded-[6px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![color:var(--text-primary)] ![font-family:inherit] !text-[length:12px]"
         data-testid={testId}
         type="number" inputMode="decimal" min={min} max={max} step={step} value={draft}
         onChange={e => setDraft(e.target.value)}
@@ -55,7 +55,6 @@ function MmField({ label, value, min, max, step, onCommit, testId }: {
           if (e.key === 'Enter') { e.preventDefault(); commit() }
           if (e.key === 'Escape') setDraft(String(value))
         }}
-        style={{ width: '100%', padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border-primary)', background: 'var(--bg-card)', color: 'var(--text-primary)', fontFamily: 'inherit', fontSize: 12 }}
       />
     </label>
   )
@@ -66,8 +65,8 @@ function ShapeTile({ w, h }: { w: number; h: number }) {
   const sw = w >= h ? box : Math.round(box * w / h)
   const sh = h >= w ? box : Math.round(box * h / w)
   return (
-    <span style={{ width: box, height: box, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <span style={{ width: sw, height: sh, borderRadius: 2, border: '1.5px solid var(--text-muted)' }} />
+    <span className="!flex !items-center !justify-center !shrink-[0]" style={{ width: box, height: box }}>
+      <span className="!rounded-[2px] ![border:1.5px_solid_var(--text-muted)]" style={{ width: sw, height: sh }} />
     </span>
   )
 }
@@ -93,36 +92,23 @@ export function PageFormatMenu({ page, t, onPreset, onSize, onEdge }: Props) {
 
   return (
     <div ref={ref} style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(v => !v)} title={t('journey.studio.format')} aria-haspopup="listbox" aria-expanded={open} style={{
-        display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10,
-        border: '1px solid var(--border-primary)', background: 'none', color: 'var(--text-primary)',
-        fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit',
-      }}>
+      <button className="!flex !items-center !gap-[6px] !p-[7px_12px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] ![color:var(--text-primary)] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setOpen(v => !v)} title={t('journey.studio.format')} aria-haspopup="listbox" aria-expanded={open}>
         {label}
         <ChevronDown size={13} style={{ opacity: 0.6 }} />
       </button>
 
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', right: 0, marginTop: 4, width: 260, maxWidth: 'calc(100vw - 32px)', borderRadius: 10,
-          border: '1px solid var(--border-primary)', background: 'var(--bg-card)', boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-          padding: 4, zIndex: 20,
-        }}>
+        <div className="!absolute !top-[100%] !right-[0] !mt-[4px] !w-[260px] !max-w-[calc(100vw_-_32px)] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:var(--bg-card)] ![box-shadow:0_8px_24px_rgba(0,0,0,0.15)] !p-[4px] !z-[20]">
           <div role="listbox" aria-label={t('journey.studio.format')}>
             {(Object.keys(PAGE_PRESETS) as (keyof typeof PAGE_PRESETS)[]).map(key => {
               const p = PAGE_PRESETS[key]
               const on = page.preset === key
               return (
-                <button key={key} role="option" aria-selected={on} onClick={() => { onPreset(key, reflow); setOpen(false) }} style={{
-                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
-                  textAlign: 'left', padding: '7px 8px', borderRadius: 6, border: 'none',
-                  background: on ? 'var(--bg-tertiary)' : 'none',
-                  fontSize: 12, cursor: 'pointer', color: 'var(--text-primary)', fontFamily: 'inherit',
-                }}>
+                <button className="!flex !items-center !gap-[10px] !w-[100%] !text-left !p-[7px_8px] !rounded-[6px] ![border:none] !text-[length:12px] !cursor-pointer ![color:var(--text-primary)] ![font-family:inherit]" key={key} role="option" aria-selected={on} onClick={() => { onPreset(key, reflow); setOpen(false) }} style={{ background: on ? 'var(--bg-tertiary)' : 'none' }}>
                   <ShapeTile w={p.pageWidth} h={p.pageHeight} />
-                  <span style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                  <span className="!flex-[1] !flex !flex-col">
                     <span>{t(p.labelKey)}</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-faint)' }}>{p.pageWidth} × {p.pageHeight} mm</span>
+                    <span className="!text-[length:10px] ![color:var(--text-faint)]">{p.pageWidth} × {p.pageHeight} mm</span>
                   </span>
                   {on && <Check size={13} />}
                 </button>
@@ -130,28 +116,28 @@ export function PageFormatMenu({ page, t, onPreset, onSize, onEdge }: Props) {
             })}
           </div>
 
-          <div style={{ height: 1, background: 'var(--border-secondary)', margin: '4px 2px' }} />
+          <div className="!h-[1px] ![background:var(--border-secondary)] !m-[4px_2px]" />
 
-          <div style={{ padding: '4px 6px 2px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+          <div className="!p-[4px_6px_2px]">
+            <div className="!text-[length:10px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !mb-[6px] !flex !justify-between">
               <span>{t('journey.studio.pagePreset.custom')}</span>
               {page.preset === 'custom' && <Check size={12} />}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', marginBottom: 8 }}>
+            <div className="!flex !gap-[6px] !items-end !mb-[8px]">
               <MmField testId="page-width" label={t('journey.studio.pageField.pageWidth')} value={page.pageWidth} min={PAGE_SIZE_MIN} max={PAGE_SIZE_MAX} step={1} onCommit={v => onSize('w', v, reflow)} />
-              <span style={{ paddingBottom: 7, color: 'var(--text-faint)', fontSize: 12 }}>×</span>
+              <span className="!pb-[7px] ![color:var(--text-faint)] !text-[length:12px]">×</span>
               <MmField testId="page-height" label={t('journey.studio.pageField.pageHeight')} value={page.pageHeight} min={PAGE_SIZE_MIN} max={PAGE_SIZE_MAX} step={1} onCommit={v => onSize('h', v, reflow)} />
             </div>
-            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            <div className="!flex !gap-[6px] !mb-[8px]">
               <MmField testId="page-bleed" label={t('journey.studio.pageField.bleed')} value={page.bleed} min={0} max={BLEED_MAX} step={0.5} onCommit={v => onEdge('bleed', v, reflow)} />
-              <span style={{ width: 9 }} />
+              <span className="!w-[9px]" />
               <MmField testId="page-safe" label={t('journey.studio.pageField.safe')} value={page.safe} min={0} max={SAFE_MAX} step={0.5} onCommit={v => onEdge('safe', v, reflow)} />
             </div>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer', lineHeight: 1.4, padding: '2px 0 4px' }}>
-              <input type="checkbox" checked={reflow} onChange={e => { setReflow(e.target.checked); writeReflow(e.target.checked) }} style={{ marginTop: 2 }} />
+            <label className="!flex !items-start !gap-[6px] !text-[length:11px] ![color:var(--text-muted)] !cursor-pointer !leading-[1.4] !p-[2px_0_4px]">
+              <input className="!mt-[2px]" type="checkbox" checked={reflow} onChange={e => { setReflow(e.target.checked); writeReflow(e.target.checked) }} />
               <span>
                 {t('journey.studio.reflowOnResize')}
-                <span style={{ display: 'block', fontSize: 10, color: 'var(--text-faint)' }}>{t('journey.studio.reflowOnResizeHint')}</span>
+                <span className="!block !text-[length:10px] ![color:var(--text-faint)]">{t('journey.studio.reflowOnResizeHint')}</span>
               </span>
             </label>
           </div>

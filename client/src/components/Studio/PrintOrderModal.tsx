@@ -91,36 +91,34 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
   }
 
   return (
-    <div role="dialog" aria-modal="true" aria-label={t('journey.studio.print.title')}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+    <div className="!fixed !inset-[0] !z-[1000] ![background:rgba(0,0,0,0.5)] !flex !items-center !justify-center !p-[20px]" role="dialog" aria-modal="true" aria-label={t('journey.studio.print.title')}
       onClick={e => { if (e.target === e.currentTarget) onClose() }}>
-      <div style={{ background: 'var(--bg-card)', borderRadius: 16, maxWidth: 460, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderBottom: '1px solid var(--border-secondary)' }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div className="![background:var(--bg-card)] !rounded-[16px] !max-w-[460px] !w-[100%] !max-h-[90vh] !overflow-y-auto">
+        <div className="!flex !items-center !justify-between !p-[14px_18px] ![border-bottom:1px_solid_var(--border-secondary)]">
+          <span className="!text-[length:14px] !font-[700] ![color:var(--text-primary)] !flex !items-center !gap-[6px]">
             <Package size={15} /> {t('journey.studio.print.title')}
           </span>
-          <button onClick={onClose} aria-label={t('common.close')}
-            style={{ width: 26, height: 26, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
+          <button className="!w-[26px] !h-[26px] !flex !items-center !justify-center !rounded-[6px] ![border:none] ![background:none] !cursor-pointer ![color:var(--text-muted)]" onClick={onClose} aria-label={t('common.close')}>
             <X size={15} />
           </button>
         </div>
 
-        <div style={{ padding: 18 }}>
+        <div className="!p-[18px]">
           {orderResult ? (
-            <div style={{ textAlign: 'center', padding: '20px 10px' }}>
+            <div className="!text-center !p-[20px_10px]">
               <CheckCircle size={32} color="#16a34a" style={{ margin: '0 auto 10px' }} />
-              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 4px' }}>{t('journey.studio.print.orderPlaced')}</p>
-              <p style={{ fontSize: 12, color: 'var(--text-faint)' }}>{t('journey.studio.print.orderStatus', { status: orderResult.status })}</p>
+              <p className="!text-[length:14px] !font-[600] ![color:var(--text-primary)] !m-[0_0_4px]">{t('journey.studio.print.orderPlaced')}</p>
+              <p className="!text-[length:12px] ![color:var(--text-faint)]">{t('journey.studio.print.orderStatus', { status: orderResult.status })}</p>
             </div>
           ) : (
             <>
               {unprintableSize && (
-                <p role="alert" style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#b45309', lineHeight: 1.5, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.35)' }}>
+                <p className="!flex !gap-[8px] !items-start !text-[length:12px] ![color:#b45309] !leading-[1.5] !m-[0_0_12px] !p-[8px_10px] !rounded-[8px] ![background:rgba(245,158,11,0.12)] ![border:1px_solid_rgba(245,158,11,0.35)]" role="alert">
                   <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 2 }} />
                   <span>{t('journey.studio.print.customSizeWarning', { w: Math.round(doc.page.pageWidth * 10) / 10, h: Math.round(doc.page.pageHeight * 10) / 10 })}</span>
                 </p>
               )}
-              <p style={{ fontSize: 11, color: 'var(--text-faint)', lineHeight: 1.5, margin: '0 0 12px', padding: '8px 10px', borderRadius: 8, background: 'var(--bg-tertiary)' }}>
+              <p className="!text-[length:11px] ![color:var(--text-faint)] !leading-[1.5] !m-[0_0_12px] !p-[8px_10px] !rounded-[8px] ![background:var(--bg-tertiary)]">
                 {t('journey.studio.print.pdfUrlHint')}
               </p>
 
@@ -129,7 +127,7 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
                 <input style={INPUT} type="url" placeholder="https://…" value={interiorPdfUrl} onChange={e => setInteriorPdfUrl(e.target.value)} />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[8px]">
                 <div style={FIELD}>
                   <span style={LABEL}>{t('journey.studio.print.quantity')}</span>
                   <input style={INPUT} type="number" min={1} value={quantity} onChange={e => setQuantity(Math.max(1, Number(e.target.value) || 1))} />
@@ -147,7 +145,7 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
                 <input style={INPUT} type="email" value={contactEmail} onChange={e => setContactEmail(e.target.value)} />
               </div>
 
-              <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '14px 0 8px' }}>
+              <div className="!text-[length:11px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !m-[14px_0_8px]">
                 {t('journey.studio.print.shippingAddress')}
               </div>
               <div style={FIELD}>
@@ -156,7 +154,7 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
               <div style={FIELD}>
                 <input style={INPUT} placeholder={t('journey.studio.print.addrStreet1')} value={address.street1} onChange={e => setAddress(a => ({ ...a, street1: e.target.value }))} />
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[8px]">
                 <div style={FIELD}>
                   <input style={INPUT} placeholder={t('journey.studio.print.addrCity')} value={address.city} onChange={e => setAddress(a => ({ ...a, city: e.target.value }))} />
                 </div>
@@ -170,9 +168,9 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
               </div>
 
               {estimate && (
-                <div style={{ margin: '10px 0', padding: '10px 12px', borderRadius: 8, background: 'var(--bg-tertiary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{t('journey.studio.print.estimatedTotal')}</span>
-                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                <div className="!m-[10px_0] !p-[10px_12px] !rounded-[8px] ![background:var(--bg-tertiary)] !flex !justify-between !items-center">
+                  <span className="!text-[length:12px] ![color:var(--text-muted)]">{t('journey.studio.print.estimatedTotal')}</span>
+                  <span className="!text-[length:15px] !font-[700] ![color:var(--text-primary)]">
                     {new Intl.NumberFormat(undefined, { style: 'currency', currency: estimate.currency }).format(estimate.total)}
                   </span>
                 </div>
@@ -182,12 +180,12 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
         </div>
 
         {orders.length > 0 && (
-          <div style={{ padding: '0 18px 14px', borderTop: orderResult ? 'none' : '1px solid var(--border-secondary)' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-faint)', margin: '12px 0 6px' }}>
+          <div className="!p-[0_18px_14px]" style={{ borderTop: orderResult ? 'none' : '1px solid var(--border-secondary)' }}>
+            <div className="!text-[length:11px] !font-[700] !uppercase !tracking-[0.05em] ![color:var(--text-faint)] !m-[12px_0_6px]">
               {t('journey.studio.print.yourOrders')}
             </div>
             {orders.slice(0, 5).map(o => (
-              <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-muted)', padding: '3px 0' }}>
+              <div className="!flex !justify-between !text-[length:12px] ![color:var(--text-muted)] !p-[3px_0]" key={o.id}>
                 <span>#{o.id} — {o.status}</span>
                 {o.cost_total != null && <span>{o.cost_currency} {o.cost_total.toFixed(2)}</span>}
               </div>
@@ -196,16 +194,16 @@ export function PrintOrderModal({ journeyId, title, doc, onClose }: { journeyId:
         )}
 
         {!orderResult && (
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', padding: '14px 18px', borderTop: '1px solid var(--border-secondary)' }}>
-            <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--text-muted)' }}>
+          <div className="!flex !gap-[8px] !justify-end !p-[14px_18px] ![border-top:1px_solid_var(--border-secondary)]">
+            <button className="!p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:13px] !cursor-pointer ![font-family:inherit] ![color:var(--text-muted)]" onClick={onClose}>
               {t('common.cancel')}
             </button>
-            <button onClick={() => void getEstimate()} disabled={unprintableSize || !addressComplete || estimating}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: '1px solid var(--border-primary)', background: 'none', fontSize: 13, fontWeight: 600, cursor: unprintableSize || !addressComplete || estimating ? 'default' : 'pointer', opacity: unprintableSize || !addressComplete || estimating ? 0.5 : 1, fontFamily: 'inherit', color: 'var(--text-primary)' }}>
+            <button className="!flex !items-center !gap-[6px] !p-[8px_16px] !rounded-[10px] ![border:1px_solid_var(--border-primary)] ![background:none] !text-[length:13px] !font-[600] ![font-family:inherit] ![color:var(--text-primary)]" onClick={() => void getEstimate()} disabled={unprintableSize || !addressComplete || estimating}
+              style={{ cursor: unprintableSize || !addressComplete || estimating ? 'default' : 'pointer', opacity: unprintableSize || !addressComplete || estimating ? 0.5 : 1 }}>
               {estimating ? t('journey.studio.print.estimating') : t('journey.studio.print.getEstimate')}
             </button>
-            <button onClick={() => void placeOrder()} disabled={unprintableSize || !estimate || !interiorPdfUrl || !contactEmail || ordering}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, border: 'none', fontSize: 13, fontWeight: 600, cursor: ordering ? 'default' : 'pointer', opacity: !estimate || !interiorPdfUrl || !contactEmail || ordering ? 0.5 : 1, fontFamily: 'inherit', background: 'var(--text-primary)', color: 'var(--bg-primary)' }}>
+            <button className="!flex !items-center !gap-[6px] !p-[8px_16px] !rounded-[10px] ![border:none] !text-[length:13px] !font-[600] ![font-family:inherit] ![background:var(--text-primary)] ![color:var(--bg-primary)]" onClick={() => void placeOrder()} disabled={unprintableSize || !estimate || !interiorPdfUrl || !contactEmail || ordering}
+              style={{ cursor: ordering ? 'default' : 'pointer', opacity: !estimate || !interiorPdfUrl || !contactEmail || ordering ? 0.5 : 1 }}>
               {ordering ? t('journey.studio.print.placingOrder') : t('journey.studio.print.placeOrder')}
             </button>
           </div>
