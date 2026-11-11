@@ -41,12 +41,15 @@ vi.mock('../../src/config', () => ({
 // URLs that look internal); individual tests override with mockResolvedValueOnce.
 const alongMock = vi.fn();
 const elementsMock = vi.fn();
+// Lodging falls back to Nominatim when Overpass is down: never reach the real server from a test.
+const nominatimMock = vi.fn();
 const googleAvailableMock = vi.fn();
 const googleSearchMock = vi.fn();
 vi.mock('../../src/services/mapsService', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/services/mapsService')>()),
   searchOverpassPoisAlongRoute: (...args: unknown[]) => alongMock(...args),
   overpassElements: (...args: unknown[]) => elementsMock(...args),
+  nominatimLodgingElements: (...args: unknown[]) => nominatimMock(...args),
 }));
 
 vi.mock('../../src/services/googleLodgingService', () => ({
@@ -66,7 +69,7 @@ import { loginAttempts, mfaAttempts } from '../../src/routes/auth';
 const app: Application = createApp();
 
 beforeAll(() => { createTables(testDb); runMigrations(testDb); });
-beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); googleAvailableMock.mockReset(); googleAvailableMock.mockReturnValue(false); googleSearchMock.mockReset(); googleSearchMock.mockResolvedValue([]); });
+beforeEach(() => { resetTestDb(testDb); loginAttempts.clear(); mfaAttempts.clear(); alongMock.mockReset(); elementsMock.mockReset(); elementsMock.mockResolvedValue([]); nominatimMock.mockReset(); nominatimMock.mockRejectedValue(new Error('Nominatim down')); googleAvailableMock.mockReset(); googleAvailableMock.mockReturnValue(false); googleSearchMock.mockReset(); googleSearchMock.mockResolvedValue([]); });
 afterAll(() => { testDb.close(); });
 
 function track(n: number) {
@@ -452,6 +455,17 @@ describe('Planner smart cuts', () => {
     elementsMock.mockImplementation(async (q: string) => { if (q.includes('"place"')) return [placeAt(1, 58, 'Pueblo')]; throw new Error('timeout'); });
     const r = await smart(user.id, r0.id, { stages: 2 });
     expect(r.body.cuts[0]).toMatchObject({ lodged: false, town: true, place: 'Pueblo', unchecked: true });
+  });
+
+  it('PLAN-073b — Overpass down but Nominatim answers: lodging is still found', async () => {
+    const { user } = createUser(testDb);
+    const r0 = await mk(user.id, 'Larga', { points: track(10000), cuts: [] });
+    elementsMock.mockRejectedValue(Object.assign(new Error('Overpass request failed'), { status: 502 }));
+    nominatimMock.mockResolvedValue([hotelAt(1, 52)]);
+    const r = await smart(user.id, r0.id, { stages: 2 });
+    expect(r.status).toBe(200);
+    expect(nominatimMock).toHaveBeenCalled();
+    expect(r.body.cuts[0].lodged).toBe(true);
   });
 
   it('PLAN-074 — stored cuts keep town / place / unchecked', async () => {

@@ -34,24 +34,36 @@ function isCapacitor(): boolean {
 // ── Native (Capacitor) path ───────────────────────────────────────────────────
 
 let _bgGeoStarted = false
+
+/**
+ * The background-geolocation plugin is native only (it ships no JavaScript): it is reached
+ * through Capacitor's plugin bridge, not imported. The old `import('@capacitor-community/…')`
+ * was marked external in the build, so inside the app it could never load.
+ */
+type BgLocation = { latitude: number; longitude: number; altitude: number | null; speed: number | null; accuracy: number; time: number | null }
+type BgError = { message: string; code?: string }
+interface BackgroundGeolocationPlugin {
+  addWatcher(options: Record<string, unknown>, cb: (location?: BgLocation, error?: BgError) => void): Promise<string>
+  removeWatcher(options: { id: string }): Promise<void>
+  openSettings(): Promise<void>
+}
+let _bgPlugin: BackgroundGeolocationPlugin | null = null
+async function backgroundGeolocation(): Promise<BackgroundGeolocationPlugin> {
+  if (!_bgPlugin) {
+    const { registerPlugin } = await import('@capacitor/core')
+    _bgPlugin = registerPlugin<BackgroundGeolocationPlugin>('BackgroundGeolocation')
+  }
+  return _bgPlugin
+}
 let _nativeCallbackId: string | null = null
 
 async function startNative(onLocation: LocationCallback, onError: ErrorCallback): Promise<void> {
   if (_bgGeoStarted) return
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation') as any
+    const BackgroundGeolocation = await backgroundGeolocation()
 
-    // Request permissions — prompts the user if needed
-    const perm = await BackgroundGeolocation.checkPermissions()
-    if (perm.location === 'denied') {
-      const req = await BackgroundGeolocation.requestPermissions()
-      if (req.location === 'denied') {
-        onError('Permiso de ubicación denegado')
-        return
-      }
-    }
-
+    // Permissions are asked by addWatcher itself (requestPermissions: true); a refusal
+    // arrives in the callback as error.code === 'NOT_AUTHORIZED'.
     await BackgroundGeolocation.addWatcher(
       {
         backgroundMessage: 'Trek Wanderer está grabando tu ruta.',
@@ -61,7 +73,10 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
         distanceFilter: 3,
       },
       (location, error) => {
-        if (error) { onError(error.message); return }
+        if (error) {
+          onError(error.code === 'NOT_AUTHORIZED' ? 'Permiso de ubicación denegado' : error.message)
+          return
+        }
         if (!location) return
         onLocation({
           lat: location.latitude,
@@ -83,8 +98,7 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
 async function stopNative(): Promise<void> {
   if (!_bgGeoStarted) return
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { BackgroundGeolocation } = await import('@capacitor-community/background-geolocation') as any
+    const BackgroundGeolocation = await backgroundGeolocation()
     if (_nativeCallbackId) {
       await BackgroundGeolocation.removeWatcher({ id: _nativeCallbackId })
       _nativeCallbackId = null

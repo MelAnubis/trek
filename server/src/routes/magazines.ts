@@ -26,8 +26,13 @@ router.post('/', authenticate, (req: Request, res: Response) => {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: 'Invalid magazine' });
   const result = createMagazine((req as AuthRequest).user.id, parsed.data);
-  if (!result.ok) return res.status(result.status).json({ error: result.error });
-  res.status(201).json({ journey_id: result.journeyId, volume: result.volume });
+  // `strict` is off, so `!result.ok` doesn't narrow the union: name the failure branch.
+  if (result.ok === false) {
+    const fail = result as Extract<typeof result, { ok: false }>;
+    return res.status(fail.status).json({ error: fail.error });
+  }
+  const done = result as Extract<typeof result, { ok: true }>;
+  res.status(201).json({ journey_id: done.journeyId, volume: done.volume });
 });
 
 export default router;
