@@ -33,6 +33,38 @@ function isCapacitor(): boolean {
 
 // ── Native (Capacitor) path ───────────────────────────────────────────────────
 
+// Local Android-only plugin (client/android/app/src/main/java/com/trek/wanderer/
+// BackgroundLocationHelperPlugin.java) — not an npm package, so it's registered
+// by name via @capacitor/core. Requests ACCESS_BACKGROUND_LOCATION and the
+// battery-optimization exemption, neither of which
+// @capacitor-community/background-geolocation asks for on its own.
+interface BackgroundLocationHelperPlugin {
+  checkBackgroundPermission(): Promise<{ granted: boolean }>
+  requestBackgroundPermission(): Promise<{ granted: boolean }>
+  isIgnoringBatteryOptimizations(): Promise<{ ignoring: boolean }>
+  requestIgnoreBatteryOptimizations(): Promise<void>
+}
+
+let _hardeningRequested = false
+
+async function requestBackgroundLocationHardening(): Promise<void> {
+  if (_hardeningRequested) return
+  _hardeningRequested = true
+  try {
+    const { registerPlugin } = await import('@capacitor/core')
+    const helper = registerPlugin<BackgroundLocationHelperPlugin>('BackgroundLocationHelper')
+
+    const bg = await helper.checkBackgroundPermission()
+    if (!bg.granted) await helper.requestBackgroundPermission()
+
+    const battery = await helper.isIgnoringBatteryOptimizations()
+    if (!battery.ignoring) await helper.requestIgnoreBatteryOptimizations()
+  } catch {
+    // Best effort — an old APK without this native plugin, or a device that
+    // rejects one of these prompts, shouldn't stop tracking from starting.
+  }
+}
+
 let _bgGeoStarted = false
 
 /**
@@ -87,7 +119,16 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
           timestamp: location.time ?? Date.now(),
         })
       }
-    ).then(id => { _nativeCallbackId = id })
+    ).then(id => {
+      _nativeCallbackId = id
+      // Only now: Android grants "Allow all the time" (ACCESS_BACKGROUND_LOCATION) only
+      // after the "while using the app" permission that addWatcher has just asked for.
+      // That one alone doesn't keep GPS alive with the screen off — Android also wants
+      // the background permission and, on most OEM builds, a battery-optimization
+      // exemption, or the foreground service is killed when the screen locks.
+      // Best effort: never blocks tracking.
+      void requestBackgroundLocationHardening()
+    })
 
     _bgGeoStarted = true
   } catch (e) {
