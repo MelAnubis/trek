@@ -27,7 +27,7 @@ For OAuth 2.1, each user can register up to **10 OAuth clients**. The default li
 | Logs | `./data/logs/trek.log` (auto-rotated) |
 | Backups | `./data/backups/` |
 
-When running in Docker, mount `./data` and `./uploads` as volumes so your data survives container updates. See [Install: Docker Compose](Install-Docker-Compose).
+When running in Docker, mount `./data` and `./uploads` as volumes so your data survives container updates. See [Quick Start](Quick-Start).
 
 ## How do I update TREK?
 

@@ -60,7 +60,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 
 | | |
 |---|---|
-| [Quick Start](Quick-Start) | Install in minutes with a single Docker command |
+| [Quick Start](Quick-Start) | Install with Docker Compose |
 | [My Trips Dashboard](My-Trips-Dashboard) | Start planning your first trip |
 | [Admin Panel](Admin-Panel-Overview) | Configure your instance |
 | [MCP / AI Integration](MCP-Overview) | Connect Claude, Cursor, or any MCP client |

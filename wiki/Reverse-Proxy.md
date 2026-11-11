@@ -103,4 +103,4 @@ See [Environment-Variables](Environment-Variables) for full documentation of the
 ## Next Steps
 
 - [Environment-Variables](Environment-Variables) — full variable reference including OIDC
-- [Install-Docker-Compose](Install-Docker-Compose) — production compose file with proxy-ready env vars
+- [Quick Start](Quick-Start) — install with the repository's docker-compose.yml
