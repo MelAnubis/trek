@@ -441,10 +441,9 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
     return (
       <div className="!flex !gap-[6px] !mt-[8px]">
         {availableProviders.map(provider => (
-          <button className="!p-[6px_12px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s] !capitalize"
+          <button className={['!p-[6px_12px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s] !capitalize', (selectedProvider === provider.id) ? '![background:var(--text-primary)]' : '![background:var(--bg-card)]', (selectedProvider === provider.id) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (selectedProvider === provider.id) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')}
             key={provider.id}
             onClick={() => setSelectedProvider(provider.id)}
-            style={{ border: '1px solid', background: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: selectedProvider === provider.id ? 'var(--text-primary)' : 'var(--border-primary)', color: selectedProvider === provider.id ? 'var(--bg-primary)' : 'var(--text-muted)' }}
           >
             {provider.name}
           </button>
@@ -473,7 +472,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
         <div className="!flex-[1] !overflow-y-auto !p-[12px]">
           {albumsLoading ? (
             <div className="!text-center !p-[40px]">
-              <div className="!w-[24px] !h-[24px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
+              <div className="!w-[24px] !h-[24px] ![border:2px_solid_var(--border-primary)] [&&]:![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : albums.length === 0 ? (
             <p className="!text-center !p-[40px] !text-[length:13px] ![color:var(--text-faint)]">
@@ -543,13 +542,11 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
           {/* Filter tabs */}
           <div className="!flex !gap-[6px]">
             {startDate && endDate && (
-              <button className="!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]" onClick={() => { if (!pickerDateFilter) { setPickerDateFilter(true); loadPickerPhotos(true) } }}
-                style={{ border: '1px solid', background: pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)', color: pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+              <button className={['!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]', (pickerDateFilter) ? '![background:var(--text-primary)]' : '![background:var(--bg-card)]', (pickerDateFilter) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (pickerDateFilter) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} onClick={() => { if (!pickerDateFilter) { setPickerDateFilter(true); loadPickerPhotos(true) } }}>
                 {t('memories.tripDates')} ({startDate ? new Date(startDate + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : ''} — {endDate ? new Date(endDate + 'T12:00:00').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : ''})
               </button>
             )}
-            <button className="!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]" onClick={() => { if (pickerDateFilter || !startDate) { setPickerDateFilter(false); loadPickerPhotos(false) } }}
-              style={{ border: '1px solid', background: !pickerDateFilter ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: !pickerDateFilter ? 'var(--text-primary)' : 'var(--border-primary)', color: !pickerDateFilter ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+            <button className={['!p-[6px_14px] !rounded-[99px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.15s]', (!pickerDateFilter) ? '![background:var(--text-primary)]' : '![background:var(--bg-card)]', (!pickerDateFilter) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (!pickerDateFilter) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} onClick={() => { if (pickerDateFilter || !startDate) { setPickerDateFilter(false); loadPickerPhotos(false) } }}>
               <span className="hidden sm:inline">{t('memories.allPhotos')}</span>
               <span className="sm:hidden">{t('common.all')}</span>
             </button>
@@ -603,9 +600,9 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
                     const isSelected = selectedIds.has(pickerKey)
                     const isAlready = alreadyAdded.has(pickerKey)
                     return (
-                      <div className="!relative ![aspect-ratio:1] !rounded-[8px] !overflow-hidden" key={pickerKey}
+                      <div className={['!relative ![aspect-ratio:1] !rounded-[8px] !overflow-hidden', (isAlready) ? '!cursor-default' : '!cursor-pointer', (isSelected) ? '![outline:3px_solid_var(--text-primary)]' : '![outline:none]', '[&&]:![outline-offset:-3px]'].join(' ')} key={pickerKey}
                         onClick={() => !isAlready && togglePickerSelect(pickerKey)}
-                        style={{ cursor: isAlready ? 'default' : 'pointer', opacity: isAlready ? 0.3 : 1, outline: isSelected ? '3px solid var(--text-primary)' : 'none', outlineOffset: -3 }}>
+                        style={{ opacity: isAlready ? 0.3 : 1 }}>
                         <ProviderImg baseUrl={buildProviderAssetUrlFromAsset(asset, 'thumbnail', currentUser!.id)} provider={asset.provider} loading="lazy"
                           style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         {isSelected && (
@@ -953,8 +950,8 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
               </button>
             )}
             {hasNext && (
-              <button className="!absolute !z-[10] ![background:rgba(0,0,0,0.5)] ![border:none] !rounded-[50%] !w-[40px] !h-[40px] !flex !items-center !justify-center !cursor-pointer ![color:rgba(255,255,255,0.8)]" onClick={e => { e.stopPropagation(); navigateTo(currentIdx + 1) }}
-                style={{ right: isMobile ? 12 : 280, top: '50%', transform: 'translateY(-50%)' }}>
+              <button className={['!absolute !z-[10] ![background:rgba(0,0,0,0.5)] ![border:none] !rounded-[50%] !w-[40px] !h-[40px] !flex !items-center !justify-center !cursor-pointer ![color:rgba(255,255,255,0.8)]', (isMobile) ? '!right-[12px]' : '!right-[280px]', '!top-[50%]'].join(' ')} onClick={e => { e.stopPropagation(); navigateTo(currentIdx + 1) }}
+                style={{ transform: 'translateY(-50%)' }}>
                 <ChevronRight size={22} />
               </button>
             )}
@@ -968,11 +965,10 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
             )}
 
             <div className="!flex !gap-[16px] !items-start !justify-center !p-[20px] !w-[100%] !h-[100%]" onClick={e => { if (e.target === e.currentTarget) closeLightbox() }}>
-              <img className="!object-contain !rounded-[10px] !cursor-default"
+              <img className={['!object-contain !rounded-[10px] !cursor-default', ((!isMobile && lightboxInfo)) ? '!max-w-[calc(100%_-_280px)]' : '!max-w-[100%]', '!max-h-[100%]'].join(' ')}
                 src={lightboxOriginalSrc}
                 alt=""
                 onClick={e => e.stopPropagation()}
-                style={{ maxWidth: (!isMobile && lightboxInfo) ? 'calc(100% - 280px)' : '100%', maxHeight: '100%' }}
               />
 
               {/* Desktop info panel — liquid glass */}
@@ -991,7 +987,7 @@ export default function MemoriesPanel({ tripId, startDate, endDate }: MemoriesPa
 
             {/* Mobile bottom sheet */}
             {isMobile && showMobileInfo && lightboxInfo && (
-              <div className="!absolute !bottom-[0] !left-[0] !right-[0] !z-[5] !max-h-[60vh] !overflow-y-auto !rounded-[16px_16px_0_0] !p-[18px] ![background:rgba(0,0,0,0.85)] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:1px_solid_rgba(255,255,255,0.12)] ![border-bottom:none] ![color:white] !flex !flex-col !gap-[14px]" onClick={e => e.stopPropagation()}>
+              <div className="!absolute !bottom-[0] !left-[0] !right-[0] !z-[5] !max-h-[60vh] !overflow-y-auto !rounded-[16px_16px_0_0] !p-[18px] ![background:rgba(0,0,0,0.85)] ![backdrop-filter:blur(20px)] ![-webkit-backdrop-filter:blur(20px)] ![border:1px_solid_rgba(255,255,255,0.12)] [&&]:![border-bottom:none] ![color:white] !flex !flex-col !gap-[14px]" onClick={e => e.stopPropagation()}>
                 {exifContent}
               </div>
             )}

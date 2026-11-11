@@ -343,7 +343,7 @@ export default function TourWorkspace({ tripId, canEdit }: Props) {
   const toggle: React.CSSProperties = { position: 'absolute', top: 12, zIndex: 600, width: 30, height: 30, borderRadius: 8, border: '1px solid var(--border-faint)', background: 'var(--bg-card)', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-card)' }
 
   return (
-    <div className="!absolute !inset-[0] !bottom-[var(--bottom-nav-h)] ![background:var(--bg-secondary)]">
+    <div className="!absolute !inset-[0] [&&]:!bottom-[var(--bottom-nav-h)] ![background:var(--bg-secondary)]">
       <input ref={fileRef} type="file" accept=".gpx,.kml,application/gpx+xml,application/vnd.google-earth.kml+xml" style={{ display: 'none' }}
         onChange={e => { const f = e.target.files?.[0]; if (f) setImportFile(f); e.target.value = '' }} />
 

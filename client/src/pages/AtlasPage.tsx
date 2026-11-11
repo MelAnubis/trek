@@ -1362,7 +1362,7 @@ function SidebarContent({ data, stats, countries, selectedCountry, countryDetail
           {bucketSearchResults.length > 0 && (
             <div className="!absolute !mb-[4px] ![border:1px_solid_var(--border-primary)] !rounded-[8px] ![box-shadow:0_4px_12px_rgba(0,0,0,0.12)] !max-h-[160px] !overflow-y-auto" style={{ bottom: '100%', left: 0, right: 0, zIndex: 50, background: 'var(--bg-card)' }}>
               {bucketSearchResults.slice(0, 6).map((r, i) => (
-                <button className="!flex-col !gap-[1px] !w-[100%] !p-[6px_10px] ![border:none] !cursor-pointer !text-left ![font-family:inherit] ![border-bottom:1px_solid_var(--border-faint)]" key={i} onClick={() => onSelectBucketPoi(r)} style={{ display: 'flex', background: 'none' }}>
+                <button className="!flex-col !gap-[1px] !w-[100%] !p-[6px_10px] ![border:none] !cursor-pointer !text-left ![font-family:inherit] [&&]:![border-bottom:1px_solid_var(--border-faint)]" key={i} onClick={() => onSelectBucketPoi(r)} style={{ display: 'flex', background: 'none' }}>
                   <span className="!text-[length:12px] !font-[500] ![color:var(--text-primary)]">{r.name}</span>
                   {r.address && <span className="!text-[length:10px] ![color:var(--text-faint)]">{r.address}</span>}
                 </button>

@@ -39,8 +39,7 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
       {options.map(o => {
         const active = o.id === value
         return (
-          <button className="!flex-[1] !flex !items-center !justify-center !gap-[6px] !p-[7px_8px] !rounded-[9px] ![border:none] !cursor-pointer" key={o.id} type="button" onClick={() => onChange(o.id)}
-            style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: active ? 600 : 500, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: active ? '0 1px 2px rgba(0,0,0,.08)' : 'none' }}>
+          <button className={['!flex-[1] !flex !items-center !justify-center !gap-[6px] !p-[7px_8px] !rounded-[9px] ![border:none] !cursor-pointer', (active) ? '!font-[600]' : '!font-[500]', (active) ? '![background:var(--bg-card)]' : '![background:transparent]', (active) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (active) ? '![box-shadow:0_1px_2px_rgba(0,0,0,.08)]' : '![box-shadow:none]', '![font-family:inherit] !text-[length:12.5px]'].join(' ')} key={o.id} type="button" onClick={() => onChange(o.id)}>
             {o.icon && <o.icon size={13} />}{o.label}
           </button>
         )

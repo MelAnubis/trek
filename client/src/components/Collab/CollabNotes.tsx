@@ -529,7 +529,7 @@ function CategorySettingsModal({ onClose, categories, categoryColors, onSave, on
               {/* Color swatches */}
               <div className="!flex !gap-[4px]">
                 {NOTE_COLORS.map(c => (
-                  <button className="!w-[20px] !h-[20px] !rounded-[6px] ![border:none] !cursor-pointer !p-[0] ![transition:transform_0.1s]" key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{ background: c.value, outline: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? '2px solid var(--text-primary)' : '2px solid transparent', outlineOffset: 1, transform: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? 'scale(1.1)' : 'scale(1)' }} />
+                  <button className={['!w-[20px] !h-[20px] !rounded-[6px] ![border:none] !cursor-pointer !p-[0] ![transition:transform_0.1s]', ((localColors[cat] || NOTE_COLORS[0].value) === c.value) ? '![outline:2px_solid_var(--text-primary)]' : '![outline:2px_solid_transparent]', '[&&]:![outline-offset:1px]'].join(' ')} key={c.value} onClick={() => handleColorChange(cat, c.value)} style={{ background: c.value, transform: (localColors[cat] || NOTE_COLORS[0].value) === c.value ? 'scale(1.1)' : 'scale(1)' }} />
                 ))}
               </div>
               {/* Category name — editable */}
@@ -905,7 +905,7 @@ export default function CollabNotes({ tripId, currentUser }: CollabNotesProps) {
           </h3>
         </div>
         <div className="!flex-[1] !flex !items-center !justify-center">
-          <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-notes-spin 0.7s linear infinite' }} />
+          <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] [&&]:![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-notes-spin 0.7s linear infinite' }} />
           <style>{`@keyframes collab-notes-spin { to { transform: rotate(360deg) } }`}</style>
         </div>
       </div>

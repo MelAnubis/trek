@@ -529,7 +529,7 @@ function Step2({
 
 function DayChip({ label, selected, color, onClick }: { key?: any; label: string; selected: boolean; color: string; onClick: () => void }) {
   return (
-    <button className="!p-[4px_10px] !rounded-[6px] !cursor-pointer ![transition:all_.15s]" onClick={onClick} style={{ border: `1px solid ${selected ? color : 'transparent'}`, background: selected ? color + '25' : 'var(--bg-tertiary, #1a2535)', color: selected ? color : 'var(--text-secondary, #94a3b8)', fontSize: 11, fontWeight: selected ? 700 : 400 }}>
+    <button className={['!p-[4px_10px] !rounded-[6px] !cursor-pointer ![transition:all_.15s]', (selected) ? '!font-[700]' : '!font-[400]', '!text-[length:11px]'].join(' ')} onClick={onClick} style={{ border: `1px solid ${selected ? color : 'transparent'}`, background: selected ? color + '25' : 'var(--bg-tertiary, #1a2535)', color: selected ? color : 'var(--text-secondary, #94a3b8)' }}>
       {label}
     </button>
   )

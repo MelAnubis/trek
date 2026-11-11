@@ -443,7 +443,7 @@ export default function PlaceInspector({
               {hoursExpanded && (
                 <div className="!p-[0_12px_10px]">
                   {openingHours.map((line, i) => (
-                    <div className="!p-[2px_0]" key={i} style={{ fontSize: 12, color: i === weekdayIndex ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: i === weekdayIndex ? 600 : 400 }}>{convertHoursLine(line, timeFormat)}</div>
+                    <div className={['!p-[2px_0]', (i === weekdayIndex) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (i === weekdayIndex) ? '!font-[600]' : '!font-[400]', '!text-[length:12px]'].join(' ')} key={i}>{convertHoursLine(line, timeFormat)}</div>
                   ))}
                 </div>
               )}

@@ -30,7 +30,7 @@ export default function JournalBody({ text, dark }: Props) {
           li: ({ children }) => <li className="!m-[4px_0]">{children}</li>,
           strong: ({ children }) => <strong className="!font-[600]">{children}</strong>,
           em: ({ children }) => <em>{children}</em>,
-          hr: () => <hr className="![border:none] ![border-top:1px_solid_var(--journal-border)] !m-[20px_0]" />,
+          hr: () => <hr className="![border:none] [&&]:![border-top:1px_solid_var(--journal-border)] !m-[20px_0]" />,
           code: ({ children, className }) => {
             const isBlock = className?.includes('language-')
             if (isBlock) {

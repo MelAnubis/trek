@@ -1,4 +1,5 @@
 // FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-052
+import { hasStyle } from '../../../tests/helpers/inlineStyle';
 import { render, screen, waitFor, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -120,7 +121,7 @@ describe('ReservationModal', () => {
     render(<ReservationModal {...defaultProps} />);
     const eventBtn = screen.getByRole('button', { name: /Event/i });
     await userEvent.click(eventBtn);
-    expect(eventBtn).toHaveStyle({ background: 'var(--text-primary)' });
+    expect(hasStyle(eventBtn, 'background', 'var(--text-primary)')).toBe(true);
   });
 
   it('FE-PLANNER-RESMODAL-008: hotel type shows check-in/check-out time fields', async () => {

@@ -186,7 +186,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
             <Calendar size={collapsed ? 16 : 20} style={{ color: 'var(--text-primary)' }} />
           </div>
           <div className="!flex-[1] !min-w-[0]">
-            <div className="![color:var(--text-primary)] ![transition:font-size_0.15s_ease]" style={{ fontSize: collapsed ? 13 : 15, fontWeight: 700 }}>
+            <div className={['![color:var(--text-primary)] ![transition:font-size_0.15s_ease]', (collapsed) ? '!text-[length:13px]' : '!text-[length:15px]', '!font-[700]'].join(' ')}>
               {day.title || t('planner.dayN', { n: (days.indexOf(day) + 1) || '?' })}
               {collapsed && formattedDate && <span className="!font-[500] ![color:var(--text-muted)] !ml-[8px]">{formattedDate}</span>}
             </div>
@@ -207,7 +207,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
           {day.date && lat && lng && (
             loading ? (
               <div className="!text-center !p-[16px] ![color:var(--text-faint)] !text-[length:12px]">
-                <div className="!w-[18px] !h-[18px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto_6px]" style={{ animation: 'spin 0.8s linear infinite' }} />
+                <div className="!w-[18px] !h-[18px] ![border:2px_solid_var(--border-primary)] [&&]:![border-top-color:var(--text-primary)] !rounded-[50%] !m-[0_auto_6px]" style={{ animation: 'spin 0.8s linear infinite' }} />
               </div>
             ) : weather ? (
               <div>
@@ -539,7 +539,7 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
                       return filtered.length === 0 ? (
                         <div className="!p-[20px] !text-center !text-[length:12px] ![color:var(--text-faint)]">{t('day.noPlacesForHotel')}</div>
                       ) : filtered.map(p => (
-                      <button className={[(hotelForm.place_id !== p.id) ? 'trek-hover' : undefined, '!flex !items-center !gap-[10px] !w-[100%] !p-[10px_18px] ![border:none] ![border-bottom:1px_solid_var(--border-faint)] !cursor-pointer ![font-family:inherit] !text-left ![transition:background_0.1s]'].join(' ')} key={p.id} onClick={() => handleSelectPlace(p.id)} style={{ background: hotelForm.place_id === p.id ? 'var(--bg-hover)' : 'none', outline: hotelForm.place_id === p.id ? '2px solid var(--accent)' : 'none', outlineOffset: -2, borderRadius: hotelForm.place_id === p.id ? 8 : 0 }} >
+                      <button className={[[(hotelForm.place_id !== p.id) ? 'trek-hover' : undefined, '!flex !items-center !gap-[10px] !w-[100%] !p-[10px_18px] ![border:none] [&&]:![border-bottom:1px_solid_var(--border-faint)] !cursor-pointer ![font-family:inherit] !text-left ![transition:background_0.1s]'].join(' '), (hotelForm.place_id === p.id) ? '![background:var(--bg-hover)]' : '![background:none]', (hotelForm.place_id === p.id) ? '![outline:2px_solid_var(--accent)]' : '![outline:none]', (hotelForm.place_id === p.id) ? '!rounded-[8px]' : '!rounded-[0]', '[&&]:![outline-offset:-2px]'].join(' ')} key={p.id} onClick={() => handleSelectPlace(p.id)} >
                         <div className="!w-[32px] !h-[32px] !rounded-[8px] ![background:var(--bg-secondary)] !flex !items-center !justify-center !shrink-[0]">
                           {p.image_url ? (
                             <img className="!w-[100%] !h-[100%] !rounded-[8px] !object-cover" src={p.image_url} />

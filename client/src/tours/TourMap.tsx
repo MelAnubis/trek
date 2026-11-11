@@ -145,8 +145,7 @@ function MapSearch({ onPick }: { onPick: (lat: number, lng: number) => void }) {
       {results.length > 0 && (
         <div className="!mt-[6px] ![background:var(--bg-card)] ![border:1px_solid_var(--border-primary)] !rounded-[12px] !overflow-hidden ![box-shadow:var(--shadow-elevated)]">
           {results.map((r, i) => (
-            <button className="!block !w-[100%] !text-left !p-[8px_12px] ![background:none] !cursor-pointer !text-[length:12px] ![color:var(--text-primary)] ![font-family:inherit] !whitespace-nowrap !overflow-hidden !text-ellipsis" key={i} onClick={() => { onPick(r.lat, r.lng); setResults([]); setQ('') }}
-              style={{ border: 'none', borderTop: i ? '1px solid var(--border-faint)' : 'none' }}>
+            <button className={['!block !w-[100%] !text-left !p-[8px_12px] ![background:none] !cursor-pointer !text-[length:12px] ![color:var(--text-primary)] ![font-family:inherit] !whitespace-nowrap !overflow-hidden !text-ellipsis', (i) ? '[&&]:![border-top:1px_solid_var(--border-faint)]' : '[&&]:![border-top:none]', '![border:none]'].join(' ')} key={i} onClick={() => { onPick(r.lat, r.lng); setResults([]); setQ('') }}>
               {r.name}
             </button>
           ))}
@@ -245,8 +244,7 @@ export default function TourMap(props: Props) {
         {layerButtons.map(b => {
           const active = baseLayer === b.id
           return (
-            <button className="!flex !items-center !gap-[6px] !p-[7px_10px] !rounded-[10px] ![border:none] !cursor-pointer !whitespace-nowrap" key={b.id} onClick={() => props.onBaseLayer(b.id)} title={b.label}
-              style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: active ? 600 : 500, background: active ? 'var(--bg-tertiary)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+            <button className={['!flex !items-center !gap-[6px] !p-[7px_10px] !rounded-[10px] ![border:none] !cursor-pointer !whitespace-nowrap', (active) ? '!font-[600]' : '!font-[500]', (active) ? '![background:var(--bg-tertiary)]' : '![background:transparent]', (active) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', '![font-family:inherit] !text-[length:12px]'].join(' ')} key={b.id} onClick={() => props.onBaseLayer(b.id)} title={b.label}>
               <b.icon size={14} /> <span className="hidden sm:inline">{b.label}</span>
             </button>
           )

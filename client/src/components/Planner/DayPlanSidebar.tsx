@@ -134,7 +134,7 @@ function MobileAddPlaceButton({ dayId, places, assignments, onAssign, onAddNew }
             ))}
           </div>
           {onAddNew && (
-            <button className="!w-[100%] !flex !items-center !justify-center !gap-[6px] !p-[10px_0] ![border-top:1px_solid_var(--border-faint)] ![border:none] ![color:var(--text-muted)] !text-[length:12px] !font-[600] ![font-family:inherit] !cursor-pointer"
+            <button className="!w-[100%] !flex !items-center !justify-center !gap-[6px] !p-[10px_0] [&&]:![border-top:1px_solid_var(--border-faint)] ![border:none] ![color:var(--text-muted)] !text-[length:12px] !font-[600] ![font-family:inherit] !cursor-pointer"
               onClick={() => { onAddNew(); setOpen(false); setSearch('') }}
               style={{ background: 'transparent' }}
             >
@@ -1877,8 +1877,8 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
 
                       <div className="!flex !gap-[2px] !p-[2px] !rounded-[9px]" role="group" aria-label={t('dayplan.routeProfile')} style={{ background: 'var(--bg-hover)' }}>
                         {([['default', Footprints, t('dayplan.routeProfile.default')], ['cycling', Bike, t('dayplan.routeProfile.cycling')]] as const).map(([id, Icon, label]) => (
-                          <button className="!flex-[1] !flex !items-center !justify-center !gap-[5px] !p-[5px_0] !rounded-[7px] ![border:none] !cursor-pointer" key={id} onClick={() => useSettingsStore.getState().updateSetting('day_route_profile', id)} aria-pressed={dayRouteProfile === id}
-                            style={{ fontSize: 11, fontWeight: dayRouteProfile === id ? 600 : 500, fontFamily: 'inherit', background: dayRouteProfile === id ? 'var(--bg-card)' : 'transparent', color: dayRouteProfile === id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                          <button className={['!flex-[1] !flex !items-center !justify-center !gap-[5px] !p-[5px_0] !rounded-[7px] ![border:none] !cursor-pointer', (dayRouteProfile === id) ? '!font-[600]' : '!font-[500]', (dayRouteProfile === id) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', '!text-[length:11px] ![font-family:inherit]'].join(' ')} key={id} onClick={() => useSettingsStore.getState().updateSetting('day_route_profile', id)} aria-pressed={dayRouteProfile === id}
+                            style={{ background: dayRouteProfile === id ? 'var(--bg-card)' : 'transparent' }}>
                             <Icon size={12} strokeWidth={2} />{label}
                           </button>
                         ))}
@@ -1935,9 +1935,9 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar({
                 <Ban size={11} color="var(--text-faint)" />
               </button>
               {NOTE_COLORS.map(c => (
-                <button className="!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] ![border:none]" key={c} type="button" role="radio" aria-checked={ui.color === c} aria-label={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)} title={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)}
+                <button className={['!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] ![border:none]', (ui.color === c) ? '![outline:2px_solid_var(--text-primary)]' : '![outline:none]', '[&&]:![outline-offset:2px]'].join(' ')} key={c} type="button" role="radio" aria-checked={ui.color === c} aria-label={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)} title={t(`dayplan.noteColor.${NOTE_COLOR_NAMES[c]}`)}
                   onClick={() => setNoteUi(prev => ({ ...prev, [dayId]: { ...prev[dayId], color: c } }))}
-                  style={{ background: c, outline: ui.color === c ? '2px solid var(--text-primary)' : 'none', outlineOffset: 2 }} />
+                  style={{ background: c }} />
               ))}
             </div>
             <input

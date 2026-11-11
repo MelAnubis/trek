@@ -86,7 +86,7 @@ export default function NavigationPage() {
   if (loading) {
     return (
       <div className="!fixed !inset-[0] ![background:#0a0a14] !flex !items-center !justify-center !flex-col !gap-[12px]">
-        <div className="!w-[36px] !h-[36px] ![border:3px_solid_rgba(255,255,255,0.1)] ![border-top-color:#3b82f6] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
+        <div className="!w-[36px] !h-[36px] ![border:3px_solid_rgba(255,255,255,0.1)] [&&]:![border-top-color:#3b82f6] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
         <span className="![color:#64748b] !text-[length:13px]">Cargando track…</span>
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>

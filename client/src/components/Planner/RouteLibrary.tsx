@@ -141,8 +141,7 @@ export default function RouteLibrary({ version, currentId, onOpen, onDelete, onB
   }
 
   const sideItem = (f: LibraryFilter, icon: React.ReactNode, label: string, count: number) => (
-    <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[7px_10px] !rounded-[8px] ![border:none] !cursor-pointer !text-left ![color:var(--text-primary)]" key={`${f.kind}-${f.kind === 'folder' ? f.name : ''}`} type="button" onClick={() => select(f)}
-      style={{ background: isActive(f) ? 'var(--bg-hover, rgba(0,0,0,.06))' : 'transparent', fontSize: 13, fontWeight: isActive(f) ? 700 : 500 }}>
+    <button className={['!flex !items-center !gap-[8px] !w-[100%] !p-[7px_10px] !rounded-[8px] ![border:none] !cursor-pointer !text-left ![color:var(--text-primary)]', (isActive(f)) ? '![background:var(--bg-hover,_rgba(0,0,0,.06))]' : '![background:transparent]', (isActive(f)) ? '!font-[700]' : '!font-[500]', '!text-[length:13px]'].join(' ')} key={`${f.kind}-${f.kind === 'folder' ? f.name : ''}`} type="button" onClick={() => select(f)}>
       {icon}
       <span className="!flex-[1] !min-w-[0] !overflow-hidden !text-ellipsis !whitespace-nowrap">{label}</span>
       <span className="!text-[length:11px] ![color:var(--text-muted)]">{count}</span>

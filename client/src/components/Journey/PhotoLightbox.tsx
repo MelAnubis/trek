@@ -26,7 +26,7 @@ function PhotoImg({ src, caption }: { src: string; caption?: string | null }) {
   return blobUrl ? (
     <img className="!max-w-[92vw] !max-h-[92vh] !object-contain !rounded-[4px]" src={blobUrl} alt={caption || ''} style={{ animation: 'fadeIn 0.15s ease' }} />
   ) : (
-    <div className="!w-[60px] !h-[60px] !rounded-[50%] ![border:3px_solid_rgba(255,255,255,0.2)] ![border-top-color:#fff]" style={{ animation: 'spin 0.8s linear infinite' }} />
+    <div className="!w-[60px] !h-[60px] !rounded-[50%] ![border:3px_solid_rgba(255,255,255,0.2)] [&&]:![border-top-color:#fff]" style={{ animation: 'spin 0.8s linear infinite' }} />
   )
 }
 export default function PhotoLightbox({ photos, startIndex = 0, onClose }: Props) {

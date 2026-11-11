@@ -188,7 +188,7 @@ function TilePicker({ current, onChange }: { current: TileKey; onChange: (k: Til
                 style={{ background: active ? `${t.color}18` : 'transparent', border: `1px solid ${active ? t.color + '50' : 'transparent'}` }}
               >
                 <span className="!w-[10px] !h-[10px] !rounded-[50%] !shrink-[0]" style={{ background: t.color }} />
-                <span style={{ fontSize: 13, color: active ? '#f1f5f9' : '#94a3b8', fontWeight: active ? 700 : 400 }}>{t.label}</span>
+                <span className={[(active) ? '![color:#f1f5f9]' : '![color:#94a3b8]', (active) ? '!font-[700]' : '!font-[400]', '!text-[length:13px]'].join(' ')}>{t.label}</span>
               </button>
             )
           })}

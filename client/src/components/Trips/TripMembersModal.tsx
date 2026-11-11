@@ -102,8 +102,8 @@ function ShareLinkSection({ tripId, t }: { tripId: number | string; t: (key: str
           { key: 'share_budget', label: t('share.permBudget') },
           { key: 'share_collab', label: t('share.permCollab') },
         ].map(opt => (
-          <button className="!flex !items-center !gap-[5px] !p-[4px_10px] !rounded-[20px] !text-[length:11px] !font-[500] ![font-family:inherit] ![transition:all_0.12s]" key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
-            style={{ border: '1.5px solid', cursor: opt.always ? 'default' : 'pointer', background: perms[opt.key] ? 'var(--text-primary)' : 'transparent', borderColor: perms[opt.key] ? 'var(--text-primary)' : 'var(--border-primary)', color: perms[opt.key] ? 'var(--bg-primary)' : 'var(--text-muted)', opacity: opt.always ? 0.7 : 1 }}>
+          <button className={['!flex !items-center !gap-[5px] !p-[4px_10px] !rounded-[20px] !text-[length:11px] !font-[500] ![font-family:inherit] ![transition:all_0.12s]', (opt.always) ? '!cursor-default' : '!cursor-pointer', (perms[opt.key]) ? '![background:var(--text-primary)]' : '![background:transparent]', (perms[opt.key]) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (perms[opt.key]) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1.5px_solid]'].join(' ')} key={opt.key} onClick={() => !opt.always && handleUpdatePerms(opt.key, !perms[opt.key])}
+            style={{ opacity: opt.always ? 0.7 : 1 }}>
             {perms[opt.key] ? <Check size={10} /> : null}
             {opt.label}
           </button>

@@ -125,8 +125,7 @@ export default function AlongTourCard({ route, tourType, pois, onPois, focusedId
           <div className="!text-[length:11.5px] ![color:var(--text-faint)] !mb-[6px]">{t('tours.poi.within')}</div>
           <div className="!flex !gap-[2px] !p-[3px] !rounded-[11px] ![background:var(--bg-tertiary)]">
             {POI_CORRIDORS_M.map(m => (
-              <button className="!flex-[1] !p-[6px_4px] !rounded-[8px] ![border:none] !cursor-pointer" key={m} type="button" onClick={() => setCorridor(m)} aria-pressed={corridor === m}
-                style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: corridor === m ? 600 : 500, background: corridor === m ? 'var(--bg-card)' : 'transparent', color: corridor === m ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+              <button className={['!flex-[1] !p-[6px_4px] !rounded-[8px] ![border:none] !cursor-pointer', (corridor === m) ? '!font-[600]' : '!font-[500]', (corridor === m) ? '![background:var(--bg-card)]' : '![background:transparent]', (corridor === m) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', '![font-family:inherit] !text-[length:12px]'].join(' ')} key={m} type="button" onClick={() => setCorridor(m)} aria-pressed={corridor === m}>
                 {corridorLabel(m)}
               </button>
             ))}

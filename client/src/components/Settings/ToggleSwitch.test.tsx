@@ -1,3 +1,4 @@
+import { hasStyle } from '../../../tests/helpers/inlineStyle';
 import React from 'react';
 import { render, screen } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
@@ -19,14 +20,14 @@ describe('ToggleSwitch', () => {
     render(<ToggleSwitch on={false} onToggle={() => {}} />);
     const button = screen.getByRole('button');
     const knob = button.querySelector('span')!;
-    expect(knob.style.left).toBe('2px');
+    expect(hasStyle(knob, 'left', '2px')).toBe(true);
   });
 
   it('FE-COMP-TOGGLESWITCH-003: knob is positioned right when on is true', () => {
     render(<ToggleSwitch on={true} onToggle={() => {}} />);
     const button = screen.getByRole('button');
     const knob = button.querySelector('span')!;
-    expect(knob.style.left).toBe('22px');
+    expect(hasStyle(knob, 'left', '22px')).toBe(true);
   });
 
   it('FE-COMP-TOGGLESWITCH-004: background uses accent variable when on is true', () => {
@@ -54,14 +55,14 @@ describe('ToggleSwitch', () => {
     render(<ToggleSwitch on={false} onToggle={() => {}} />);
     const button = screen.getByRole('button');
     await user.click(button);
-    expect(button.querySelector('span')!.style.left).toBe('2px');
+    expect(hasStyle(button.querySelector('span')!, 'left', '2px')).toBe(true);
   });
 
   it('FE-COMP-TOGGLESWITCH-008: re-renders correctly when on prop changes from false to true', () => {
     const { rerender } = render(<ToggleSwitch on={false} onToggle={() => {}} />);
     const button = screen.getByRole('button');
-    expect(button.querySelector('span')!.style.left).toBe('2px');
+    expect(hasStyle(button.querySelector('span')!, 'left', '2px')).toBe(true);
     rerender(<ToggleSwitch on={true} onToggle={() => {}} />);
-    expect(button.querySelector('span')!.style.left).toBe('22px');
+    expect(hasStyle(button.querySelector('span')!, 'left', '22px')).toBe(true);
   });
 });

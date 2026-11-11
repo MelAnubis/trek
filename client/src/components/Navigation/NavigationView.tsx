@@ -315,7 +315,7 @@ export default function NavigationView({ trackName = 'Ruta', trackPoints, tripId
         )}
 
         {/* Controls bar */}
-        <div className="![background:rgba(10,10,20,0.92)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] ![border-top:1px_solid_rgba(255,255,255,0.08)] !p-[12px_16px] !flex !items-center !gap-[10px] !pb-[max(12px,_env(safe-area-inset-bottom,_12px))]">
+        <div className="![background:rgba(10,10,20,0.92)] ![backdrop-filter:blur(16px)] ![-webkit-backdrop-filter:blur(16px)] ![border-top:1px_solid_rgba(255,255,255,0.08)] !p-[12px_16px] !flex !items-center !gap-[10px] [&&]:!pb-[max(12px,_env(safe-area-inset-bottom,_12px))]">
 
           {nav.navMode === 'idle' && (
             <>

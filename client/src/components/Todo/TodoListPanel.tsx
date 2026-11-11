@@ -127,9 +127,9 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 
   // Sidebar filter item
   const SidebarItem = ({ id, icon: Icon, label, count, color }: { id: string; icon: any; label: string; count: number; color?: string }) => (
-    <button className={[(filter !== id) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s] !relative'].join(' ')} onClick={() => setFilter(id as FilterType)}
+    <button className={[[(filter !== id) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s] !relative'].join(' '), (isMobile) ? '!justify-center' : '!justify-start', (isMobile) ? '!gap-[0]' : '!gap-[8px]', (isMobile) ? '!p-[8px_0]' : '!p-[7px_12px]', (filter === id) ? '![background:var(--bg-hover)]' : '![background:transparent]', (filter === id) ? '![color:var(--text-primary)]' : '![color:var(--text-secondary)]', (filter === id) ? '!font-[600]' : '!font-[400]', '![font-family:inherit] !text-[length:13px]'].join(' ')} onClick={() => setFilter(id as FilterType)}
       title={isMobile ? label : undefined}
-      style={{ justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, background: filter === id ? 'var(--bg-hover)' : 'transparent', color: filter === id ? 'var(--text-primary)' : 'var(--text-secondary)', fontWeight: filter === id ? 600 : 400 }}>
+      style={{ width: '100%', border: 'none', borderRadius: 8 }}>
       {color ? (
         <span className="!shrink-[0]" style={{ width: isMobile ? 12 : 10, height: isMobile ? 12 : 10, borderRadius: '50%', background: color }} />
       ) : (
@@ -191,9 +191,9 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
         {!isMobile && <div className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[16px_12px_4px] !uppercase !tracking-[0.05em]">
           {t('todo.sidebar.sortBy')}
         </div>}
-        <button className={[(!sortByPrio) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s]'].join(' ')} onClick={() => setSortByPrio(v => !v)}
+        <button className={[[(!sortByPrio) ? 'trek-hover' : undefined, '!flex !items-center !cursor-pointer ![transition:all_0.1s]'].join(' '), (isMobile) ? '!justify-center' : '!justify-start', (isMobile) ? '!gap-[0]' : '!gap-[8px]', (isMobile) ? '!p-[8px_0]' : '!p-[7px_12px]', (sortByPrio) ? '![background:#f59e0b12]' : '![background:transparent]', (sortByPrio) ? '![color:#f59e0b]' : '![color:var(--text-secondary)]', (sortByPrio) ? '!font-[600]' : '!font-[400]', '![font-family:inherit] !text-[length:13px]'].join(' ')} onClick={() => setSortByPrio(v => !v)}
           title={isMobile ? t('todo.priority') : undefined}
-          style={{ justifyContent: isMobile ? 'center' : 'flex-start', gap: isMobile ? 0 : 8, width: '100%', padding: isMobile ? '8px 0' : '7px 12px', border: 'none', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, background: sortByPrio ? '#f59e0b12' : 'transparent', color: sortByPrio ? '#f59e0b' : 'var(--text-secondary)', fontWeight: sortByPrio ? 600 : 400 }}>
+          style={{ width: '100%', border: 'none', borderRadius: 8 }}>
           <Flag size={isMobile ? 18 : 15} style={{ flexShrink: 0, opacity: 0.7 }} />
           {!isMobile && <span className="!flex-[1] !text-left">{t('todo.priority')}</span>}
         </button>
@@ -263,7 +263,7 @@ export default function TodoListPanel({ tripId, items, addItemSignal = 0 }: { tr
 
                   {/* Content */}
                   <div className="!flex-[1] !min-w-[0]">
-                    <div className="!text-[length:14px] !leading-[1.4] !overflow-hidden !whitespace-nowrap" style={{ color: done ? 'var(--text-faint)' : 'var(--text-primary)', textDecoration: done ? 'line-through' : 'none', textOverflow: 'ellipsis' }}>
+                    <div className={['!text-[length:14px] !leading-[1.4] !overflow-hidden !whitespace-nowrap', (done) ? '![color:var(--text-faint)]' : '![color:var(--text-primary)]', (done) ? '![text-decoration:line-through]' : '![text-decoration:none]', '!text-ellipsis'].join(' ')}>
                       {item.name}
                     </div>
                     {/* Description preview */}

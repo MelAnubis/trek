@@ -258,7 +258,7 @@ function CollapsibleSection({ sectionKey, color, label, weight, count, collapsed
   const open = !collapsed[sectionKey]
   return (
     <div>
-      <div className="!flex !items-center !gap-[8px] !p-[9px_14px] ![background:#F1EFE8] !cursor-pointer !select-none" onClick={() => onToggle(sectionKey)} style={{ borderTop:'0.5px solid #D3D1C7', borderBottom:open?'0.5px solid #D3D1C7':'none' }}>
+      <div className={['!flex !items-center !gap-[8px] !p-[9px_14px] ![background:#F1EFE8] !cursor-pointer !select-none', (open) ? '![border-bottom:0.5px_solid_#D3D1C7]' : '![border-bottom:none]', '![border-top:0.5px_solid_#D3D1C7]'].join(' ')} onClick={() => onToggle(sectionKey)}>
         <div className="!w-[9px] !h-[9px] !rounded-[50%] !shrink-[0]" style={{ background:color }}/>
         <span className="!tracking-[0.5px]" style={{ fontSize:11, fontWeight:700, color:'#444441', ...mono }}>{label}</span>
         <span style={{ fontSize:10, color:'#B4B2A9', ...mono }}>({count})</span>
@@ -617,7 +617,7 @@ export default function BikepackApp() {
       {/* Config tabs */}
       <div className="!flex ![background:#F1EFE8] ![border-bottom:0.5px_solid_#D3D1C7] !shrink-[0]">
         {([0,1] as const).map(i => (
-          <button className="!text-[length:13px] !font-[500] !p-[9px_20px] !cursor-pointer ![background:none] ![font-family:Syne,sans-serif]" key={i} onClick={()=>setConfig(i)} style={{ color:config===i?'#E85D24':'#888780', border:'none', borderBottom:config===i?'2px solid #E85D24':'2px solid transparent' }}>
+          <button className={['!text-[length:13px] !font-[500] !p-[9px_20px] !cursor-pointer ![background:none] ![font-family:Syne,sans-serif]', (config===i) ? '![color:#E85D24]' : '![color:#888780]', (config===i) ? '[&&]:![border-bottom:2px_solid_#E85D24]' : '[&&]:![border-bottom:2px_solid_transparent]', '![border:none]'].join(' ')} key={i} onClick={()=>setConfig(i)}>
             {i===0?'Config 1 - Alforjas':'Config 2 - Bikepacking'}
           </button>
         ))}

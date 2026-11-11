@@ -69,7 +69,7 @@ export function DayReorderPopup({ days, t, locale, onReorder, onAddDay, onClose 
 
         <div className="scroll-container !overflow-y-auto !p-[0_8px_8px] !min-h-[0]">
           {ordered.map((day, index) => (
-            <div className="!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[8px] !mt-[2px]"
+            <div className={['!flex !items-center !gap-[8px] !p-[6px_8px] !rounded-[8px] !mt-[2px]', (overIndex === index && dragIndex !== null && dragIndex !== index) ? '![background:var(--bg-hover)]' : '![background:transparent]', (overIndex === index && dragIndex !== null && dragIndex !== index) ? '![outline:2px_dashed_var(--border-primary)]' : '![outline:none]', '[&&]:![outline-offset:-2px]'].join(' ')}
               key={day.id}
               draggable
               onDragStart={() => setDragIndex(index)}
@@ -80,7 +80,7 @@ export function DayReorderPopup({ days, t, locale, onReorder, onAddDay, onClose 
                 if (dragIndex !== null && dragIndex !== index) move(dragIndex, index)
                 setDragIndex(null); setOverIndex(null)
               }}
-              style={{ background: overIndex === index && dragIndex !== null && dragIndex !== index ? 'var(--bg-hover)' : 'transparent', opacity: dragIndex === index ? 0.5 : 1, outline: overIndex === index && dragIndex !== null && dragIndex !== index ? '2px dashed var(--border-primary)' : 'none', outlineOffset: -2 }}
+              style={{ opacity: dragIndex === index ? 0.5 : 1 }}
             >
               <GripVertical size={14} strokeWidth={1.8} style={{ cursor: 'grab', color: 'var(--text-faint)', flexShrink: 0 }} />
               <span className="!shrink-[0] !w-[22px] !h-[22px] !rounded-[50%] ![background:var(--bg-hover)] ![color:var(--text-muted)] !grid ![place-items:center] !text-[length:10.5px] !font-[700]">

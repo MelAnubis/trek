@@ -92,8 +92,7 @@ function ListsContainer({ tripId, packingItems, todoItems }: { tripId: number | 
               const active = subTab === tab.id
               const Icon = tab.icon
               return (
-                <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:background_180ms_cubic-bezier(0.23,1,0.32,1),_color_180ms_cubic-bezier(0.23,1,0.32,1),_box-shadow_180ms_cubic-bezier(0.23,1,0.32,1)]" key={tab.id} onClick={() => setSubTabPersist(tab.id)}
-                  style={{ fontFamily: 'inherit', fontSize: 13, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 500 : 400, boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
+                <button className={['![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:background_180ms_cubic-bezier(0.23,1,0.32,1),_color_180ms_cubic-bezier(0.23,1,0.32,1),_box-shadow_180ms_cubic-bezier(0.23,1,0.32,1)]', (active) ? '![background:var(--bg-card)]' : '![background:transparent]', (active) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (active) ? '!font-[500]' : '!font-[400]', (active) ? '![box-shadow:0_1px_2px_rgba(0,0,0,0.06)]' : '![box-shadow:none]', '![font-family:inherit] !text-[length:13px]'].join(' ')} key={tab.id} onClick={() => setSubTabPersist(tab.id)}
                 >
                   <Icon size={13} style={{ color: active ? 'var(--text-primary)' : 'var(--text-faint)' }} />
                   <span className="hidden sm:inline">{tab.label}</span>

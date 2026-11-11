@@ -267,7 +267,7 @@ function PollCard({ poll, currentUser, canEdit, onVote, onClose, onDelete, t }: 
               </div>
 
               {/* Label */}
-              <span className="!flex-[1] ![color:var(--text-primary)] !relative !z-[1]" style={{ fontSize: 13, fontWeight: myVote || isWinner ? 600 : 400 }}>
+              <span className={['!flex-[1] ![color:var(--text-primary)] !relative !z-[1]', (myVote || isWinner) ? '!font-[600]' : '!font-[400]', '!text-[length:13px]'].join(' ')}>
                 {typeof opt === 'string' ? opt : opt.label || opt.text}
               </span>
 
@@ -380,7 +380,7 @@ export default function CollabPolls({ tripId, currentUser }: CollabPollsProps) {
   if (loading) {
     return (
       <div className="!h-[100%] !flex !items-center !justify-center" style={{ fontFamily: FONT }}>
-        <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] ![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-poll-spin 0.7s linear infinite' }} />
+        <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--border-primary)] [&&]:![border-top-color:var(--text-primary)] !rounded-[50%]" style={{ animation: 'collab-poll-spin 0.7s linear infinite' }} />
         <style>{`@keyframes collab-poll-spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )

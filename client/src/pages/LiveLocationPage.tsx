@@ -80,7 +80,7 @@ export default function LiveLocationPage() {
   if (!data) {
     return (
       <div className="!flex !flex-col !gap-[12px] !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6] ![color:#6b7280] !text-[length:13px]">
-        <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] ![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
+        <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] [&&]:![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
         {offline && <span>{t('tracking.live.offline')}</span>}
         <style>{'@keyframes spin { to { transform: rotate(360deg) } }'}</style>
       </div>
@@ -125,7 +125,7 @@ export default function LiveLocationPage() {
 
       {/* Right: recentre and hide/show the card. */}
       {pos && (
-        <div className="!absolute !z-[1000] !flex !flex-col !gap-[8px]" style={{ right: 12, bottom: cardOpen ? 'calc(150px + env(safe-area-inset-bottom))' : 'calc(76px + env(safe-area-inset-bottom))' }}>
+        <div className={['!absolute !z-[1000] !flex !flex-col !gap-[8px]', (cardOpen) ? '!bottom-[calc(150px_+_env(safe-area-inset-bottom))]' : '!bottom-[calc(76px_+_env(safe-area-inset-bottom))]', '!right-[12px]'].join(' ')}>
           <button type="button" onClick={() => setCardOpen(o => !o)} aria-label={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')}
             title={cardOpen ? t('tracking.live.hideCard') : t('tracking.live.showCard')} style={fab(false)}>
             {cardOpen ? <Maximize2 size={18} /> : <Minimize2 size={18} />}

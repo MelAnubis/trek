@@ -464,7 +464,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
                   {places.some(p => p.category_id == null) && (() => {
                     const active = categoryFilters.has('uncategorized')
                     return (
-                      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-muted)] !text-left ![border-top:1px_solid_var(--border-faint)] !mt-[2px]" onClick={() => toggleCategoryFilter('uncategorized')} style={{ background: active ? 'var(--bg-hover)' : 'transparent' }}>
+                      <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:12px] ![color:var(--text-muted)] !text-left [&&]:![border-top:1px_solid_var(--border-faint)] !mt-[2px]" onClick={() => toggleCategoryFilter('uncategorized')} style={{ background: active ? 'var(--bg-hover)' : 'transparent' }}>
                         <div className="!w-[16px] !h-[16px] !rounded-[4px] !shrink-[0] !flex !items-center !justify-center" style={{ border: active ? 'none' : '1.5px solid var(--border-primary)', background: active ? 'var(--text-faint)' : 'transparent' }}>
                           {active && <Check size={10} strokeWidth={3} color="white" />}
                         </div>
@@ -474,7 +474,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
                     )
                   })()}
                   {categoryFilters.size > 0 && (
-                    <button className="!flex !items-center !justify-center !gap-[4px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:11px] ![color:var(--text-faint)] !mt-[2px] ![border-top:1px_solid_var(--border-faint)]" onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{ background: 'transparent' }}>
+                    <button className="!flex !items-center !justify-center !gap-[4px] !w-[100%] !p-[6px_10px] !rounded-[6px] ![border:none] !cursor-pointer ![font-family:inherit] !text-[length:11px] ![color:var(--text-faint)] !mt-[2px] [&&]:![border-top:1px_solid_var(--border-faint)]" onClick={() => { setCategoryFiltersLocal(new Set()); onCategoryFilterChange?.(new Set()) }} style={{ background: 'transparent' }}>
                       <X size={10} /> {t('places.clearFilter')}
                     </button>
                   )}
@@ -579,7 +579,7 @@ const PlacesSidebar = React.memo(function PlacesSidebar({
           onClick={() => { setDayPickerPlace(null); setMobileShowDays(false) }}
           style={{ background: 'var(--modal-backdrop)' }}
         >
-          <div className="![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] ![border-bottom:none] ![box-shadow:var(--glass-shadow-lg)] !rounded-[20px_20px_0_0] !w-[100%] !max-w-[500px] !max-h-[70vh] !flex !flex-col !overflow-hidden !pb-[var(--bottom-nav-h)]"
+          <div className="![backdrop-filter:var(--glass-blur-lg)] ![-webkit-backdrop-filter:var(--glass-blur-lg)] ![border:1px_solid_var(--modal-border)] [&&]:![border-bottom:none] ![box-shadow:var(--glass-shadow-lg)] !rounded-[20px_20px_0_0] !w-[100%] !max-w-[500px] !max-h-[70vh] !flex !flex-col !overflow-hidden !pb-[var(--bottom-nav-h)]"
             onClick={e => e.stopPropagation()}
             style={{ background: 'var(--modal-bg)' }}
           >

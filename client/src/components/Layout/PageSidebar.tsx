@@ -86,7 +86,7 @@ export default function PageSidebar({
             aria-label={t('common.back')}
           >
             <ChevronLeft size={20} />
-            <span className="text-sm">{sidebarLabel}</span>
+            <span className="text-sm">{sidebarLabel ? sidebarLabel.charAt(0) + sidebarLabel.slice(1).toLowerCase() : ''}</span>
           </button>
           <div className="trek-text-primary flex-1 text-center text-sm font-semibold truncate pr-16">{activeLabel}</div>
         </div>

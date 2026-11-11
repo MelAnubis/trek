@@ -501,7 +501,7 @@ function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, on
         <span className="!w-[10px] !h-[10px] !rounded-[50%] !shrink-[0]" style={{ background: dot }} />
 
         {editingName && canEdit ? (
-          <input className="!flex-[1] !text-[length:12.5px] !font-[600] ![border:none] ![border-bottom:2px_solid_var(--text-primary)] ![outline:none] ![font-family:inherit] ![color:var(--text-primary)] !p-[0_2px]"
+          <input className="!flex-[1] !text-[length:12.5px] !font-[600] ![border:none] [&&]:![border-bottom:2px_solid_var(--text-primary)] ![outline:none] ![font-family:inherit] ![color:var(--text-primary)] !p-[0_2px]"
             autoFocus value={editKatName}
             onChange={e => setEditKatName(e.target.value)}
             onBlur={handleSaveKatName}
@@ -1038,7 +1038,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             )}
             {inlineHeader && canEdit && availableTemplates.length > 0 && (
               <div ref={templateDropdownRef} style={{ position: 'relative' }}>
-                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowTemplateDropdown(v => !v)} disabled={applyingTemplate} style={{ border: '1px solid', background: showTemplateDropdown ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showTemplateDropdown ? 'var(--text-primary)' : 'var(--border-primary)', color: showTemplateDropdown ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+                <button className={['!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]', (showTemplateDropdown) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (showTemplateDropdown) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} onClick={() => setShowTemplateDropdown(v => !v)} disabled={applyingTemplate} style={{ background: showTemplateDropdown ? 'var(--text-primary)' : 'var(--bg-card)' }}>
                   <Package size={12} /> <span className="hidden sm:inline">{t('packing.applyTemplate')}</span><span className="sm:hidden">{t('packing.template')}</span>
                 </button>
                 {showTemplateDropdown && (
@@ -1064,7 +1064,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
             )}
             {items.length > 0 && (
               <div ref={printMenuRef} style={{ position: 'relative' }}>
-                <button className="!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]" onClick={() => setShowPrintMenu(v => !v)} style={{ border: '1px solid', background: showPrintMenu ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showPrintMenu ? 'var(--text-primary)' : 'var(--border-primary)', color: showPrintMenu ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+                <button className={['!flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]', (showPrintMenu) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (showPrintMenu) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} onClick={() => setShowPrintMenu(v => !v)} style={{ background: showPrintMenu ? 'var(--text-primary)' : 'var(--bg-card)' }}>
                   <Printer size={12} /> <span className="hidden sm:inline">{t('packing.print')}</span>
                 </button>
                 {showPrintMenu && (
@@ -1082,8 +1082,8 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
               </div>
             )}
             {bagTrackingEnabled && (
-              <button onClick={() => setShowBagModal(true)} className="xl:!hidden !flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]"
-                style={{ border: '1px solid', background: showBagModal ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: showBagModal ? 'var(--text-primary)' : 'var(--border-primary)', color: showBagModal ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+              <button onClick={() => setShowBagModal(true)} className={['xl:!hidden !flex !items-center !gap-[5px] !p-[5px_11px] !rounded-[99px] !text-[length:12px] !font-[500] !cursor-pointer ![font-family:inherit]', (showBagModal) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (showBagModal) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')}
+                style={{ background: showBagModal ? 'var(--text-primary)' : 'var(--bg-card)' }}>
                 <Luggage size={12} /> {t('packing.bags')}
               </button>
             )}
@@ -1148,7 +1148,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
       {items.length > 0 && (
         <div className="!flex !gap-[4px] !p-[10px_0_0] !shrink-[0]">
           {[['alle', t('packing.filterAll')], ['offen', t('packing.filterOpen')], ['erledigt', t('packing.filterDone')]].map(([id, label]) => (
-            <button className="!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer" key={id} onClick={() => setFilter(id)} style={{ fontSize: 12, fontFamily: 'inherit', fontWeight: filter === id ? 600 : 400, background: filter === id ? 'var(--text-primary)' : 'transparent', color: filter === id ? 'var(--bg-primary)' : 'var(--text-muted)' }}>{label}</button>
+            <button className={['!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer', (filter === id) ? '!font-[600]' : '!font-[400]', (filter === id) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '!text-[length:12px] ![font-family:inherit]'].join(' ')} key={id} onClick={() => setFilter(id)} style={{ background: filter === id ? 'var(--text-primary)' : 'transparent' }}>{label}</button>
           ))}
         </div>
       )}
@@ -1264,7 +1264,7 @@ export default function PackingListPanel({ tripId, items, openImportSignal = 0, 
 
       {/* ── Bag Modal (mobile + click) ── */}
       {showBagModal && bagTrackingEnabled && (
-        <div className="!fixed !inset-[0] !z-[100] !flex !items-start !justify-center !p-[20px] !pt-[140px] !pb-[calc(20px_+_var(--bottom-nav-h))] !overflow-y-auto" style={{ background: 'rgba(0,0,0,0.3)' }}
+        <div className="!fixed !inset-[0] !z-[100] !flex !items-start !justify-center !p-[20px] [&&]:!pt-[140px] [&&]:!pb-[calc(20px_+_var(--bottom-nav-h))] !overflow-y-auto" style={{ background: 'rgba(0,0,0,0.3)' }}
           onClick={() => setShowBagModal(false)}>
           <div className="!rounded-[16px] !w-[100%] !max-w-[360px] !max-h-[calc(100vh_-_80px)] !overflow-auto !p-[20px] ![box-shadow:0_16px_48px_rgba(0,0,0,0.15)] !shrink-[0]" style={{ background: 'var(--bg-card)' }}
             onClick={e => e.stopPropagation()}>

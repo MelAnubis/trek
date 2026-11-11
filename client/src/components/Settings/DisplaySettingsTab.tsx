@@ -108,7 +108,7 @@ export default function DisplaySettingsTab(): React.ReactElement {
               {SUPPORTED_LANGUAGES.map(opt => {
                 const active = settings.language === opt.value
                 return (
-                  <button className="!flex !items-center !gap-[8px] !w-[100%] !p-[9px_12px] !rounded-[6px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !text-left"
+                  <button className={['!flex !items-center !gap-[8px] !w-[100%] !p-[9px_12px] !rounded-[6px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !text-left', (active) ? '![background:var(--bg-hover)]' : '![background:transparent]', (active) ? '!font-[600]' : '!font-[500]', '![font-family:inherit] !text-[length:14px]'].join(' ')}
                     key={opt.value}
                     type="button"
                     onClick={async () => {
@@ -116,7 +116,6 @@ export default function DisplaySettingsTab(): React.ReactElement {
                       try { await updateSetting('language', opt.value) }
                       catch (err: unknown) { toast.error(err instanceof Error ? err.message : t('common.error')) }
                     }}
-                    style={{ background: active ? 'var(--bg-hover)' : 'transparent', fontFamily: 'inherit', fontSize: 14, fontWeight: active ? 600 : 500 }}
                   >
                     <span className="!flex-[1]">{opt.label}</span>
                     {active && <Check size={14} strokeWidth={2.5} color="var(--accent)" />}

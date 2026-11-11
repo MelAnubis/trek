@@ -419,7 +419,7 @@ function RingAvatar({ userId, username, avatarUrl, size = 34, innerBg = '#17171d
   const color = colorForUserId(userId)
   return (
     <div className="!rounded-[50%] !shrink-[0] !p-[2px] !items-center !justify-center" style={{ width: size, height: size, background: color.gradient, display: 'flex' }}>
-      <div className="!w-[100%] !h-[100%] !rounded-[50%] !items-center !justify-center !overflow-hidden" style={{ background: innerBg, display: 'flex', fontSize: size < 28 ? 10 : 12, fontWeight: 600, color: textColor }}>
+      <div className={['!w-[100%] !h-[100%] !rounded-[50%] !items-center !justify-center !overflow-hidden', (size < 28) ? '!text-[length:10px]' : '!text-[length:12px]', '!font-[600]'].join(' ')} style={{ background: innerBg, display: 'flex', color: textColor }}>
         {avatarUrl ? <img className="!w-[100%] !h-[100%] !object-cover" src={avatarUrl} /> : username?.[0]?.toUpperCase()}
       </div>
     </div>

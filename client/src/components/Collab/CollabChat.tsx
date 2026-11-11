@@ -491,7 +491,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
   if (loading) {
     return (
       <div className="!flex-[1] !items-center !justify-center" style={{ display: 'flex' }}>
-        <div className="!w-[24px] ![border:2px_solid_var(--border-faint)] ![border-top-color:var(--accent)] !rounded-[50%]" style={{ height: 24, animation: 'spin .7s linear infinite' }} />
+        <div className="!w-[24px] ![border:2px_solid_var(--border-faint)] [&&]:![border-top-color:var(--accent)] !rounded-[50%]" style={{ height: 24, animation: 'spin .7s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
       </div>
     )

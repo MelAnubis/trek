@@ -56,8 +56,7 @@ export default function PoiCategoryPill({ active, onToggle, loadingKeys, errorKe
               >
                 {loading ? (
                   <span
-                    className="animate-spin !w-[14px] !h-[14px] !rounded-[999px] !inline-block"
-                    style={{ border: '2px solid', borderColor: on ? 'rgba(255,255,255,0.45)' : 'var(--border-primary)', borderTopColor: on ? '#fff' : 'var(--text-muted)' }}
+                    className={['animate-spin !w-[14px] !h-[14px] !rounded-[999px] !inline-block', (on) ? '[&&]:![border-color:rgba(255,255,255,0.45)]' : '[&&]:![border-color:var(--border-primary)]', (on) ? '[&&]:![border-top-color:#fff]' : '[&&]:![border-top-color:var(--text-muted)]', '![border:2px_solid]'].join(' ')}
                   />
                 ) : (
                   <cat.Icon size={16} strokeWidth={2} />

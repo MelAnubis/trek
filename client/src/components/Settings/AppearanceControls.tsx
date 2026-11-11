@@ -68,8 +68,8 @@ export default function AppearanceControls({ t }: { t: T }) {
             {CUSTOM_ACCENT_PRESETS.map(c => {
               const on = cfg.scheme === 'custom' && cfg.accent === c
               return (
-                <button className="!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] ![border:none]" key={c} type="button" aria-label={c} aria-pressed={on} onClick={() => save({ scheme: 'custom', accent: c })}
-                  style={{ background: c, outline: on ? '2px solid var(--text-primary)' : 'none', outlineOffset: 2 }} />
+                <button className={['!w-[26px] !h-[26px] !rounded-[50%] !cursor-pointer !p-[0] ![border:none]', (on) ? '![outline:2px_solid_var(--text-primary)]' : '![outline:none]', '[&&]:![outline-offset:2px]'].join(' ')} key={c} type="button" aria-label={c} aria-pressed={on} onClick={() => save({ scheme: 'custom', accent: c })}
+                  style={{ background: c }} />
               )
             })}
             <label className="!inline-flex !items-center !gap-[6px] !text-[length:12px] ![color:var(--text-muted)] !cursor-pointer">

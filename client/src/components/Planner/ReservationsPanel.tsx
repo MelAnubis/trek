@@ -506,9 +506,8 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
             <>
               <div className="hidden md:block !w-[1px] !h-[22px] ![background:var(--border-faint)] !shrink-[0]" />
               <div className="hidden md:inline-flex !gap-[4px] !flex-wrap !flex-[1] !min-w-[0]">
-                <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]"
+                <button className={['![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]', (typeFilters.size === 0) ? '![background:var(--bg-card)]' : '![background:transparent]', (typeFilters.size === 0) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (typeFilters.size === 0) ? '!font-[500]' : '!font-[400]', (typeFilters.size === 0) ? '![box-shadow:0_1px_2px_rgba(0,0,0,0.06)]' : '![box-shadow:none]', '![font-family:inherit] !text-[length:13px]'].join(' ')}
                   onClick={() => { setTypeFilters(new Set()); sessionStorage.removeItem(storageKey) }}
-                  style={{ fontFamily: 'inherit', fontSize: 13, background: typeFilters.size === 0 ? 'var(--bg-card)' : 'transparent', color: typeFilters.size === 0 ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: typeFilters.size === 0 ? 500 : 400, boxShadow: typeFilters.size === 0 ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
                 >
                   {t('common.all')}
                   <span className="!text-[length:10px] !font-[600] ![color:var(--text-faint)] !p-[1px_6px] !rounded-[99px] !min-w-[16px] !text-center" style={{ background: typeFilters.size === 0 ? 'var(--bg-tertiary)' : 'rgba(0,0,0,0.06)' }}>{reservations.length}</span>
@@ -517,10 +516,9 @@ export default function ReservationsPanel({ tripId, reservations, days, assignme
                   const active = typeFilters.has(opt.value)
                   const Icon = opt.Icon
                   return (
-                    <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]"
+                    <button className={['![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]', (active) ? '![background:var(--bg-card)]' : '![background:transparent]', (active) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (active) ? '!font-[500]' : '!font-[400]', (active) ? '![box-shadow:0_1px_2px_rgba(0,0,0,0.06)]' : '![box-shadow:none]', '![font-family:inherit] !text-[length:13px]'].join(' ')}
                       key={opt.value}
                       onClick={() => toggleTypeFilter(opt.value)}
-                      style={{ fontFamily: 'inherit', fontSize: 13, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 500 : 400, boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
                     >
                       <Icon size={13} style={{ color: active ? opt.color : 'var(--text-faint)' }} />
                       {t(opt.labelKey)}

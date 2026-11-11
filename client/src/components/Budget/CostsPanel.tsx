@@ -507,7 +507,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const sum = rows.reduce((a, e) => a + baseTotal(e), 0)
     const head = (col: typeof tableSort.col, label: string, right = false) => (
       <th key={col} onClick={() => setTableSort(s => ({ col, dir: s.col === col ? (s.dir === 1 ? -1 : 1) : 1 }))}
-        className="text-content-muted !p-[10px_12px] !text-[length:11px] !font-[600] !tracking-[0.04em] !cursor-pointer !whitespace-nowrap !select-none ![border-bottom:1px_solid_var(--border-primary)]" style={{ textTransform: 'uppercase', textAlign: right ? 'right' : 'left' }}>
+        className={['text-content-muted !p-[10px_12px] !text-[length:11px] !font-[600] !tracking-[0.04em] !cursor-pointer !whitespace-nowrap !select-none ![border-bottom:1px_solid_var(--border-primary)]', (right) ? '!text-right' : '!text-left', '!uppercase'].join(' ')}>
         <span className="!inline-flex !items-center !gap-[4px]">{label}{tableSort.col === col && (tableSort.dir === 1 ? <ArrowUp size={11} /> : <ArrowDown size={11} />)}</span>
       </th>
     )

@@ -301,7 +301,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
           <label style={labelStyle}>{t('reservations.bookingType')}</label>
           <div className="!flex !flex-wrap !gap-[5px]">
             {TYPE_OPTIONS.map(({ value, labelKey, Icon }) => (
-              <button className="!flex !items-center !gap-[4px] !p-[5px_10px] !rounded-[99px] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={value} type="button" onClick={() => set('type', value)} style={{ border: '1px solid', background: form.type === value ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: form.type === value ? 'var(--text-primary)' : 'var(--border-primary)', color: form.type === value ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+              <button className={['!flex !items-center !gap-[4px] !p-[5px_10px] !rounded-[99px] !text-[length:11px] !font-[500] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]', (form.type === value) ? '![background:var(--text-primary)]' : '![background:var(--bg-card)]', (form.type === value) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (form.type === value) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} key={value} type="button" onClick={() => set('type', value)}>
                 <Icon size={11} /> {t(labelKey)}
               </button>
             ))}

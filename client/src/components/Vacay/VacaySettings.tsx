@@ -66,11 +66,11 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
               const current: number[] = plan.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6]
               const active = current.includes(day)
               return (
-                <button className="!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={day} onClick={() => {
+                <button className={['!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]', (active) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (active) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} key={day} onClick={() => {
                   const next = active ? current.filter(d => d !== day) : [...current, day]
                   updatePlan({ weekend_days: next.join(',') })
                 }}
-                  style={{ border: '1px solid', background: active ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)', color: active ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+                  style={{ background: active ? 'var(--text-primary)' : 'var(--bg-card)' }}>
                   {label}
                 </button>
               )
@@ -95,8 +95,8 @@ export default function VacaySettings({ onClose }: VacaySettingsProps) {
           ].map(({ value, label }) => {
             const active = (plan.week_start ?? 1) === value
             return (
-              <button className="!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]" key={value} onClick={() => updatePlan({ week_start: value })}
-                style={{ border: '1px solid', background: active ? 'var(--text-primary)' : 'var(--bg-card)', borderColor: active ? 'var(--text-primary)' : 'var(--border-primary)', color: active ? 'var(--bg-primary)' : 'var(--text-muted)' }}>
+              <button className={['!p-[4px_10px] !rounded-[8px] !text-[length:12px] !font-[600] !cursor-pointer ![font-family:inherit] ![transition:all_0.12s]', (active) ? '[&&]:![border-color:var(--text-primary)]' : '[&&]:![border-color:var(--border-primary)]', (active) ? '![color:var(--bg-primary)]' : '![color:var(--text-muted)]', '![border:1px_solid]'].join(' ')} key={value} onClick={() => updatePlan({ week_start: value })}
+                style={{ background: active ? 'var(--text-primary)' : 'var(--bg-card)' }}>
                 {label}
               </button>
             )

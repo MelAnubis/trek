@@ -65,7 +65,7 @@ export default function SharedTripPage() {
 
   if (!data) return (
     <div className="!flex !items-center !justify-center !min-h-[100vh] ![background:#f3f4f6]">
-      <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] ![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
+      <div className="!w-[32px] !h-[32px] ![border:3px_solid_#e5e7eb] [&&]:![border-top-color:#111827] !rounded-[50%]" style={{ animation: 'spin 0.6s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
   )
@@ -146,7 +146,7 @@ export default function SharedTripPage() {
             ...(permissions?.share_budget ? [{ id: 'budget', label: t('shared.tabBudget'), Icon: Wallet }] : []),
             ...(permissions?.share_collab ? [{ id: 'collab', label: t('shared.tabChat'), Icon: MessageCircle }] : []),
           ].map(tab => (
-            <button className="!p-[8px_18px] !rounded-[12px] !cursor-pointer !text-[length:12px] !font-[600] ![font-family:inherit] ![transition:all_0.15s] !whitespace-nowrap !flex !items-center !gap-[6px]" key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ border: '1.5px solid', background: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-bg)', backdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)', WebkitBackdropFilter: activeTab === tab.id ? 'none' : 'var(--glass-blur)', borderColor: activeTab === tab.id ? 'var(--accent)' : 'var(--glass-border)', color: activeTab === tab.id ? 'var(--accent-text)' : 'var(--text-muted)', boxShadow: activeTab === tab.id ? '0 4px 14px rgba(0,0,0,0.20)' : 'var(--glass-shadow)' }}><tab.Icon size={13} /><span className="hidden sm:inline">{tab.label}</span></button>
+            <button className={['!p-[8px_18px] !rounded-[12px] !cursor-pointer !text-[length:12px] !font-[600] ![font-family:inherit] ![transition:all_0.15s] !whitespace-nowrap !flex !items-center !gap-[6px]', (activeTab === tab.id) ? '![background:var(--accent)]' : '![background:var(--glass-bg)]', (activeTab === tab.id) ? '![backdrop-filter:none]' : '![backdrop-filter:var(--glass-blur)]', (activeTab === tab.id) ? '![-webkit-backdrop-filter:none]' : '![-webkit-backdrop-filter:var(--glass-blur)]', (activeTab === tab.id) ? '[&&]:![border-color:var(--accent)]' : '[&&]:![border-color:var(--glass-border)]', (activeTab === tab.id) ? '![color:var(--accent-text)]' : '![color:var(--text-muted)]', (activeTab === tab.id) ? '![box-shadow:0_4px_14px_rgba(0,0,0,0.20)]' : '![box-shadow:var(--glass-shadow)]', '![border:1.5px_solid]'].join(' ')} key={tab.id} onClick={() => setActiveTab(tab.id)}><tab.Icon size={13} /><span className="hidden sm:inline">{tab.label}</span></button>
           ))}
         </div>
 

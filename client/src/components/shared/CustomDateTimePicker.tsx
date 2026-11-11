@@ -160,8 +160,8 @@ export function CustomDatePicker({ value, onChange, placeholder, style = {}, com
               const sel = d === selectedDay
               const td = isToday(d)
               return (
-                <button className={[(!sel) ? 'trek-hover' : undefined, '!w-[32px] !h-[32px] !rounded-[8px] !cursor-pointer !flex !items-center !justify-center ![transition:background_0.1s]'].join(' ')} key={d} type="button" onClick={() => selectDay(d)}
-                  style={{ border: 'none', background: sel ? 'var(--accent)' : 'transparent', color: sel ? 'var(--accent-text)' : 'var(--text-primary)', fontSize: 12, fontWeight: sel ? 700 : td ? 600 : 400, outline: td && !sel ? '2px solid var(--border-primary)' : 'none', outlineOffset: -2 }}>
+                <button className={[[(!sel) ? 'trek-hover' : undefined, '!w-[32px] !h-[32px] !rounded-[8px] !cursor-pointer !flex !items-center !justify-center ![transition:background_0.1s]'].join(' '), (sel) ? '![background:var(--accent)]' : '![background:transparent]', (sel) ? '![color:var(--accent-text)]' : '![color:var(--text-primary)]', (td && !sel) ? '![outline:2px_solid_var(--border-primary)]' : '![outline:none]', '[&&]:![outline-offset:-2px]'].join(' ')} key={d} type="button" onClick={() => selectDay(d)}
+                  style={{ border: 'none', fontSize: 12, fontWeight: sel ? 700 : td ? 600 : 400 }}>
                   {d}
                 </button>
               )

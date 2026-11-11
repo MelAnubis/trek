@@ -573,7 +573,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                 const placeBtn = (p: Place) => {
                   const isLinked = file.place_id === p.id || (file.linked_place_ids || []).includes(p.id)
                   return (
-                    <button className="trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]" key={p.id} onClick={async () => {
+                    <button className={['trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]', (isLinked) ? '![background:var(--bg-hover)]' : '![background:none]', (isLinked) ? '!font-[600]' : '!font-[400]', '!text-[length:13px] ![font-family:inherit]'].join(' ')} key={p.id} onClick={async () => {
                       if (isLinked) {
                         if (file.place_id === p.id) {
                           await handleAssign(file.id, { place_id: null })
@@ -595,7 +595,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                           } catch {}
                         }
                       }
-                    }} style={{ background: isLinked ? 'var(--bg-hover)' : 'none', fontSize: 13, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400 }}>
+                    }}>
                       <MapPin size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                       <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{p.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
@@ -638,7 +638,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                   const isLinked = file.reservation_id === r.id || (file.linked_reservation_ids || []).includes(r.id)
                   const Icon = TRANSPORT_TYPES.has(r.type) ? transportIcon(r.type) : Ticket
                   return (
-                    <button className="trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]" key={r.id} onClick={async () => {
+                    <button className={['trek-hover !w-[100%] !text-left !p-[6px_10px_6px_20px] ![border:none] !cursor-pointer ![color:var(--text-primary)] !rounded-[8px] !flex !items-center !gap-[6px]', (isLinked) ? '![background:var(--bg-hover)]' : '![background:none]', (isLinked) ? '!font-[600]' : '!font-[400]', '!text-[length:13px] ![font-family:inherit]'].join(' ')} key={r.id} onClick={async () => {
                       if (isLinked) {
                         if (file.reservation_id === r.id) {
                           await handleAssign(file.id, { reservation_id: null })
@@ -660,7 +660,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                           } catch {}
                         }
                       }
-                    }} style={{ background: isLinked ? 'var(--bg-hover)' : 'none', fontSize: 13, fontFamily: 'inherit', fontWeight: isLinked ? 600 : 400 }}>
+                    }}>
                       <Icon size={12} style={{ flexShrink: 0, color: 'var(--text-muted)' }} />
                       <span className="!overflow-hidden !text-ellipsis !whitespace-nowrap">{r.title || r.name}</span>
                       {isLinked && <Check size={14} style={{ marginLeft: 'auto', flexShrink: 0, color: 'var(--accent)' }} />}
@@ -772,8 +772,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
                     : tab.id === 'collab' ? files.filter(f => f.note_id).length
                     : 0
                   return (
-                    <button className="![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]" key={tab.id} onClick={() => setFilterType(tab.id)}
-                      style={{ fontFamily: 'inherit', fontSize: 13, background: active ? 'var(--bg-card)' : 'transparent', color: active ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: active ? 500 : 400, boxShadow: active ? '0 1px 2px rgba(0,0,0,0.06)' : 'none' }}
+                    <button className={['![appearance:none] ![border:none] !cursor-pointer !inline-flex !items-center !gap-[6px] !p-[6px_12px] !rounded-[99px] !whitespace-nowrap ![transition:all_0.15s_ease]', (active) ? '![background:var(--bg-card)]' : '![background:transparent]', (active) ? '![color:var(--text-primary)]' : '![color:var(--text-muted)]', (active) ? '!font-[500]' : '!font-[400]', (active) ? '![box-shadow:0_1px_2px_rgba(0,0,0,0.06)]' : '![box-shadow:none]', '![font-family:inherit] !text-[length:13px]'].join(' ')} key={tab.id} onClick={() => setFilterType(tab.id)}
                     >
                       {TabIcon ? <TabIcon size={13} fill={active ? '#facc15' : 'none'} color={active ? '#facc15' : 'currentColor'} /> : null}
                       {'label' in tab && tab.label}
@@ -803,7 +802,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
           )}
           {loadingTrash ? (
             <div className="!text-center !p-[40px] ![color:var(--text-faint)]">
-              <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--text-faint)] ![border-top-color:transparent] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
+              <div className="!w-[20px] !h-[20px] ![border:2px_solid_var(--text-faint)] [&&]:![border-top-color:transparent] !rounded-[50%] !m-[0_auto]" style={{ animation: 'spin 0.8s linear infinite' }} />
             </div>
           ) : trashFiles.length === 0 ? (
             <div className="!text-center !p-[60px_20px] ![color:var(--text-faint)]">
@@ -832,7 +831,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
             <Upload size={24} style={{ margin: '0 auto 8px', color: isDragActive ? 'var(--text-secondary)' : 'var(--text-faint)', display: 'block' }} />
             {uploading ? (
               <div className="!flex !items-center !justify-center !gap-[6px] !text-[length:13px] ![color:var(--text-secondary)]">
-                <div className="!w-[14px] !h-[14px] ![border:2px_solid_var(--text-secondary)] ![border-top-color:transparent] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
+                <div className="!w-[14px] !h-[14px] ![border:2px_solid_var(--text-secondary)] [&&]:![border-top-color:transparent] !rounded-[50%]" style={{ animation: 'spin 0.8s linear infinite' }} />
                 {t('files.uploading')}
               </div>
             ) : (
@@ -856,7 +855,7 @@ export default function FileManager({ files = [], onUpload, onDelete, onUpdate, 
               { id: 'doc', label: t('files.filterDocs') },
               ...(files.some(f => f.note_id) ? [{ id: 'collab', label: t('files.filterCollab') || 'Collab' }] : []),
             ].map(tab => (
-              <button className="!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer ![transition:all_0.12s]" key={tab.id} onClick={() => setFilterType(tab.id)} style={{ fontSize: 12, fontFamily: 'inherit', background: filterType === tab.id ? 'var(--accent)' : 'transparent', color: filterType === tab.id ? 'var(--accent-text)' : 'var(--text-muted)', fontWeight: filterType === tab.id ? 600 : 400 }}>{tab.icon ? <tab.icon size={13} fill={filterType === tab.id ? '#facc15' : 'none'} color={filterType === tab.id ? '#facc15' : 'currentColor'} /> : tab.label}</button>
+              <button className={['!p-[4px_12px] !rounded-[99px] ![border:none] !cursor-pointer ![transition:all_0.12s]', (filterType === tab.id) ? '![background:var(--accent)]' : '![background:transparent]', (filterType === tab.id) ? '![color:var(--accent-text)]' : '![color:var(--text-muted)]', (filterType === tab.id) ? '!font-[600]' : '!font-[400]', '!text-[length:12px] ![font-family:inherit]'].join(' ')} key={tab.id} onClick={() => setFilterType(tab.id)}>{tab.icon ? <tab.icon size={13} fill={filterType === tab.id ? '#facc15' : 'none'} color={filterType === tab.id ? '#facc15' : 'currentColor'} /> : tab.label}</button>
             ))}
             <span className="!ml-[auto] !text-[length:11.5px] ![color:var(--text-faint)] !self-center">
               {filteredFiles.length === 1 ? t('files.countSingular') : t('files.count', { count: filteredFiles.length })}
