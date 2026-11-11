@@ -7,11 +7,12 @@ export function useIsMobile(): boolean {
   )
 
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 1023px)')
+    const mq = window.matchMedia?.('(max-width: 1023px)')
+    if (!mq) return // tests (and very old browsers) may hand back nothing
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
-    setIsMobile(mq.matches)
-    mq.addEventListener('change', handler)
-    return () => mq.removeEventListener('change', handler)
+    setIsMobile(!!mq.matches)
+    mq.addEventListener?.('change', handler)
+    return () => mq.removeEventListener?.('change', handler)
   }, [])
 
   return isMobile

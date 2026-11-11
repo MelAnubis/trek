@@ -171,3 +171,13 @@
 .trek-modal-head.is-wide { background: var(--bg-tertiary); }
 .trek-modal-close { color: var(--text-muted); background: var(--glass-bg-subtle); border: 1px solid var(--glass-border-inner); }
 .trek-modal-foot { border-top: 1px solid var(--modal-border); }
+
+/* Phone: the list of sections of Settings / Admin */
+.trek-pagepanel-row { min-height: 52px; color: var(--text-primary); border-bottom: 1px solid var(--border-faint, var(--border-primary)); }
+.trek-pagepanel-row:last-of-type { border-bottom: none; }
+.trek-pagepanel-row:active { background: var(--bg-hover); }
+.trek-pagepanel-row-icon {
+  width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+  display: grid; place-items: center;
+  background: var(--bg-tertiary); color: var(--text-secondary);
+}

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Menu, X, type LucideIcon } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, type LucideIcon } from 'lucide-react'
 import { useTranslation } from '../../i18n'
+import { useIsMobile } from '../../hooks/useIsMobile'
 import '../../styles/chrome.css'
 
 export interface PageSidebarTab {
@@ -24,8 +25,8 @@ interface PageSidebarProps {
  * Left-sidebar + right-panel layout used by the Settings and Admin pages.
  *
  * Desktop (>=1024px): sidebar is always visible at 260px; panel fills rest.
- * Mobile: sidebar collapses behind a hamburger at the top of the panel; tap
- * the hamburger to slide the sidebar in as an overlay, tap a tab to close.
+ * Phone: a list of sections first; tapping one opens it full width with a
+ * back button to the list (no drawer).
  */
 export default function PageSidebar({
   sidebarLabel,
@@ -36,93 +37,70 @@ export default function PageSidebar({
   footer,
 }: PageSidebarProps): React.ReactElement {
   const { t } = useTranslation()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const activeLabel = tabs.find(t => t.id === activeTab)?.label ?? ''
+  // Phone: a list of sections first (like the settings of iOS/Android); tapping one opens it
+  // with a back button. A link straight to a section (?tab=…) opens that section.
+  const [mobileView, setMobileView] = useState<'list' | 'panel'>(() =>
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('tab') ? 'panel' : 'list')
+  const activeLabel = tabs.find(tb => tb.id === activeTab)?.label ?? ''
+  const isPhone = useIsMobile() // below lg, where the sidebar can't sit next to the panel
 
-  // Close the mobile drawer on Escape or on outside click.
-  const drawerRef = useRef<HTMLDivElement>(null)
+  // Escape (or the phone's back gesture through the button) returns to the list.
   useEffect(() => {
-    if (!mobileOpen) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileOpen(false) }
+    if (mobileView !== 'panel') return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMobileView('list') }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [mobileOpen])
+  }, [mobileView])
+
+  const openSection = (id: string) => {
+    onTabChange(id)
+    setMobileView('panel')
+    window.scrollTo?.({ top: 0 })
+  }
 
   return (
-    <div
-      className="trek-pagepanel rounded-2xl overflow-hidden flex flex-col lg:flex-row relative"
-    >
-      {/* Mobile top bar with hamburger */}
-      <div
-        className="trek-pagepanel-topbar lg:hidden flex items-center justify-between px-4 py-3 border-b"
-      >
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="trek-text-primary w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
-          aria-label={t('nav.openMenu')}
-        >
-          <Menu size={18} />
-        </button>
-        <div className="trek-text-primary flex items-center gap-2 text-sm font-semibold">
-          {activeLabel}
-        </div>
-        <div className="w-9" />
-      </div>
-
-      {/* Desktop sidebar (always visible on lg) */}
-      <aside
-        className="trek-pagepanel-aside hidden lg:flex flex-col shrink-0 relative"
-      >
-        <SidebarInner
-          sidebarLabel={sidebarLabel}
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={onTabChange}
-          footer={footer}
-        />
-      </aside>
-
-      {/* Mobile drawer */}
-      {mobileOpen && (
-        <>
-          <div
-            className="lg:hidden fixed inset-0 z-40 bg-black/35"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside
-            ref={drawerRef}
-            className="trek-pagepanel-drawer lg:hidden fixed top-0 left-0 bottom-0 z-50 flex flex-col"
-          >
-            <div className="flex items-center justify-between mb-3 px-2">
-              <span
-                className="trek-text-muted text-[11px] font-bold tracking-widest uppercase"
-              >
-                {sidebarLabel}
-              </span>
-              <button
-                onClick={() => setMobileOpen(false)}
-                className="trek-text-primary w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[var(--bg-hover)]"
-                aria-label={t('nav.closeMenu')}
-              >
-                <X size={16} />
+    <div className="trek-pagepanel rounded-2xl overflow-hidden flex flex-col lg:flex-row relative">
+      {/* Phone: list of sections */}
+      {isPhone && mobileView === 'list' && (
+        <nav className="lg:hidden flex flex-col py-2" aria-label={sidebarLabel}>
+          {tabs.map(tab => {
+            const Icon = tab.icon
+            return (
+              <button key={tab.id} onClick={() => openSection(tab.id)} className="trek-pagepanel-row flex items-center gap-3 px-4 text-left">
+                <span className="trek-pagepanel-row-icon"><Icon size={18} /></span>
+                <span className="flex-1 truncate text-[15px] font-medium">{tab.label}</span>
+                <ChevronRight size={18} className="trek-text-faint shrink-0" />
               </button>
-            </div>
-            <SidebarInner
-              sidebarLabel={null}
-              tabs={tabs}
-              activeTab={activeTab}
-              onTabChange={(id) => {
-                onTabChange(id)
-                setMobileOpen(false)
-              }}
-              footer={footer}
-            />
-          </aside>
-        </>
+            )
+          })}
+          {footer && <div className="trek-pagepanel-footer mx-4 mt-3 pt-3 text-[10px] tracking-wide">{footer}</div>}
+        </nav>
       )}
 
-      {/* Panel */}
-      <div className="trek-pagepanel-body flex-1 min-w-0">
+      {/* Phone: inside a section */}
+      {isPhone && mobileView === 'panel' && (
+        <div className="trek-pagepanel-topbar lg:hidden flex items-center gap-1 px-2 py-2 border-b">
+          <button
+            onClick={() => setMobileView('list')}
+            className="trek-text-primary h-10 pl-1 pr-3 rounded-lg flex items-center gap-1 transition-colors hover:bg-[var(--bg-hover)]"
+            aria-label={t('common.back')}
+          >
+            <ChevronLeft size={20} />
+            <span className="text-sm">{sidebarLabel}</span>
+          </button>
+          <div className="trek-text-primary flex-1 text-center text-sm font-semibold truncate pr-16">{activeLabel}</div>
+        </div>
+      )}
+
+      {/* Desktop sidebar (always visible on lg) */}
+      {!isPhone && (
+        <aside className="trek-pagepanel-aside hidden lg:flex flex-col shrink-0 relative">
+          <SidebarInner sidebarLabel={sidebarLabel} tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} footer={footer} />
+        </aside>
+      )}
+
+      {/* Panel (on a phone only once a section is open) */}
+      <div className={`trek-pagepanel-body flex-1 min-w-0${isPhone && mobileView === 'list' ? ' max-lg:hidden' : ''}`}>
         {children}
       </div>
     </div>
