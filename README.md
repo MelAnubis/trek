@@ -13,7 +13,6 @@ A fork of [TREK](https://github.com/mauriceboe/TREK) with a glassmorphism redesi
 <br />
 
 [![Live](https://img.shields.io/badge/Live-rodadas.info-6366f1?style=for-the-badge)](https://rodadas.info:446)
-[![Based on TREK](https://img.shields.io/badge/Based%20on-TREK-8b5cf6?style=for-the-badge)](https://github.com/mauriceboe/TREK)
 [![License](https://img.shields.io/badge/license-AGPL_v3-6B7280?style=for-the-badge)](LICENSE)
 
 </div>
@@ -105,8 +104,7 @@ Running on a home server behind a reverse proxy at **[rodadas.info:446](https://
 
 Trek Wanderer is a fork of **[TREK](https://github.com/mauriceboe/TREK)** by [Maurice Boe](https://github.com/mauriceboe) — an amazing open-source travel planner. All the core functionality, architecture, and original design belong to him.
 
-If you're looking for the original project to self-host, head over to the upstream repo:
-👉 **https://github.com/mauriceboe/TREK**
+This project is developed independently and is not affiliated with or endorsed by the original TREK project. Like the original, it is licensed under the [GNU AGPL v3](LICENSE); this fork's source code, with its changes, is the code in this repository.
 
 ---
 

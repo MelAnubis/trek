@@ -1,4 +1,11 @@
+Actualizar Trek Wanderer (ya sin el proyecto original):
+
 cd "C:\003Trek\trek-main"
-git fetch upstream
-git merge upstream/main
-git push origin main
+git pull origin main
+docker compose up -d --build trek
+
+Si cambió algo del GPS, la cámara u otra parte nativa, reconstruir también la app Android:
+cd client
+npm install
+npm run cap:sync
+npx cap open android
