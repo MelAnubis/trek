@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Calendar, Image as ImageIcon, Search, Users, X } from 'lucide-react'
-import { albumSections, albumTitle, albumYear, type AlbumSort, type PickerAlbum } from './albumBrowser'
+import { albumSections, albumTitle, albumYear, type AlbumSort, type PickerAlbum } from './albumBrowserModel'
 
 /**
  * The "Albums" tab of the photo-provider picker, as a browsable grid instead

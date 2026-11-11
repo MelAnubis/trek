@@ -9,7 +9,7 @@ import { matchStickers, newStickerElement, readRecentStickers, rememberSticker, 
 import { BOOK_STICKERS, bookSticker } from '../../../../../src/components/Studio/stickers/catalogue'
 import { StickerShelf } from '../../../../../src/components/Studio/stickers/StickerShelf'
 import { StickerInspector } from '../../../../../src/components/Studio/stickers/StickerInspector'
-import { MAX_BOOK_LAYOUTS, applySavedBookLayout, bookLayoutFromSpread, bookLayoutPreview, nextBookLayoutName } from '../../../../../src/components/Studio/designed/savedLayouts'
+import { MAX_BOOK_LAYOUTS, applySavedBookLayout, bookLayoutFromSpread, bookLayoutPreview, nextBookLayoutName } from '../../../../../src/components/Studio/designed/savedLayoutsModel'
 import { SavedLayouts } from '../../../../../src/components/Studio/designed/SavedLayouts'
 import { bookThemeOf, bookThemeColor } from '../../../../../src/components/Studio/bookTheme'
 import { useStudioStore } from '../../../../../src/store/studioStore'

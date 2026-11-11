@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { AlbumBrowser, normalizeAlbums } from './AlbumBrowser'
-import type { PickerAlbum } from './albumBrowser'
+import type { PickerAlbum } from './albumBrowserModel'
 import type { JourneyEntry, JourneyTrip } from '../../store/journeyStore'
 
 // ── Scroll Trigger ───────────────────────────────────────────────────────

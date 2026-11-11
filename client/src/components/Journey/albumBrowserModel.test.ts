@@ -1,5 +1,5 @@
 // FE-ALBUMBROWSER-001 to FE-ALBUMBROWSER-010
-import { albumSections, albumYear, filterAlbums, overlapsRange, sortAlbums, type PickerAlbum } from './albumBrowser'
+import { albumSections, albumYear, filterAlbums, overlapsRange, sortAlbums, type PickerAlbum } from './albumBrowserModel'
 
 const al = (id: string, albumName: string, extra: Partial<PickerAlbum> = {}): PickerAlbum => ({ id, albumName, assetCount: 10, ...extra })
 

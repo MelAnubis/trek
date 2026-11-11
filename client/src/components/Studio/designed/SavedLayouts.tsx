@@ -1,7 +1,7 @@
 import { BookmarkPlus, Trash2 } from 'lucide-react'
 import { useStudioStore } from '../../../store/studioStore'
 import { SpreadFold, SpreadView } from '../SpreadView'
-import { MAX_BOOK_LAYOUTS, applySavedBookLayout, bookLayoutFromSpread, bookLayoutPreview, bookLayoutRole, nextBookLayoutName } from './savedLayouts'
+import { MAX_BOOK_LAYOUTS, applySavedBookLayout, bookLayoutFromSpread, bookLayoutPreview, bookLayoutRole, nextBookLayoutName } from './savedLayoutsModel'
 
 /*
  * "Mis diseños" (5.7.12, after liketrek/TREK's StudioSavedLayouts): one button
