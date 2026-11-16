@@ -63,3 +63,18 @@ test('galería: buscar sin tildes y ordenar composiciones', () => {
   const p = snapshot({ nombre: 'x', raw: gpx, miniatura: 'data:image/jpeg;base64,AA', appVersion: 'x' });
   assert.equal(checkProject(JSON.parse(JSON.stringify(p))).miniatura, 'data:image/jpeg;base64,AA');
 });
+
+// ——— rutas de Trek ———
+test('filterRoutes busca por nombre, viaje y tipo, sin acentos ni mayúsculas', async () => {
+  const { filterRoutes } = await import('../app/js/trek.js');
+  const list = [
+    { tipo: 'planner', id: 1, nombre: 'Vuelta a Arévalo', viaje: null },
+    { tipo: 'track', id: 2, nombre: 'Etapa 3', viaje: 'Camino del Cid' },
+    { tipo: 'tour', id: 3, nombre: 'Hoces del Duratón', viaje: 'Segovia' },
+  ];
+  assert.deepEqual(filterRoutes(list, 'arevalo').map((r) => r.id), [1]);
+  assert.deepEqual(filterRoutes(list, 'CID etapa').map((r) => r.id), [2]);
+  assert.deepEqual(filterRoutes(list, 'excursion').map((r) => r.id), [3]);
+  assert.equal(filterRoutes(list, '').length, 3);
+  assert.equal(filterRoutes(list, 'nada').length, 0);
+});

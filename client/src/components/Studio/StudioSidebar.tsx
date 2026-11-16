@@ -27,6 +27,9 @@ import { SavedLayouts } from './designed/SavedLayouts'
 import { LockupShelf } from './lockups/LockupShelf'
 import { StickerShelf } from './stickers/StickerShelf'
 import { SidebarTabs } from './SidebarTabs'
+import { IllustratedMapShelf } from './IllustratedMapShelf'
+import { fitImageFrame } from './pastedImage'
+import { useArteAccess } from '../../hooks/useArteAccess'
 
 /**
  * The left rail: pages, layout templates, buttons to add a text/shape/
@@ -174,6 +177,7 @@ export function StudioSidebar({
   const updateElement = useStudioStore(s => s.updateElement)
   const commit = useStudioStore(s => s.commit)
   const readOnly = useStudioStore(s => s.readOnly)
+  const arteAccess = useArteAccess()
 
   if (!doc) return null
 
@@ -551,6 +555,17 @@ export function StudioSidebar({
             <button onClick={() => void addMap()} className="st-sb-add"><MapIconLucide size={15} /> {t('journey.studio.addMap')}</button>
             <button onClick={() => void addPlaces()} className="st-sb-add"><MapPin size={15} /> {t('journey.studio.addPlaces')}</button>
             </div>
+        )}
+        {/* The user's illustrated maps (Arte module), placed as a plain image like a pasted one. */}
+        {travelTab === 'maps' && arteAccess && (
+          <IllustratedMapShelf t={t} onError={msg => toast.error(msg)}
+            onAdd={image => {
+              const { w, h } = fitImageFrame(image.naturalWidth, image.naturalHeight, doc.page)
+              addCentered(w, h, (id, frame) => ({
+                id, frame, kind: 'image', rotation: 0, opacity: 1, locked: false,
+                src: image.src, fit: 'contain', radius: 0,
+              }))
+            }} />
         )}
         {travelTab === 'countries' && (
             <div className="!grid ![grid-template-columns:1fr_1fr] !gap-[6px]">

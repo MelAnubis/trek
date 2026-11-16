@@ -3,6 +3,15 @@
 Formato: [versiones semánticas](https://semver.org/lang/es/). La versión visible en la app sale de `app/js/version.js`.
 
 
+## [1.8.0] — 2026-11-16
+
+### Dentro de Trek
+- La app deja de ser un contenedor aparte: es el módulo «Mapas ilustrados» de Trek (`/arte`), con su sesión y su permiso (Admin → Permisos). Lo que hacía su nginx (caché de Overpass, teselas de elevación, peticiones de dibujo, sincronización de `app/data`) lo hace el servidor de Trek.
+- Aspecto de Trek, claro y oscuro; en móvil, una vista cada vez (Ajustes / Mapa).
+- «Elegir una de mis rutas de Trek»: rutas del planificador, tracks y excursiones de los viajes, con sus puntos literales.
+- Las composiciones se guardan en el servidor, por usuario (antes en el navegador), junto con el mapa ya pintado para poder colocarlo en Studio.
+- Las peticiones de dibujo ya no piden clave: basta la sesión.
+
 ## [1.7.5] — 2026-11-16
 
 ### Dibujos

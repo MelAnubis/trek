@@ -577,6 +577,24 @@ export const mapsApi = {
     apiClient.get('/maps/pois', { params: { category, ...bbox }, signal, timeout: 20000 }).then(r => r.data as { pois: import('../components/Map/poiCategories').Poi[]; source: string; truncated: boolean; clamped?: boolean }),
 }
 
+/** A saved illustrated map (Arte module) — see server/src/services/arteTrekService.ts. */
+export interface ArteComposition {
+  id: string
+  nombre: string
+  guardado: string
+  gpx: string | null
+  conOsm: boolean
+  miniatura: string | null
+  /** Whether the painted map is stored, i.e. it can be placed in a book. */
+  conImagen: boolean
+}
+
+export const arteApi = {
+  compositions: () => apiClient.get('/arte/trek/composiciones').then(r => (r.data?.composiciones ?? []) as ArteComposition[]),
+  compositionImage: (id: string) =>
+    apiClient.get(`/arte/trek/composiciones/${encodeURIComponent(id)}/imagen`, { responseType: 'blob', timeout: 60000 }).then(r => r.data as Blob),
+}
+
 export const plannerApi = {
   list: (params: Record<string, string | number> = {}, signal?: AbortSignal) =>
     apiClient.get('/planner', { params, signal }).then(r => r.data as import('../utils/plannerRoute').LibraryResponse),

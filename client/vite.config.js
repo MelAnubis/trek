@@ -51,8 +51,10 @@ export default defineConfig({
           },
           {
             // API calls — prefer network, fall back to cache
-            // Exclude sensitive endpoints (auth, admin, backup, settings)
-            urlPattern: /\/api\/(?!auth|admin|backup|settings|health).*/i,
+            // Exclude sensitive endpoints (auth, admin, backup, settings) and the
+            // illustrated-maps module (/api/arte: a whole static app plus saves that
+            // must never be answered from a stale cache)
+            urlPattern: /\/api\/(?!auth|admin|backup|settings|health|arte).*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-data',
