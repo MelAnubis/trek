@@ -24,7 +24,7 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - TZ=${TZ:-Europe/Madrid}
       - LOG_LEVEL=${LOG_LEVEL:-info}
-      - ALLOWED_ORIGINS=https://trekwanderer.info:446,https://go.trekwanderer.info:446,https://www.trekwanderer.info:446,https://rodadas.info:446,https://www.rodadas.info:446,https://localhost:446 
+      - ALLOWED_ORIGINS=https://trekwanderer.info:446,https://go.trekwanderer.info:446,https://www.trekwanderer.info:446,https://rodadas.info:446,https://www.rodadas.info:446,https://estodobajada.com:446,https://www.estodobajada.com:446,https://localhost:446
       - FORCE_HTTPS=true
       - TRUST_PROXY=1
       - APP_URL=https://www.trekwanderer.info:446
@@ -65,6 +65,15 @@ services:
       # Cookie name for this instance — set to 'bikepack_session' on the Bikepack side
       # so Trek and Bikepack cookies don't collide (they share the same domain).
       - SESSION_COOKIE_NAME=${SESSION_COOKIE_NAME:-trek_session}
+      # ── Mapas ilustrados (Arte) ───────────────────────────────────────────
+      # El módulo va dentro de Trek (menú «Mapas ilustrados»; quién lo ve: Admin → Permisos).
+      # Con este token (GitHub, solo lectura de «Contents» del repositorio de ilustraciones)
+      # Trek trae cada 10 min el catálogo y los dibujos nuevos; sin él usa los incluidos.
+      - ARTE_SYNC_TOKEN=${ARTE_SYNC_TOKEN:-}
+      # Para pedir dibujos desde la app: token con permiso «Issues: Read and write»
+      # (puede ser el mismo). Sin él, el botón abre GitHub con la petición rellenada.
+      - ARTE_PETICION_TOKEN=${ARTE_PETICION_TOKEN:-}
+      # - ARTE_REPO=MelAnubis/estodobajada-arte
       # ── Valhalla propio (5.7.29) ──────────────────────────────────────────
       # Ajuste a calles y caminos del tracking, rutas y alturas sin depender del servidor
       # público. Lo fuera del mapa construido (un viaje al extranjero) se pide al público.

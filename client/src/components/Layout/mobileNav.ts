@@ -1,4 +1,4 @@
-import { Bell, CalendarDays, Compass, Globe, Navigation, Plane, Radio, Route, Settings, type LucideIcon } from 'lucide-react'
+import { Bell, CalendarDays, Compass, Globe, Navigation, Palette, Plane, Radio, Route, Settings, type LucideIcon } from 'lucide-react'
 
 /**
  * The phone's bottom bar: which destinations it shows and in what order,
@@ -16,9 +16,16 @@ export interface MobileNavItem {
   icon: LucideIcon
   /** Translation key, or a literal label when `literal` is set. */
   labelKey: string
-  /** Required global addon id, if any. */
+  /** Required global addon id, if any. `arte` is not an addon but a permission (see ARTE_NAV_ID). */
   addon?: string
 }
+
+/**
+ * The illustrated-maps module is switched on by a permission (Admin →
+ * Permissions → arte_use), not by an addon. Callers add this id to the
+ * "enabled addons" list they pass in when the user has that permission.
+ */
+export const ARTE_NAV_ID = 'arte'
 
 export const MOBILE_NAV_CATALOG: MobileNavItem[] = [
   { id: 'trips', to: '/dashboard', icon: Plane, labelKey: 'nav.myTrips' },
@@ -26,6 +33,7 @@ export const MOBILE_NAV_CATALOG: MobileNavItem[] = [
   { id: 'journey', to: '/journey', icon: Compass, labelKey: 'admin.addons.catalog.journey.name', addon: 'journey' },
   { id: 'atlas', to: '/atlas', icon: Globe, labelKey: 'admin.addons.catalog.atlas.name', addon: 'atlas' },
   { id: 'vacay', to: '/vacay', icon: CalendarDays, labelKey: 'admin.addons.catalog.vacay.name', addon: 'vacay' },
+  { id: 'arte', to: '/arte', icon: Palette, labelKey: 'arte.nav', addon: ARTE_NAV_ID },
   { id: 'navigate', to: '/navigate', icon: Navigation, labelKey: 'nav.mobile.navigate' },
   { id: 'tracking', to: '/tracking', icon: Radio, labelKey: 'tracking.title' },
   { id: 'notifications', to: '/notifications', icon: Bell, labelKey: 'nav.mobile.notifications' },

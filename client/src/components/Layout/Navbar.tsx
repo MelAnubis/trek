@@ -5,11 +5,12 @@ import { useAuthStore } from '../../store/authStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useTranslation } from '../../i18n'
-import { Mountain, Plane, LogOut, Settings, Radio, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Route as RouteIcon } from 'lucide-react'
+import { Mountain, Plane, LogOut, Settings, Radio, ChevronDown, Shield, ArrowLeft, Users, Moon, Sun, Monitor, CalendarDays, Briefcase, Globe, Compass, Navigation, Palette, Route as RouteIcon } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import InAppNotificationBell from './InAppNotificationBell.tsx'
 import '../../styles/chrome.css'
 import { useIsDark } from '../../hooks/useIsDark'
+import { useArteAccess } from '../../hooks/useArteAccess'
 
 const ADDON_ICONS: Record<string, LucideIcon> = { CalendarDays, Briefcase, Globe, Compass }
 
@@ -39,6 +40,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false)
   const [scrolled, setScrolled] = useState<boolean>(false)
   const dark = useIsDark()
+  const arteAccess = useArteAccess()
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8 || (document.body.scrollTop || 0) > 8)
@@ -117,6 +119,7 @@ export default function Navbar({ tripTitle, tripId, onBack, showBack, onShare }:
               { to: '/dashboard', label: t('nav.myTrips'), Icon: Briefcase as LucideIcon },
               ...globalAddons.map(addon => ({ to: `/${addon.id}`, label: getAddonName(addon), Icon: ADDON_ICONS[addon.icon] || CalendarDays })),
               { to: '/planner', label: t('planner.nav'), Icon: RouteIcon as LucideIcon },
+              ...(arteAccess ? [{ to: '/arte', label: t('arte.nav'), Icon: Palette as LucideIcon }] : []),
               { to: '/explora', label: t('site.tab'), Icon: Mountain as LucideIcon },
             ].map(({ to, label, Icon }) => {
               const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`)

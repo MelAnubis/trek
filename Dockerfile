@@ -32,6 +32,8 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY server/ ./
 COPY --from=client-builder /app/client/dist ./public
 COPY --from=client-builder /app/client/public/fonts ./public/fonts
+# Mapas ilustrados (Arte): app estática servida por /api/arte (ver server/src/routes/arte.ts)
+COPY arte/app ./arte
 
 RUN rm -f package-lock.json && \
     mkdir -p /app/data/logs /app/uploads/files /app/uploads/covers /app/uploads/avatars /app/uploads/photos /app/uploads/nav-photos && \

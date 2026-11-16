@@ -6,7 +6,8 @@ import { useSettingsStore } from '../../store/settingsStore'
 import { useTranslation } from '../../i18n'
 import { User, Settings, Shield, LogOut, Bell, Radio, type LucideIcon } from 'lucide-react'
 import { useInAppNotificationStore } from '../../store/inAppNotificationStore'
-import { resolveMobileNav } from './mobileNav'
+import { ARTE_NAV_ID, resolveMobileNav } from './mobileNav'
+import { useArteAccess } from '../../hooks/useArteAccess'
 import '../../styles/chrome.css'
 
 // Look: styles/chrome.css (.trek-bottomnav, .trek-sheet…), light and dark via the .dark class.
@@ -15,7 +16,9 @@ export default function BottomNav() {
   const { t } = useTranslation()
   const addons = useAddonStore(s => s.addons)
   const savedNav = useSettingsStore(s => s.settings.mobile_nav)
+  const arteAccess = useArteAccess()
   const enabledAddons = addons.filter(a => a.type === 'global' && a.enabled).map(a => a.id)
+  if (arteAccess) enabledAddons.push(ARTE_NAV_ID)
   const [showProfile, setShowProfile] = useState(false)
   // Unread notifications show as a dot on the profile button on every page —
   // the bell only lives in the dashboard's top strip on a phone.

@@ -52,6 +52,7 @@ import blogRoutes from './routes/blog';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
 import plannerRoutes from './routes/planner';
+import arteRoutes from './routes/arte';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
@@ -323,6 +324,7 @@ export function createApp(): express.Application {
   app.use('/api/auth', authRoutes);
   app.use('/api/bikepack', bikepackRoutes);
   app.use('/api/planner', plannerRoutes);
+  app.use('/api/arte', arteRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
   app.use('/api/auth/passkey', passkeyRoutes);
   app.use('/api/trips', tripsRoutes);
