@@ -10,6 +10,9 @@
  *   GET  /api/arte/api/terreno/z/x/y.png  → teselas de elevación con caché de 90 días
  *   GET  /api/arte/api/peticion/estado    → 204 si se pueden pedir dibujos desde la app
  *   POST /api/arte/api/peticion           → crea la petición de dibujo
+ *   GET  /api/arte/trek/rutas             → rutas del usuario (planificador, tracks, excursiones)
+ *   GET  /api/arte/trek/rutas/:tipo/:id   → esa ruta como GPX
+ *   …    /api/arte/trek/composiciones     → composiciones guardadas del usuario
  *
  * Todo exige sesión y el permiso «arte_use» (Admin → Permisos).
  */
@@ -28,6 +31,17 @@ import {
   drawingRequestAllowed,
   createDrawingRequest,
 } from '../services/arteService';
+import {
+  listUserRoutes,
+  userRouteGpx,
+  listCompositions,
+  getComposition,
+  getCompositionImage,
+  saveComposition,
+  deleteComposition,
+  validCompositionId,
+  type RouteKind,
+} from '../services/arteTrekService';
 
 const router = express.Router();
 
@@ -116,6 +130,78 @@ router.post('/api/peticion', async (req: Request, res: Response) => {
 });
 
 router.use('/api', (_req: Request, res: Response) => {
+  res.status(404).json({ error: 'Not found' });
+});
+
+// ── Rutas de Trek como GPX ──────────────────────────────────────────────────
+
+router.get('/trek/rutas', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ rutas: listUserRoutes((req as AuthRequest).user.id) });
+});
+
+router.get('/trek/rutas/:tipo/:id', (req: Request, res: Response) => {
+  const tipo = req.params.tipo;
+  const id = Number(req.params.id);
+  if (!['planner', 'track', 'tour'].includes(tipo) || !Number.isInteger(id) || id <= 0) {
+    res.status(404).json({ error: 'Ruta no encontrada' });
+    return;
+  }
+  const route = userRouteGpx((req as AuthRequest).user.id, tipo as RouteKind, id);
+  if (!route) {
+    res.status(404).json({ error: 'Ruta no encontrada' });
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ nombre: route.name, gpx: route.gpx });
+});
+
+// ── Composiciones guardadas ─────────────────────────────────────────────────
+
+router.get('/trek/composiciones', (req: Request, res: Response) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({ composiciones: listCompositions((req as AuthRequest).user.id) });
+});
+
+router.get('/trek/composiciones/:id', (req: Request, res: Response) => {
+  const comp = validCompositionId(req.params.id) ? getComposition((req as AuthRequest).user.id, req.params.id) : null;
+  if (!comp) {
+    res.status(404).json({ error: 'Composición no encontrada' });
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.json(comp);
+});
+
+router.get('/trek/composiciones/:id/imagen', (req: Request, res: Response) => {
+  const image = validCompositionId(req.params.id) ? getCompositionImage((req as AuthRequest).user.id, req.params.id) : null;
+  if (!image) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('image/jpeg').send(image);
+});
+
+router.put('/trek/composiciones/:id', (req: Request, res: Response) => {
+  if (!validCompositionId(req.params.id)) {
+    res.status(400).json({ error: 'Identificador no válido' });
+    return;
+  }
+  const out = saveComposition((req as AuthRequest).user.id, req.params.id, req.body);
+  if ('error' in out) {
+    res.status(out.status).json({ error: out.error });
+    return;
+  }
+  res.json(out.summary);
+});
+
+router.delete('/trek/composiciones/:id', (req: Request, res: Response) => {
+  if (validCompositionId(req.params.id)) deleteComposition((req as AuthRequest).user.id, req.params.id);
+  res.status(204).end();
+});
+
+router.use('/trek', (_req: Request, res: Response) => {
   res.status(404).json({ error: 'Not found' });
 });
 

@@ -1,7 +1,7 @@
 // Composiciones guardadas: el GPX original (texto literal, sin tocar), las opciones de diseño,
 // las decisiones por población y los datos de OpenStreetMap ya descargados, para reabrir un
 // mapa tal como se dejó sin consultar OSM de nuevo.
-// Se guardan en el navegador (IndexedDB) y se pueden exportar/importar como archivo .json.
+// Se guardan en el servidor de Trek (por usuario) y se pueden exportar/importar como archivo .json.
 
 export const FORMAT = 'estodobajada-arte/composicion';
 export const FORMAT_VERSION = 1;
@@ -50,36 +50,30 @@ export function applyTownState(towns, saved) {
   return n;
 }
 
-// ——— almacenamiento en el navegador ———
-const DB = 'etb-arte';
-const STORE = 'composiciones';
-function open() {
-  return new Promise((res, rej) => {
-    if (typeof indexedDB === 'undefined') { rej(new Error('Este navegador no permite guardar composiciones')); return; }
-    const rq = indexedDB.open(DB, 1);
-    rq.onupgradeneeded = () => rq.result.createObjectStore(STORE, { keyPath: 'id' });
-    rq.onsuccess = () => res(rq.result);
-    rq.onerror = () => rej(rq.error || new Error('No se pudo abrir el almacén del navegador'));
-  });
+// ——— almacenamiento: en el servidor de Trek, por usuario ———
+// (antes en el IndexedDB del navegador; así se ven desde cualquier equipo y entran en las copias
+// de seguridad de Trek)
+const API = 'trek/composiciones';
+async function call(path, init) {
+  let r;
+  try { r = await fetch(path, init); } catch { throw new Error('Sin conexión con el servidor'); }
+  if (!r.ok) {
+    let msg = `Error ${r.status}`;
+    try { const j = await r.json(); if (j && j.error) msg = j.error; } catch { /* sin detalle */ }
+    if (r.status === 413) msg = 'La composición es demasiado grande para guardarla';
+    throw new Error(msg);
+  }
+  return r;
 }
-async function tx(mode, fn) {
-  const db = await open();
-  return new Promise((res, rej) => {
-    const t = db.transaction(STORE, mode);
-    const out = fn(t.objectStore(STORE));
-    t.oncomplete = () => { db.close(); res(out && 'result' in out ? out.result : undefined); };
-    t.onerror = () => { db.close(); rej(t.error); };
-    t.onabort = () => { db.close(); rej(t.error || new Error('Sin espacio en el navegador')); };
-  });
-}
-export const saveProject = (p) => tx('readwrite', (s) => s.put(p)).then(() => p);
-export const getProject = (id) => tx('readonly', (s) => s.get(id));
-export const deleteProject = (id) => tx('readwrite', (s) => s.delete(id));
-/** Lista resumida, la más reciente primero (sin cargar todo en pantalla). */
+const one = (id) => `${API}/${encodeURIComponent(id)}`;
+/** @param extra campos que solo viajan al guardar (p. ej. `imagen`: el mapa pintado, para Studio) */
+export const saveProject = (p, extra = {}) => call(one(p.id), { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...p, ...extra }) }).then(() => p);
+export const getProject = (id) => call(one(id), { cache: 'no-store' }).then((r) => r.json()).catch(() => null);
+export const deleteProject = (id) => call(one(id), { method: 'DELETE' });
+/** Lista resumida, la más reciente primero (sin cargar las composiciones enteras). */
 export async function listProjects() {
-  const all = (await tx('readonly', (s) => s.getAll())) || [];
-  return all.map((p) => ({ id: p.id, nombre: p.nombre, guardado: p.guardado, gpx: p.gpx && p.gpx.nombre, conOsm: !!p.osm, miniatura: p.miniatura || null }))
-    .sort((a, b) => String(b.guardado).localeCompare(String(a.guardado)));
+  const j = await (await call(API, { cache: 'no-store' })).json();
+  return (j.composiciones || []).sort((a, b) => String(b.guardado).localeCompare(String(a.guardado)));
 }
 
 /** Filtra y ordena la lista de composiciones para la galería. */

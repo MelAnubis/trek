@@ -35,6 +35,7 @@
         <strong>Suelta aquí un GPX</strong>
         <span>o pulsa para elegirlo</span>
       </label>
+      <button type="button" class="btn ghost rt-open" id="rt-open">Elegir una de mis rutas de Trek…</button>
       <button type="button" class="link" id="sample">Probar con «Arévalo circular»</button>
       <dl class="stats" id="stats" hidden></dl>
     </section>
@@ -182,6 +183,17 @@
     </div>
     <p class="muted cp-count" id="cp-count"></p>
     <ul class="cp-grid" id="cp-grid"></ul>
+  </div>
+</div>
+<div class="modal" id="rt-modal" hidden role="dialog" aria-modal="true" aria-labelledby="rt-h">
+  <div class="modal-box pick-box">
+    <div class="pick-top">
+      <h3 id="rt-h">Mis rutas de Trek</h3>
+      <button type="button" class="link" id="rt-close" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <input type="search" id="rt-q" placeholder="Buscar por nombre o viaje…" autocomplete="off">
+    <p class="muted cp-count" id="rt-count"></p>
+    <ul class="rt-list" id="rt-list"></ul>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

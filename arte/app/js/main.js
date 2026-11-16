@@ -12,6 +12,7 @@ import { requestUrl, hasOwnDrawing, sendRequest, directAvailable } from './reque
 import { hasSpecific, SPECIFIC_IDS, TYPOLOGICAL_IDS, loadDrawings, drawingMeta, allDrawingMeta, monumentDrawing } from './illustrations.js';
 import { screenFontCss, embeddedFontCss, download, slug, svgToPng } from './export.js';
 import { FONT_ROLES, FONT_SIZES } from './fonts.js';
+import { listRoutes, routeGpx, filterRoutes, ROUTE_KIND } from './trek.js';
 import { snapshot, checkProject, applyTownState, saveProject, getProject, deleteProject, listProjects, filterProjects } from './projects.js';
 
 const $ = (id) => document.getElementById(id);
@@ -86,7 +87,7 @@ state.drawingsReady = loadDrawings('data/dibujos/').catch((e) => { console.warn(
 state.catalogReady = fetch('data/catalogo-patrimonio.json', { cache: 'no-cache' }).then((r) => r.json()).then((j) => {
   state.catalog = j.entradas || [];
   setImageCredits(state.catalog);
-  loadCatalogImages();
+  return loadCatalogImages();
 }).catch(() => toast('No se pudo leer el catálogo de patrimonio'));
 
 // Ilustraciones propias del catálogo («imagen»): se leen sus proporciones para maquetarlas.
@@ -676,7 +677,7 @@ async function saveComposition(asNew) {
   const nombre = $('title').value.trim() || state.model.name || 'Sin título';
   const p = snapshot({ id: asNew ? null : comp.id, nombre, raw: state.raw, fileName: state.fileName, opts: readOpts(), extra: readExtra(), towns: state.towns, osm: state.osm, appVersion: VERSION, miniatura: thumbnail() });
   try {
-    await saveProject(p);
+    await saveProject(p, await mapImage());
     comp.id = p.id; comp.nombre = p.nombre; comp.dirty = false;
     paintCompStatus();
     renderComps();
@@ -712,6 +713,25 @@ function thumbnail() {
     return c.toDataURL('image/jpeg', 0.72);
   } catch { return null; }
 }
+// el mapa ya pintado, en JPEG (lado largo de 1800 px): se guarda con la composición para poder
+// llevarlo a Studio (libros de Journey) sin recomponerlo
+async function mapImage() {
+  if (!state.result) return {};
+  try {
+    const { w, h } = state.result.layout;
+    const k = 1800 / Math.max(w, h);
+    const png = await svgToPng(state.result.svg, w, h, k);
+    const bmp = await createImageBitmap(png);
+    const c = document.createElement('canvas');
+    c.width = bmp.width; c.height = bmp.height;
+    const g = c.getContext('2d');
+    g.fillStyle = '#f3ead6'; g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(bmp, 0, 0);
+    let q = 0.9, url = c.toDataURL('image/jpeg', q);
+    while (url.length > 3.6e6 && q > 0.5) { q -= 0.1; url = c.toDataURL('image/jpeg', q); }
+    return url.length > 3.6e6 ? {} : { imagen: url, imagen_ancho: c.width, imagen_alto: c.height };
+  } catch { return {}; }
+}
 const SIDEBAR_COMPS = 3; // en el panel solo las últimas; el resto, en la galería
 let compList = [];
 const escHtml = (x) => String(x ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
@@ -745,7 +765,7 @@ function compItem(it, card) {
 }
 async function renderComps() {
   const ul = $('cp-list');
-  try { compList = await listProjects(); } catch { compList = []; ul.innerHTML = '<li class="muted">Este navegador no permite guardar composiciones.</li>'; $('cp-all').hidden = true; return; }
+  try { compList = await listProjects(); } catch (e) { compList = []; ul.innerHTML = `<li class="muted">No se pudieron leer tus composiciones: ${escHtml(e.message)}</li>`; $('cp-all').hidden = true; return; }
   // las más recientes y, si no está entre ellas, la abierta
   const shown = compList.slice(0, SIDEBAR_COMPS);
   const open = compList.find((it) => it.id === comp.id);
@@ -793,6 +813,62 @@ renderComps();
 
 // versión visible (fuente única: version.js)
 { const f = document.getElementById('version-foot'); if (f) f.textContent = 'Mapas ilustrados v' + VERSION; }
+
+// ——— rutas de Trek ———
+let routeList = null;
+async function openTrekRoute(tipo, id) {
+  try {
+    const r = await routeGpx(tipo, id);
+    await loadGPX(r.gpx, `${slug(r.nombre)}.gpx`);
+    return true;
+  } catch (e) { toast(e.message, 6000); return false; }
+}
+function renderRoutes() {
+  const ul = $('rt-list');
+  if (!routeList) { ul.innerHTML = '<li class="muted cp-none">Cargando tus rutas…</li>'; $('rt-count').textContent = ''; return; }
+  const list = filterRoutes(routeList, $('rt-q').value);
+  $('rt-count').textContent = !routeList.length ? '' : list.length === routeList.length ? `${routeList.length} rutas` : `${list.length} de ${routeList.length}`;
+  if (!routeList.length) { ul.innerHTML = '<li class="muted cp-none">Aún no tienes rutas en Trek: guarda una en el planificador o sube un track a un viaje.</li>'; return; }
+  if (!list.length) { ul.innerHTML = '<li class="muted cp-none">Ninguna coincide con la búsqueda.</li>'; return; }
+  ul.replaceChildren(...list.map((it) => {
+    const li = document.createElement('li');
+    const km = it.km ? `${Number(it.km).toLocaleString('es-ES', { maximumFractionDigits: 1 })} km` : '';
+    const when = it.fecha ? new Date(String(it.fecha).replace(' ', 'T')).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+    li.innerHTML = `<button type="button" class="rt-item"><span class="rt-tx"><b>${escHtml(it.nombre)}</b><small>${[ROUTE_KIND[it.tipo], it.viaje && escHtml(it.viaje), when].filter(Boolean).join(' · ')}</small></span><span class="rt-km">${km}</span></button>`;
+    const b = li.firstElementChild;
+    b.addEventListener('click', async () => {
+      if (comp.dirty && comp.id && !confirm(`«${comp.nombre}» tiene cambios sin guardar. ¿Abrir otra ruta igualmente?`)) return;
+      b.disabled = true;
+      const ok = await openTrekRoute(it.tipo, it.id);
+      b.disabled = false;
+      if (ok) $('rt-modal').hidden = true;
+    });
+    return li;
+  }));
+}
+$('rt-open').addEventListener('click', async () => {
+  $('rt-modal').hidden = false;
+  $('rt-q').value = '';
+  routeList = null;
+  renderRoutes();
+  $('rt-q').focus();
+  try { routeList = await listRoutes(); } catch (e) { routeList = []; toast(e.message, 6000); }
+  renderRoutes();
+});
+$('rt-close').addEventListener('click', () => { $('rt-modal').hidden = true; });
+$('rt-modal').addEventListener('click', (e) => { if (e.target === e.currentTarget) $('rt-modal').hidden = true; });
+$('rt-q').addEventListener('input', renderRoutes);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('rt-modal').hidden) $('rt-modal').hidden = true; });
+
+// Trek puede abrir el módulo ya con una ruta o una composición: /arte?planner=12, ?track=, ?tour=, ?composicion=
+{
+  const q = new URLSearchParams(location.search);
+  const tipo = ['planner', 'track', 'tour'].find((k) => /^\d+$/.test(q.get(k) || ''));
+  // con el catálogo y los dibujos ya cargados: si llegan después, repintan y la dan por modificada
+  const ready = Promise.all([state.drawingsReady, state.catalogReady]);
+  if (tipo) ready.then(() => openTrekRoute(tipo, q.get(tipo)));
+  else if (q.get('composicion')) ready.then(() => getProject(q.get('composicion'))).then((p) => { if (p) openComposition(p); else toast('Esa composición ya no existe', 5000); });
+}
 
 // ——— pantallas estrechas: ajustes o mapa ———
 function setView(v) {

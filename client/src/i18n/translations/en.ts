@@ -2162,6 +2162,7 @@ const en: Record<string, string | { name: string; category: string }[]> = {
   'perm.actionHint.arte_use': 'Who can open the module that turns a GPX route into an ink-and-watercolour map',
   'arte.nav': 'Illustrated maps',
   'arte.title': 'Illustrated maps',
+  'arte.fromRoute': 'Illustrated map',
   'perm.action.trip_create': 'Create trips',
   'perm.action.trip_edit': 'Edit trip details',
   'perm.action.trip_delete': 'Delete trips',

@@ -1913,6 +1913,7 @@ const es: Record<string, string | { name: string; category: string }[]> = {
   'perm.actionHint.arte_use': 'Quién puede abrir el módulo que convierte una ruta GPX en un mapa de tinta y acuarela',
   'arte.nav': 'Mapas ilustrados',
   'arte.title': 'Mapas ilustrados',
+  'arte.fromRoute': 'Mapa ilustrado',
   'perm.action.trip_create': 'Crear viajes',
   'perm.action.trip_edit': 'Editar detalles del viaje',
   'perm.action.trip_delete': 'Eliminar viajes',
