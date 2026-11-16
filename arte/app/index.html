@@ -3,18 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>#ESTODOBAJADA · Arte v1.6.1</title>
+<title>Mapas ilustrados</title>
 <meta name="description" content="Convierte rutas GPX reales en mapas ilustrados de tinta y acuarela con el patrimonio de cada pueblo.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Cpath d='M4 10 L28 24' stroke='%23f3ead6' stroke-width='4'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
-<div class="app">
+<div class="app" id="app">
+  <div class="viewswitch" role="group" aria-label="Vista">
+    <button type="button" data-view="panel" aria-pressed="true">Ajustes</button>
+    <button type="button" data-view="map" aria-pressed="false">Mapa</button>
+  </div>
   <aside class="panel" aria-label="Controles del mapa">
-    <header class="brand">
-      <div class="brand-tag">#ESTODOBAJADA <span class="version" id="version" title="Versión de la app">v1.6.1</span></div>
-      <h1>Arte <span>· mapas ilustrados</span></h1>
-    </header>
 
     <section class="card" id="sec-comp">
       <h2>Mis composiciones</h2>
@@ -115,7 +115,7 @@
         <button type="button" class="btn ghost" id="ex-report" disabled>Informe de integridad</button>
       </div>
     </section>
-    <footer class="foot"><b id="version-foot">#ESTODOBAJADA · Arte v1.6.1</b><br>Datos geográficos © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL) · relieve: Terrain Tiles (AWS Open Data) · fotos de referencia: Wikimedia Commons.</footer>
+    <footer class="foot"><span id="version-foot">Mapas ilustrados</span><br>Datos geográficos © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL) · relieve: Terrain Tiles (AWS Open Data) · fotos de referencia: Wikimedia Commons.</footer>
   </aside>
 
   <main class="stage" id="stage">
@@ -135,8 +135,8 @@
       <div class="busy" id="busy" hidden><span>Generando el mapa…</span></div>
       <div class="canvas" id="canvas">
         <div class="empty">
-          <p class="empty-tag">#ESTODOBAJADA</p>
-          <p>Sube un GPX y lo convertimos en un mapa de autor.<br>El trazado se respeta punto a punto.</p>
+          <p class="empty-tag">Mapas ilustrados</p>
+          <p>Sube un GPX y lo convertimos en un mapa de tinta y acuarela.<br>El trazado se respeta punto a punto.</p>
         </div>
       </div>
     </div>
@@ -148,10 +148,6 @@
     <h3 id="ask-h">✏️ Pedir dibujo propio</h3>
     <p class="ask-what" id="ask-what"></p>
     <label class="field">Notas (opcional)<textarea id="ask-notes" rows="3" placeholder="Rasgos que no pueden faltar: torres, cúpula, materiales…"></textarea></label>
-    <div id="ask-key-wrap">
-      <label class="field">Clave de peticiones<input type="password" id="ask-key" autocomplete="current-password"></label>
-      <label class="inline"><input type="checkbox" id="ask-remember" checked> Recordar en este navegador</label>
-    </div>
     <p class="status err" id="ask-err" hidden></p>
     <div class="modal-actions">
       <button type="button" class="btn ghost" id="ask-cancel">Cancelar</button>

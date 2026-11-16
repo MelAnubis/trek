@@ -1,5 +1,5 @@
-// Peticiones de dibujo propio: abre un issue de GitHub ya rellenado (etiqueta «dibujo»).
-// No necesita servidor ni token: GitHub pide confirmar con tu sesión al enviarlo.
+// Peticiones de dibujo propio: un issue con la etiqueta «dibujo» en el repositorio de
+// ilustraciones, enviado por el servidor o, si no está configurado, abierto en GitHub ya rellenado.
 import { KIND_LABEL } from './osm.js';
 
 export const REPO = 'MelAnubis/estodobajada-arte';
@@ -52,7 +52,7 @@ export function requestIssue(towns, routeName) {
     ? `Dibujo: ${first.monumento || 'monumento'} (${first.poblacion})`
     : `Dibujos: ${list.length} monumentos de «${routeName}»`;
   const body = [
-    'Petición de dibujo propio creada desde #ESTODOBAJADA · Arte.',
+    'Petición de dibujo propio creada desde los mapas ilustrados de Trek.',
     '',
     ...blocks.map((b) => b.text + '\n'),
     '### Rasgos que no pueden faltar',
@@ -74,24 +74,24 @@ export function requestUrl(towns, routeName) {
 }
 
 /**
- * Envía la petición desde la app a través del servidor (/api/peticion), sin salir de ella.
- * @returns {status:'ok', number, url} | {status:'clave'} (clave incorrecta) | {status:'off'} (no configurado)
+ * Envía la petición desde la app a través del servidor (api/peticion), sin salir de ella.
+ * El servidor la acepta con la sesión de Trek (no hay clave aparte).
+ * @returns {status:'ok', number, url} | {status:'token'} (el repositorio rechaza el token del servidor)
+ *          | {status:'limite'} | {status:'off'} (no configurado o sin respuesta)
  */
-export async function sendRequest(towns, routeName, clave, notas = '', fetchFn = fetch) {
+export async function sendRequest(towns, routeName, notas = '', fetchFn = fetch) {
   const issue = requestIssue(towns, routeName);
   if (notas && notas.trim()) issue.body = issue.body.replace('_(opcional: torres, cúpula, materiales, lo que lo hace reconocible)_', notas.trim());
   let r;
   try {
     r = await fetchFn('api/peticion', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Clave': clave || '' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(issue),
     });
   } catch { return { status: 'off' }; }
   if (r.status === 201) { const j = await r.json(); return { status: 'ok', number: j.number, url: j.html_url }; }
-  const mark = r.headers && typeof r.headers.get === 'function' ? r.headers.get('X-Peticion') : null;
-  if (r.status === 401 && mark === 'clave') return { status: 'clave' };
-  // 401/403/404 sin la marca: es GitHub quien rechaza el token (caducado o sin permiso «Issues»)
+  // 401/403/404: es el repositorio quien rechaza el token (caducado o sin permiso «Issues»)
   if (r.status === 401 || r.status === 403 || r.status === 404) return { status: 'token', code: r.status };
   if (r.status === 429) return { status: 'limite', code: 429 };
   return { status: 'off', code: r.status };

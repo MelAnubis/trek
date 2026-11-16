@@ -320,11 +320,8 @@ $('maxdist').addEventListener('input', (e) => {
   $('maxdist-out').textContent = `${e.target.value.replace('.', ',')} km`;
   renderTowns();
 });
-// Peticiones de dibujo: se envían desde la app si el servidor lo tiene configurado;
-// si no, se abre GitHub con la petición rellenada (como antes).
-const KEY_STORE = 'etb-clave-peticiones';
-const readKey = () => { try { return localStorage.getItem(KEY_STORE) || ''; } catch { return ''; } };
-const saveKey = (k) => { try { if (k) localStorage.setItem(KEY_STORE, k); else localStorage.removeItem(KEY_STORE); } catch { /* sin almacenamiento */ } };
+// Peticiones de dibujo: se envían desde la app si el servidor lo tiene configurado (basta la
+// sesión de Trek); si no, se abre GitHub con la petición rellenada.
 let directCheck = null;
 let askList = null;
 const routeName = () => $('title').value.trim() || state.model.name;
@@ -341,11 +338,9 @@ async function openRequest(list) {
   const names = list.map((t) => t.name);
   $('ask-what').textContent = list.length === 1 ? `${names[0]}: el ilustrador lo busca, lo dibuja y lo añade al catálogo en unos minutos.` : `${list.length} poblaciones: ${names.slice(0, 6).join(', ')}${list.length > 6 ? '…' : ''}.`;
   $('ask-notes').value = '';
-  $('ask-key').value = readKey();
-  $('ask-key-wrap').hidden = !!readKey();
   $('ask-err').hidden = true;
   $('ask-modal').hidden = false;
-  (readKey() ? $('ask-notes') : $('ask-key')).focus();
+  $('ask-notes').focus();
 }
 function closeAsk() { $('ask-modal').hidden = true; askList = null; }
 $('ask-cancel').addEventListener('click', closeAsk);
@@ -353,24 +348,14 @@ $('ask-modal').addEventListener('click', (e) => { if (e.target === $('ask-modal'
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('ask-modal').hidden) closeAsk(); });
 $('ask-github').addEventListener('click', () => { const l = askList; closeAsk(); if (l) openOnGithub(l); });
 $('ask-send').addEventListener('click', async () => {
-  const key = $('ask-key').value.trim();
-  if (!key) { $('ask-key-wrap').hidden = false; $('ask-err').textContent = 'Escribe la clave de peticiones.'; $('ask-err').hidden = false; $('ask-key').focus(); return; }
   $('ask-send').disabled = true;
-  const res = await sendRequest(askList, routeName(), key, $('ask-notes').value);
+  const res = await sendRequest(askList, routeName(), $('ask-notes').value);
   $('ask-send').disabled = false;
   if (res.status === 'ok') {
-    if ($('ask-remember').checked) saveKey(key);
     closeAsk();
     toast(`✓ Petición nº ${res.number} enviada. En unos minutos la ilustración estará en el catálogo.`, 7000);
-  } else if (res.status === 'clave') {
-    saveKey('');
-    $('ask-key-wrap').hidden = false;
-    $('ask-err').textContent = 'Clave incorrecta.';
-    $('ask-err').hidden = false;
-    $('ask-key').select();
   } else if (res.status === 'token') {
-    if ($('ask-remember').checked) saveKey(key);
-    $('ask-err').textContent = `La clave es correcta, pero GitHub rechaza el token del servidor (error ${res.code}): revisa que PETICION_TOKEN no haya caducado y tenga el permiso «Issues: Read and write».`;
+    $('ask-err').textContent = `El repositorio de ilustraciones rechaza el token del servidor (error ${res.code}): revisa que ARTE_PETICION_TOKEN no haya caducado y tenga el permiso «Issues: Read and write».`;
     $('ask-err').hidden = false;
   } else if (res.status === 'limite') {
     $('ask-err').textContent = 'Demasiadas peticiones seguidas: espera un minuto y vuelve a intentarlo.';
@@ -807,6 +792,12 @@ paintCompStatus();
 renderComps();
 
 // versión visible (fuente única: version.js)
-for (const id of ['version']) { const el = document.getElementById(id); if (el) el.textContent = 'v' + VERSION; }
-{ const f = document.getElementById('version-foot'); if (f) f.textContent = '#ESTODOBAJADA · Arte v' + VERSION; }
-document.title = '#ESTODOBAJADA · Arte v' + VERSION;
+{ const f = document.getElementById('version-foot'); if (f) f.textContent = 'Mapas ilustrados v' + VERSION; }
+
+// ——— pantallas estrechas: ajustes o mapa ———
+function setView(v) {
+  $('app').dataset.view = v;
+  for (const b of document.querySelectorAll('.viewswitch button')) b.setAttribute('aria-pressed', String(b.dataset.view === v));
+  if (v === 'map') fit();
+}
+for (const b of document.querySelectorAll('.viewswitch button')) b.addEventListener('click', () => setView(b.dataset.view));
