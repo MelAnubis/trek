@@ -52,6 +52,7 @@ import blogRoutes from './routes/blog';
 import gpxTracksRoutes from './routes/gpxTracks';
 import routeDiscoveryRoutes from './routes/routeDiscovery';
 import plannerRoutes from './routes/planner';
+import arteRoutes from './routes/arte';
 import publicConfigRoutes from './routes/publicConfig';
 import systemNoticesRoutes from './routes/systemNotices';
 import suggestionsRoutes from './routes/suggestions';
@@ -207,6 +208,8 @@ export function createApp(): express.Application {
   app.use('/api/journeys/:id/blog', express.json({ limit: '12mb' }));
   // Planner routes carry a whole GPX track as JSON — same ordering constraint as above.
   app.use('/api/planner', express.json({ limit: '15mb' }));
+  // Composiciones de los mapas ilustrados: llevan el GPX y los datos de OpenStreetMap de la ruta.
+  app.use('/api/arte/trek/composiciones', express.json({ limit: '60mb' }));
   // Overland sends up to a few thousand GeoJSON points per batch when it has
   // been offline for a while — far past the blanket 100kb.
   app.use('/api/tracking/overland', express.json({ limit: '10mb' }));
@@ -323,6 +326,7 @@ export function createApp(): express.Application {
   app.use('/api/auth', authRoutes);
   app.use('/api/bikepack', bikepackRoutes);
   app.use('/api/planner', plannerRoutes);
+  app.use('/api/arte', arteRoutes);
   app.use('/api/auth/oidc', oidcRoutes);
   app.use('/api/auth/passkey', passkeyRoutes);
   app.use('/api/trips', tripsRoutes);

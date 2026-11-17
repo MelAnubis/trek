@@ -402,7 +402,39 @@ function startPhotoMetadataBackfill(): void {
   })();
 }
 
+// Mapas ilustrados (Arte): trae catálogo e ilustraciones del repositorio de
+// dibujos cada 10 minutos (solo con ARTE_SYNC_TOKEN) y limpia sus cachés a diario.
+let arteSyncTask: ScheduledTask | null = null;
+let arteCleanupTask: ScheduledTask | null = null;
+
+function startArteSync(): void {
+  if (arteSyncTask) { arteSyncTask.stop(); arteSyncTask = null; }
+  if (arteCleanupTask) { arteCleanupTask.stop(); arteCleanupTask = null; }
+  const { syncEnabled, syncArteData, pruneArteCaches } = require('./services/arteService');
+
+  arteCleanupTask = cron.schedule('17 4 * * *', () => {
+    try {
+      const n = pruneArteCaches();
+      if (n) logInfo(`Arte: ${n} ficheros de caché caducados eliminados`);
+    } catch (err: unknown) {
+      logError(`Arte cache cleanup failed: ${err instanceof Error ? err.message : err}`);
+    }
+  });
+
+  if (!syncEnabled()) {
+    logInfo('Arte sync: ARTE_SYNC_TOKEN no definido, se usan las ilustraciones incluidas');
+    return;
+  }
+  const raw = parseInt(process.env.ARTE_SYNC_MINUTES || '10', 10);
+  const minutes = Number.isFinite(raw) && raw >= 1 && raw <= 59 ? raw : 10;
+  logInfo(`Arte sync: cada ${minutes} min`);
+  void syncArteData();
+  arteSyncTask = cron.schedule(`*/${minutes} * * * *`, () => { void syncArteData(); });
+}
+
 function stop(): void {
+  if (arteSyncTask) { arteSyncTask.stop(); arteSyncTask = null; }
+  if (arteCleanupTask) { arteCleanupTask.stop(); arteCleanupTask = null; }
   if (currentTask) { currentTask.stop(); currentTask = null; }
   if (demoTask) { demoTask.stop(); demoTask = null; }
   if (reminderTask) { reminderTask.stop(); reminderTask = null; }
@@ -412,4 +444,4 @@ function stop(): void {
   if (airtrailSyncTask) { airtrailSyncTask.stop(); airtrailSyncTask = null; }
 }
 
-export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startAirTrailSync, startPhotoMetadataBackfill, loadSettings, saveSettings, VALID_INTERVALS };
+export { start, stop, startDemoReset, startTripReminders, startTodoReminders, startVersionCheck, startIdempotencyCleanup, startTrekPhotoCacheCleanup, startAirTrailSync, startPhotoMetadataBackfill, startArteSync, loadSettings, saveSettings, VALID_INTERVALS };

@@ -2,7 +2,8 @@ import { ArrowDown, ArrowUp, Plus, RotateCcw, User, X } from 'lucide-react'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useAddonStore } from '../../store/addonStore'
 import { useToast } from '../shared/Toast'
-import { MOBILE_NAV_MAX, availableNavItems, normalizeMobileNav, resolveMobileNav } from '../Layout/mobileNav'
+import { useArteAccess } from '../../hooks/useArteAccess'
+import { ARTE_NAV_ID, MOBILE_NAV_MAX, availableNavItems, normalizeMobileNav, resolveMobileNav } from '../Layout/mobileNav'
 
 /**
  * Settings → Display: choose the phone's bottom-bar destinations and their
@@ -17,7 +18,9 @@ export default function MobileNavEditor({ t }: { t: T }) {
   const updateSetting = useSettingsStore(s => s.updateSetting)
   const addons = useAddonStore(s => s.addons)
   const toast = useToast()
+  const arteAccess = useArteAccess()
   const enabled = addons.filter(a => a.type === 'global' && a.enabled).map(a => a.id)
+  if (arteAccess) enabled.push(ARTE_NAV_ID)
 
   const current = resolveMobileNav(saved, enabled)
   const ids = current.map(i => i.id)

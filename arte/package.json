@@ -1,0 +1,8 @@
+{
+  "name": "estodobajada-arte",
+  "version": "1.8.0",
+  "private": true,
+  "type": "module",
+  "description": "#ESTODOBAJADA · Arte — mapas ilustrados de tinta y acuarela a partir de GPX",
+  "scripts": { "test": "node --import ./tests/setup.mjs --test tests/*.test.mjs" }
+}

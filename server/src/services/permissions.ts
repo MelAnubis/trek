@@ -52,6 +52,10 @@ export const PERMISSION_ACTIONS: PermissionAction[] = [
 
   // Share link management
   { key: 'share_manage',       defaultLevel: 'trip_owner',   allowedLevels: ['trip_owner', 'trip_member'] },
+
+  // Mapas ilustrados (Arte): quién puede abrir el módulo. Sin contexto de viaje,
+  // como trip_create: "everybody" es cualquier usuario con sesión.
+  { key: 'arte_use',           defaultLevel: 'admin',        allowedLevels: ['admin', 'everybody'] },
 ];
 
 const ACTIONS_MAP = new Map(PERMISSION_ACTIONS.map(a => [a.key, a]));

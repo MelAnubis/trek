@@ -26,6 +26,8 @@ import { runMigrations } from '../../src/db/migrations';
 const RESET_TABLES = [
   // Route planner + shared OSM tile cache
   'planner_routes',
+  // Mapas ilustrados (Arte)
+  'arte_compositions',
   'poi_tiles',
   // Collab
   'file_links',

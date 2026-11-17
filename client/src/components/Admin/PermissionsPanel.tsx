@@ -26,6 +26,7 @@ const CATEGORIES = [
   { id: 'files', keys: ['file_upload', 'file_edit', 'file_delete'] },
   { id: 'content', keys: ['place_edit', 'day_edit', 'reservation_edit'] },
   { id: 'extras', keys: ['budget_edit', 'packing_edit', 'collab_edit', 'share_manage'] },
+  { id: 'arte', keys: ['arte_use'] },
 ]
 
 export default function PermissionsPanel(): React.ReactElement {

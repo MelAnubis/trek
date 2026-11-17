@@ -29,6 +29,7 @@ import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
 import PlannerPage from './pages/PlannerPage'
+const ArtePage = lazy(() => import('./pages/ArtePage'))
 import { ToastContainer } from './components/shared/Toast'
 import UpdateBanner from './components/Layout/UpdateBanner'
 import BottomNav from './components/Layout/BottomNav'
@@ -356,6 +357,16 @@ export default function App() {
           element={
             <ProtectedRoute>
               <PlannerPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/arte"
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={null}>
+                <ArtePage />
+              </Suspense>
             </ProtectedRoute>
           }
         />

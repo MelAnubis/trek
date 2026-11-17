@@ -2907,6 +2907,29 @@ function runMigrations(db: Database.Database): void {
         CREATE INDEX IF NOT EXISTS idx_tracking_matches_grp ON tracking_matches(device_id, grp);
       `);
     },
+    // Mapas ilustrados (Arte): las composiciones de cada usuario, antes en el IndexedDB del
+    // navegador. `data` es el JSON de la composición comprimido con gzip (lleva el GPX literal y
+    // los datos de OpenStreetMap ya descargados, varios MB sin comprimir); `image` es el mapa
+    // ya pintado en JPEG, para llevarlo a Studio sin recomponerlo.
+    () => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS arte_compositions (
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          saved_at TEXT NOT NULL,
+          gpx_name TEXT,
+          has_osm INTEGER NOT NULL DEFAULT 0,
+          thumbnail TEXT,
+          data BLOB NOT NULL,
+          image BLOB,
+          image_width INTEGER,
+          image_height INTEGER,
+          PRIMARY KEY (user_id, id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_arte_compositions_user ON arte_compositions(user_id, saved_at);
+      `);
+    },
   ];
 
   if (currentVersion < migrations.length) {

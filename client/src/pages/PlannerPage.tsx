@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
-  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon, Sparkles, Star, FolderOpen as FolderIcon,
+  Upload, Download, Trash2, MapPin, Plus, Scissors, Search, FolderOpen, X, Route as RouteIcon, Layers, Map as MapIcon, Sparkles, Star, FolderOpen as FolderIcon, Palette,
 } from 'lucide-react'
 import Navbar from '../components/Layout/Navbar'
 import ConfirmDialog from '../components/shared/ConfirmDialog'
@@ -10,6 +10,7 @@ import PlannerMap, { STAGE_COLORS, type PoiMarker } from '../components/Planner/
 import PlannerProfile from '../components/Planner/PlannerProfile'
 import RouteLibrary from '../components/Planner/RouteLibrary'
 import { useTranslation } from '../i18n'
+import { useArteAccess } from '../hooks/useArteAccess'
 import { plannerApi } from '../api/client'
 import { saveTextFile } from '../utils/saveFile'
 import {
@@ -50,6 +51,7 @@ const input: React.CSSProperties = {
 export default function PlannerPage(): React.ReactElement {
   const { t, locale } = useTranslation()
   const toast = useToast()
+  const arteAccess = useArteAccess()
   const [searchParams, setSearchParams] = useSearchParams()
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -668,6 +670,10 @@ export default function PlannerPage(): React.ReactElement {
         </div>
         <div className="!flex !flex-wrap !gap-[8px] !mt-[10px]">
           <button type="button" style={btnPrimary} onClick={downloadRoute}><Download size={15} />{t('planner.download.route')}</button>
+          {/* The saved route, opened in the illustrated-maps module (needs its permission). */}
+          {arteAccess && routeId != null && (
+            <Link to={`/arte?planner=${routeId}`} style={{ ...btn, textDecoration: 'none' }}><Palette size={15} />{t('arte.fromRoute')}</Link>
+          )}
           <button type="button" style={btn} onClick={closeRoute}><X size={15} />{t('planner.closeRoute')}</button>
         </div>
         <div className="!text-[length:11px] !mt-[8px]" style={{ color: saveState === 'error' ? '#dc2626' : 'var(--text-muted)' }}>

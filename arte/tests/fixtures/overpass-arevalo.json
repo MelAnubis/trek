@@ -1,0 +1,954 @@
+{
+ "_nota": "FIXTURE DE PRUEBA con posiciones aproximadas escritas a mano. Solo se usa en tests (simula Overpass); la app real consulta OSM.",
+ "osm3s": {
+  "timestamp_osm_base": "2026-11-01T00:00:00Z"
+ },
+ "elements": [
+  {
+   "type": "node",
+   "id": 1001,
+   "lat": 41.0621,
+   "lon": -4.7213,
+   "tags": {
+    "place": "town",
+    "name": "Arévalo"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1002,
+   "lat": 41.218,
+   "lon": -4.5222,
+   "tags": {
+    "place": "village",
+    "name": "Coca"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1003,
+   "lat": 41.3115,
+   "lon": -4.9146,
+   "tags": {
+    "place": "town",
+    "name": "Medina del Campo"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1004,
+   "lat": 41.0897,
+   "lon": -5.0003,
+   "tags": {
+    "place": "village",
+    "name": "Madrigal de las Altas Torres"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1005,
+   "lat": 41.2878,
+   "lon": -4.6865,
+   "tags": {
+    "place": "town",
+    "name": "Olmedo"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1006,
+   "lat": 41.385,
+   "lon": -4.83,
+   "tags": {
+    "place": "village",
+    "name": "Pozaldez"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1007,
+   "lat": 41.0662,
+   "lon": -4.7238,
+   "tags": {
+    "historic": "castle",
+    "name": "Castillo de Arévalo",
+    "heritage": "2",
+    "wikidata": "Q0"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1008,
+   "lat": 41.063,
+   "lon": -4.7205,
+   "tags": {
+    "amenity": "place_of_worship",
+    "building": "church",
+    "name": "Iglesia de San Martín",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1009,
+   "lat": 41.2163,
+   "lon": -4.5197,
+   "tags": {
+    "historic": "castle",
+    "name": "Castillo de Coca",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1010,
+   "lat": 41.3045,
+   "lon": -4.906,
+   "tags": {
+    "historic": "castle",
+    "name": "Castillo de la Mota",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1011,
+   "lat": 41.311,
+   "lon": -4.914,
+   "tags": {
+    "amenity": "place_of_worship",
+    "name": "Colegiata de San Antolín"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1012,
+   "lat": 41.089,
+   "lon": -5.001,
+   "tags": {
+    "historic": "citywalls",
+    "name": "Muralla de Madrigal",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1013,
+   "lat": 41.287,
+   "lon": -4.687,
+   "tags": {
+    "historic": "city_gate",
+    "name": "Arco de San Miguel",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 1014,
+   "lat": 41.386,
+   "lon": -4.831,
+   "tags": {
+    "amenity": "place_of_worship",
+    "name": "Iglesia de San Boal"
+   }
+  },
+  {
+   "type": "way",
+   "id": 1015,
+   "tags": {
+    "waterway": "river",
+    "name": "Adaja"
+   },
+   "geometry": [
+    {
+     "lat": 41.04,
+     "lon": -4.712
+    },
+    {
+     "lat": 41.1,
+     "lon": -4.725
+    },
+    {
+     "lat": 41.17,
+     "lon": -4.74
+    },
+    {
+     "lat": 41.25,
+     "lon": -4.765
+    },
+    {
+     "lat": 41.34,
+     "lon": -4.78
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1016,
+   "tags": {
+    "waterway": "river",
+    "name": "Zapardiel"
+   },
+   "geometry": [
+    {
+     "lat": 41.03,
+     "lon": -4.97
+    },
+    {
+     "lat": 41.12,
+     "lon": -4.95
+    },
+    {
+     "lat": 41.22,
+     "lon": -4.93
+    },
+    {
+     "lat": 41.3,
+     "lon": -4.918
+    },
+    {
+     "lat": 41.36,
+     "lon": -4.92
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1017,
+   "tags": {
+    "waterway": "river",
+    "name": "Eresma"
+   },
+   "geometry": [
+    {
+     "lat": 41.12,
+     "lon": -4.5
+    },
+    {
+     "lat": 41.18,
+     "lon": -4.515
+    },
+    {
+     "lat": 41.22,
+     "lon": -4.518
+    },
+    {
+     "lat": 41.29,
+     "lon": -4.54
+    },
+    {
+     "lat": 41.36,
+     "lon": -4.56
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1018,
+   "tags": {
+    "waterway": "river",
+    "name": "Voltoya"
+   },
+   "geometry": [
+    {
+     "lat": 41.13,
+     "lon": -4.45
+    },
+    {
+     "lat": 41.18,
+     "lon": -4.49
+    },
+    {
+     "lat": 41.215,
+     "lon": -4.515
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1019,
+   "tags": {
+    "natural": "wood",
+    "leaf_type": "needleleaved"
+   },
+   "geometry": [
+    {
+     "lat": 41.235,
+     "lon": -4.62
+    },
+    {
+     "lat": 41.27,
+     "lon": -4.6
+    },
+    {
+     "lat": 41.28,
+     "lon": -4.55
+    },
+    {
+     "lat": 41.25,
+     "lon": -4.53
+    },
+    {
+     "lat": 41.23,
+     "lon": -4.56
+    },
+    {
+     "lat": 41.235,
+     "lon": -4.62
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1020,
+   "tags": {
+    "natural": "wood",
+    "leaf_type": "needleleaved"
+   },
+   "geometry": [
+    {
+     "lat": 41.14,
+     "lon": -4.64
+    },
+    {
+     "lat": 41.17,
+     "lon": -4.62
+    },
+    {
+     "lat": 41.165,
+     "lon": -4.57
+    },
+    {
+     "lat": 41.13,
+     "lon": -4.58
+    },
+    {
+     "lat": 41.14,
+     "lon": -4.64
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1021,
+   "tags": {
+    "landuse": "forest"
+   },
+   "geometry": [
+    {
+     "lat": 41.04,
+     "lon": -4.86
+    },
+    {
+     "lat": 41.06,
+     "lon": -4.84
+    },
+    {
+     "lat": 41.055,
+     "lon": -4.8
+    },
+    {
+     "lat": 41.035,
+     "lon": -4.81
+    },
+    {
+     "lat": 41.04,
+     "lon": -4.86
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1022,
+   "tags": {
+    "highway": "trunk",
+    "ref": "A-6"
+   },
+   "geometry": [
+    {
+     "lat": 41.04,
+     "lon": -4.73
+    },
+    {
+     "lat": 41.12,
+     "lon": -4.76
+    },
+    {
+     "lat": 41.22,
+     "lon": -4.82
+    },
+    {
+     "lat": 41.3,
+     "lon": -4.89
+    },
+    {
+     "lat": 41.35,
+     "lon": -4.93
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 1023,
+   "tags": {
+    "railway": "rail"
+   },
+   "geometry": [
+    {
+     "lat": 41.04,
+     "lon": -4.725
+    },
+    {
+     "lat": 41.13,
+     "lon": -4.75
+    },
+    {
+     "lat": 41.24,
+     "lon": -4.83
+    },
+    {
+     "lat": 41.31,
+     "lon": -4.905
+    },
+    {
+     "lat": 41.36,
+     "lon": -4.95
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90001,
+   "tags": {
+    "natural": "water",
+    "water": "lagoon",
+    "name": "Laguna (prueba)"
+   },
+   "geometry": [
+    {
+     "lat": 41.115,
+     "lon": -4.916
+    },
+    {
+     "lat": 41.118877,
+     "lon": -4.915911
+    },
+    {
+     "lat": 41.12158,
+     "lon": -4.920817
+    },
+    {
+     "lat": 41.122068,
+     "lon": -4.927177
+    },
+    {
+     "lat": 41.122068,
+     "lon": -4.932823
+    },
+    {
+     "lat": 41.12158,
+     "lon": -4.939183
+    },
+    {
+     "lat": 41.118877,
+     "lon": -4.944089
+    },
+    {
+     "lat": 41.115,
+     "lon": -4.944
+    },
+    {
+     "lat": 41.111935,
+     "lon": -4.941138
+    },
+    {
+     "lat": 41.109071,
+     "lon": -4.938274
+    },
+    {
+     "lat": 41.106469,
+     "lon": -4.933408
+    },
+    {
+     "lat": 41.106469,
+     "lon": -4.926592
+    },
+    {
+     "lat": 41.109071,
+     "lon": -4.921726
+    },
+    {
+     "lat": 41.111935,
+     "lon": -4.918862
+    },
+    {
+     "lat": 41.115,
+     "lon": -4.916
+    }
+   ]
+  },
+  {
+   "type": "relation",
+   "id": 90002,
+   "tags": {
+    "type": "multipolygon",
+    "natural": "water",
+    "water": "reservoir",
+    "name": "Embalse (prueba)"
+   },
+   "members": [
+    {
+     "type": "way",
+     "ref": 1,
+     "role": "outer",
+     "geometry": [
+      {
+       "lat": 41.235,
+       "lon": -4.637
+      },
+      {
+       "lat": 41.239746,
+       "lon": -4.635785
+      },
+      {
+       "lat": 41.244168,
+       "lon": -4.639762
+      },
+      {
+       "lat": 41.246746,
+       "lon": -4.647932
+      },
+      {
+       "lat": 41.247376,
+       "lon": -4.656958
+      },
+      {
+       "lat": 41.24732,
+       "lon": -4.665
+      },
+      {
+       "lat": 41.247376,
+       "lon": -4.673042
+      },
+      {
+       "lat": 41.246746,
+       "lon": -4.682068
+      },
+      {
+       "lat": 41.244168,
+       "lon": -4.690238
+      },
+      {
+       "lat": 41.239746,
+       "lon": -4.694215
+      },
+      {
+       "lat": 41.235,
+       "lon": -4.693
+      }
+     ]
+    },
+    {
+     "type": "way",
+     "ref": 2,
+     "role": "outer",
+     "geometry": [
+      {
+       "lat": 41.235,
+       "lon": -4.637
+      },
+      {
+       "lat": 41.231094,
+       "lon": -4.640956
+      },
+      {
+       "lat": 41.22771,
+       "lon": -4.644933
+      },
+      {
+       "lat": 41.224094,
+       "lon": -4.649152
+      },
+      {
+       "lat": 41.220746,
+       "lon": -4.655737
+      },
+      {
+       "lat": 41.21932,
+       "lon": -4.665
+      },
+      {
+       "lat": 41.220746,
+       "lon": -4.674263
+      },
+      {
+       "lat": 41.224094,
+       "lon": -4.680848
+      },
+      {
+       "lat": 41.22771,
+       "lon": -4.685067
+      },
+      {
+       "lat": 41.231094,
+       "lon": -4.689044
+      },
+      {
+       "lat": 41.235,
+       "lon": -4.693
+      }
+     ]
+    },
+    {
+     "type": "way",
+     "ref": 3,
+     "role": "inner",
+     "geometry": [
+      {
+       "lat": 41.236,
+       "lon": -4.663
+      },
+      {
+       "lat": 41.238121,
+       "lon": -4.664464
+      },
+      {
+       "lat": 41.239,
+       "lon": -4.668
+      },
+      {
+       "lat": 41.238121,
+       "lon": -4.671536
+      },
+      {
+       "lat": 41.236,
+       "lon": -4.673
+      },
+      {
+       "lat": 41.233879,
+       "lon": -4.671536
+      },
+      {
+       "lat": 41.233,
+       "lon": -4.668
+      },
+      {
+       "lat": 41.233879,
+       "lon": -4.664464
+      },
+      {
+       "lat": 41.236,
+       "lon": -4.663
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90003,
+   "tags": {
+    "natural": "wetland",
+    "wetland": "marsh"
+   },
+   "geometry": [
+    {
+     "lat": 41.14,
+     "lon": -4.844
+    },
+    {
+     "lat": 41.143393,
+     "lon": -4.843898
+    },
+    {
+     "lat": 41.145758,
+     "lon": -4.849505
+    },
+    {
+     "lat": 41.146184,
+     "lon": -4.856774
+    },
+    {
+     "lat": 41.146184,
+     "lon": -4.863226
+    },
+    {
+     "lat": 41.145758,
+     "lon": -4.870495
+    },
+    {
+     "lat": 41.143393,
+     "lon": -4.876102
+    },
+    {
+     "lat": 41.14,
+     "lon": -4.876
+    },
+    {
+     "lat": 41.137318,
+     "lon": -4.872729
+    },
+    {
+     "lat": 41.134812,
+     "lon": -4.869456
+    },
+    {
+     "lat": 41.132535,
+     "lon": -4.863894
+    },
+    {
+     "lat": 41.132535,
+     "lon": -4.856106
+    },
+    {
+     "lat": 41.134812,
+     "lon": -4.850544
+    },
+    {
+     "lat": 41.137318,
+     "lon": -4.847271
+    },
+    {
+     "lat": 41.14,
+     "lon": -4.844
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90004,
+   "tags": {
+    "waterway": "stream",
+    "name": "Arroyo (prueba)"
+   },
+   "geometry": [
+    {
+     "lat": 41.08,
+     "lon": -4.8
+    },
+    {
+     "lat": 41.1,
+     "lon": -4.78
+    },
+    {
+     "lat": 41.13,
+     "lon": -4.77
+    },
+    {
+     "lat": 41.16,
+     "lon": -4.75
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90005,
+   "tags": {
+    "landuse": "residential"
+   },
+   "geometry": [
+    {
+     "lat": 41.063,
+     "lon": -4.713
+    },
+    {
+     "lat": 41.065908,
+     "lon": -4.712943
+    },
+    {
+     "lat": 41.067935,
+     "lon": -4.716096
+    },
+    {
+     "lat": 41.068301,
+     "lon": -4.720185
+    },
+    {
+     "lat": 41.068301,
+     "lon": -4.723815
+    },
+    {
+     "lat": 41.067935,
+     "lon": -4.727904
+    },
+    {
+     "lat": 41.065908,
+     "lon": -4.731057
+    },
+    {
+     "lat": 41.063,
+     "lon": -4.731
+    },
+    {
+     "lat": 41.060701,
+     "lon": -4.72916
+    },
+    {
+     "lat": 41.058553,
+     "lon": -4.727319
+    },
+    {
+     "lat": 41.056602,
+     "lon": -4.724191
+    },
+    {
+     "lat": 41.056602,
+     "lon": -4.719809
+    },
+    {
+     "lat": 41.058553,
+     "lon": -4.716681
+    },
+    {
+     "lat": 41.060701,
+     "lon": -4.71484
+    },
+    {
+     "lat": 41.063,
+     "lon": -4.713
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90006,
+   "tags": {
+    "landuse": "residential"
+   },
+   "geometry": [
+    {
+     "lat": 41.311,
+     "lon": -4.901
+    },
+    {
+     "lat": 41.314877,
+     "lon": -4.900924
+    },
+    {
+     "lat": 41.31758,
+     "lon": -4.905129
+    },
+    {
+     "lat": 41.318068,
+     "lon": -4.91058
+    },
+    {
+     "lat": 41.318068,
+     "lon": -4.91542
+    },
+    {
+     "lat": 41.31758,
+     "lon": -4.920871
+    },
+    {
+     "lat": 41.314877,
+     "lon": -4.925076
+    },
+    {
+     "lat": 41.311,
+     "lon": -4.925
+    },
+    {
+     "lat": 41.307935,
+     "lon": -4.922547
+    },
+    {
+     "lat": 41.305071,
+     "lon": -4.920092
+    },
+    {
+     "lat": 41.302469,
+     "lon": -4.915921
+    },
+    {
+     "lat": 41.302469,
+     "lon": -4.910079
+    },
+    {
+     "lat": 41.305071,
+     "lon": -4.905908
+    },
+    {
+     "lat": 41.307935,
+     "lon": -4.903453
+    },
+    {
+     "lat": 41.311,
+     "lon": -4.901
+    }
+   ]
+  },
+  {
+   "type": "way",
+   "id": 90007,
+   "tags": {
+    "highway": "secondary"
+   },
+   "geometry": [
+    {
+     "lat": 41.06,
+     "lon": -4.72
+    },
+    {
+     "lat": 41.09,
+     "lon": -4.85
+    },
+    {
+     "lat": 41.09,
+     "lon": -5.0
+    }
+   ]
+  },
+  {
+   "type": "node",
+   "id": 95001,
+   "lat": 41.196,
+   "lon": -4.673,
+   "tags": {
+    "place": "village",
+    "name": "Almenara de Adaja"
+   }
+  },
+  {
+   "type": "node",
+   "id": 95002,
+   "lat": 41.178,
+   "lon": -4.655,
+   "tags": {
+    "place": "village",
+    "name": "Puras"
+   }
+  },
+  {
+   "type": "node",
+   "id": 95003,
+   "lat": 41.189,
+   "lon": -4.664,
+   "tags": {
+    "tourism": "museum",
+    "name": "Museo de las Villas Romanas"
+   }
+  },
+  {
+   "type": "node",
+   "id": 95004,
+   "lat": 41.1892,
+   "lon": -4.6643,
+   "tags": {
+    "historic": "archaeological_site",
+    "name": "Villa romana de Almenara-Puras",
+    "heritage": "2"
+   }
+  },
+  {
+   "type": "node",
+   "id": 95005,
+   "lat": 41.15,
+   "lon": -4.8,
+   "tags": {
+    "historic": "wayside_cross",
+    "name": "Cruz del camino"
+   }
+  }
+ ]
+}

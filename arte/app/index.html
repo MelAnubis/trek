@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapas ilustrados</title>
+<meta name="description" content="Convierte rutas GPX reales en mapas ilustrados de tinta y acuarela con el patrimonio de cada pueblo.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23111'/%3E%3Cpath d='M4 10 L28 24' stroke='%23f3ead6' stroke-width='4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div class="app" id="app">
+  <div class="viewswitch" role="group" aria-label="Vista">
+    <button type="button" data-view="panel" aria-pressed="true">Ajustes</button>
+    <button type="button" data-view="map" aria-pressed="false">Mapa</button>
+  </div>
+  <aside class="panel" aria-label="Controles del mapa">
+
+    <section class="card" id="sec-comp">
+      <h2>Mis composiciones</h2>
+      <div class="grid2">
+        <button type="button" class="btn" id="cp-save" disabled title="Guarda la ruta, el diseño, los pueblos y dibujos elegidos y los datos de OpenStreetMap">Guardar</button>
+        <button type="button" class="btn ghost" id="cp-saveas" disabled>Guardar como nueva</button>
+      </div>
+      <p class="status cp-status" id="cp-status">Guarda un mapa para reabrirlo luego tal como lo dejaste.</p>
+      <ul class="comps" id="cp-list"></ul>
+      <button type="button" class="btn ghost cp-all" id="cp-all" hidden>Ver todas</button>
+      <label class="link cp-import">Importar composición desde archivo…<input type="file" id="cp-import" accept=".json,application/json" hidden></label>
+    </section>
+
+    <section class="card" id="sec-ruta">
+      <h2>1 · Ruta GPX</h2>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept=".gpx,application/gpx+xml,text/xml">
+        <strong>Suelta aquí un GPX</strong>
+        <span>o pulsa para elegirlo</span>
+      </label>
+      <button type="button" class="btn ghost rt-open" id="rt-open">Elegir una de mis rutas de Trek…</button>
+      <button type="button" class="link" id="sample">Probar con «Arévalo circular»</button>
+      <dl class="stats" id="stats" hidden></dl>
+    </section>
+
+    <section class="card" id="sec-diseno">
+      <h2>2 · Estilo y diseño</h2>
+      <label class="field">Estilo<select id="style"></select></label>
+      <p class="style-desc" id="style-desc"></p>
+      <div class="grid2">
+        <label class="field">Maquetación<select id="layout"><option value="poster">Póster</option><option value="guia">Guía ilustrada</option></select></label>
+        <label class="field">Etapas (días)<select id="nstages"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select></label>
+      </div>
+      <div id="guide-fields" hidden>
+        <label class="field">Descripción<textarea id="description" rows="3" maxlength="220">Historia, pueblos con encanto, paisajes de campiña y pinares.</textarea></label>
+        <label class="field">Lema<input type="text" id="motto" maxlength="80" value="La mejor manera de descubrir un lugar es a pedales."></label>
+      </div>
+      <label class="field">Título<input type="text" id="title" maxlength="60"></label>
+      <label class="field">Subtítulo<input type="text" id="subtitle" maxlength="80" placeholder="p. ej. Tierra de Castillos · otoño 2026"></label>
+      <div class="grid2">
+        <label class="field">Formato<select id="format"></select></label>
+        <label class="field">Color de ruta<select id="routeColor"></select></label>
+      </div>
+      <label class="field" title="La lista completa de fuentes y autores va siempre en el informe exportado">Créditos al pie<select id="credits"><option value="breve" selected>Breves (una línea)</option><option value="completo">Completos (con autores de las fotos)</option><option value="ninguno">Sin créditos en el mapa</option></select></label>
+      <label class="field">Tamaño de dibujos <input type="range" id="monumentScale" min="0.6" max="1.6" step="0.05" value="1"></label>
+      <details class="fonts" id="fonts">
+        <summary>Tipografías y tamaños de letra</summary>
+        <div id="font-selects"></div>
+        <div id="font-sizes"></div>
+      </details>
+      <fieldset class="toggles">
+        <label><input type="checkbox" id="showWoods" checked> Bosques</label>
+        <label><input type="checkbox" id="showRivers" checked> Ríos y arroyos</label>
+        <label title="Sombreado del terreno real (teselas de elevación)"><input type="checkbox" id="showRelief" checked> Relieve</label>
+        <label><input type="checkbox" id="showWater" checked> Mar, lagunas, embalses, humedales</label>
+        <label><input type="checkbox" id="showUrban" checked> Cascos urbanos</label>
+        <label><input type="checkbox" id="showRoads" checked> Carreteras</label>
+        <label><input type="checkbox" id="showRails" checked> Tren</label>
+        <label><input type="checkbox" id="showPeaks" checked> Cimas</label>
+        <label><input type="checkbox" id="showPasses" checked> Puertos</label>
+        <label><input type="checkbox" id="showProfile" checked> Perfil</label>
+        <label><input type="checkbox" id="showCompass" checked> Rosa</label>
+        <label><input type="checkbox" id="showKm" checked> Hitos km</label>
+        <label><input type="checkbox" id="showArrows" checked> Sentido</label>
+        <label><input type="checkbox" id="showMonumentNames" checked> Nombres de monumentos</label>
+        <label title="Parcelas y árboles inventados, solo ambientación"><input type="checkbox" id="campina"> Campiña decorativa (no es dato real)</label>
+      </fieldset>
+    </section>
+
+    <section class="card" id="sec-pueblos">
+      <h2>3 · Poblaciones y tipologías</h2>
+      <p class="status" id="osm-status">Carga una ruta para buscar poblaciones en OpenStreetMap.</p>
+      <div class="row" id="osm-actions" hidden>
+        <button type="button" id="osm-retry" class="btn ghost">Volver a consultar OSM</button>
+        <label class="inline">Hasta <input type="range" id="maxdist" min="0.5" max="6" step="0.5" value="3"> <output id="maxdist-out">3 km</output></label>
+      </div>
+      <p class="style-desc" id="kinds-h" hidden>Tipologías de patrimonio a considerar:</p>
+      <div class="kinds" id="kinds" hidden></div>
+      <div class="toolbar" id="towns-tools" hidden>
+        <button type="button" class="link" data-sel="rel">Recomendadas</button>
+        <button type="button" class="link" data-sel="all">Todas</button>
+        <button type="button" class="link" data-sel="none">Ninguna</button>
+        <button type="button" class="link" id="ask-all" title="Abre una petición en GitHub con los monumentos seleccionados que aún no tienen dibujo propio">✏️ Pedir dibujos (todas)</button>
+      </div>
+      <ul class="towns" id="towns"></ul>
+    </section>
+
+    <section class="card" id="sec-integridad">
+      <h2>4 · Integridad del GPX</h2>
+      <ul class="checks" id="checks"><li class="muted">Sin ruta cargada.</li></ul>
+    </section>
+
+    <section class="card" id="sec-export">
+      <h2>5 · Exportar</h2>
+      <div class="grid2">
+        <button type="button" class="btn" id="ex-svg" disabled>SVG</button>
+        <button type="button" class="btn" id="ex-png" disabled>PNG 300 ppp</button>
+        <button type="button" class="btn ghost" id="ex-gpx" disabled>GPX original</button>
+        <button type="button" class="btn ghost" id="ex-report" disabled>Informe de integridad</button>
+      </div>
+    </section>
+    <footer class="foot"><span id="version-foot">Mapas ilustrados</span><br>Datos geográficos © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> (ODbL) · relieve: Terrain Tiles (AWS Open Data) · fotos de referencia: Wikimedia Commons.</footer>
+  </aside>
+
+  <main class="stage" id="stage">
+    <div class="stage-bar">
+      <span id="stage-title">Sin ruta</span>
+      <div class="regen">
+        <span id="regen-note" hidden>Cambios sin aplicar</span>
+        <button type="button" id="regen" disabled>Regenerar mapa</button>
+      </div>
+      <div class="zoom">
+        <button type="button" id="z-out" aria-label="Alejar">−</button>
+        <button type="button" id="z-fit">Ajustar</button>
+        <button type="button" id="z-in" aria-label="Acercar">+</button>
+      </div>
+    </div>
+    <div class="viewport" id="viewport">
+      <div class="busy" id="busy" hidden><span>Generando el mapa…</span></div>
+      <div class="canvas" id="canvas">
+        <div class="empty">
+          <p class="empty-tag">Mapas ilustrados</p>
+          <p>Sube un GPX y lo convertimos en un mapa de tinta y acuarela.<br>El trazado se respeta punto a punto.</p>
+        </div>
+      </div>
+    </div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+</div>
+<div class="modal" id="ask-modal" hidden role="dialog" aria-modal="true" aria-labelledby="ask-h">
+  <div class="modal-box">
+    <h3 id="ask-h">✏️ Pedir dibujo propio</h3>
+    <p class="ask-what" id="ask-what"></p>
+    <label class="field">Notas (opcional)<textarea id="ask-notes" rows="3" placeholder="Rasgos que no pueden faltar: torres, cúpula, materiales…"></textarea></label>
+    <p class="status err" id="ask-err" hidden></p>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="ask-cancel">Cancelar</button>
+      <button type="button" class="btn" id="ask-send">Enviar petición</button>
+    </div>
+    <button type="button" class="link" id="ask-github">Prefiero abrirla en GitHub</button>
+  </div>
+</div>
+<div class="modal" id="pick-modal" hidden role="dialog" aria-modal="true" aria-labelledby="pick-h">
+  <div class="modal-box pick-box">
+    <div class="pick-top">
+      <h3 id="pick-h">Dibujo</h3>
+      <button type="button" class="link" id="pick-close" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <input type="search" id="pick-q" placeholder="Buscar dibujo: castillo, catedral, Toledo, ermita…" autocomplete="off">
+    <div class="pick-list" id="pick-list"></div>
+  </div>
+</div>
+<div class="modal" id="cp-modal" hidden role="dialog" aria-modal="true" aria-labelledby="cp-h">
+  <div class="modal-box pick-box cp-box">
+    <div class="pick-top">
+      <h3 id="cp-h">Mis composiciones</h3>
+      <button type="button" class="link" id="cp-close" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <div class="cp-tools">
+      <input type="search" id="cp-q" placeholder="Buscar por nombre o GPX…" autocomplete="off">
+      <select id="cp-sort" aria-label="Ordenar">
+        <option value="fecha">Más recientes</option>
+        <option value="antiguas">Más antiguas</option>
+        <option value="nombre">Por nombre</option>
+      </select>
+    </div>
+    <p class="muted cp-count" id="cp-count"></p>
+    <ul class="cp-grid" id="cp-grid"></ul>
+  </div>
+</div>
+<div class="modal" id="rt-modal" hidden role="dialog" aria-modal="true" aria-labelledby="rt-h">
+  <div class="modal-box pick-box">
+    <div class="pick-top">
+      <h3 id="rt-h">Mis rutas de Trek</h3>
+      <button type="button" class="link" id="rt-close" aria-label="Cerrar">Cerrar</button>
+    </div>
+    <input type="search" id="rt-q" placeholder="Buscar por nombre o viaje…" autocomplete="off">
+    <p class="muted cp-count" id="rt-count"></p>
+    <ul class="rt-list" id="rt-list"></ul>
+  </div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
