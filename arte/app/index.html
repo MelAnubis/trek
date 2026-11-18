@@ -192,8 +192,16 @@
       <button type="button" class="link" id="rt-close" aria-label="Cerrar">Cerrar</button>
     </div>
     <input type="search" id="rt-q" placeholder="Buscar por nombre o viaje…" autocomplete="off">
-    <p class="muted cp-count" id="rt-count"></p>
-    <ul class="rt-list" id="rt-list"></ul>
+    <div class="rt-bar">
+      <div class="rt-kinds" id="rt-kinds" role="group" aria-label="Tipo de ruta"></div>
+      <div class="rt-by" role="group" aria-label="Agrupar por">
+        <span class="muted">Agrupar por</span>
+        <button type="button" data-by="viaje" aria-pressed="true">Viaje</button>
+        <button type="button" data-by="mes" aria-pressed="false">Mes</button>
+      </div>
+    </div>
+    <p class="muted cp-count rt-count"><span id="rt-count"></span><button type="button" class="link" id="rt-toggle" hidden></button></p>
+    <div class="rt-list" id="rt-list"></div>
   </div>
 </div>
 <script type="module" src="js/main.js"></script>

@@ -3,6 +3,14 @@
 Formato: [versiones semánticas](https://semver.org/lang/es/). La versión visible en la app sale de `app/js/version.js`.
 
 
+## [1.8.1] — 2026-11-18
+
+### Mis rutas de Trek
+- El selector agrupa las rutas por viaje (o por mes), en grupos plegables con el número de rutas, los km y las fechas de cada uno; las del planificador, aparte. Dentro de un viaje, las etapas van en orden (001, 002… 010).
+- Filtro por tipo (tracks, planificador, excursiones) y «Desplegar/Plegar todos». Al buscar, se abren los grupos que coinciden. Tipo y agrupación se recuerdan.
+- Si todas las rutas de un grupo empiezan igual, se ve solo lo que las distingue («… 002Quintanar») y el principio común una vez arriba.
+- Las distancias de tracks y excursiones salían 1000 veces más cortas («0,1 km»): ya iban en km y se dividían otra vez.
+
 ## [1.8.0] — 2026-11-16
 
 ### Dentro de Trek

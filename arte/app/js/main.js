@@ -12,7 +12,7 @@ import { requestUrl, hasOwnDrawing, sendRequest, directAvailable } from './reque
 import { hasSpecific, SPECIFIC_IDS, TYPOLOGICAL_IDS, loadDrawings, drawingMeta, allDrawingMeta, monumentDrawing } from './illustrations.js';
 import { screenFontCss, embeddedFontCss, download, slug, svgToPng } from './export.js';
 import { FONT_ROLES, FONT_SIZES } from './fonts.js';
-import { listRoutes, routeGpx, filterRoutes, ROUTE_KIND } from './trek.js';
+import { listRoutes, routeGpx, filterRoutes, groupRoutes, shortNames, namePrefix, countKinds, ROUTE_KIND } from './trek.js';
 import { snapshot, checkProject, applyTownState, saveProject, getProject, deleteProject, listProjects, filterProjects } from './projects.js';
 
 const $ = (id) => document.getElementById(id);
@@ -823,29 +823,128 @@ async function openTrekRoute(tipo, id) {
     return true;
   } catch (e) { toast(e.message, 6000); return false; }
 }
-function renderRoutes() {
-  const ul = $('rt-list');
-  if (!routeList) { ul.innerHTML = '<li class="muted cp-none">Cargando tus rutas…</li>'; $('rt-count').textContent = ''; return; }
-  const list = filterRoutes(routeList, $('rt-q').value);
-  $('rt-count').textContent = !routeList.length ? '' : list.length === routeList.length ? `${routeList.length} rutas` : `${list.length} de ${routeList.length}`;
-  if (!routeList.length) { ul.innerHTML = '<li class="muted cp-none">Aún no tienes rutas en Trek: guarda una en el planificador o sube un track a un viaje.</li>'; return; }
-  if (!list.length) { ul.innerHTML = '<li class="muted cp-none">Ninguna coincide con la búsqueda.</li>'; return; }
-  ul.replaceChildren(...list.map((it) => {
-    const li = document.createElement('li');
-    const km = it.km ? `${Number(it.km).toLocaleString('es-ES', { maximumFractionDigits: 1 })} km` : '';
-    const when = it.fecha ? new Date(String(it.fecha).replace(' ', 'T')).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
-    li.innerHTML = `<button type="button" class="rt-item"><span class="rt-tx"><b>${escHtml(it.nombre)}</b><small>${[ROUTE_KIND[it.tipo], it.viaje && escHtml(it.viaje), when].filter(Boolean).join(' · ')}</small></span><span class="rt-km">${km}</span></button>`;
-    const b = li.firstElementChild;
-    b.addEventListener('click', async () => {
-      if (comp.dirty && comp.id && !confirm(`«${comp.nombre}» tiene cambios sin guardar. ¿Abrir otra ruta igualmente?`)) return;
-      b.disabled = true;
-      const ok = await openTrekRoute(it.tipo, it.id);
-      b.disabled = false;
-      if (ok) $('rt-modal').hidden = true;
-    });
-    return li;
+// Estado del selector: tipo y agrupación se recuerdan en este navegador; los grupos abiertos, mientras dure la página.
+const rtState = { kind: 'all', by: 'viaje', open: new Set() };
+try {
+  const saved = JSON.parse(localStorage.getItem('arte.rutas') || '{}');
+  if (['all', 'planner', 'track', 'tour'].includes(saved.kind)) rtState.kind = saved.kind;
+  if (['viaje', 'mes'].includes(saved.by)) rtState.by = saved.by;
+} catch { /* sin almacenamiento: valores por defecto */ }
+function saveRtState() { try { localStorage.setItem('arte.rutas', JSON.stringify({ kind: rtState.kind, by: rtState.by })); } catch { /* da igual */ } }
+
+const KIND_SHORT = { track: 'Tracks', planner: 'Planificador', tour: 'Excursiones' };
+const fmtKm = (km) => `${Number(km).toLocaleString('es-ES', { maximumFractionDigits: km >= 100 ? 0 : 1 })} km`;
+const fmtDay = (f) => (f ? new Date(String(f).replace(' ', 'T')).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
+const fmtMonth = (t) => new Date(t).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+function fmtRange(g) {
+  if (!g.hasta) return '';
+  const a = fmtMonth(g.desde), b = fmtMonth(g.hasta);
+  return a === b ? b : `${a} – ${b}`;
+}
+
+function routeItem(it, shortName) {
+  const li = document.createElement('li');
+  const meta = [
+    it.tipo !== 'track' && ROUTE_KIND[it.tipo],
+    rtState.by === 'mes' && it.viaje && escHtml(it.viaje),
+    fmtDay(it.fecha),
+  ].filter(Boolean).join(' · ');
+  li.innerHTML = `<button type="button" class="rt-item" title="${escHtml(it.nombre)}"><span class="rt-tx"><b>${escHtml(shortName)}</b><small>${meta}</small></span><span class="rt-km">${it.km ? fmtKm(it.km) : ''}</span></button>`;
+  const b = li.firstElementChild;
+  b.addEventListener('click', async () => {
+    if (comp.dirty && comp.id && !confirm(`«${comp.nombre}» tiene cambios sin guardar. ¿Abrir otra ruta igualmente?`)) return;
+    b.disabled = true;
+    const ok = await openTrekRoute(it.tipo, it.id);
+    b.disabled = false;
+    if (ok) $('rt-modal').hidden = true;
+  });
+  return li;
+}
+
+function renderRouteKinds() {
+  const box = $('rt-kinds');
+  const counts = countKinds(routeList || []);
+  const kinds = Object.keys(KIND_SHORT).filter((k) => counts[k]);
+  if (kinds.length < 2) { box.replaceChildren(); return; }  // un solo tipo: no hay nada que filtrar
+  if (rtState.kind !== 'all' && !counts[rtState.kind]) rtState.kind = 'all';
+  box.replaceChildren(...[['all', 'Todas', routeList.length], ...kinds.map((k) => [k, KIND_SHORT[k], counts[k]])].map(([k, label, n]) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('aria-pressed', String(rtState.kind === k));
+    b.innerHTML = `${label} <small>${n}</small>`;
+    b.addEventListener('click', () => { rtState.kind = k; saveRtState(); renderRoutes(); });
+    return b;
   }));
 }
+
+function renderRoutes() {
+  const ul = $('rt-list');
+  const toggle = $('rt-toggle');
+  toggle.hidden = true;
+  if (!routeList) { ul.innerHTML = '<p class="muted cp-none">Cargando tus rutas…</p>'; $('rt-count').textContent = ''; $('rt-kinds').replaceChildren(); return; }
+  if (!routeList.length) { ul.innerHTML = '<p class="muted cp-none">Aún no tienes rutas en Trek: guarda una en el planificador o sube un track a un viaje.</p>'; $('rt-count').textContent = ''; return; }
+  renderRouteKinds();
+  document.querySelectorAll('.rt-by button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.by === rtState.by)));
+
+  const q = $('rt-q').value.trim();
+  const base = rtState.kind === 'all' ? routeList : routeList.filter((it) => it.tipo === rtState.kind);
+  const list = filterRoutes(base, q);
+  const groups = groupRoutes(list, rtState.by);
+  const grupos = rtState.by === 'mes' ? (groups.length === 1 ? 'mes' : 'meses') : (groups.length === 1 ? 'grupo' : 'grupos');
+  $('rt-count').textContent = `${list.length === routeList.length ? `${list.length} rutas` : `${list.length} de ${routeList.length} rutas`} · ${groups.length} ${grupos}`;
+  if (!list.length) { ul.innerHTML = '<p class="muted cp-none">Ninguna coincide con la búsqueda.</p>'; return; }
+
+  // Buscando, o con un solo grupo, todo abierto; si no, solo los que se hayan abierto.
+  const allOpen = !!q || groups.length === 1;
+  const isOpen = (g) => allOpen || rtState.open.has(`${rtState.by}|${g.clave}`);
+  ul.replaceChildren(...groups.map((g) => {
+    const d = document.createElement('details');
+    d.className = 'rt-group';
+    d.open = isOpen(g);
+    const n = g.items.length;
+    const range = rtState.by === 'viaje' ? fmtRange(g) : '';
+    d.innerHTML = `<summary><span class="rt-gname" title="${escHtml(g.titulo)}">${escHtml(g.titulo)}</span><span class="rt-gmeta">${n} ${n === 1 ? 'ruta' : 'rutas'}${g.km ? ` · ${fmtKm(g.km)}` : ''}${range ? `<span class="rt-range"> · ${range}</span>` : ''}</span></summary>`;
+    const inner = document.createElement('ul');
+    const fill = () => {  // los items se crean al abrir el grupo: 150 rutas no cuestan nada cerradas
+      if (inner.childElementCount) return;
+      const names = shortNames(g.items);
+      const pre = namePrefix(g.items).replace(/[\s\-–—_/·.,:;]+$/, '');
+      const head = [];
+      if (pre) {
+        const p = document.createElement('li');
+        p.className = 'rt-pre';
+        p.innerHTML = `Todas empiezan por <q>${escHtml(pre)}</q>`;
+        head.push(p);
+      }
+      inner.replaceChildren(...head, ...g.items.map((it) => routeItem(it, names.get(it))));
+    };
+    if (d.open) fill();
+    d.append(inner);
+    d.addEventListener('toggle', () => {
+      if (d.open) fill();
+      if (allOpen) return;
+      const key = `${rtState.by}|${g.clave}`;
+      if (d.open) rtState.open.add(key); else rtState.open.delete(key);
+      paintToggle();
+    });
+    return d;
+  }));
+
+  function paintToggle() {
+    const ds = [...ul.querySelectorAll('.rt-group')];
+    toggle.hidden = allOpen || ds.length < 2;
+    toggle.textContent = ds.some((d) => d.open) ? 'Plegar todos' : 'Desplegar todos';
+  }
+  paintToggle();
+}
+$('rt-toggle').addEventListener('click', () => {
+  const ds = [...$('rt-list').querySelectorAll('.rt-group')];
+  const open = !ds.some((d) => d.open);
+  ds.forEach((d) => { d.open = open; });  // cada «toggle» actualiza el estado y el botón
+});
+document.querySelectorAll('.rt-by button').forEach((b) => b.addEventListener('click', () => {
+  rtState.by = b.dataset.by; saveRtState(); renderRoutes();
+}));
 $('rt-open').addEventListener('click', async () => {
   $('rt-modal').hidden = false;
   $('rt-q').value = '';
