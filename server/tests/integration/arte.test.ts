@@ -184,7 +184,7 @@ describe('Arte — rutas de Trek', () => {
     const pts = POINTS.map(([lat, lng, ele]) => ({ lat, lng, ele }));
     return Number(testDb.prepare(
       'INSERT INTO gpx_tracks (trip_id, user_id, track_name, total_distance, point_count, points_json) VALUES (?, ?, ?, ?, ?, ?)',
-    ).run(tripId, userId, name, 3200, pts.length, JSON.stringify(pts)).lastInsertRowid);
+    ).run(tripId, userId, name, 3.2, pts.length, JSON.stringify(pts)).lastInsertRowid);  // en km, como computeStats
   }
 
   it('ARTE-020 — lista las rutas del planificador y los tracks de los viajes del usuario', async () => {

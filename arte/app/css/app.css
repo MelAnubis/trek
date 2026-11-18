@@ -228,7 +228,29 @@ input[type=checkbox],input[type=range]{accent-color:var(--accent)}
 /* rutas de Trek */
 .rt-open{width:100%;margin-top:10px}
 #rt-q{font-size:14px;padding:9px 11px;margin:6px 0 4px}
-.rt-list{list-style:none;margin:0;padding:0 4px 0 0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin}
+.rt-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:4px 0 2px}
+.rt-kinds{display:flex;flex-wrap:wrap;gap:5px}
+.rt-kinds button,.rt-by button{font:inherit;font-size:12px;font-weight:500;border:1px solid var(--border-primary);border-radius:99px;padding:3px 10px;background:var(--bg-card);color:var(--text-primary);cursor:pointer}
+.rt-kinds button:hover,.rt-by button:hover{border-color:var(--accent)}
+.rt-kinds button[aria-pressed=true],.rt-by button[aria-pressed=true]{background:var(--accent);color:var(--accent-text);border-color:transparent}
+.rt-kinds small{opacity:.75;font-variant-numeric:tabular-nums}
+.rt-by{display:flex;align-items:center;gap:5px;font-size:12px}
+.rt-count{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.rt-count .link{padding:0;font-size:12.5px}
+.rt-list{margin:0;padding:0 4px 0 0;overflow-y:auto;display:flex;flex-direction:column;gap:6px;scrollbar-width:thin;min-height:120px}
+.rt-group{border:1px solid var(--border-primary);border-radius:10px;background:var(--bg-secondary)}
+.rt-group>summary{display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer;list-style:none;user-select:none;border-radius:10px}
+.rt-group>summary::-webkit-details-marker{display:none}
+.rt-group>summary::before{content:'';flex:0 0 auto;width:6px;height:6px;border-right:2px solid var(--text-muted);border-bottom:2px solid var(--text-muted);transform:rotate(-45deg);transition:transform .15s;margin:0 3px 0 1px}
+.rt-group[open]>summary::before{transform:rotate(45deg)}
+.rt-group[open]>summary{position:sticky;top:0;z-index:1;background:var(--bg-secondary);border-radius:10px 10px 0 0}
+.rt-group>summary:hover{background:linear-gradient(var(--bg-hover),var(--bg-hover)),var(--bg-secondary)}
+.rt-pre{font-size:12px;color:var(--text-muted);padding:0 2px 2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt-gname{flex:1;min-width:0;font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rt-gmeta{font-size:12px;color:var(--text-muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.rt-group ul{list-style:none;margin:0;padding:0 8px 8px;display:flex;flex-direction:column;gap:5px}
+.rt-group .rt-item{padding:7px 10px}
+@media (max-width:560px){.rt-gmeta .rt-range{display:none}}
 .rt-item{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:1px solid var(--border-primary);border-radius:10px;background:var(--bg-card);cursor:pointer;text-align:left;font:inherit;color:var(--text-primary)}
 .rt-item:hover{border-color:var(--accent);background:var(--bg-hover)}
 .rt-item:disabled{opacity:.5;cursor:wait}

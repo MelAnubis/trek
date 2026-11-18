@@ -38,16 +38,16 @@ export function listUserRoutes(userId: number): RouteSummary[] {
        FROM gpx_tracks g JOIN trips t ON t.id = g.trip_id
       WHERE ${TRIP_ACCESS} AND g.point_count >= 2 ORDER BY g.created_at DESC LIMIT 500`,
   ).all({ uid: userId }) as { id: number; name: string; dist: number | null; puntos: number | null; fecha: string | null; viaje: string | null }[];
-  // total_distance de los tracks va en metros.
-  for (const r of tracks) out.push({ tipo: 'track', id: r.id, nombre: r.name, km: r.dist != null ? r.dist / 1000 : null, puntos: r.puntos, viaje: r.viaje, fecha: r.fecha });
+  // total_distance de los tracks ya va en km (computeStats en routes/gpxTracks.ts).
+  for (const r of tracks) out.push({ tipo: 'track', id: r.id, nombre: r.name, km: r.dist ?? null, puntos: r.puntos, viaje: r.viaje, fecha: r.fecha });
 
   const tours = db.prepare(
     `SELECT p.id, p.name, tr.distance AS dist, tr.created_at AS fecha, t.title AS viaje
        FROM tours tr JOIN places p ON p.id = tr.place_id JOIN trips t ON t.id = p.trip_id
       WHERE ${TRIP_ACCESS} AND p.route_geometry IS NOT NULL ORDER BY tr.created_at DESC LIMIT 500`,
   ).all({ uid: userId }) as { id: number; name: string; dist: number | null; fecha: string | null; viaje: string | null }[];
-  // distance de las excursiones va en metros.
-  for (const r of tours) out.push({ tipo: 'tour', id: r.id, nombre: r.name, km: r.dist != null ? r.dist / 1000 : null, puntos: null, viaje: r.viaje, fecha: r.fecha });
+  // distance de las excursiones también va en km (computeTourMetrics().distanceKm).
+  for (const r of tours) out.push({ tipo: 'tour', id: r.id, nombre: r.name, km: r.dist ?? null, puntos: null, viaje: r.viaje, fecha: r.fecha });
 
   return out;
 }
