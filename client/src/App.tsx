@@ -28,6 +28,7 @@ import TrackingPage from './pages/TrackingPage'
 import InAppNotificationsPage from './pages/InAppNotificationsPage.tsx'
 import OAuthAuthorizePage from './pages/OAuthAuthorizePage'
 import NavigationPage from './pages/NavigationPage'
+import NavDraftNotice from './components/Navigation/NavDraftNotice'
 import PlannerPage from './pages/PlannerPage'
 const ArtePage = lazy(() => import('./pages/ArtePage'))
 import { ToastContainer } from './components/shared/Toast'
@@ -214,6 +215,7 @@ export default function App() {
       <ToastContainer />
       <OfflineBanner />
       <UpdateBanner />
+      {isAuthenticated && !isAuthPage && <NavDraftNotice />}
       <Routes>
         <Route path="/" element={<RootRedirect />} />
         <Route path="/login" element={<LoginPage />} />

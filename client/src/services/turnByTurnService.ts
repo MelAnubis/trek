@@ -157,11 +157,15 @@ export function generateTrackInstructions(points: TrackPoint[]): TurnInstruction
 
   for (let s = 1; s < segments.length; s++) {
     const seg = segments[s]
+    // The heading changes where this segment starts (the end of the previous
+    // one): that is the corner. Its own end lies up to WINDOW_M past it, and an
+    // instruction placed there was announced and passed too late.
+    const corner = segments[s - 1]
     const delta = angleDiff(prevHdg, seg.hdg)
-    const distSinceLast = seg.distFromStart - lastInstrDist
+    const distSinceLast = corner.distFromStart - lastInstrDist
 
     if (Math.abs(delta) >= TURN_DEG && distSinceLast >= MIN_GAP_M) {
-      const pt = points[seg.idx]
+      const pt = points[corner.idx]
       const mod = delta > 45 ? 'right' : delta < -45 ? 'left' : delta > 0 ? 'slight right' : 'slight left'
       instructions.push({
         index: instructions.length,
@@ -172,7 +176,7 @@ export function generateTrackInstructions(points: TrackPoint[]): TurnInstruction
         location: [pt.lat, pt.lng],
         bearingAfter: seg.hdg,
       })
-      lastInstrDist = seg.distFromStart
+      lastInstrDist = corner.distFromStart
     }
     prevHdg = seg.hdg
   }

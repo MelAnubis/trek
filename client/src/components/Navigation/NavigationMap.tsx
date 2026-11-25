@@ -108,7 +108,7 @@ function PhotoMarker({ photo }: { photo: NavPhoto }) {
 }
 
 // ── Tile layer catalogue ──────────────────────────────────────────────────────
-const TILE_LAYERS = {
+export const TILE_LAYERS = {
   topo: {
     label: 'Topo',
     url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',
@@ -144,10 +144,10 @@ const TILE_LAYERS = {
   },
 } as const
 
-type TileKey = keyof typeof TILE_LAYERS
+export type TileKey = keyof typeof TILE_LAYERS
 const STORAGE_KEY = 'trek_nav_tile'
 
-function loadTileKey(): TileKey {
+export function loadTileKey(): TileKey {
   try {
     const v = localStorage.getItem(STORAGE_KEY)
     if (v && v in TILE_LAYERS) return v as TileKey

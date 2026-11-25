@@ -34,6 +34,17 @@ export default defineConfig({
             },
           },
           {
+            // Navigation map layers (Topo, Ciclismo): kept 60 days so a route
+            // downloaded with "Mapa sin conexión" draws with no coverage.
+            urlPattern: /^https:\/\/[a-c]\.(?:tile\.opentopomap\.org|tile-cyclosm\.openstreetmap\.fr)\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'nav-tiles',
+              expiration: { maxEntries: 6000, maxAgeSeconds: 60 * 24 * 60 * 60 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+          {
             // Leaflet CSS/JS from unpkg CDN
             urlPattern: /^https:\/\/unpkg\.com\/.*/i,
             handler: 'CacheFirst',
