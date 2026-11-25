@@ -4,6 +4,8 @@ export interface RecordedPoint {
   alt: number | null
   speed: number | null
   timestamp: number
+  /** First point after a pause: the track is cut here (new <trkseg>, no distance across the gap). */
+  newSegment?: boolean
 }
 
 function haversineM(la1: number, lo1: number, la2: number, lo2: number): number {
@@ -22,25 +24,59 @@ export class GpxRecorderService {
   points: RecordedPoint[] = []
   private startTime: number | null = null
   private running = false
+  private paused = false
+  private cutNext = false
 
   get isRunning() { return this.running }
+  get isPaused() { return this.paused }
   get pointCount() { return this.points.length }
 
-  start() {
-    this.points = []
-    this.startTime = Date.now()
+  /** Starts recording; with `restore`, carries on a recording recovered from the phone. */
+  start(restore?: { points: RecordedPoint[]; startTime: number }) {
+    this.points = restore ? [...restore.points] : []
+    this.startTime = restore ? restore.startTime : Date.now()
     this.running = true
+    this.paused = false
+    // A recovered recording continues after a gap: never join it with a straight line.
+    this.cutNext = !!restore && this.points.length > 0
+  }
+
+  /** Loads a recovered recording without recording (to show its summary and save it). */
+  load(points: RecordedPoint[], startTime: number) {
+    this.points = [...points]
+    this.startTime = startTime
+    this.running = false
+    this.paused = false
   }
 
   stop() {
     this.running = false
+    this.paused = false
+  }
+
+  /** While paused no point is kept; the next one after resume() starts a new segment. */
+  pause() {
+    if (!this.running || this.paused) return
+    this.paused = true
+  }
+
+  resume() {
+    if (!this.paused) return
+    this.paused = false
+    this.cutNext = this.points.length > 0
   }
 
   addPoint(lat: number, lng: number, alt: number | null, speed: number | null, timestamp: number, accuracy?: number) {
-    if (!this.running) return
+    if (!this.running || this.paused) return
 
     // Reject points with poor GPS signal (accuracy > 50m) — avoids initial-acquisition loops
     if (accuracy !== undefined && accuracy > 50) return
+
+    if (this.cutNext) {
+      this.cutNext = false
+      this.points.push({ lat, lng, alt, speed, timestamp, newSegment: true })
+      return
+    }
 
     const last = this.points[this.points.length - 1]
     if (last) {
@@ -57,6 +93,7 @@ export class GpxRecorderService {
   totalDistanceM(): number {
     let d = 0
     for (let i = 1; i < this.points.length; i++) {
+      if (this.points[i].newSegment) continue
       d += haversineM(this.points[i - 1].lat, this.points[i - 1].lng, this.points[i].lat, this.points[i].lng)
     }
     return d
@@ -75,10 +112,11 @@ export class GpxRecorderService {
       `    <name>${escapeXml(name)}</name>`,
       '    <trkseg>',
     ]
-    const pts = this.points.map(p => {
+    const pts = this.points.map((p, i) => {
       const alt = p.alt !== null ? `\n        <ele>${p.alt.toFixed(1)}</ele>` : ''
       const time = `\n        <time>${fmt(new Date(p.timestamp))}</time>`
-      return `      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">${alt}${time}\n      </trkpt>`
+      const cut = p.newSegment && i > 0 ? '    </trkseg>\n    <trkseg>\n' : ''
+      return `${cut}      <trkpt lat="${p.lat.toFixed(7)}" lon="${p.lng.toFixed(7)}">${alt}${time}\n      </trkpt>`
     })
     const tail = ['    </trkseg>', '  </trk>', '</gpx>']
     return [...head, ...pts, ...tail].join('\n')

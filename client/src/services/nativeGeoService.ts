@@ -88,9 +88,27 @@ async function backgroundGeolocation(): Promise<BackgroundGeolocationPlugin> {
   return _bgPlugin
 }
 let _nativeCallbackId: string | null = null
+// The watcher stays one and the same while it runs; who gets its fixes can change
+// (following a route, then recording it too) without restarting the GPS.
+let _onLocation: LocationCallback | null = null
+let _onError: ErrorCallback | null = null
+let _stopping: Promise<void> | null = null
+/** Bumped on every start/stop, so a watcher that finishes registering late knows it is stale. */
+let _gen = 0
 
-async function startNative(onLocation: LocationCallback, onError: ErrorCallback): Promise<void> {
+export interface NativeStartOptions {
+  /** Text of the persistent notification Android shows while the GPS runs. */
+  message?: string
+  title?: string
+}
+
+async function startNative(onLocation: LocationCallback, onError: ErrorCallback, opts: NativeStartOptions = {}): Promise<void> {
+  _onLocation = onLocation
+  _onError = onError
+  if (_stopping) await _stopping
   if (_bgGeoStarted) return
+  _bgGeoStarted = true
+  const gen = ++_gen
   try {
     const BackgroundGeolocation = await backgroundGeolocation()
 
@@ -98,19 +116,19 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
     // arrives in the callback as error.code === 'NOT_AUTHORIZED'.
     await BackgroundGeolocation.addWatcher(
       {
-        backgroundMessage: 'Trek Wanderer está grabando tu ruta.',
-        backgroundTitle: 'Trek Wanderer — GPS activo',
+        backgroundMessage: opts.message ?? 'Trek Wanderer está grabando tu ruta.',
+        backgroundTitle: opts.title ?? 'Trek Wanderer — GPS activo',
         requestPermissions: true,
         stale: false,
         distanceFilter: 3,
       },
       (location, error) => {
         if (error) {
-          onError(error.code === 'NOT_AUTHORIZED' ? 'Permiso de ubicación denegado' : error.message)
+          _onError?.(error.code === 'NOT_AUTHORIZED' ? 'Permiso de ubicación denegado' : error.message)
           return
         }
         if (!location) return
-        onLocation({
+        _onLocation?.({
           lat: location.latitude,
           lng: location.longitude,
           altitude: location.altitude ?? null,
@@ -120,6 +138,8 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
         })
       }
     ).then(id => {
+      // Stopped (or restarted) while the watcher was being added: remove it now.
+      if (gen !== _gen) { void BackgroundGeolocation.removeWatcher({ id }).catch(() => {}); return }
       _nativeCallbackId = id
       // Only now: Android grants "Allow all the time" (ACCESS_BACKGROUND_LOCATION) only
       // after the "while using the app" permission that addWatcher has just asked for.
@@ -129,23 +149,29 @@ async function startNative(onLocation: LocationCallback, onError: ErrorCallback)
       // Best effort: never blocks tracking.
       void requestBackgroundLocationHardening()
     })
-
-    _bgGeoStarted = true
   } catch (e) {
+    _bgGeoStarted = false
     onError(String(e))
   }
 }
 
 async function stopNative(): Promise<void> {
+  _onLocation = null
+  _onError = null
   if (!_bgGeoStarted) return
-  try {
-    const BackgroundGeolocation = await backgroundGeolocation()
-    if (_nativeCallbackId) {
-      await BackgroundGeolocation.removeWatcher({ id: _nativeCallbackId })
-      _nativeCallbackId = null
-    }
-  } catch { /* ignore */ }
   _bgGeoStarted = false
+  _gen++
+  _stopping = (async () => {
+    try {
+      const BackgroundGeolocation = await backgroundGeolocation()
+      if (_nativeCallbackId) {
+        await BackgroundGeolocation.removeWatcher({ id: _nativeCallbackId })
+        _nativeCallbackId = null
+      }
+    } catch { /* ignore */ }
+  })()
+  await _stopping
+  _stopping = null
 }
 
 // ── Web (browser) path ────────────────────────────────────────────────────────
@@ -180,9 +206,9 @@ function stopWeb(): void {
 export const nativeGeoService = {
   isNative: isCapacitor,
 
-  async start(onLocation: LocationCallback, onError: ErrorCallback): Promise<void> {
+  async start(onLocation: LocationCallback, onError: ErrorCallback, opts?: NativeStartOptions): Promise<void> {
     if (isCapacitor()) {
-      await startNative(onLocation, onError)
+      await startNative(onLocation, onError, opts)
     } else {
       startWeb(onLocation, onError)
     }
