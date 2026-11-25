@@ -4,7 +4,7 @@ import { bboxOf, expandBbox, profileOf, haversine, nearestOnRoute, hashString } 
 import { fetchOSM, KIND_LABEL } from './osm.js';
 import { buildTowns, autoChoice, chosenMonument, setImageCredits } from './heritage.js';
 import { pickerSections, openPicker, thumbSvg } from './picker.js';
-import { renderMap, mapExtent, thumbDefs, FORMATS, ROUTE_COLORS, STYLES } from './render.js';
+import { renderMap, mapExtent, thumbDefs, FORMATS, ROUTE_COLORS, STYLES, CLASSIC_SUGGEST } from './render.js';
 import { buildRelief } from './relief.js';
 import { validate } from './integrity.js';
 import { autoStageEnds, STAGE_COLORS } from './guide.js';
@@ -47,9 +47,28 @@ for (const [id, label] of Object.entries(FONT_SIZES)) {
 }
 
 // ——— arranque ———
-for (const [k, v] of Object.entries(STYLES)) $('style').append(new Option(v.label, k));
+for (const [grp, modern] of [['Clásicos', false], ['Contemporáneos', true]]) {
+  const og = document.createElement('optgroup');
+  og.label = grp;
+  for (const [k, v] of Object.entries(STYLES)) if (!!v.modern === modern) og.append(new Option(v.label, k));
+  $('style').append(og);
+}
 const showStyleDesc = () => { $('style-desc').textContent = STYLES[$('style').value].desc; };
-$('style').addEventListener('change', showStyleDesc);
+// Al pasar a un estilo contemporáneo (o volver a los clásicos) se proponen sus letras y su color
+// de ruta; dentro de la misma familia se respeta lo que se haya elegido a mano.
+let prevStyle = $('style').value;
+$('style').addEventListener('change', () => {
+  const now = STYLES[$('style').value], before = STYLES[prevStyle] || {};
+  if (now.modern || before.modern) {
+    const sug = now.suggest || CLASSIC_SUGGEST;
+    for (const [id, v] of Object.entries(sug)) {
+      const el = $(id);
+      if (el && [...el.options].some((o) => o.value === v)) el.value = v;
+    }
+  }
+  prevStyle = $('style').value;
+  showStyleDesc();
+});
 showStyleDesc();
 
 // tipos de patrimonio que se tienen en cuenta al elegir el monumento de cada pueblo
@@ -670,6 +689,7 @@ function applyOpts(o, extra) {
     }
   }
   $('guide-fields').hidden = $('layout').value !== 'guia';
+  prevStyle = $('style').value;
   showStyleDesc();
 }
 async function saveComposition(asNew) {

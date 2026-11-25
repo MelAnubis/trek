@@ -3,6 +3,24 @@
 Formato: [versiones semánticas](https://semver.org/lang/es/). La versión visible en la app sale de `app/js/version.js`.
 
 
+## [1.9.0] — 2026-11-25
+
+### Estilos contemporáneos
+- Cuatro estilos nuevos, agrupados en el selector como «Contemporáneos» (los de siempre quedan como «Clásicos»):
+  - **Minimalista**: fondo limpio, dibujos de línea fina en grises, la ruta como único color y rótulos en mayúsculas espaciadas.
+  - **Plano contemporáneo**: ilustración plana en colores sólidos (terracota, arena, salvia y azul profundo), sin texturas.
+  - **Nocturno**: fondo azul noche, dibujos de línea clara y la ruta luminosa.
+  - **Risografía**: tintas planas (rosa flúor, azul, amarillo y verde) con grano y un leve desajuste de registro.
+- Sin papel envejecido, manchas ni filtros de pintura: el SVG sale más nítido y ligero. Marco de una línea, flecha de norte en lugar de rosa de los vientos y cimas como triángulos.
+- Todos los dibujos de monumentos (propios y genéricos) se pasan solos a la paleta de cada estilo, sin rehacer ninguno. Las acuarelas PNG también: grafito en Minimalista, degradado de la paleta en Plano, grabado claro en Nocturno y duotono azul en Risografía.
+- Cada estilo trae sus colores de etapa y propone su tipografía y su color de ruta al elegirlo; luego se pueden cambiar. Al volver a un estilo clásico vuelven las letras de siempre.
+- Tipografías nuevas (licencia SIL OFL): Space Grotesk, Syne y DM Serif Display para títulos; Inter e IBM Plex Mono para rótulos y textos.
+- Colores de ruta nuevos: coral, azul marino, azul eléctrico, rosa flúor y ámbar luminoso.
+
+### Arreglos
+- Guía ilustrada: un título largo ya no se monta sobre la descripción, y la línea de datos baja si la descripción ocupa más. Los textos del panel lateral, los perfiles de etapa y los números de los puntos de interés tienen en cuenta el ancho real de la letra elegida.
+- Las acuarelas PNG dejaban un recuadro claro sobre el papel en los estilos clásicos: ahora el fondo de la ilustración se vuelve transparente.
+
 ## [1.8.1] — 2026-11-18
 
 ### Mis rutas de Trek

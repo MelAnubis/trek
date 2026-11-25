@@ -10,7 +10,7 @@ import { monumentDrawing, townDrawing, pineTree, roundTree, mountain, mountainPa
 import { KIND_LABEL } from './osm.js';
 import { seaRings } from './coast.js';
 import { fontFor } from './fonts.js';
-import { computeStages, stageRoute, campina, titleBlock, stageProfiles, sidePanel, numberBadge, wrap } from './guide.js';
+import { computeStages, stageRoute, campina, titleBlock, stageProfiles, sidePanel, numberBadge, wrap, setTextWidth, setBadgeText } from './guide.js';
 
 export const FORMATS = {
   a3v: { label: 'A3 vertical', w: 1188, h: 1680 },
@@ -46,13 +46,138 @@ export const STYLES = {
     draw: { inkOpacity: .5, inkWidth: .75, washOpacity: .55, bleedWash: true, looseTrees: true },
     trees: 700, woodWash: .28, riverWash: 8, layerFilter: null, relief: .45,
   },
+  // ——— estilos contemporáneos: sin papel envejecido ni pintura; paleta, letra y trazo propios.
+  // Los dibujos de los monumentos se recolorean solos a la paleta del estilo (ver restyle). ———
+  minimal: {
+    label: 'Minimalista', modern: true,
+    desc: 'Fondo limpio, dibujos de línea fina en grises y la ruta como único color. Letra sans en mayúsculas espaciadas.',
+    paper: '#f7f6f2', field: null, wet: false, blooms: false, bleed: false, vignette: 0, texture: false, frame: 'single',
+    draw: { inkOpacity: .9, inkWidth: .72, washOpacity: .95, bleedWash: false, looseTrees: false,
+      pal: { ink: '#26282b', water: '#cddbe4', waterDark: '#8ea8b8', green: '#dfe4d5', greenDark: '#b9c2ad', stoneDark: '#b4b3ac', mountain: '#e2e0da', roof: '#26282b' } },
+    recolor: { mode: 'ramp', dark: '#b9b8b1', light: '#ffffff', gamma: .55, ink: '#26282b' },
+    trees: 0, woodWash: .85, riverWash: 5, layerFilter: null, relief: .3, reliefFilter: 'img-gris',
+    colors: { sea: '#d6e3ea', urban: '#e8e5de', wetland: '#d4e0da', profile: '#e2e0da', road: '#ffffff', dot: '#ffffff', monGround: null },
+    filters: 'clean', compass: 'arrow', peaks: 'triangle', caps: true, imageFilter: 'img-gris',
+    stageColors: ['#2f3a5c', '#8796a5', '#c99a2e', '#5b8c6f', '#a05a7a'],
+    suggest: { font_rotulos: 'grotesk', font_mano: 'inter', font_texto: 'inter', routeColor: 'coral' },
+  },
+  plano: {
+    label: 'Plano contemporáneo', modern: true,
+    desc: 'Ilustración plana de colores sólidos (terracota, arena, salvia y azul profundo), sin texturas, al estilo de un póster actual.',
+    paper: '#f4eee3', field: null, wet: false, blooms: false, bleed: false, vignette: 0, texture: false, frame: 'single',
+    draw: { inkOpacity: .5, inkWidth: .6, washOpacity: 1, bleedWash: false, looseTrees: false,
+      pal: { ink: '#2f3550', water: '#a7cbd9', waterDark: '#5f8ea6', green: '#b7d0bc', greenDark: '#6f9a82', stoneDark: '#b9a58b', mountain: '#ead9bd', roof: '#e07a5f' } },
+    recolor: { mode: 'palette', colors: ['#e07a5f', '#c4664a', '#f2cc8f', '#e9b872', '#81b29a', '#5f8a72', '#9cc5d6', '#3d405b', '#f8f3e8', '#e8dcc8'], ink: '#2f3550' },
+    trees: 0, woodWash: .9, riverWash: 6, layerFilter: null, relief: .32, reliefFilter: null,
+    colors: { sea: '#a7cbd9', urban: '#ecd8c0', wetland: '#bcd5c9', profile: '#f2cc8f', road: '#fbf7ef', dot: '#fbf7ef', monGround: null },
+    filters: 'clean', compass: 'arrow', peaks: 'triangle', caps: true, imageFilter: 'img-plano',
+    stageColors: ['#3d405b', '#e07a5f', '#5f9a7e', '#e9a03b', '#5e8ca3'],
+    suggest: { font_rotulos: 'syne', font_mano: 'inter', font_texto: 'inter', routeColor: 'marino' },
+  },
+  noche: {
+    label: 'Nocturno', modern: true,
+    desc: 'Fondo azul noche con dibujos de línea clara y la ruta luminosa. Muy gráfico, para pantalla o un póster oscuro.',
+    paper: '#15202b', field: null, wet: false, blooms: false, bleed: false, vignette: 0, texture: false, frame: 'single',
+    draw: { inkOpacity: .92, inkWidth: .72, washOpacity: .95, bleedWash: false, looseTrees: false,
+      pal: { ink: '#efe7d6', water: '#2a4a66', waterDark: '#79a6c4', green: '#1d3433', greenDark: '#3f6b5e', stoneDark: '#5f6f7d', mountain: '#26384a', roof: '#efe7d6', door: '#0e1720' } },
+    recolor: { mode: 'ramp', dark: '#0f1822', light: '#273a4f', gamma: 1, ink: '#efe7d6' },
+    trees: 0, woodWash: .95, riverWash: 5, layerFilter: null, relief: .55, reliefFilter: null,
+    colors: { sea: '#1c3550', urban: '#1f2e3d', wetland: '#1c3636', profile: '#273a4f', road: '#15202b', dot: '#15202b', monGround: null },
+    filters: 'clean', compass: 'arrow', peaks: 'triangle', caps: true, imageFilter: 'img-noche', glow: true,
+    stageColors: ['#4fd1c5', '#f472b6', '#a3e635', '#93c5fd', '#fdba74'],
+    suggest: { font_rotulos: 'grotesk', font_mano: 'inter', font_texto: 'inter', routeColor: 'ambar' },
+  },
+  riso: {
+    label: 'Risografía', modern: true,
+    desc: 'Impresión de tintas planas (rosa flúor, azul, amarillo y verde) con grano y un leve desajuste de registro, como un fanzine o un cartel de serigrafía.',
+    paper: '#f3efe6', field: null, wet: false, blooms: false, bleed: false, vignette: 0, texture: false, frame: 'single',
+    draw: { inkOpacity: .85, inkWidth: .8, washOpacity: .92, bleedWash: false, looseTrees: false,
+      pal: { ink: '#1d4e9e', water: '#7fb8e0', waterDark: '#0078bf', green: '#9fd8b6', greenDark: '#00a95c', stoneDark: '#8fa3c7', mountain: '#f9d7e8', roof: '#ff48b0' } },
+    recolor: { mode: 'palette', colors: ['#ff48b0', '#ff8fcd', '#ffc4e3', '#0078bf', '#66aedb', '#b3d6ee', '#ffe800', '#fff38c', '#00a95c', '#80d4ad', '#f3efe6'], ink: '#1d4e9e' },
+    trees: 0, woodWash: .75, riverWash: 6, layerFilter: null, relief: .3, reliefFilter: 'img-riso',
+    colors: { sea: '#7fb8e0', urban: '#ffd1e8', wetland: '#a9dcc4', profile: '#ffc4e3', road: '#f3efe6', dot: '#f3efe6', monGround: null },
+    filters: 'riso', compass: 'arrow', peaks: 'triangle', caps: true, imageFilter: 'img-riso',
+    stageColors: ['#0078bf', '#00a95c', '#ffb000', '#ff48b0', '#765ba7'],
+    suggest: { font_rotulos: 'grotesk', font_mano: 'mono', font_texto: 'mono', routeColor: 'rosa' },
+  },
 };
+// Colores de capas del mapa que no salen de la paleta de los dibujos (estilos clásicos).
+const BASE_COLORS = { sea: '#8fbcd2', urban: '#d6a578', wetland: '#8fb3a0', profile: '#b9a27c', road: '#f6eedc', dot: '#fbf6ea', monGround: 'auto' };
+let C = BASE_COLORS;
+/** Tipografías y color de ruta propios de cada estilo (para la interfaz). */
+export const CLASSIC_SUGGEST = { font_rotulos: 'fell', font_mano: 'caveat', font_texto: 'fell', routeColor: 'carmin' };
+function useStyle(style) {
+  ST = STYLES[style] || STYLES.acuarela;
+  C = { ...BASE_COLORS, ...(ST.colors || {}) };
+  setDrawStyle(ST.draw);
+}
 let ST = STYLES.acuarela;
+
+// ——— recoloreado de dibujos a la paleta de un estilo contemporáneo ———
+const hexRgb = (h) => { h = h.slice(1); if (h.length === 3) h = h.replace(/./g, (c) => c + c); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
+const rgbHex = (c) => '#' + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const lum = ([r, g, b]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+const mixRgb = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const recolorCache = new Map();
+function recolorFill(hex) {
+  const rc = ST.recolor;
+  const key = ST.label + hex;
+  if (recolorCache.has(key)) return recolorCache.get(key);
+  const c = hexRgb(hex);
+  let out;
+  if (rc.mode === 'ramp') {
+    const t = Math.max(0, Math.min(1, (lum(c) - 0.12) / 0.8)) ** (rc.gamma || 1);
+    out = rgbHex(mixRgb(hexRgb(rc.dark), hexRgb(rc.light), t));
+  } else {
+    // color de la paleta más parecido (distancia con peso perceptual aproximado)
+    let best = null, bd = Infinity;
+    for (const p of rc.colors) {
+      const q = hexRgb(p), rm = (c[0] + q[0]) / 2;
+      const d = (2 + rm / 256) * (c[0] - q[0]) ** 2 + 4 * (c[1] - q[1]) ** 2 + (2 + (255 - rm) / 256) * (c[2] - q[2]) ** 2;
+      if (d < bd) { bd = d; best = p; }
+    }
+    out = best;
+  }
+  recolorCache.set(key, out);
+  return out;
+}
+/** Fondo de las miniaturas en los estilos contemporáneos (en Nocturno, el azul noche). */
+export function thumbBackground() { return ST.modern ? ST.paper : null; }
+/** Pasa un dibujo (SVG) a la paleta del estilo actual. En los estilos clásicos no cambia nada. */
+export function restyle(body) {
+  if (!ST.recolor || !body) return body;
+  return body
+    .replace(/fill="(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})"/g, (_, h) => `fill="${recolorFill(h)}"`)
+    .replace(/stroke="(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})"/g, () => `stroke="${ST.recolor.ink}"`);
+}
+// filtros de pintura que los estilos limpios no usan (se quitan del SVG final: más nítido y rápido)
+const PAINT_FILTERS = { clean: /acuarela|tinta|borde|relieve|sangrado|floracion|floracion-capa/, riso: /borde|relieve|sangrado|floracion|floracion-capa/ };
+function stripPaint(svg) {
+  const re = PAINT_FILTERS[ST.filters];
+  if (!re) return svg;
+  return svg.replace(/ filter="url\(#([a-z-]+)\)"/g, (m, id) => (re.test(id) && new RegExp(`^(${re.source})$`).test(id) ? '' : m));
+}
+/** Flecha de norte sobria para los estilos contemporáneos. */
+function northArrow(cx, cy, r) {
+  const k = r / 44;
+  return `<g id="rosa"><path d="M${f1(cx)} ${f1(cy - 30 * k)}L${f1(cx + 9 * k)} ${f1(cy + 14 * k)}L${f1(cx)} ${f1(cy + 6 * k)}L${f1(cx - 9 * k)} ${f1(cy + 14 * k)}Z" fill="${PAL.ink}"/>`
+    + `<text class="tit" x="${f1(cx)}" y="${f1(cy - 38 * k)}" text-anchor="middle" font-size="${f1(17 * k)}">N</text></g>`;
+}
+/** Cima como triángulo plano. */
+function peakMark(x, y, sc) {
+  const w = 7 * sc / 0.95, h = 9 * sc / 0.95;
+  return `<path d="M${f1(x - w)} ${f1(y)}L${f1(x)} ${f1(y - h)}L${f1(x + w)} ${f1(y)}Z" fill="${PAL.ink}" fill-opacity=".85"/>`;
+}
 
 export const ROUTE_COLORS = {
   carmin: { label: 'Carmín', color: '#b1271d' },
   tinta: { label: 'Tinta negra', color: '#1d1814' },
   ocre: { label: 'Naranja ocre', color: '#d2691e' },
+  coral: { label: 'Coral', color: '#ff5a4e' },
+  marino: { label: 'Azul marino', color: '#2f3a5c' },
+  azul: { label: 'Azul eléctrico', color: '#1f4fe0' },
+  rosa: { label: 'Rosa flúor', color: '#ff3ea5' },
+  ambar: { label: 'Ámbar luminoso', color: '#ffb020' },
 };
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -61,9 +186,37 @@ const fx = (n) => Number(n.toFixed(PX_DECIMALS));
 
 /** Filtros y patrones del estilo, para las miniaturas del selector de dibujo. */
 export function thumbDefs(style) {
-  ST = STYLES[style] || STYLES.acuarela;
-  setDrawStyle(ST.draw);
+  useStyle(style);
   return defs('');
+}
+
+// Filtros para las acuarelas PNG y el relieve en los estilos contemporáneos (las acuarelas
+// pasan a la paleta: grises, duotono de tinta o línea clara sobre fondo oscuro).
+// El fondo claro de la acuarela se vuelve transparente (no depende de mix-blend-mode, que no se
+// combina bien con filtros) y el resto pasa a la paleta: grises, duotono o colores planos.
+const KNOCK = `<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -2.126 -7.152 -.722 0 9.3" result="ka"/><feComposite in="ka" in2="SourceAlpha" operator="in" result="mask"/>`;
+function duotone(id, dark, light, stops = null) {
+  const a = hexRgb(dark).map((v) => v / 255), b = hexRgb(light).map((v) => v / 255);
+  const tv = (i) => (stops || [0, 1]).map((t) => (a[i] + (b[i] - a[i]) * t).toFixed(3)).join(' ');
+  return `<filter id="${id}" color-interpolation-filters="sRGB">${KNOCK}<feColorMatrix in="SourceGraphic" type="matrix" values=".2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  0 0 0 1 0"/>`
+    + `<feComponentTransfer result="col"><feFuncR type="table" tableValues="${tv(0)}"/><feFuncG type="table" tableValues="${tv(1)}"/><feFuncB type="table" tableValues="${tv(2)}"/></feComponentTransfer><feComposite in="col" in2="mask" operator="in"/></filter>`;
+}
+/** Mapa de degradado: la luminosidad de la imagen recorre los colores dados (oscuro → claro). */
+function gradientMap(id, colors) {
+  const cs = colors.map((c) => hexRgb(c).map((v) => (v / 255).toFixed(3)));
+  const tv = (i) => cs.map((c) => c[i]).join(' ');
+  return `<filter id="${id}" color-interpolation-filters="sRGB">${KNOCK}<feColorMatrix in="SourceGraphic" type="matrix" values=".2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  .2126 .7152 .0722 0 0  0 0 0 1 0"/>`
+    + `<feComponentTransfer result="col"><feFuncR type="table" tableValues="${tv(0)}"/><feFuncG type="table" tableValues="${tv(1)}"/><feFuncB type="table" tableValues="${tv(2)}"/></feComponentTransfer><feComposite in="col" in2="mask" operator="in"/></filter>`;
+}
+function imageFilters() {
+  // clásicos: solo se quita el fondo claro (la acuarela conserva sus colores)
+  const clasico = `<filter id="img-clasico" color-interpolation-filters="sRGB">${KNOCK}<feComposite in="SourceGraphic" in2="mask" operator="in"/></filter>`;
+  if (!ST.modern) return clasico;
+  return duotone('img-gris', '#2e2f31', '#ffffff', [0, .3, .72, 1])
+    + duotone('img-noche', ST.draw.pal.ink, ST.paper, [0, .12, .4, .8, 1])
+    + duotone('img-riso', '#0078bf', '#ffffff', [0, .3, .8, 1])
+    + gradientMap('img-plano', ['#2f3550', '#3d405b', '#c4664a', '#e07a5f', '#f2cc8f', '#f2cc8f', '#f8f3e8'])
+    + `<filter id="brillo" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="5"/></filter>`;
 }
 
 function defs(fontCss, opts = {}) {
@@ -77,8 +230,16 @@ function defs(fontCss, opts = {}) {
 .tx{font-family:'${FT}',serif;fill:${PAL.ink}}
 .manoF{font-family:'${FM}',cursive}
 .txF{font-family:'${FT}',serif}
+${ST.caps ? `.lbl{text-transform:uppercase;letter-spacing:.16em}.tit{letter-spacing:.04em}` : ''}
 </style>
-${ST.wet ? `<filter id="acuarela" x="-15%" y="-15%" width="130%" height="130%">
+${ST.filters === 'clean' ? `<filter id="acuarela"><feOffset/></filter><filter id="tinta"><feOffset/></filter>`
+  : ST.filters === 'riso' ? `<filter id="acuarela" x="-5%" y="-5%" width="110%" height="110%">
+  <feTurbulence type="fractalNoise" baseFrequency="1.4" numOctaves="1" seed="9" result="g"/>
+  <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.75" result="ga"/>
+  <feComposite in="SourceGraphic" in2="ga" operator="in"/>
+</filter>
+<filter id="tinta" x="-5%" y="-5%" width="110%" height="110%"><feOffset dx="1.3" dy=".7"/></filter>`
+  : ST.wet ? `<filter id="acuarela" x="-15%" y="-15%" width="130%" height="130%">
   <feTurbulence type="fractalNoise" baseFrequency=".022" numOctaves="3" seed="4" result="n"/>
   <feDisplacementMap in="SourceGraphic" in2="n" scale="9" xChannelSelector="R" yChannelSelector="G" result="d"/>
   <feGaussianBlur in="d" stdDeviation="1.1" result="b"/>
@@ -98,6 +259,7 @@ ${ST.wet ? `<filter id="acuarela" x="-15%" y="-15%" width="130%" height="130%">
   <feComposite in="b" in2="ga" operator="in" result="tex"/>
   <feComponentTransfer in="tex"><feFuncA type="linear" slope="1.08"/></feComponentTransfer>
 </filter>`}
+${imageFilters()}
 <filter id="floracion" x="-60%" y="-60%" width="220%" height="220%">
   <feTurbulence type="fractalNoise" baseFrequency=".012" numOctaves="4" seed="21" result="n"/>
   <feDisplacementMap in="SourceGraphic" in2="n" scale="70" xChannelSelector="R" yChannelSelector="G" result="d"/>
@@ -155,7 +317,7 @@ function imageDrawing(img, mon) {
   if (H > 150 * (mon.imageWidth || 1)) { W *= (150 * (mon.imageWidth || 1)) / H; H = 150 * (mon.imageWidth || 1); }
   const href = esc(img.href);
   return {
-    body: `<image href="${href}" xlink:href="${href}" x="${f1(-W / 2)}" y="${f1(-H)}" width="${f1(W)}" height="${f1(H)}" preserveAspectRatio="xMidYMax meet" style="mix-blend-mode:${mon.blend || 'multiply'}"/>`,
+    body: `<image href="${href}" xlink:href="${href}" x="${f1(-W / 2)}" y="${f1(-H)}" width="${f1(W)}" height="${f1(H)}" preserveAspectRatio="xMidYMax meet" filter="url(#${ST.imageFilter || 'img-clasico'})" style="mix-blend-mode:${ST.modern ? 'normal' : mon.blend || 'multiply'}"/>`,
     w: W, h: H,
   };
 }
@@ -269,8 +431,13 @@ export function mapExtent(model, opts = {}) {
 export function renderMap(model, ctx) {
   const opts = { format: 'a3v', routeColor: 'carmin', monumentScale: 1, showRivers: true, showWoods: true, showRoads: true, showRails: true,
     showPeaks: true, showPasses: true, showProfile: true, showCompass: true, showKm: true, showArrows: true, style: 'acuarela', layout: 'poster', campina: false, description: '', motto: '', title: model.name, subtitle: '', ...ctx.opts };
-  ST = STYLES[opts.style] || STYLES.acuarela;
-  setDrawStyle(ST.draw);
+  useStyle(opts.style);
+  // anchos de letra (las maquetas se calcularon con IM Fell SC y Caveat)
+  const RW = fontFor('rotulos', opts).w || 0.51;
+  const LW = ST.caps ? RW + 0.16 : RW;          // rótulos de poblaciones (mayúsculas espaciadas)
+  const MW = fontFor('mano', opts).w || 1;
+  setTextWidth(MW);
+  setBadgeText(ST.paper);
   const segs = allSegments(model);
   const allPts = segs.flatMap((s) => s.points);
   const { L, P } = frameOf(allPts, opts);
@@ -290,7 +457,7 @@ export function renderMap(model, ctx) {
 
   const towns = (ctx.towns || []).filter((t) => t.selected);
   const guide = !!L.guide;
-  const stages = guide || (ctx.towns || []).some((t) => t.selected && t.stageEnd) ? computeStages(prof, ctx.towns || [], circular) : null;
+  const stages = guide || (ctx.towns || []).some((t) => t.selected && t.stageEnd) ? computeStages(prof, ctx.towns || [], circular, ST.stageColors ? [routeColor, ...ST.stageColors.filter((c) => c.toLowerCase() !== routeColor.toLowerCase())] : null) : null;
   const occupied = [];   // rectángulos ocupados por dibujos y rótulos
   const scaleBase = Math.min(L.w, L.h) / 1188 * 0.95 * opts.monumentScale;
   // multiplicadores de tamaño de letra elegidos por el usuario (1 = automático)
@@ -313,9 +480,11 @@ export function renderMap(model, ctx) {
     const [ax, ay] = proj(anchorGeo.lat, anchorGeo.lon);
     const sc = (mon ? 1 : 0.9) * scaleBase * (t.place === 'city' ? 1.15 : t.place === 'town' ? 1 : t.place === 'village' ? 0.82 : t.place === 'poi' ? 0.85 : 0.7);
     const img = mon && mon.image && ctx.images ? ctx.images[mon.image] : null;
-    const drawing = mon ? (img ? imageDrawing(img, mon) : monumentDrawing(mon.illustration, mon.kind, hashString(t.id), mon.hint)) : townDrawing(t.place, hashString(t.id));
+    const drawing0 = mon ? (img ? imageDrawing(img, mon) : monumentDrawing(mon.illustration, mon.kind, hashString(t.id), mon.hint)) : townDrawing(t.place, hashString(t.id));
+    const drawing = img ? drawing0 : { ...drawing0, body: restyle(drawing0.body) };
     const w = drawing.w * sc, h = drawing.h * sc;
-    const labelW = Math.max((t.label || t.name).length * 11 * FS.towns, mon && opts.showMonumentNames !== false ? mon.name.length * 7.2 * FS.hand : 0) * scaleBase;
+    const fsL = (t.place === 'city' ? 25 : t.place === 'town' ? 22 : t.place === 'village' ? 18 : 15) / 0.95;
+    const labelW = Math.max((t.label || t.name).length * fsL * LW * FS.towns, mon && opts.showMonumentNames !== false ? mon.name.length * fsL * 0.72 * 0.48 * MW * FS.hand : 0) * scaleBase;
     let best = null;
     const dirs = [[0, 0], [0, -1], [1, -0.6], [-1, -0.6], [1, 0.4], [-1, 0.4], [0, 1], [1.2, -1.2], [-1.2, -1.2], [1.3, 1], [-1.3, 1]];
     for (const dist of [0, 0.75, 1.2, 1.8]) {
@@ -340,25 +509,30 @@ export function renderMap(model, ctx) {
   let out = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 ${L.w} ${L.h}" width="${L.w}" height="${L.h}" data-generador="ESTODOBAJADA-arte" data-version="${VERSION}">`;
   out += defs(ctx.fontCss, opts);
   out += `<rect width="${L.w}" height="${L.h}" fill="${ST.paper}"/>`;
-  out += `<rect width="${L.w}" height="${L.h}" fill="${ST.paper}" filter="url(#manchas)"/>`;
-  out += `<rect width="${L.w}" height="${L.h}" fill="#000" filter="url(#papel)"/>`;
-  out += `<rect width="${L.w}" height="${L.h}" fill="url(#vineta)"/>`;
+  if (ST.texture !== false) {
+    out += `<rect width="${L.w}" height="${L.h}" fill="${ST.paper}" filter="url(#manchas)"/>`;
+    out += `<rect width="${L.w}" height="${L.h}" fill="#000" filter="url(#papel)"/>`;
+    out += `<rect width="${L.w}" height="${L.h}" fill="url(#vineta)"/>`;
+  }
 
-  // marco
+  // marco (doble a tinta en los clásicos; una línea fina en los contemporáneos)
   const Fm = L.frame;
-  out += `<rect x="${Fm.x}" y="${Fm.y}" width="${Fm.w}" height="${Fm.h}" fill="none" stroke="${PAL.ink}" stroke-width="2.2" filter="url(#tinta)"/>`;
-  out += `<rect x="${Fm.x + 6}" y="${Fm.y + 6}" width="${Fm.w - 12}" height="${Fm.h - 12}" fill="none" stroke="${PAL.ink}" stroke-width=".7" filter="url(#tinta)"/>`;
+  if (ST.frame === 'single') out += `<rect x="${Fm.x}" y="${Fm.y}" width="${Fm.w}" height="${Fm.h}" fill="none" stroke="${PAL.ink}" stroke-width="1"/>`;
+  else {
+    out += `<rect x="${Fm.x}" y="${Fm.y}" width="${Fm.w}" height="${Fm.h}" fill="none" stroke="${PAL.ink}" stroke-width="2.2" filter="url(#tinta)"/>`;
+    out += `<rect x="${Fm.x + 6}" y="${Fm.y + 6}" width="${Fm.w - 12}" height="${Fm.h - 12}" fill="none" stroke="${PAL.ink}" stroke-width=".7" filter="url(#tinta)"/>`;
+  }
 
   const M = L.map;
   out += `<clipPath id="clipMapa"><rect x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}"/></clipPath>`;
   out += `<g clip-path="url(#clipMapa)">`;
   // aguada de fondo del territorio con borde irregular
-  out += `<rect x="${M.x + 14}" y="${M.y + 14}" width="${M.w - 28}" height="${M.h - 28}" fill="${ST.field}" fill-opacity=".55" filter="url(#borde)"/>`;
+  if (ST.field) out += `<rect x="${M.x + 14}" y="${M.y + 14}" width="${M.w - 28}" height="${M.h - 28}" fill="${ST.field}" fill-opacity=".55" filter="url(#borde)"/>`;
   // relieve real (teselas de elevación), aguada multiplicada sobre el papel
   if (ctx.relief && opts.showRelief !== false) {
     const r = ctx.relief;
     const [x0, y0] = proj(r.maxLat, r.minLon), [x1, y1] = proj(r.minLat, r.maxLon);
-    out += `<image id="capa-relieve" href="${r.href}" x="${f1(x0)}" y="${f1(y0)}" width="${f1(x1 - x0)}" height="${f1(y1 - y0)}" preserveAspectRatio="none" opacity="${ST.relief}" style="mix-blend-mode:multiply" filter="url(#relieve)"/>`.replace(/^/, ST.layerFilter ? `<g filter="url(#${ST.layerFilter})">` : '') + (ST.layerFilter ? '</g>' : '');
+    out += `<image id="capa-relieve" href="${r.href}" x="${f1(x0)}" y="${f1(y0)}" width="${f1(x1 - x0)}" height="${f1(y1 - y0)}" preserveAspectRatio="none" opacity="${ST.relief}" style="mix-blend-mode:multiply" filter="url(#${ST.reliefFilter || 'relieve'})"/>`.replace(/^/, ST.layerFilter ? `<g filter="url(#${ST.layerFilter})">` : '') + (ST.layerFilter ? '</g>' : '');
   }
   if (ST.blooms) out += blooms(M, rng(seed + 5));
   if (opts.campina) out += campina(M, rng(seed + 9), occupied, scaleBase);
@@ -383,12 +557,13 @@ export function renderMap(model, ctx) {
     let s = '';
     if (sea.ok && sea.rings.length) {
       const d = sea.rings.map((r) => toPath(r) + 'Z').join('');
-      s += `<path d="${d}" fill="#8fbcd2" fill-opacity="${ST.wet ? 0.62 : 0.55}" fill-rule="evenodd" filter="url(#acuarela)"/>`;
+      s += `<path d="${d}" fill="${C.sea}" fill-opacity="${ST.modern ? 1 : ST.wet ? 0.62 : 0.55}" fill-rule="evenodd" filter="url(#acuarela)"/>`;
       s += `<clipPath id="clip-mar"><path d="${d}" clip-rule="evenodd"/></clipPath><g clip-path="url(#clip-mar)">`;
       // el pigmento se acumula junto a la costa, como en una acuarela; olas a plumilla mar adentro
       s += `<path d="${coastD}" fill="none" stroke="${PAL.waterDark}" stroke-opacity=".2" stroke-width="30" stroke-linejoin="round" filter="url(#acuarela)"/>`;
       s += `<path d="${coastD}" fill="none" stroke="${PAL.waterDark}" stroke-opacity=".28" stroke-width="9" stroke-linejoin="round"/>`;
-      s += `<rect x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}" fill="url(#olas)" opacity="${ST.wet ? 0.4 : 0.5}"/></g>`;
+      if (!ST.modern) s += `<rect x="${M.x}" y="${M.y}" width="${M.w}" height="${M.h}" fill="url(#olas)" opacity="${ST.wet ? 0.4 : 0.5}"/>`;
+      s += '</g>';
       seaInfo = { rings: sea.rings };
       // nombre del mar: el punto de mar abierto más alejado de costa y ruta
       const names = (osm.seaNames || []).filter((n) => n.kind !== 'bay');
@@ -432,8 +607,8 @@ export function renderMap(model, ctx) {
     for (const u of osm.urban) {
       if (u.coords.length < 4) continue;
       const d = toPath(u.coords) + 'Z';
-      s += `<path d="${d}" fill="#d6a578" fill-opacity="${ST.wet ? 0.3 : 0.22}"/>`;
-      lines += `<path d="${d}" fill="none" stroke="${PAL.brickDark}" stroke-opacity=".22" stroke-width=".6"/>`;
+      s += `<path d="${d}" fill="${C.urban}" fill-opacity="${ST.modern ? 1 : ST.wet ? 0.3 : 0.22}"/>`;
+      if (!ST.modern) lines += `<path d="${d}" fill="none" stroke="${PAL.brickDark}" stroke-opacity=".22" stroke-width=".6"/>`;
     }
     out += `<g id="capa-urbano"${ST.layerFilter ? ` filter="url(#${ST.layerFilter})"` : ''}>${pool(s)}${lines}</g>`;
   }
@@ -474,6 +649,7 @@ export function renderMap(model, ctx) {
       if (occupied.some((o) => x > o.x && x < o.x + o.w && y > o.y && y < o.y + o.h + 6)) continue;
       const pine = leaf === 'needleleaved' || (leaf !== 'broadleaved' && rnd() > 0.45);
       const sc = scaleBase * (0.8 + rnd() * 0.35);
+      if (!treeBudget) break;
       trees += pine ? pineTree(x, y, sc * (ST.draw.looseTrees ? 1.25 : 1), i + 3) : roundTree(x, y, sc * (ST.draw.looseTrees ? 1.25 : 1), i + 3);
     }
     out += `<g id="capa-bosques"${ST.layerFilter ? ` filter="url(#${ST.layerFilter})"` : ''}>${pool(washes)}${poolTrees(trees, ST.draw.looseTrees)}</g>`;
@@ -488,7 +664,7 @@ export function renderMap(model, ctx) {
       const b = boxOf(w.rings);
       if (!visible(b)) continue;
       const d = ringsD(w.rings);
-      s += `<path d="${d}" fill="#8fb3a0" fill-opacity=".34" fill-rule="evenodd"/>`;
+      s += `<path d="${d}" fill="${C.wetland}" fill-opacity="${ST.modern ? 1 : .34}" fill-rule="evenodd"/>`;
       const px = w.rings[0].map(([la, lo]) => proj(la, lo));
       for (let y = b.y0 + sp / 2; y < b.y1 && budget > 0; y += sp * 0.8) {
         for (let x = b.x0 + ((y / sp) % 2) * sp * 0.5; x < b.x1 && budget > 0; x += sp) {
@@ -568,7 +744,7 @@ export function renderMap(model, ctx) {
         s += `<path d="${d}" fill="none" stroke="${PAL.stoneDark}" stroke-opacity="${rd.kind === 'secondary' ? 0.45 : 0.32}" stroke-width="${rd.kind === 'secondary' ? 1.5 : 1}"/>`;
         continue;
       }
-      s += `<path d="${d}" fill="none" stroke="${PAL.stoneDark}" stroke-opacity=".6" stroke-width="${big ? 3.2 : 2.2}"/><path d="${d}" fill="none" stroke="#f6eedc" stroke-width="${big ? 1.6 : 1}"/>`;
+      s += `<path d="${d}" fill="none" stroke="${PAL.stoneDark}" stroke-opacity=".6" stroke-width="${big ? 3.2 : 2.2}"/><path d="${d}" fill="none" stroke="${C.road}" stroke-width="${big ? 1.6 : 1}"/>`;
     }
     out += `<g id="capa-carreteras" opacity=".8">${s}</g>`;
   }
@@ -593,7 +769,7 @@ export function renderMap(model, ctx) {
       const box = { x: x - Math.max(24, lw / 2), y: y - 36 * scaleBase, w: Math.max(48, lw), h: 36 * scaleBase + fsz + 4 };
       if (!ps.onRoute && occupied.some((o) => overlap(box, o) > 40)) return;
       seen.add(key);
-      passLayer += mountainPass(x, y + 2, scaleBase * (ps.onRoute ? 1.4 : 0.9), i + 7, ps.onRoute);
+      passLayer += restyle(mountainPass(x, y + 2, scaleBase * (ps.onRoute ? 1.4 : 0.9), i + 7, ps.onRoute));
       passLayer += `<text class="mano" x="${f1(x)}" y="${f1(y + 4 + fsz)}" text-anchor="middle" font-size="${f1(fsz)}"${ps.onRoute ? ' font-weight="700"' : ''}>${label}</text>`;
       occupied.push(box);
       if (ps.onRoute) routePasses.push({ along: ps.near.along, name: ps.name, ele: ps.ele });
@@ -608,7 +784,7 @@ export function renderMap(model, ctx) {
       if (x < M.x || x > M.x + M.w || y < M.y || y > M.y + M.h) return;
       const box = { x: x - 22, y: y - 30, w: 44, h: 32 };
       if (occupied.some((o) => overlap(box, o) > 40) || routeHits(box, 0) > 3) return;
-      s += mountain(x, y + 2, scaleBase * 0.9, i + 1);
+      s += ST.peaks === 'triangle' ? peakMark(x, y + 2, scaleBase) : mountain(x, y + 2, scaleBase * 0.9, i + 1);
       if (pk.name) s += `<text class="mano" x="${f1(x)}" y="${f1(y + 16)}" text-anchor="middle" font-size="${f1(13 * scaleBase * FS.hand)}">${esc(pk.name)}${pk.ele ? ` · ${Math.round(pk.ele)} m` : ''}</text>`;
       occupied.push(box);
     });
@@ -621,7 +797,7 @@ export function renderMap(model, ctx) {
     const { drawing, sc, bx, by, ax, ay, t, mon } = pm;
     const moved = Math.hypot(bx - ax, by - ay) > 4;
     if (moved) monLayer += `<path d="M${f1(ax)} ${f1(ay)}L${f1(bx)} ${f1(by)}" stroke="${PAL.ink}" stroke-width=".8" stroke-dasharray="2 3" fill="none"/>`;
-    monLayer += `<ellipse cx="${f1(bx)}" cy="${f1(by - 2)}" rx="${f1(drawing.w * sc * .62)}" ry="${f1(drawing.h * sc * .32)}" fill="${ST.wet ? '#d8b27a' : PAL.green}" fill-opacity="${ST.wet ? .32 : .18}" filter="url(#acuarela)"/>`;
+    if (C.monGround) monLayer += `<ellipse cx="${f1(bx)}" cy="${f1(by - 2)}" rx="${f1(drawing.w * sc * .62)}" ry="${f1(drawing.h * sc * .32)}" fill="${ST.wet ? '#d8b27a' : PAL.green}" fill-opacity="${ST.wet ? .32 : .18}" filter="url(#acuarela)"/>`;
     monLayer += `<g class="monumento" data-poblacion="${esc(t.name)}" transform="translate(${f1(bx)} ${f1(by)}) scale(${sc.toFixed(3)})">${drawing.body}</g>`;
     monLayer += `<circle cx="${f1(ax)}" cy="${f1(ay)}" r="2.6" fill="${PAL.ink}"/>`;
     void mon;
@@ -632,7 +808,8 @@ export function renderMap(model, ctx) {
   let route = '';
   const dList = segPx.map((pts) => pts.map(([x, y], i) => `${i ? 'L' : 'M'}${fx(x)} ${fx(y)}`).join(''));
   if (ST.bleed) for (const d of dList) route += `<path d="${d}" fill="none" stroke="${routeColor}" stroke-opacity=".22" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" filter="url(#sangrado)"/>`;
-  for (const d of dList) route += `<path d="${d}" fill="none" stroke="${ST.paper}" stroke-opacity=".9" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
+  if (ST.glow) for (const d of dList) route += `<path d="${d}" fill="none" stroke="${routeColor}" stroke-opacity=".55" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" filter="url(#brillo)"/>`;
+  else for (const d of dList) route += `<path d="${d}" fill="none" stroke="${ST.paper}" stroke-opacity=".9" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>`;
   dList.forEach((d, si) => {
     route += `<path class="ruta" data-ruta-seg="${si}" d="${d}" fill="none" stroke="${routeColor}" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>`;
   });
@@ -676,7 +853,7 @@ export function renderMap(model, ctx) {
     for (const t of towns) {
       if (t.dist > 1500) continue;
       const p = at(Math.min(prof.total, Math.max(0, t.along)));
-      marks += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="5.5" fill="#fbf6ea" stroke="${PAL.ink}" stroke-width="2"/>`;
+      marks += `<circle cx="${f1(p.x)}" cy="${f1(p.y)}" r="5.5" fill="${C.dot}" stroke="${PAL.ink}" stroke-width="2"/>`;
     }
   }
   out += `<g id="capa-marcas">${marks}</g>`;
@@ -691,7 +868,7 @@ export function renderMap(model, ctx) {
     const { t, mon, bx, by } = pm;
     const fs0 = (t.place === 'city' ? 25 : t.place === 'town' ? 22 : t.place === 'village' ? 18 : 15) * scaleBase / 0.95;
     const fs = fs0 * FS.towns, fm = fs0 * 0.72 * FS.hand;
-    if (guide && pm.poi) labels += numberBadge(bx - (t.label || t.name).length * fs * 0.255 - 14, by + fs * 0.62, pm.poi, 10 * scaleBase / 0.95);
+    if (guide && pm.poi) labels += numberBadge(bx - (t.label || t.name).length * fs * LW / 2 - 14, by + fs * 0.62, pm.poi, 10 * scaleBase / 0.95);
     labels += `<text class="lbl" x="${f1(bx)}" y="${f1(by + fs + 2)}" text-anchor="middle" font-size="${f1(fs)}">${esc(t.label || t.name)}</text>`;
     if (mon && opts.showMonumentNames !== false && mon.name !== (t.label || t.name)) labels += `<text class="mano" x="${f1(bx)}" y="${f1(by + fs + 2 + fm * 1.08)}" text-anchor="middle" font-size="${f1(fm)}">${esc(mon.name)}</text>`;
   }
@@ -711,7 +888,10 @@ export function renderMap(model, ctx) {
     const H = L.head;
     if (ST.wet) out += `<path d="M${H.x - 8} ${f1(H.y + H.h * .2)}Q${f1(H.x + H.w * .2)} ${f1(H.y + H.h * .08)} ${f1(H.x + H.w * .42)} ${f1(H.y + H.h * .16)}L${f1(H.x + H.w * .41)} ${f1(H.y + H.h * .34)}Q${f1(H.x + H.w * .2)} ${f1(H.y + H.h * .4)} ${H.x - 6} ${f1(H.y + H.h * .33)}Z" fill="${routeColor}" fill-opacity=".28" filter="url(#floracion)"/>`;
     out += `<g id="cartela"><text class="tit" x="${H.x}" y="${H.y + H.h * 0.28}" font-size="${f1(H.h * 0.2)}" letter-spacing="3">#ESTODOBAJADA</text>`;
-    out += `<text class="tit" x="${H.x}" y="${H.y + H.h * 0.72}" font-size="${f1(H.h * 0.42 * FS.title)}">${esc(title)}</text>`;
+    // el título deja sitio a los datos de la derecha
+    const rightW = opts.subtitle ? opts.subtitle.length * H.h * 0.2 * 0.48 * MW + 30 : 20;
+    const tsz = Math.min(H.h * 0.42, (H.w - rightW) / Math.max(4, title.length * RW)) * FS.title;
+    out += `<text class="tit" x="${H.x}" y="${H.y + H.h * 0.72}" font-size="${f1(tsz)}">${esc(title)}</text>`;
     out += `<text class="mano" x="${H.x + H.w}" y="${H.y + H.h * 0.38}" text-anchor="end" font-size="${f1(H.h * 0.24)}">${esc(kmTxt)}${upTxt ? ' · ' + upTxt : ''} · ${kind}</text>`;
     if (opts.subtitle) out += `<text class="mano" x="${H.x + H.w}" y="${H.y + H.h * 0.72}" text-anchor="end" font-size="${f1(H.h * 0.2)}">${esc(opts.subtitle)}</text>`;
     out += `<path d="M${H.x} ${H.y + H.h - 4}L${H.x + H.w} ${H.y + H.h - 4}" stroke="${PAL.ink}" stroke-width="1.2" filter="url(#tinta)"/></g>`;
@@ -749,7 +929,7 @@ export function renderMap(model, ctx) {
   if (opts.showCompass) {
     const rr = 44 * scaleBase / 0.95;
     const [x, y] = freeCorner(rr * 2.4, rr * 2.6);
-    out += compassRose(x + rr * 1.2, y + rr * 1.5, rr);
+    out += ST.compass === 'arrow' ? northArrow(x + rr * 1.2, y + rr * 1.5, rr) : compassRose(x + rr * 1.2, y + rr * 1.5, rr);
   }
   {
     const nice = [500, 1000, 2000, 5000, 10000, 20000, 50000];
@@ -765,7 +945,7 @@ export function renderMap(model, ctx) {
 
   // ——— perfil de altitud ———
   if (L.profile && stats && stages && (guide || stages.length > 1)) {
-    out += stageProfiles(L.profile, prof, stages, stats);
+    out += stageProfiles(L.profile, prof, stages, stats, { fill: ST.modern ? C.profile : null });
   } else if (L.profile && stats) {
     const Pr = L.profile;
     const pad = { l: 54, r: 16, t: 16, b: 30 };
@@ -785,7 +965,7 @@ export function renderMap(model, ctx) {
     let line = '';
     smp.forEach((s, i) => { line += `${i ? 'L' : 'M'}${f1(X(s.d))} ${f1(Y(s.ele))}`; });
     let s = `<g id="perfil">`;
-    s += `<path d="${line}L${f1(X(smp[smp.length - 1].d))} ${f1(gy + gh)}L${f1(X(smp[0].d))} ${f1(gy + gh)}Z" fill="${ST.wet ? '#b9a27c' : PAL.mountain}" fill-opacity="${ST.wet ? .5 : .6}" filter="url(#acuarela)"/>`;
+    s += `<path d="${line}L${f1(X(smp[smp.length - 1].d))} ${f1(gy + gh)}L${f1(X(smp[0].d))} ${f1(gy + gh)}Z" fill="${ST.modern ? C.profile : ST.wet ? '#b9a27c' : PAL.mountain}" fill-opacity="${ST.modern ? 1 : ST.wet ? .5 : .6}" filter="url(#acuarela)"/>`;
     s += `<path d="${line}" fill="none" stroke="${routeColor}" stroke-width="1.8"/>`;
     s += `<path d="M${gx} ${gy}L${gx} ${gy + gh}L${gx + gw} ${gy + gh}" fill="none" stroke="${PAL.ink}" stroke-width="1"/>`;
     const step = totalKm > 160 ? 20 : totalKm > 60 ? 10 : 5;
@@ -843,7 +1023,7 @@ export function renderMap(model, ctx) {
 
   if (guide) {
     const st0 = stages[0];
-    out += sidePanel(L.panel, { stages, pois, start: st0.names[0], circular, motto: opts.motto, hasWoods: !!(osm && opts.showWoods && osm.woods.length), hasRivers: !!(osm && opts.showRivers && osm.rivers.length), hasWater: !!(osm && opts.showWater !== false && osm.waters && osm.waters.length), hasSea: !!seaInfo, hasWetlands: !!(osm && opts.showWater !== false && osm.wetlands && osm.wetlands.length), sc: scaleBase / 0.95 });
+    out += sidePanel(L.panel, { dot: C.dot, sea: C.sea, stages, pois, start: st0.names[0], circular, motto: opts.motto, hasWoods: !!(osm && opts.showWoods && osm.woods.length), hasRivers: !!(osm && opts.showRivers && osm.rivers.length), hasWater: !!(osm && opts.showWater !== false && osm.waters && osm.waters.length), hasSea: !!seaInfo, hasWetlands: !!(osm && opts.showWater !== false && osm.wetlands && osm.wetlands.length), sc: scaleBase / 0.95 });
   }
 
   // créditos obligatorios
@@ -871,6 +1051,7 @@ export function renderMap(model, ctx) {
     });
   }
   out += `</svg>`;
+  out = stripPaint(out);
 
   return {
     svg: out, projection: P, layout: L,

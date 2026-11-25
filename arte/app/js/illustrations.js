@@ -19,9 +19,18 @@ let HINT = {};
 const j = (a = 0.6) => (R() - 0.5) * 2 * a;
 const f = (n) => Math.round(n * 10) / 10;
 
-let DS = { inkOpacity: 1, inkWidth: 1, washOpacity: 0.88, bleedWash: false, looseTrees: false };
-/** Ajusta el trazo según el estilo elegido (opacidad de tinta, aguadas desbordadas…). */
-export function setDrawStyle(ds) { DS = { ...DS, ...ds }; }
+const PAL_BASE = { ...PAL };
+const DS_BASE = { inkOpacity: 1, inkWidth: 1, washOpacity: 0.88, bleedWash: false, looseTrees: false, pal: null };
+let DS = { ...DS_BASE };
+/**
+ * Ajusta el trazo según el estilo elegido (opacidad de tinta, aguadas desbordadas…) y, en los
+ * estilos contemporáneos, la paleta base (tinta, agua, verdes…). Cada estilo parte de cero.
+ */
+export function setDrawStyle(ds) {
+  DS = { ...DS_BASE, ...ds };
+  for (const k of Object.keys(PAL)) PAL[k] = PAL_BASE[k];
+  if (DS.pal) Object.assign(PAL, DS.pal);
+}
 
 const wash = (d, fill, op = 0.88) => {
   const o = Math.min(1, op * (DS.washOpacity / 0.88));

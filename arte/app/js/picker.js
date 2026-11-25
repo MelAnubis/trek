@@ -1,6 +1,7 @@
 // Selector de dibujo: buscador con miniaturas y sugerencias ordenadas, en lugar de un
 // desplegable con todos los dibujos (que crece sin fin a medida que se añaden).
 import { haversine, normalizeName } from './geo.js';
+import { restyle, thumbBackground } from './render.js';
 
 const SHOW = 8;   // por sección sin buscar
 
@@ -66,8 +67,11 @@ export function pickerSections(town, { metas, typologies, kindLabel = {}, kind =
 
 /** Miniatura SVG de un dibujo (usa los filtros del documento, definidos en #thumb-defs). */
 export function thumbSvg(drawing) {
-  const { body, w, h } = drawing;
-  return `<svg viewBox="${(-w / 2 - 6).toFixed(1)} ${(-h - 6).toFixed(1)} ${(w + 12).toFixed(1)} ${(h + 14).toFixed(1)}" aria-hidden="true">${body}</svg>`;
+  const { w, h } = drawing;
+  const body = restyle(drawing.body); // a la paleta del estilo actual (no cambia en los clásicos)
+  const bg = thumbBackground();
+  const vb = [-w / 2 - 6, -h - 6, w + 12, h + 14].map((v) => v.toFixed(1));
+  return `<svg viewBox="${vb.join(' ')}" aria-hidden="true"${bg ? ` style="background:${bg}"` : ''}>${body}</svg>`;
 }
 
 /**
